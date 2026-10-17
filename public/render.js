@@ -215,7 +215,18 @@ const Render = (() => {
     if (ov.hover === k) { hexPath(cx, cy, s); ctx.strokeStyle = 'rgba(255,255,255,.9)'; ctx.lineWidth = 2.2 * z; ctx.stroke(); }
     if (ov.selectedExtra && ov.selectedExtra.includes(k)) { hexPath(cx, cy, s * (1.02 + pulse * 0.04)); ctx.strokeStyle = '#ffc53d'; ctx.lineWidth = 3 * z; ctx.setLineDash([8 * z, 5 * z]); ctx.lineDashOffset = t * 30; ctx.stroke(); ctx.setLineDash([]); }
     if (ov.selected === k) { hexPath(cx, cy, s * (1.02 + pulse * 0.04)); ctx.strokeStyle = '#fff'; ctx.lineWidth = 3 * z; ctx.setLineDash([8 * z, 5 * z]); ctx.lineDashOffset = t * 30; ctx.stroke(); ctx.setLineDash([]); }
-    if (tile.struct && tile.struct.type !== 'bridge') drawStruct(tile, cx, cy, z, k);
+    if (tile.struct && tile.struct.type !== 'bridge') {
+      drawStruct(tile, cx, cy, z, k);
+      const extra = (tile.structs || []).filter(st => st !== tile.struct && st.type !== tile.struct.type);
+      extra.forEach((st, i) => drawMini(st, cx - 16 * z + i * 32 * z, cy + 7 * z, z));
+      const h = (tile.structs || []).find(st => st.type === 'hq');
+      if (h && h.siege) {
+        const pulse = 0.5 + 0.5 * Math.sin(t * 8);
+        ctx.strokeStyle = `rgba(255,70,40,${0.5 + pulse * 0.5})`; ctx.lineWidth = 4 * z;
+        hexPath(cx, cy, S * 0.9 * z); ctx.stroke();
+        if (Math.random() < 0.25) burst([tc[k].wx + (Math.random() - 0.5) * 30, tc[k].wy - tc[k].h - 10], ['#ff6a2a', '#ffb03a', '#444'], 2, { up: 120, size: 3, life: 0.6 });
+      }
+    }
   }
 
   function crosshair(cx, cy, s, z, pulse) {
@@ -341,6 +352,15 @@ const Render = (() => {
     }
   }
 
+  function drawMini(st, x, y, z) {
+    const p = S_.players.find(pl => pl.id === st.owner);
+    ctx.save(); ctx.translate(x, y);
+    ctx.fillStyle = '#10161c'; ctx.beginPath(); ctx.arc(0, 0, 7.5 * z, 0, Math.PI * 2); ctx.fill();
+    ctx.strokeStyle = p ? p.color : '#ccc'; ctx.lineWidth = 1.8 * z; ctx.stroke();
+    Art.drawIcon(ctx, 'struct', st.type, 0, 0, 4.8 * z, '#f1efe6');
+    if ((st.lvl || 1) > 1) { ctx.fillStyle = '#ffc53d'; ctx.font = `900 ${7 * z}px "Chakra Petch",sans-serif`; ctx.textAlign = 'center'; ctx.fillText('★'.repeat(st.lvl), 0, 12 * z); }
+    ctx.restore();
+  }
   function drawStruct(tile, cx, cy, z, k) {
     const p = S_.players.find(pl => pl.id === tile.struct.owner);
     const col = p ? p.color : '#ccc';

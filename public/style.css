@@ -694,3 +694,7 @@ body.pp-idle #deckBar::after { content: 'Hands hidden until a local player is up
 #hbUnits .card .c-foil, #hand .card .c-foil { animation-play-state: paused; }
 #hbUnits .card:hover .c-foil, #hand .card:hover .c-foil { animation-play-state: running; }
 .cr-cards .flip, .cr-cards .card { will-change: transform; }
+
+#siegeWarn { position: fixed; top: 74px; left: 50%; transform: translateX(-50%); z-index: 30; background: #3a0d0d; border: 3px solid #ff4a2a; color: #ffd0c4; padding: 8px 16px; border-radius: 10px; font-size: 14px; box-shadow: 0 4px 0 #000, 0 0 30px rgba(255,74,42,.6); animation: siegePulse 1s ease-in-out infinite; cursor: pointer; white-space: nowrap; }
+#siegeWarn span { color: #ff9a8a; font-size: 12px; }
+@keyframes siegePulse { 50% { box-shadow: 0 4px 0 #000, 0 0 50px rgba(255,74,42,.95); } }

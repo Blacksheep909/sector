@@ -154,7 +154,18 @@
   // structures can be stacked up to level 3 by building the same thing on the same hex
   const UPGRADABLE = ['hq', 'fob', 'market', 'refinery', 'depot', 'bunker', 'flak'];
   const MAX_SLVL = 3;
-  const slvl = t => (t && t.struct && t.struct.lvl) || 1;
+  const MAX_STRUCTS = 3; // different buildings per hex
+  const STRUCT_PRIORITY = ['hq', 'fob', 'port', 'bridge', 'market', 'refinery', 'depot', 'bunker', 'flak'];
+  const structsOf = t => (t && t.structs) || (t && t.struct ? [t.struct] : []);
+  const getS = (t, type) => structsOf(t).find(x => x.type === type) || null;
+  const slvlOf = st => (st && st.lvl) || 1;
+  function syncStructs(t) {
+    const l = structsOf(t).filter(Boolean);
+    t.structs = l;
+    t.struct = l.slice().sort((a, b) => STRUCT_PRIORITY.indexOf(a.type) - STRUCT_PRIORITY.indexOf(b.type))[0] || null;
+  }
+  function addStruct(t, st) { t.structs = structsOf(t).concat([st]); syncStructs(t); }
+  function removeStruct(t, st) { t.structs = structsOf(t).filter(x => x !== st); syncStructs(t); }
 
   const FACTIONS = {
     iron: { name: 'Iron Covenant', perk: 'Steel Wall', desc: '+1 defence Chip per unit when defending.', starter: 'bulwark', glyph: 'shield' },
@@ -335,11 +346,11 @@
       pl.tactics.push({ uid: state.nextId++, id: 'drop_rare' });
       state.players.push(pl);
       const t = state.map.tiles[hq];
-      t.owner = p.id; t.struct = { type: 'hq', owner: p.id };
+      t.owner = p.id; addStruct(t, { type: 'hq', owner: p.id, lvl: 1 });
       for (const n of neighbors(hq)) { const nt = state.map.tiles[n]; if (nt && TERRAIN[nt.t].land && !nt.owner) nt.owner = p.id; }
       if (p.faction === 'verdant') {
-        const spot = neighbors(hq).find(n => state.map.tiles[n] && state.map.tiles[n].owner === p.id && !state.map.tiles[n].struct);
-        if (spot) state.map.tiles[spot].struct = { type: 'bunker', owner: p.id };
+        const spot = neighbors(hq).find(n => state.map.tiles[n] && state.map.tiles[n].owner === p.id && !structsOf(state.map.tiles[n]).length);
+        if (spot) addStruct(state.map.tiles[spot], { type: 'bunker', owner: p.id, lvl: 1 });
       }
       for (let j = 0; j < 2; j++) addUnit(state, p.id, 'grunt', hq, false);
     });
@@ -381,7 +392,8 @@
   // what building `type` on hex k costs right now (a fresh build, or the next upgrade)
   function buildCost(s, p, type, k) {
     const t = k && s.map.tiles[k];
-    return structCost(p, type, t && t.struct && t.struct.type === type ? slvl(t) + 1 : 1);
+    const st = t && getS(t, type);
+    return structCost(p, type, st ? slvlOf(st) + 1 : 1);
   }
   function canAct(s, u) { const p = player(s, u.owner); return !u.moved && !u.stun && (!u.fresh || (p && p.blitz)); }
   function moveAllow(s, u) {
@@ -394,12 +406,16 @@
   function ownedLand(s, pid) { const o = []; for (const k in s.map.tiles) { const t = s.map.tiles[k]; if (t.owner === pid && isLandTile(t)) o.push(k); } return o; }
   function spawnPoints(s, pid) {
     const out = [];
-    for (const k in s.map.tiles) { const t = s.map.tiles[k]; if (t.owner === pid && t.struct && (t.struct.type === 'hq' || t.struct.type === 'fob')) out.push(k); }
+    for (const k in s.map.tiles) {
+      const t = s.map.tiles[k]; if (t.owner !== pid) continue;
+      const h = getS(t, 'hq'), f = getS(t, 'fob');
+      if ((h && h.owner === pid && !h.siege) || (f && f.owner === pid && !f.lock)) out.push(k);
+    }
     return out;
   }
   function supplySet(s, pid) {
     const src = [];
-    for (const k in s.map.tiles) { const t = s.map.tiles[k]; if (t.owner === pid && t.struct && ['hq', 'fob', 'port'].includes(t.struct.type)) src.push(k); }
+    for (const k in s.map.tiles) { const t = s.map.tiles[k]; if (t.owner === pid && structsOf(t).some(x => ['hq', 'fob', 'port'].includes(x.type) && x.owner === pid && !x.siege)) src.push(k); }
     const seen = new Set(src), q = src.slice();
     for (let i = 0; i < q.length; i++) for (const n of neighbors(q[i])) {
       const t = s.map.tiles[n];
@@ -414,7 +430,7 @@
     if (!t) return 'No such hex';
     if (struct === 'bridge') {
       if (!isWater(t)) return 'Bridges span sea hexes';
-      if (t.struct) return 'Already built';
+      if (structsOf(t).length) return 'Already built';
       if (Object.values(s.units).some(u => u.hex === k)) return 'Hex is occupied';
       const shores = neighbors(k).filter(n => tiles[n] && TERRAIN[tiles[n].t].land);
       const spans = shores.some(a => shores.some(b => dist(a, b) >= 2));
@@ -423,18 +439,20 @@
       return null;
     }
     if (t.owner !== pid) return 'Build on your own territory';
-    if (struct === 'hq') return t.struct && t.struct.type === 'hq' ? (slvl(t) >= MAX_SLVL ? 'HQ is fully fortified' : null) : 'Fortify your HQ hex';
-    if (t.struct) {
-      if (t.struct.type !== struct) return 'Hex already has a structure';
-      if (!UPGRADABLE.includes(struct)) return 'Can\'t be upgraded';
-      if (slvl(t) >= MAX_SLVL) return 'Already max level';
+    if (struct === 'hq') { const h = getS(t, 'hq'); return h && h.owner === pid && !h.siege ? (slvlOf(h) >= MAX_SLVL ? 'HQ is fully fortified' : null) : 'Fortify your HQ hex'; }
+    const ex = getS(t, struct);
+    if (ex) {
+      if (!UPGRADABLE.includes(struct)) return 'Already built here';
+      if (slvlOf(ex) >= MAX_SLVL) return 'Already max level';
       return sup.has(k) ? null : 'Hex is cut off from supply';
     }
+    if (getS(t, 'bridge')) return 'Nothing else fits on a bridge';
+    if (structsOf(t).length >= MAX_STRUCTS) return 'Hex is full (max ' + MAX_STRUCTS + ' buildings)';
     if (t.contam) return 'Fallout zone';
     if (!sup.has(k)) return 'Hex is cut off from supply';
     if (isWater(t)) return struct === 'refinery' && t.res ? null : 'That goes on land';
     if (struct === 'port' && !isCoastal(s, k)) return 'Ports must touch the sea';
-    if (struct === 'fob' && area(k, 2).some(a => tiles[a] && tiles[a].struct && ['hq', 'fob'].includes(tiles[a].struct.type))) return 'Too close to another base';
+    if (struct === 'fob' && area(k, 2).some(a => tiles[a] && structsOf(tiles[a]).some(x => ['hq', 'fob'].includes(x.type)))) return 'Too close to another base';
     return null;
   }
   function buildHexes(s, pid, struct) {
@@ -449,7 +467,8 @@
     const out = new Set();
     for (const k in s.map.tiles) {
       const t = s.map.tiles[k];
-      if (t.owner !== pid || !t.struct || t.struct.type !== 'port') continue;
+      const pt = getS(t, 'port');
+      if (t.owner !== pid || !pt || pt.owner !== pid || pt.lock) continue;
       for (const n of neighbors(k)) {
         const w = s.map.tiles[n]; if (!isWater(w)) continue;
         const occ = idx[n] || [];
@@ -466,9 +485,11 @@
       if (!sup.has(k)) { cut++; continue; }
       if (isWater(t)) sea++; else hexes++;
       if (t.res) res++;
-      if (t.struct && t.struct.type === 'refinery') ref += (t.res ? 4 : 2) * slvl(t);
-      if (t.struct && t.struct.type === 'market') markets += slvl(t);
-      if (t.struct && t.struct.type === 'port') ports++;
+      for (const st of structsOf(t)) {
+        if (st.type === 'refinery') ref += (t.res ? 4 : 2) * slvlOf(st);
+        if (st.type === 'market') markets += slvlOf(st);
+        if (st.type === 'port') ports++;
+      }
     }
     const trade = markets ? markets * 3 + markets * (markets - 1 + ports) : 0;
     const base = 3, fromHex = Math.floor(hexes / 3), fromSea = Math.floor(sea / 4), fromRes = res * 2;
@@ -483,7 +504,7 @@
     return false;
   }
   function flakCovered(s, pid, k) {
-    for (const a of area(k, MAX_SLVL)) { const t = s.map.tiles[a]; if (t && t.struct && t.struct.type === 'flak' && t.struct.owner !== pid && dist(a, k) <= slvl(t)) return true; }
+    for (const a of area(k, MAX_SLVL)) { const f = getS(s.map.tiles[a], 'flak'); if (f && f.owner !== pid && dist(a, k) <= slvlOf(f)) return true; }
     return false;
   }
 
@@ -543,7 +564,7 @@
         const land = isLandTile(t);
         let kind;
         if (enemy) { if (!canFight) continue; kind = 'attack'; }
-        else if (land && t.owner && t.owner !== pid) kind = (t.struct && t.struct.type === 'hq') ? (canFight ? 'attack' : null) : 'capture';
+        else if (land && t.owner && t.owner !== pid) { const h = getS(t, 'hq'); kind = h && h.owner === t.owner ? (canFight ? 'attack' : null) : 'capture'; }
         else kind = land && !t.contam && occ.length + units.length <= MAX_STACK ? 'move' : 'pass';
         if (!kind || (kind === 'capture' && t.contam)) continue;
         set(n, cc, cur, kind);
@@ -605,7 +626,7 @@
       flank = Math.min(2, flank);
       if (flank) { att.mult += flank; att.bonuses.push({ label: 'Flanking', mult: flank }); }
       if (stages.length > 1) { const pin = Math.min(2, stages.length - 1); att.mult += pin; att.bonuses.push({ label: 'Pincer ×' + stages.length, mult: pin }); }
-      if (t.struct && ['hq', 'fob', 'bunker'].includes(t.struct.type) && units.some(u => UNITS[u.type].ability === 'siege')) { att.mult += 2; att.bonuses.push({ label: 'Siege Breaker', mult: 2 }); }
+      if (structsOf(t).some(x => ['hq', 'fob', 'bunker'].includes(x.type)) && units.some(u => UNITS[u.type].ability === 'siege')) { att.mult += 2; att.bonuses.push({ label: 'Siege Breaker', mult: 2 }); }
       if (isLandTile(t) && units.every(u => isSea(u.type))) { att.mult -= 1; att.bonuses.push({ label: 'Shore Assault', mult: -1 }); }
       void multi;
     } else {
@@ -618,15 +639,17 @@
     if (dp && dp.faction === 'iron' && defenders.length) { def.chips += defenders.length; def.bonuses.push({ label: 'Steel Wall', chips: defenders.length }); }
     const dHunt = defenders.filter(u => UNITS[u.type].ability === 'hunter').length;
     if (dHunt && has(units, 'veh')) { def.chips += 3 * dHunt; def.bonuses.push({ label: 'Tank Hunter', chips: 3 * dHunt }); }
-    if (t.struct && t.struct.type === 'hq') { const L = slvl(t); def.chips += 3 * L; def.bonuses.push({ label: 'HQ Garrison' + (L > 1 ? ' ' + '★'.repeat(L) : ''), chips: 3 * L }); def.mult += 1 + L; def.bonuses.push({ label: 'Fortified HQ', mult: 1 + L }); }
+    const hq = getS(t, 'hq');
+    if (hq && hq.owner === defPid && !hq.siege) { const L = slvlOf(hq); def.chips += 3 * L; def.bonuses.push({ label: 'HQ Garrison' + (L > 1 ? ' ' + '★'.repeat(L) : ''), chips: 3 * L }); def.mult += 1 + L; def.bonuses.push({ label: 'Fortified HQ', mult: 1 + L }); }
     const tm = isWater(t) || t.bridge ? 0 : (TERRAIN[t.t].defMult || 0);
     if (tm) { def.mult += tm; def.bonuses.push({ label: TERRAIN[t.t].name, mult: tm }); }
-    if (t.struct && t.struct.type === 'bunker') { const m = 1 + slvl(t); def.mult += m; def.bonuses.push({ label: 'Bunker' + (slvl(t) > 1 ? ' ' + '★'.repeat(slvl(t)) : ''), mult: m }); }
-    if (t.struct && t.struct.type === 'fob') { const m = slvl(t); def.mult += m; def.bonuses.push({ label: 'FOB Walls' + (m > 1 ? ' ' + '★'.repeat(m) : ''), mult: m }); }
+    const bk = getS(t, 'bunker'), fb = getS(t, 'fob');
+    if (bk && bk.owner === defPid) { const m = 1 + slvlOf(bk); def.mult += m; def.bonuses.push({ label: 'Bunker' + (slvlOf(bk) > 1 ? ' ' + '★'.repeat(slvlOf(bk)) : ''), mult: m }); }
+    if (fb && fb.owner === defPid) { const m = slvlOf(fb); def.mult += m; def.bonuses.push({ label: 'FOB Walls' + (m > 1 ? ' ' + '★'.repeat(m) : ''), mult: m }); }
     if (t.smoke && t.smoke === defPid) { def.mult += 2; def.bonuses.push({ label: 'Smoke Screen', mult: 2 }); }
     const aegis = Math.min(2, defenders.filter(u => UNITS[u.type].ability === 'aegis').length);
     if (aegis) { def.mult += aegis; def.bonuses.push({ label: 'Aegis', mult: aegis }); }
-    if (has(units, 'air') && t.struct && t.struct.type === 'flak') { def.mult += 2; def.bonuses.push({ label: 'Flak Battery', mult: 2 }); }
+    if (has(units, 'air') && getS(t, 'flak') && getS(t, 'flak').owner === defPid) { def.mult += 2; def.bonuses.push({ label: 'Flak Battery', mult: 2 }); }
     const aNull = ap && ap.faction === 'null', dNull = dp && dp.faction === 'null';
     let wins = 0;
     for (let a = 1; a <= 6; a++) for (let d = 1; d <= 6; d++) {
@@ -673,10 +696,13 @@
       const holders = survivors.filter(u => canHold(tile, u)).sort((a, b) => UNITS[b.type].cost - UNITS[a.type].cost).slice(0, MAX_STACK);
       if (holders.length) {
         holders.forEach(u => { u.hex = target; });
-        const hqTaken = tile.struct && tile.struct.type === 'hq';
+        const hqs = getS(tile, 'hq'), hqTaken = hqs && hqs.owner === defPid && !hqs.siege;
         captureTile(s, target, pid);
         ev.push({ e: 'advance', pid, units: holders.map(u => u.id), from: stages[0], to: target });
-        if (hqTaken && dp) eliminate(s, defPid, pid, ev);
+        if (hqTaken && dp) {
+          ev.push({ e: 'siege', pid, victim: defPid, hex: target });
+          pushLog(s, '🔥 ' + (ap ? ap.name : '?') + ' is besieging ' + dp.name + "'s HQ! Retake it within a turn or fall.");
+        }
       }
     }
     // everyone who didn't advance goes back to where they started
@@ -722,7 +748,12 @@
     if (!t || t.t === 'mountain' || t.owner === pid) return false;
     t.owner = pid;
     t.smoke = null;
-    if (t.struct) { if (t.struct.type === 'hq') t.struct = null; else t.struct.owner = pid; }
+    for (const st of structsOf(t)) {
+      if (st.type === 'hq') { if (st.owner === pid) delete st.siege; else st.siege = { by: pid }; continue; }
+      if (st.owner !== pid && (st.type === 'fob' || st.type === 'port')) st.lock = 1;
+      st.owner = pid;
+    }
+    syncStructs(t);
     const p = player(s, pid); if (p) p.stats.captured++;
     return true;
   }
@@ -733,7 +764,8 @@
     const hexes = [];
     for (const k in s.map.tiles) {
       const t = s.map.tiles[k];
-      if (t.owner === loser) { t.owner = by || null; if (t.struct) { if (t.struct.type === 'hq') t.struct = null; else t.struct.owner = by || null; } hexes.push(k); }
+      for (const st of structsOf(t).slice()) if (st.type === 'hq' && st.owner === loser) removeStruct(t, st);
+      if (t.owner === loser) { t.owner = by || null; for (const st of structsOf(t)) st.owner = by || null; syncStructs(t); hexes.push(k); }
     }
     const dead = [];
     for (const id in s.units) if (s.units[id].owner === loser) { dead.push(+id); delete s.units[id]; }
@@ -840,8 +872,21 @@
       if (u.stun > 0) { u.moved = true; u.stun--; }
     }
     for (const k in s.map.tiles) if (s.map.tiles[k].smoke === p.id) s.map.tiles[k].smoke = null;
-    const depots = Object.keys(s.map.tiles).filter(k => { const t = s.map.tiles[k]; return t.owner === p.id && t.struct && t.struct.type === 'depot'; });
-    if (depots.length) for (const id in s.units) { const u = s.units[id]; if (u.owner === p.id && depots.some(d => dist(d, u.hex) <= slvl(s.map.tiles[d]))) u.mvBonus = 1; }
+    const depots = Object.keys(s.map.tiles).filter(k => { const t = s.map.tiles[k], d = getS(t, 'depot'); return t.owner === p.id && d && d.owner === p.id; });
+    if (depots.length) for (const id in s.units) { const u = s.units[id]; if (u.owner === p.id && depots.some(d => dist(d, u.hex) <= slvlOf(getS(s.map.tiles[d], 'depot')))) u.mvBonus = 1; }
+    // structures captured last turn come online; sieges this player started now resolve
+    for (const k in s.map.tiles) {
+      const t = s.map.tiles[k];
+      for (const st of structsOf(t)) if (st.lock && st.owner === p.id) delete st.lock;
+      const h = getS(t, 'hq');
+      if (h && h.siege && h.siege.by === p.id) {
+        const holding = t.owner === p.id && Object.values(s.units).some(u => u.hex === k && u.owner === p.id);
+        if (holding) { const victim = h.owner; eliminate(s, victim, p.id, ev); }
+        else { delete h.siege; if (t.owner === p.id) t.owner = h.owner; ev.push({ e: 'siegeBroken', pid: h.owner, hex: k }); pushLog(s, '🛡 The siege of ' + (player(s, h.owner) || {}).name + "'s HQ collapsed."); }
+      }
+    }
+    checkWin(s, ev);
+    if (s.phase !== 'play') return;
     if (s.map.beacon) {
       if (s.map.tiles[s.map.beacon].owner === p.id) { p.koth++; if (p.koth >= 3) return declareWin(s, p.id, 'held the Beacon for 3 turns', ev); }
       else p.koth = 0;
@@ -914,26 +959,26 @@
           for (const k of area(from, def.range)) {
             const t = tiles[k]; if (!isLandTile(t) || k === from || t.contam) continue;
             if ((idx[k] || []).length) continue;
-            if (t.struct && t.struct.type === 'hq') continue;
+            if (getS(t, 'hq')) continue;
             if (t.owner !== pid && flakCovered(s, pid, k)) continue;
             if (ms.length > MAX_STACK) continue;
             out.push(k);
           }
           return out;
         }
-      case 'enemyStruct': for (const k in tiles) { const t = tiles[k]; if (t.struct && t.struct.type !== 'hq' && t.struct.owner !== pid && nearOwned(s, pid, k, def.range)) out.push(k); } return out;
+      case 'enemyStruct': for (const k in tiles) { const t = tiles[k]; if (structsOf(t).some(x => x.type !== 'hq' && x.owner !== pid) && nearOwned(s, pid, k, def.range)) out.push(k); } return out;
       case 'area': for (const k in tiles) if (nearOwned(s, pid, k, def.range) && !flakCovered(s, pid, k)) out.push(k); return out;
       case 'nuke':
         for (const k in tiles) {
           if (!nearOwned(s, pid, k, def.range) || flakCovered(s, pid, k)) continue;
-          if (area(k, 1).some(a => tiles[a] && tiles[a].struct && tiles[a].struct.type === 'hq')) continue;
+          if (area(k, 1).some(a => getS(tiles[a], 'hq'))) continue;
           out.push(k);
         }
         return out;
       case 'mutiny':
         for (const k in idx) {
           const occ = idx[k]; if (occ[0].owner === pid || occ.length > 3) continue;
-          const t = tiles[k]; if (t.struct && t.struct.type === 'hq') continue;
+          const t = tiles[k]; if (getS(t, 'hq')) continue;
           if (neighbors(k).some(n => tiles[n] && tiles[n].owner === pid)) out.push(k);
         }
         return out;
@@ -970,7 +1015,7 @@
       }
       if (!enclosed || comp.length > 10) continue;
       if (comp.some(c => (idx[c] || []).some(u => u.owner !== pid))) continue;
-      if (comp.some(c => tiles[c].struct && ['hq', 'fob', 'port'].includes(tiles[c].struct.type))) continue;
+      if (comp.some(c => structsOf(tiles[c]).some(x => ['hq', 'fob', 'port'].includes(x.type)))) continue;
       for (const c of comp) if (captureTile(s, c, pid)) flipped.push(c);
     }
     if (flipped.length) {
@@ -1091,13 +1136,14 @@
       if (p.cash < cost) return fail('Need $' + cost);
       p.cash -= cost;
       const t = tiles[a.hex];
-      if (t.struct && t.struct.type === a.struct) {
-        t.struct.lvl = slvl(t) + 1;
-        ev.push({ e: 'build', pid, struct: a.struct, hex: a.hex, lvl: t.struct.lvl });
-        pushLog(s, p.name + ' upgraded a ' + STRUCTS[a.struct].name + ' to ' + '★'.repeat(t.struct.lvl) + '.');
+      const ex = getS(t, a.struct);
+      if (ex) {
+        ex.lvl = slvlOf(ex) + 1;
+        ev.push({ e: 'build', pid, struct: a.struct, hex: a.hex, lvl: ex.lvl });
+        pushLog(s, p.name + ' upgraded a ' + STRUCTS[a.struct].name + ' to ' + '★'.repeat(ex.lvl) + '.');
         return { ok: true, events: ev };
       }
-      t.struct = { type: a.struct, owner: pid, lvl: 1 };
+      addStruct(t, { type: a.struct, owner: pid, lvl: 1 });
       if (a.struct === 'bridge') { t.bridge = true; t.owner = pid; }
       ev.push({ e: 'build', pid, struct: a.struct, hex: a.hex, lvl: 1 });
       return { ok: true, events: ev };
@@ -1218,9 +1264,11 @@
         break;
       }
       case 'sabotage': {
-        const t = tiles[a.target]; const st = t.struct.type;
-        if (slvl(t) > 1) { t.struct.lvl--; ev.push({ ...base, struct: st, lvl: t.struct.lvl }); pushLog(s, '🧨 ' + p.name + ' damaged a ' + STRUCTS[st].name + '.'); break; }
-        t.struct = null;
+        const t = tiles[a.target];
+        const victimS = structsOf(t).filter(x => x.type !== 'hq' && x.owner !== pid).sort((x, y) => STRUCT_PRIORITY.indexOf(x.type) - STRUCT_PRIORITY.indexOf(y.type))[0];
+        const st = victimS.type;
+        if (slvlOf(victimS) > 1) { victimS.lvl--; ev.push({ ...base, struct: st, lvl: victimS.lvl }); pushLog(s, '🧨 ' + p.name + ' damaged a ' + STRUCTS[st].name + '.'); break; }
+        removeStruct(t, victimS);
         if (st === 'bridge') { t.bridge = false; t.owner = null; }
         ev.push({ ...base, struct: st }); pushLog(s, '🧨 ' + p.name + ' sabotaged a ' + STRUCTS[st].name + '.'); break;
       }
@@ -1232,7 +1280,7 @@
       case 'nuke': {
         const ar = area(a.target, 1).filter(k => tiles[k]), dead = [];
         for (const u of Object.values(s.units)) if (ar.includes(u.hex)) { dead.push(u.id); kill(u); }
-        for (const k of ar) { const t = tiles[k]; t.owner = null; t.struct = null; t.smoke = null; if (t.bridge) t.bridge = false; if (isLandTile(t)) t.contam = 4; }
+        for (const k of ar) { const t = tiles[k]; t.owner = null; t.structs = []; t.struct = null; t.smoke = null; if (t.bridge) t.bridge = false; if (isLandTile(t)) t.contam = 4; }
         ev.push({ ...base, area: ar, units: dead }); pushLog(s, '☢ ' + p.name + ' launched a TACTICAL NUKE.'); break;
       }
       case 'mutiny': {
@@ -1307,6 +1355,6 @@
     RARITY, RARITY_ORDER, CRATES, DROP_TIERS, SCRAP_VALUE, DECK_MAX, MAX_LEVEL, TERRAIN, DIFFICULTY, UNITS, TACTICS, STRUCTS, BUILD_ORDER, UPGRADABLE, MAX_SLVL, FACTIONS, COLORS, MAX_STACK, CLASS_NAME, cardDef,
     generateMap, createGame, applyAction, startTurn, endTurn, simulateTurnStart, view, drawCards,
     player, current, buildIndex, canAct, moveAllow, ownedTiles, ownedLand, spawnPoints, supplySet, computeIncome, levelOf, unitAtk, unitDef,
-    reachable, pathTo, rangedTargets, deployHexes, buildHexes, buildError, isSea, isWater, isCoastal, movers, combatCalc, tacticTargets, unitCost, structCost, buildCost, conquestTarget, isLandTile, flakCovered,
+    reachable, pathTo, rangedTargets, deployHexes, buildHexes, buildError, isSea, isWater, isCoastal, movers, combatCalc, tacticTargets, unitCost, structCost, buildCost, structsOf, MAX_STRUCTS, conquestTarget, isLandTile, flakCovered,
   };
 });
