@@ -18,8 +18,8 @@ Procedural maps · card drafting · naval warfare · Balatro-style dice combat.
 ## Play in 30 seconds
 
 1. Download **`Sector.exe`** from the [latest release](../../releases/latest).
-2. Double-click it. A console window opens and your browser loads the game.
-3. Friends on the **same network** type the *"Same network"* address shown in that window (for example `http://192.168.1.20:3000`). They don't install anything; it all runs in the browser.
+2. Double-click it. The game opens in its own window, with a small console window running the server.
+3. Friends on the **same network** run `Sector.exe` too and choose **Join a game → Scan network**, or just type the *"Same network"* address shown in your console into any browser (for example `http://192.168.1.20:3000`).
 
 > The first launch asks for network access. Tick **Private networks** so friends can connect. Windows SmartScreen may warn that the exe is unsigned: click *More info → Run anyway*.
 
@@ -59,7 +59,8 @@ There are no accounts, no internet servers and no port forwarding. Prefer one sc
 | 🎰 **Supply Drop** | A tactic card in Rare, Epic and Legendary versions. Playing it spins a slot-machine reel for a crate tier, then the crate bursts open. |
 | 🎲 **Combat** | Score = chips × (d6 + mult). Throw the die yourself. Combined Arms, Pincers, Flanking, terrain and structures all stack. |
 | ⚓ **Navy** | Claim sea lanes, take offshore oil rigs, shell coastlines, and run amphibious invasions with Ark transports. Build bridges across narrow straits. |
-| 🏭 **Economy and logistics** | Hexes only pay if they're connected by supply to your HQ, a FOB or a Port. Build Markets, Refineries and Depots. Encircle enemy pockets to annex them. |
+| 🏭 **Economy and logistics** | Hexes only pay if they're connected by supply to your HQ, a FOB or a Port. Build Markets, Refineries and Depots, and **stack them up to ★★★**. Fortify your HQ. Encircle enemy pockets to annex them. |
+| 🌐 **Easy LAN** | A host/join panel scans your Wi-Fi for games. The Esc menu lets you leave mid-game, and a bot takes over your seat. |
 | 🤝 **Diplomacy** | Trade cash and cards with other players. Bots haggle too. |
 | 🧠 **Bots** | Four difficulties. Bots draft, build, invade by sea, set up pincers and judge trades. |
 | 📋 **Blueprint** | Queue your turn while others play; it runs the moment your turn begins. |

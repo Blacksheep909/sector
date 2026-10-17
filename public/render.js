@@ -353,6 +353,11 @@ const Render = (() => {
     ctx.fillStyle = '#10161c'; ctx.beginPath(); ctx.arc(0, 0, 12.5 * z * big, 0, Math.PI * 2); ctx.fill();
     ctx.strokeStyle = col; ctx.lineWidth = 2.5 * z; ctx.stroke();
     Art.drawIcon(ctx, 'struct', type, 0, 0, 8 * z * big, '#f1efe6');
+    const L = tile.struct.lvl || 1;
+    if (L > 1) {
+      ctx.font = `900 ${9 * z}px "Chakra Petch",sans-serif`; ctx.textAlign = 'center'; ctx.textBaseline = 'middle';
+      ctx.lineWidth = 3 * z; ctx.strokeStyle = '#0b0f13'; ctx.strokeText('★'.repeat(L), 0, 15 * z * big); ctx.fillStyle = '#ffc53d'; ctx.fillText('★'.repeat(L), 0, 15 * z * big);
+    }
     ctx.restore();
     if (type === 'hq' && p) {
       const label = p.name.toUpperCase();
@@ -510,8 +515,12 @@ const Render = (() => {
     }
   }
 
+  // full-screen overlays hide the board, so don't burn the GPU redrawing it underneath them
+  const COVERS = '#supply:not([hidden]), #crate:not([hidden]), #draft:not([hidden]), #index:not([hidden]), #passCover:not([hidden])';
+  let coveredFrames = 0;
   function loop(now) {
     requestAnimationFrame(loop);
+    if (document.querySelector(COVERS)) { if (++coveredFrames > 2) { lastT = now; return; } } else coveredFrames = 0;
     const dt = Math.min(0.05, (now - lastT) / 1000 || 0); lastT = now; t += dt;
     cam.x += (cam.tx - cam.x) * Math.min(1, dt * 8); cam.y += (cam.ty - cam.y) * Math.min(1, dt * 8); cam.z += (cam.tz - cam.z) * Math.min(1, dt * 10);
     ctx.setTransform(DPR, 0, 0, DPR, 0, 0);

@@ -150,6 +150,27 @@ Units with a range stat fire instead of moving.
 - **Transports.** Land units move onto an Ark to board it (3 per Ark). The Ark carries them as it sails, and they step off onto any coast later. If the Ark sinks, its cargo drowns.
 - **Bridges** span a one-hex sea gap between two shores. Land units walk across, but ships can't pass, so a bridge blocks the channel. Sabotage destroys a bridge, and anyone standing on it drowns.
 
+## Buildings and upgrades
+
+Build from the build bar (`Z` and onward, nine slots). To **upgrade** a structure, build the same one again on the same hex. Each structure goes up to ★★★, and each level costs more: ×1.5, then ×2.25.
+
+| Structure | Per level |
+|---|---|
+| **Fortify (HQ)** | +3 garrison chips and +1 mult |
+| **FOB** | +1 defence mult |
+| **Market** | +$3, and each level counts toward the trade network |
+| **Refinery** | +$2 (+$4 on a resource node or oil rig) |
+| **Depot** | +1 to its range for the move bonus |
+| **Bunker** | +1 defence mult (★ gives +2) |
+| **Flak** | +1 hex of anti-air coverage |
+
+Ports and bridges don't upgrade. **Sabotage** knocks a level off a structure, and destroys it only at ★.
+
+## Menus and joining
+
+- **Esc** opens the pause menu: resume, rules, card index, sound, and **Leave game**. When you leave, a bot takes over your empire so everyone else can keep playing. The host can also **End game for everyone**.
+- On the main menu, **Join a game** scans your Wi-Fi for SECTOR servers. You can also type an address, or pick a recent server.
+
 ## Encirclement
 
 If your territory completely surrounds a land pocket of 10 hexes or fewer, the pocket is **annexed** automatically. This works on neutral land, and on enemy hexes with no troops and no HQ, FOB or Port.

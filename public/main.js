@@ -28,7 +28,7 @@
     ws.onmessage = ev => onMsg(JSON.parse(ev.data));
     ws.onclose = () => { toast('Connection lost — reconnecting…', 'err'); setTimeout(connect, 1500); };
   }
-  let joinedOnce = false;
+  let joinedOnce = false, leftGame = false;
   const send = o => { if (ws && ws.readyState === 1) ws.send(JSON.stringify(o)); };
   function savedName() { try { return localStorage.getItem('sector.name') || ''; } catch (e) { return ''; } }
 
@@ -40,11 +40,12 @@
         joinedOnce = true;
         break;
       case 'lobby': lobby = m.lobby; if (!S) renderLobby(); break;
-      case 'state': msgQ.push(m); pump(); break;
+      case 'state': if (leftGame) break; msgQ.push(m); pump(); break;
       case 'err':
         if (m.seq && pending.has(m.seq)) { pending.get(m.seq)(false); pending.delete(m.seq); }
         toast(m.msg, 'err'); SFX.error(); break;
       case 'chat': addLog(`<b style="--c:${m.color}">${esc(m.from)}:</b> ${esc(m.text)}`, 'chat'); SFX.click(); break;
+      case 'left': leftGame = true; token = null; try { localStorage.removeItem('sector.token'); } catch (e) {} you = null; realId = null; joinedOnce = false; S = null; Render.setState(null); msgQ = []; $('#escMenu').hidden = true; showMenu(); showJoin(); toast('You left the game'); break;
       case 'kicked': token = null; try { localStorage.removeItem('sector.token'); } catch (e) {} you = null; toast('You were removed from the lobby', 'err'); showJoin(); break;
     }
   }
@@ -55,7 +56,9 @@
       if (window.SECTOR_PAUSE) break; // dev/screenshot hook: freeze incoming events
       const m = msgQ.shift();
       if (!m.state) { S = null; you = realId || you; Render.setState(null); showMenu(); continue; }
-      if (m.seat && m.seat !== you) seatChange(m.seat);
+      if (m.seat && m.seat !== you) seatChange(m.seat, m.state);
+      // pass & play: hide the hand while no local player is acting, so the next person can't peek
+      document.body.classList.toggle('pp-idle', !!(m.state && localSeats().length && !needsAction(m.state, you)));
       if (!S || S.seed !== m.state.seed) { enterGame(m.state); }
       else {
         animating = true; fastForward = msgQ.length > 3;
@@ -78,12 +81,12 @@
 
   // ───────────── menu / lobby ─────────────
   function showMenu() { $('#menu').hidden = false; $('#hud').hidden = true; $('#victory').hidden = true; $('#supply').hidden = true; if (lobby) renderLobby(); }
-  function showJoin() { $('#joinBox').hidden = false; $('#lobbyBox').hidden = true; }
+  function showJoin() { $('#joinBox').hidden = !$('#joinNet').hidden; $('#lobbyBox').hidden = true; $('#lobbyBox').dataset.show = ''; }
   $('#nameIn').value = savedName();
   $('#joinBtn').onclick = () => {
     const name = $('#nameIn').value.trim() || 'Commander';
     try { localStorage.setItem('sector.name', name); } catch (e) {}
-    joinedOnce = true; SFX.select();
+    joinedOnce = true; leftGame = false; SFX.select();
     send({ t: 'hello', token, name });
   };
   $('#nameIn').addEventListener('keydown', e => { if (e.key === 'Enter') $('#joinBtn').click(); });
@@ -92,7 +95,7 @@
     if (!lobby) return;
     const me = lobby.players.find(p => p.id === (realId || you));
     if (!me) { showJoin(); if (lobby.inGame) $('#joinBox .hint').textContent = 'A war is in progress — you can watch once it loads, or wait for the next game.'; return; }
-    $('#joinBox').hidden = true; $('#lobbyBox').hidden = false;
+    $('#joinBox').hidden = true; $('#lobbyBox').hidden = !$('#joinNet').hidden; $('#lobbyBox').dataset.show = '1';
     const host = lobby.hostId === you;
     $('#pCount').textContent = lobby.players.length + '/6';
     const pl = $('#playerList'); pl.innerHTML = '';
@@ -148,19 +151,29 @@
   $('#startBtn').onclick = () => { SFX.select(); send({ t: 'start' }); };
 
   // ───────────── pass & play ─────────────
-  let realId = null, passTo = null;
+  let realId = null, passTo = null, unlocked = null;
   const localSeats = () => lobby ? lobby.players.filter(p => p.local && p.controller === realId).map(p => p.id) : [];
   const passReady = () => !passTo;
-  function seatChange(seat) {
+  // does this seat have something to do in this state?
+  function needsAction(st, seat) {
+    if (!st) return false;
+    if (st.phase === 'draft') return !!st.draft && !st.draft.picked[seat];
+    if (st.phase !== 'play') return false;
+    const cur = st.players[st.turn.idx];
+    return (cur && cur.id === seat) || (!!st.trade && st.trade.to === seat);
+  }
+  function seatChange(seat, st) {
     const prev = you; you = seat;
     if (!localSeats().length || !prev) return;
-    // a different human is about to see the screen: cover it until they're ready
+    if (unlocked === null) unlocked = prev;
+    // only cover the screen when a *different* local player now has to act
+    if (!needsAction(st, seat) || seat === unlocked) return;
     passTo = seat; sel = null; mode = null;
     const p = (S && S.players.find(x => x.id === seat)) || (lobby && lobby.players.find(x => x.id === seat));
     const cover = $('#passCover');
     cover.innerHTML = `<div class="pass-card" style="--pc:${p ? p.color : '#fff'}"><div class="pass-sub">PASS THE DEVICE TO</div><div class="pass-name">${p ? esc(p.name) : 'next player'}</div><button class="btn big" id="passGo">I'M ${p ? esc(p.name.toUpperCase()) : 'READY'} — GO</button><div class="sub">Everyone else: look away from the screen.</div></div>`;
     cover.hidden = false; SFX.turn();
-    $('#passGo').onclick = () => { cover.hidden = true; passTo = null; SFX.yourTurn(); if (S) applyState(S, true); };
+    $('#passGo').onclick = () => { cover.hidden = true; passTo = null; unlocked = seat; SFX.yourTurn(); if (S) applyState(S, true); };
   }
 
   // ───────────── game entry / state ─────────────
@@ -388,7 +401,13 @@
   addEventListener('keydown', e => {
     if (e.target.tagName === 'INPUT' || e.target.tagName === 'SELECT') { if (e.key === 'Escape') e.target.blur(); return; }
     keys.add(e.key.toLowerCase());
-    if (e.key === 'Escape') cancel();
+    if (e.key === 'Escape') {
+      if (!$('#escMenu').hidden) closeEsc();
+      else if (!$('#index').hidden) $('#index').hidden = true;
+      else if (!$('#rules').hidden) $('#rules').hidden = true;
+      else if (mode || sel) cancel();
+      else if (S) openEsc();
+    }
     if (e.key === 'Enter' && S) $('#chatIn').focus();
     if (e.key.toLowerCase() === 'f' && myP()) Render.focus(myP().hq);
     if (e.key === ' ') e.preventDefault(); // space is for flipping cards / throwing dice only — never ends the turn
@@ -408,6 +427,78 @@
   })();
 
   function cancel() { if (mode) { mode = null; } else sel = null; refreshAll(); hideTip(); }
+  // ───────────── esc menu ─────────────
+  function openEsc() {
+    if (!S) return;
+    const m = $('#escMenu'); m.hidden = false; SFX.select();
+    const host = lobby && lobby.hostId === realId;
+    $('#escEnd').hidden = !host;
+    $('#escInfo').textContent = (S.phase === 'over' ? 'Game over' : 'Round ' + S.turn.round) + ' · ' + (lobby ? lobby.players.length : S.players.length) + ' commanders' + (host ? ' · you are the host' : '');
+    $('#escSound').textContent = 'SOUND: ' + (SFX.muted ? 'OFF' : 'ON');
+    $('#escLeave').textContent = spectator || !myP() ? 'BACK TO MENU' : 'LEAVE GAME';
+  }
+  function closeEsc() { $('#escMenu').hidden = true; }
+  $('#menuBtn').onclick = openEsc;
+  $('#escResume').onclick = () => { SFX.click(); closeEsc(); };
+  $('#escRules').onclick = () => { closeEsc(); showRules(); };
+  $('#escIndex').onclick = () => { closeEsc(); Cards.showIndex(); };
+  $('#escSound').onclick = () => { const m = SFX.toggle(); $('#escSound').textContent = 'SOUND: ' + (m ? 'OFF' : 'ON'); $('#muteBtn').textContent = m ? '✕' : '♪'; };
+  $('#escLeave').onclick = () => {
+    if ($('#escLeave').dataset.armed !== '1' && myP() && S.phase === 'play') { $('#escLeave').dataset.armed = '1'; $('#escLeave').textContent = 'CLICK AGAIN TO LEAVE'; setTimeout(() => { $('#escLeave').dataset.armed = ''; if (!$('#escMenu').hidden) openEsc(); }, 2500); return; }
+    $('#escLeave').dataset.armed = '';
+    SFX.click(); send({ t: 'leave' });
+    if (!myP()) { S = null; Render.setState(null); closeEsc(); showMenu(); showJoin(); }
+  };
+  $('#escEnd').onclick = () => {
+    if ($('#escEnd').dataset.armed !== '1') { $('#escEnd').dataset.armed = '1'; $('#escEnd').textContent = 'CLICK AGAIN — ENDS IT FOR ALL'; setTimeout(() => { $('#escEnd').dataset.armed = ''; $('#escEnd').textContent = 'END GAME FOR EVERYONE'; }, 2500); return; }
+    $('#escEnd').dataset.armed = ''; closeEsc(); send({ t: 'toLobby' });
+  };
+
+  // ───────────── host / join panel ─────────────
+  const RECENT_KEY = 'sector.recent';
+  const recent = () => { try { return JSON.parse(localStorage.getItem(RECENT_KEY) || '[]'); } catch (e) { return []; } };
+  function remember(url) { try { const r = recent().filter(u => u !== url); r.unshift(url); localStorage.setItem(RECENT_KEY, JSON.stringify(r.slice(0, 6))); } catch (e) {} }
+  function goTo(url) { if (!/^https?:\/\//.test(url)) url = 'http://' + url; if (!/:\d+/.test(url.replace(/^https?:\/\//, ''))) url = url.replace(/\/?$/, ':3000'); remember(url.replace(/\/$/, '')); location.href = url; }
+  function renderRecent() {
+    const r = recent().filter(u => u !== location.origin);
+    $('#recentList').innerHTML = r.length ? '<div class="hint">Recent</div>' + r.map(u => `<div class="srv"><div><b>${esc(u.replace(/^https?:\/\//, ''))}</b></div><button class="btn tiny" data-u="${esc(u)}">JOIN</button></div>`).join('') : '';
+    $('#recentList').querySelectorAll('[data-u]').forEach(b => b.onclick = () => goTo(b.dataset.u));
+  }
+  document.querySelectorAll('#netTabs [data-tab]').forEach(b => b.onclick = () => {
+    SFX.click();
+    document.querySelectorAll('#netTabs [data-tab]').forEach(x => x.classList.toggle('on', x === b));
+    const join = b.dataset.tab === 'join';
+    $('#joinNet').hidden = !join; $('#joinBox').hidden = join || !!(lobby && lobby.players.some(p => p.id === realId)); $('#lobbyBox').hidden = join || $('#lobbyBox').dataset.show !== '1';
+    if (join) renderRecent();
+  });
+  $('#joinGo').onclick = () => { const v = $('#joinAddr').value.trim(); if (v) goTo(v); };
+  $('#joinAddr').addEventListener('keydown', e => { if (e.key === 'Enter') $('#joinGo').click(); });
+  $('#scanBtn').onclick = async () => {
+    const btn = $('#scanBtn'), list = $('#scanList');
+    btn.disabled = true; btn.textContent = 'SCANNING…'; list.innerHTML = '<div class="hint">Looking for games…</div>';
+    let lan = [];
+    try { lan = (await (await fetch('/info')).json()).lan || []; } catch (e) {}
+    const subnets = [...new Set(lan.filter(a => /^(10|172|192)\./.test(a)).map(a => a.split(':')[0].replace(/^https?:\/\//, '').split('.').slice(0, 3).join('.')))];
+    const ports = [...new Set([3000, 3001, +location.port || 80])];
+    const found = [];
+    const probe = async (ip, port) => {
+      const ctl = new AbortController(); const tm = setTimeout(() => ctl.abort(), 1200);
+      try { const r = await fetch(`http://${ip}:${port}/info`, { signal: ctl.signal }); const j = await r.json(); if (j.game === 'sector' && !found.some(f => f.id && f.id === j.id)) { found.push({ url: `http://${ip}:${port}`, ...j }); show(); } } catch (e) {} finally { clearTimeout(tm); }
+    };
+    const show = () => {
+      list.innerHTML = found.map(s => `<div class="srv${s.url === location.origin ? ' me' : ''}"><div><b>${s.host ? esc(s.host) + "'s game" : 'Open lobby'}</b> <span class="sub">· ${s.humans} player${s.humans === 1 ? '' : 's'} · ${s.inGame ? 'in progress (round ' + s.round + ')' : 'in lobby'}</span><div class="sub">${esc(s.url.replace('http://', ''))}${s.url === location.origin ? ' · this server' : ''}</div></div><button class="btn tiny ${s.inGame ? '' : 'green'}" data-u="${s.url}">${s.inGame ? 'WATCH' : 'JOIN'}</button></div>`).join('') || '<div class="hint">Looking for games…</div>';
+      list.querySelectorAll('[data-u]').forEach(b => b.onclick = () => goTo(b.dataset.u));
+    };
+    // known addresses first (instant), then sweep each subnet with a throttled pool so dead IPs don't starve live ones
+    const known = lan.filter(a => /^(10|172|192)\./.test(a));
+    await Promise.all(known.flatMap(ip => ports.map(port => probe(ip, port))));
+    const jobs = [];
+    for (const sn of subnets) for (let i = 1; i < 255; i++) for (const port of ports) { const ip = sn + '.' + i; if (!known.includes(ip)) jobs.push([ip, port]); }
+    let next = 0, done = 0;
+    await Promise.all(Array.from({ length: 32 }, async () => { while (next < jobs.length) { const [ip, port] = jobs[next++]; await probe(ip, port); done++; if (done % 40 === 0) btn.textContent = 'SCANNING… ' + Math.round(done / jobs.length * 100) + '%'; } }));
+    btn.disabled = false; btn.textContent = 'SCAN AGAIN';
+    if (!found.length) list.innerHTML = '<div class="hint">No games found. Make sure the host has SECTOR running and you are on the same Wi-Fi — or type their address below.</div>';
+  };
 
   async function onHexClick(k) {
     if (!S || S.phase !== 'play') return;
@@ -426,7 +517,7 @@
       const st = mode.struct;
       await doAction({ a: 'build', struct: st, hex: k });
       const me = dispState().players.find(p => p.id === you);
-      if (mode && me && (me.cash < E.structCost(me, st) || !E.buildHexes(dispState(), you, st).length)) mode = null;
+      if (mode && me && (!E.buildHexes(dispState(), you, st).some(k2 => me.cash >= E.buildCost(dispState(), me, st, k2)))) mode = null;
       refreshAll(); return;
     }
     if (mode && mode.type === 'tactic') {
@@ -532,7 +623,7 @@
     if (ds.map.beacon === k) tags.push('<span class="hp-tag" style="color:var(--gold)">◆ BEACON</span>');
     if (t.owner === you && !E.supplySet(ds, you).has(k)) tags.push('<span class="hp-tag cut">Cut off — no income</span>');
     let h = `<div class="hp-title">${t.contam ? 'Fallout Zone' : E.TERRAIN[t.t].name}</div><div class="hp-own">${owner ? `<span style="color:${owner.color}">■ ${esc(owner.name)}</span>` : '<span class="sub">Unclaimed</span>'}</div><div class="hp-tags">${tags.join('')}</div>`;
-    if (t.struct) { const sd = E.STRUCTS[t.struct.type]; h += `<div class="urow" style="cursor:default"><img src="${Art.iconURL('struct', t.struct.type)}"><div class="un">${sd.name}<div class="st">${sd.desc}</div></div></div>`; }
+    if (t.struct) { const sd = E.STRUCTS[t.struct.type], L = t.struct.lvl || 1; h += `<div class="urow" style="cursor:default"><img src="${Art.iconURL('struct', t.struct.type)}"><div class="un">${sd.name} <span class="gold">${'★'.repeat(L)}</span><div class="st">${sd.desc}${E.UPGRADABLE.includes(t.struct.type) && L < E.MAX_SLVL && t.owner === you ? '<br><b class="gold">Upgrade: $' + E.buildCost(ds, ds.players.find(p => p.id === you), t.struct.type, k) + '</b> (build it again here)' : ''}</div></div></div>`; }
     const units = Object.values(ds.units).filter(u => u.hex === k);
     if (units.length) {
       const mine = units[0].owner === you;
@@ -557,7 +648,7 @@
 
   // ───────────── bars: unit deck (cards, keys 1-0), build bar (Z-M), tactic hand ─────────────
   const UNIT_KEYS = ['1', '2', '3', '4', '5', '6', '7', '8', '9', '0'];
-  const BUILD_KEYS = ['z', 'x', 'c', 'v', 'b', 'n', 'm', ','];
+  const BUILD_KEYS = ['z', 'x', 'c', 'v', 'b', 'n', 'm', ',', '.'];
   let hotbarSig = '';
   function hotbarItems() {
     const ds = dispState(); const me = ds && ds.players.find(p => p.id === you);
@@ -565,11 +656,16 @@
     return { me, ds, units: me.arsenal.slice(0, 10), builds: E.BUILD_ORDER };
   }
   function buildSlot(id, key, me) {
-    const cost = E.structCost(me, id);
+    const ds = dispState();
+    const spots = E.buildHexes(ds, you, id);
+    const ups = spots.filter(k => ds.map.tiles[k].struct && ds.map.tiles[k].struct.type === id);
+    const cost = id === 'hq' ? E.buildCost(ds, me, 'hq', me.hq) : E.structCost(me, id);
+    const name = id === 'hq' ? 'Fortify' : E.STRUCTS[id].name;
     const s = el('div', 'slot k-build');
     s.dataset.kind = 'build'; s.dataset.id = id;
-    s.innerHTML = `<span class="sk">${key.toUpperCase()}</span><img src="${Art.iconURL('struct', id, '#fff', 72)}"><span class="sc">$${cost}</span>`;
+    s.innerHTML = `<span class="sk">${key.toUpperCase()}</span><img src="${Art.iconURL('struct', id, '#1b1712', 72)}"><span class="bname">${name}</span><span class="sc">$${cost}</span>` + (ups.length && id !== 'hq' ? `<span class="up" title="${ups.length} can be upgraded">▲${ups.length}</span>` : '');
     if (me.cash < cost) s.classList.add('poor');
+    if (!spots.length) s.classList.add('nowhere');
     if (mode && mode.type === 'build' && mode.struct === id) s.classList.add('on');
     s.onclick = () => armSlot('build', id);
     s.onmouseenter = () => { SFX.hover(); showSlotTip(s, 'build', id); };
@@ -616,8 +712,9 @@
   }
   function showSlotTip(slot, kind, id) {
     const tip = $('#slotTip'); tip.innerHTML = '';
-    const d = E.STRUCTS[id];
-    tip.innerHTML = `<div class="btip"><img src="${Art.iconURL('struct', id, '#fff', 96)}"><b>${d.name} <span class="gold">$${d.cost}</span></b><span>${d.desc}</span></div>`;
+    const d = E.STRUCTS[id], me = myP();
+    const up = E.UPGRADABLE.includes(id) ? `<span class="tip-up">Build on one you already own to upgrade it: ★★ $${me ? E.structCost(me, id, 2) : '?'} · ★★★ $${me ? E.structCost(me, id, 3) : '?'}</span>` : '';
+    tip.innerHTML = `<div class="btip"><img src="${Art.iconURL('struct', id, '#fff', 96)}"><b>${id === 'hq' ? 'Fortify HQ' : d.name} <span class="gold">$${me ? (id === 'hq' ? E.buildCost(S, me, 'hq', me.hq) : E.structCost(me, id)) : d.cost}</span></b><span>${d.desc}</span>${up}</div>`;
     const r = slot.getBoundingClientRect();
     tip.style.left = (r.left + r.width / 2) + 'px'; tip.style.top = (r.top - 12) + 'px';
     tip.hidden = false;
@@ -634,10 +731,10 @@
       if (!E.deployHexes(ds, you, id).length) { toast(E.isSea(id) ? 'Build a Port on the coast to launch ships' : 'All deploy points are full', 'err'); SFX.error(); shakeSlot(kind, id); return; }
       mode = { type: 'deploy', unit: id };
     } else {
-      const cost = E.structCost(me, id);
+      const cost = id === 'hq' ? E.buildCost(ds, me, 'hq', me.hq) : E.structCost(me, id);
       if (mode && mode.type === 'build' && mode.struct === id) { mode = null; refreshAll(); return; }
-      if (me.cash < cost) { toast('Need $' + cost, 'err'); SFX.error(); shakeSlot(kind, id); return; }
-      if (!E.buildHexes(ds, you, id).length) { toast(id === 'port' ? 'No free coastal hex in supply' : id === 'bridge' ? 'No 1-hex sea gap next to your supplied land' : 'Nowhere to build that', 'err'); SFX.error(); shakeSlot(kind, id); return; }
+      if (!E.buildHexes(ds, you, id).some(k => me.cash >= E.buildCost(ds, me, id, k)) && E.buildHexes(ds, you, id).length) { toast('Need $' + cost, 'err'); SFX.error(); shakeSlot(kind, id); return; }
+      if (!E.buildHexes(ds, you, id).length) { toast(id === 'hq' ? 'Your HQ is fully fortified' : id === 'port' ? 'No free coastal hex in supply' : id === 'bridge' ? 'No 1-hex sea gap next to your supplied land' : 'Nowhere to build that', 'err'); SFX.error(); shakeSlot(kind, id); return; }
       mode = { type: 'build', struct: id };
     }
     sel = null; SFX.select(); refreshAll();
@@ -726,7 +823,7 @@
   function renderModeHint() {
     const h = $('#modeHint'); let txt = '';
     if (mode && mode.type === 'deploy') txt = `Deploy ${E.UNITS[mode.unit].name} — click a glowing ${E.isSea(mode.unit) ? 'sea hex by your Port' : 'HQ / FOB'} · right-click to stop`;
-    else if (mode && mode.type === 'build') txt = `Build ${E.STRUCTS[mode.struct].name} — click a glowing hex · right-click to stop`;
+    else if (mode && mode.type === 'build') txt = mode.struct === 'hq' ? 'Fortify HQ — click your HQ' : `Build or upgrade ${E.STRUCTS[mode.struct].name} — click a glowing hex · right-click to stop`;
     else if (mode && mode.type === 'tactic') { const d = E.TACTICS[mode.id]; txt = d.target === 'heli' && !mode.from ? 'Heli Drop — pick the stack to fly' : `${d.name} — pick a target · right-click to cancel`; }
     else if (planning() && sel && sel.units.size) txt = 'Blueprint — click a hex to queue this move';
     else if (!isMyTurn() && S.phase === 'play' && curP()) txt = '';
@@ -1138,7 +1235,8 @@
           await sleep(120); break;
         }
         case 'build': {
-          S.map.tiles[ev.hex].struct = { type: ev.struct, owner: ev.pid };
+          S.map.tiles[ev.hex].struct = { type: ev.struct, owner: ev.pid, lvl: ev.lvl || 1 };
+          if (ev.lvl > 1) { Render.ring(ev.hex, '#ffc53d', 70, 0.6, 5); Render.float(ev.hex, '★'.repeat(ev.lvl) + ' UPGRADED', '#ffc53d', 18); }
           Render.pop(ev.hex); SFX.build(); Render.burst(ev.hex, [pColor(ev.pid), '#fff', '#ffc53d'], 22, { square: true, up: 140 }); Render.float(ev.hex, E.STRUCTS[ev.struct].name.toUpperCase(), '#fff', 16);
           await sleep(350); break;
         }
