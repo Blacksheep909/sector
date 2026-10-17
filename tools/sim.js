@@ -1,26 +1,29 @@
-const E = require('../shared/engine'); const { botStep } = require('../shared/bot');
-const mode = process.argv[2] || 'domination', N = +(process.argv[3] || 4), games = +(process.argv[4] || 5);
+// Headless bot-vs-bot games: node tools/sim.js [mode] [players] [games] [mapType]
+const E = require('../shared/engine'); const { botStep, draftStep } = require('../shared/bot');
+const mode = process.argv[2] || 'domination', N = +(process.argv[3] || 4), games = +(process.argv[4] || 5), mapType = process.argv[5];
 const facs = Object.keys(E.FACTIONS);
-let tot = 0;
+const tally = { rounds: 0, fails: 0, crates: 0, drops: 0, assaults: 0, bridges: 0, seaHexes: 0, annex: 0, upgrades: 0 };
+const errs = {};
 for (let g = 0; g < games; g++) {
   const roster = Array.from({ length: N }, (_, i) => ({ id: 'p' + i, name: 'Bot' + i, color: E.COLORS[i], faction: facs[(i + g) % facs.length], bot: true }));
-  const { state: s } = E.createGame({ mode, mapSize: 'medium', timer: 0, maxRounds: 60, conquestPct: 40 }, roster);
-  if (g === 0) { // ascii map
-    const R = s.map.radius; const ch = { water: '~', plains: '.', forest: 'f', hills: 'h', mountain: 'M' };
-    for (let r = -R; r <= R; r++) { let line = ' '.repeat(Math.abs(r)); for (let q = -R; q <= R; q++) { const t = s.map.tiles[q + ',' + r]; if (!t) continue; line += (t.struct ? 'H' : t.res ? '$' : ch[t.t]) + ' '; } console.log(line); }
-  }
-  let actions = 0, fails = 0, combats = 0;
-  while (s.phase === 'play' && actions < 40000) {
+  const { state: s } = E.createGame({ mode, mapSize: 'medium', timer: 0, maxRounds: 50, mapType }, roster);
+  while (s.phase === 'draft') for (const p of s.players) { const a = draftStep(s, p.id); if (a) { const r = E.applyAction(s, p.id, a); if (!r.ok) throw new Error('draft ' + r.err); } }
+  let actions = 0;
+  while (s.phase === 'play' && actions < 60000) {
     const p = E.current(s); const mem = {}; let n = 0;
     while (s.phase === 'play' && E.current(s).id === p.id) {
-      let a = botStep(s, p.id, mem); if (++n > 80) a = { a: 'end' };
+      let a = botStep(s, p.id, mem); if (++n > 90) a = { a: 'end' };
       const r = E.applyAction(s, p.id, a); actions++;
-      if (!r.ok) { fails++; if (a.a === 'end') throw new Error('end failed ' + r.err); }
-      else combats += r.events.filter(e => e.e === 'combat').length;
+      if (!r.ok) { tally.fails++; errs[a.a + ': ' + r.err] = (errs[a.a + ': ' + r.err] || 0) + 1; if (a.a === 'end') throw new Error('end failed ' + r.err); continue; }
+      if (a.a === 'tactic' && r.events.some(e => e.e === 'crate')) tally.drops++;
+      if (a.a === 'assault') tally.assaults++;
+      if (a.a === 'build' && a.struct === 'bridge') tally.bridges++;
+      for (const e of r.events) { if (e.e === 'crate') tally.crates++; if (e.e === 'annex') tally.annex++; if (e.e === 'card' && e.level) tally.upgrades++; }
     }
   }
-  const counts = s.players.map(p => p.name + '(' + p.faction + '):' + E.ownedTiles(s, p.id).length + (p.alive ? '' : '☠')).join(' ');
-  console.log(`game ${g}: round ${s.turn.round} winner=${s.winner && s.winner.pid} ${s.winner && s.winner.reason} actions=${actions} fails=${fails} combats=${combats} | ${counts}`);
-  tot += s.turn.round;
+  tally.seaHexes += Object.values(s.map.tiles).filter(t => t.owner && E.isWater(t)).length;
+  tally.rounds += s.turn.round;
+  console.log(`game ${g} (${s.map.arch}): round ${s.turn.round} — ${s.winner ? s.players.find(p => p.id === s.winner.pid).name + ' ' + s.winner.reason : 'unfinished'}`);
 }
-console.log('avg rounds', tot / games);
+console.log({ ...tally, avgRounds: tally.rounds / games });
+if (Object.keys(errs).length) console.log('failed actions:', errs);

@@ -35,7 +35,7 @@
   function onMsg(m) {
     switch (m.t) {
       case 'welcome':
-        you = m.you; spectator = !!m.spectator;
+        you = m.you; realId = m.you; spectator = !!m.spectator;
         if (m.token) { token = m.token; try { localStorage.setItem('sector.token', token); } catch (e) {} }
         joinedOnce = true;
         break;
@@ -52,8 +52,10 @@
   async function pump() {
     if (processing) return; processing = true;
     while (msgQ.length) {
+      if (window.SECTOR_PAUSE) break; // dev/screenshot hook: freeze incoming events
       const m = msgQ.shift();
-      if (!m.state) { S = null; Render.setState(null); showMenu(); continue; }
+      if (!m.state) { S = null; you = realId || you; Render.setState(null); showMenu(); continue; }
+      if (m.seat && m.seat !== you) seatChange(m.seat);
       if (!S || S.seed !== m.state.seed) { enterGame(m.state); }
       else {
         animating = true; fastForward = msgQ.length > 3;
@@ -61,7 +63,7 @@
         animating = false; fastForward = false;
         applyState(m.state);
       }
-      if (m.seq && m.by === you && pending.has(m.seq)) { pending.get(m.seq)(true); pending.delete(m.seq); }
+      if (m.seq && (m.mine || m.by === you) && pending.has(m.seq)) { pending.get(m.seq)(true); pending.delete(m.seq); }
     }
     processing = false;
   }
@@ -69,7 +71,7 @@
   function act(action) {
     return new Promise(res => {
       const s = seq++; pending.set(s, res);
-      send({ t: 'act', action, seq: s });
+      send({ t: 'act', action, seq: s, as: you });
       setTimeout(() => { if (pending.has(s)) { pending.delete(s); res(false); } }, 15000);
     });
   }
@@ -88,7 +90,7 @@
 
   function renderLobby() {
     if (!lobby) return;
-    const me = lobby.players.find(p => p.id === you);
+    const me = lobby.players.find(p => p.id === (realId || you));
     if (!me) { showJoin(); if (lobby.inGame) $('#joinBox .hint').textContent = 'A war is in progress — you can watch once it loads, or wait for the next game.'; return; }
     $('#joinBox').hidden = true; $('#lobbyBox').hidden = false;
     const host = lobby.hostId === you;
@@ -105,7 +107,16 @@
         dsel.disabled = !host; dsel.onchange = () => send({ t: 'botCfg', id: p.id, diff: dsel.value });
         r.insertBefore(dsel, r.querySelector('.tag'));
       }
-      if (host && p.id !== you) { const x = el('button', 'x', '✕'); x.onclick = () => send({ t: 'kick', id: p.id }); r.appendChild(x); }
+      if (p.local) {
+        r.querySelector('.nm').innerHTML = `<input class="seat-name" value="${esc(p.name)}" maxlength="16"><div class="fx">${f ? f.name : ''} · this device</div>`;
+        const inp = r.querySelector('.seat-name'); inp.onchange = () => send({ t: 'seatCfg', id: p.id, name: inp.value });
+        if (p.controller === realId) {
+          const fs = el('select', 'diffsel'); fs.innerHTML = Object.keys(E.FACTIONS).map(k => `<option value="${k}"${p.faction === k ? ' selected' : ''}>${E.FACTIONS[k].name}</option>`).join('');
+          fs.onchange = () => send({ t: 'seatCfg', id: p.id, faction: fs.value }); r.insertBefore(fs, r.querySelector('.tag'));
+        } else inp.disabled = true;
+        r.insertBefore(el('span', 'tag', 'LOCAL'), r.querySelector('.tag'));
+      }
+      if ((host && p.id !== you) || (p.local && p.controller === realId)) { const x = el('button', 'x', '✕'); x.onclick = () => send({ t: 'kick', id: p.id }); r.appendChild(x); }
       pl.appendChild(r);
     }
     $('#addBot').hidden = !host;
@@ -133,7 +144,24 @@
   for (const [id, k] of [['#setMode', 'mode'], ['#setType', 'mapType'], ['#setSize', 'mapSize'], ['#setTimer', 'timer'], ['#setRounds', 'maxRounds'], ['#setSeed', 'seed']])
     $(id).addEventListener('change', e => send({ t: 'settings', settings: { [k]: e.target.value } }));
   $('#addBot').onclick = () => { SFX.click(); send({ t: 'addBot' }); };
+  $('#addLocal').onclick = () => { SFX.click(); send({ t: 'addLocal' }); };
   $('#startBtn').onclick = () => { SFX.select(); send({ t: 'start' }); };
+
+  // ───────────── pass & play ─────────────
+  let realId = null, passTo = null;
+  const localSeats = () => lobby ? lobby.players.filter(p => p.local && p.controller === realId).map(p => p.id) : [];
+  const passReady = () => !passTo;
+  function seatChange(seat) {
+    const prev = you; you = seat;
+    if (!localSeats().length || !prev) return;
+    // a different human is about to see the screen: cover it until they're ready
+    passTo = seat; sel = null; mode = null;
+    const p = (S && S.players.find(x => x.id === seat)) || (lobby && lobby.players.find(x => x.id === seat));
+    const cover = $('#passCover');
+    cover.innerHTML = `<div class="pass-card" style="--pc:${p ? p.color : '#fff'}"><div class="pass-sub">PASS THE DEVICE TO</div><div class="pass-name">${p ? esc(p.name) : 'next player'}</div><button class="btn big" id="passGo">I'M ${p ? esc(p.name.toUpperCase()) : 'READY'} — GO</button><div class="sub">Everyone else: look away from the screen.</div></div>`;
+    cover.hidden = false; SFX.turn();
+    $('#passGo').onclick = () => { cover.hidden = true; passTo = null; SFX.yourTurn(); if (S) applyState(S, true); };
+  }
 
   // ───────────── game entry / state ─────────────
   function enterGame(state) {
@@ -151,6 +179,7 @@
   const curP = () => S && S.players[S.turn.idx];
   const isMyTurn = () => !!S && S.phase === 'play' && curP() && curP().id === you;
   const planning = () => !!S && S.phase === 'play' && !isMyTurn() && myP() && myP().alive;
+  const draftPhase = () => !!S && S.phase === 'draft';
   const canCommand = () => (isMyTurn() && S.turn.stage === 'act' && !animating && !executing) || planning();
   const dispState = () => planning() && planState ? planState : S;
   const pName = id => { const p = S.players.find(x => x.id === id); return p ? p.name : '?'; };
@@ -175,7 +204,15 @@
       lastTurnKey = tk;
       if (isMyTurn()) onMyTurn();
     }
-    if (isMyTurn() && S.turn.stage === 'choose' && !executing && !(plan.length && planAuto)) showSupply(); else hideSupply();
+    if (S.phase === 'draft') Cards.showDraft(S, you, (idx, replace) => act({ a: 'draftPick', idx, replace })); else Cards.hideDraft();
+    const me2 = myP();
+    if (isMyTurn() && S.turn.stage === 'choose' && me2 && !executing && !(plan.length && planAuto) && passReady())
+      Cards.openSupply({ me: me2, offer: S.turn.offer, income: S.turn.income, round: S.turn.round, rerollCost: 2 + S.turn.rerolls, key: S.turn.round + ':' + S.turn.idx + ':' + S.turn.rerolls,
+        onPick: pickFromSupply, onIncome: async () => { const ok = await act({ a: 'choose', pick: 'income' }); if (ok && plan.length) runPlan(); return ok; }, onReroll: () => act({ a: 'reroll' }) });
+    else Cards.closeSupply();
+    if (isMyTurn() && S.turn.stage === 'crate' && S.turn.crate && !S.turn.crate.hidden && me2 && passReady())
+      Cards.openCrate({ crate: S.turn.crate, me: me2, serial: S.turn.round + ':' + S.turn.idx + ':' + me2.stats.crates, onPick: pickFromCrate, onScrap: scrapCrate });
+    else Cards.closeCrate();
     if (S.phase === 'over') showVictory();
   }
 
@@ -233,7 +270,7 @@
   // central action entry
   async function doAction(a) {
     if (planning()) {
-      if (a.a === 'fire' || a.a === 'tactic' || a.a === 'end') { toast('Attacks & tactics go live on your turn — the blueprint queues moves, deploys and builds.', 'err'); SFX.error(); return false; }
+      if (a.a === 'fire' || a.a === 'tactic' || a.a === 'end' || a.a === 'assault') { toast('Attacks & tactics go live on your turn — the blueprint queues moves, deploys and builds.', 'err'); SFX.error(); return false; }
       if (a.a === 'move') { const r = E.reachable(planState, you, a.units, a.from)[a.to]; if (r && r.kind === 'attack') { toast('Attacks resolve live on your turn — queue the approach instead.', 'err'); SFX.error(); return false; } }
       const trial = JSON.parse(JSON.stringify(planState));
       const r = E.applyAction(trial, you, a, () => 0.5);
@@ -248,19 +285,38 @@
   }
 
   // ───────────── selection & overlays ─────────────
-  function selectHex(k) {
+  function selectHex(k, add) {
     const ds = dispState();
     if (!k) { sel = null; refreshAll(); return; }
     const units = Object.values(ds.units).filter(u => u.hex === k && u.owner === you && E.canAct(ds, u));
-    sel = { hex: k, units: new Set(units.map(u => u.id)) };
+    if (add && sel && sel.units.size && units.length && k !== sel.hex) {
+      sel.extra = sel.extra || [];
+      const i = sel.extra.findIndex(g => g.hex === k);
+      if (i >= 0) sel.extra.splice(i, 1); else sel.extra.push({ hex: k, units: new Set(units.map(u => u.id)) });
+      SFX.select(); toast(sel.extra.length ? `${sel.extra.length + 1} stacks selected — click a red target for a pincer assault` : 'Back to one stack'); refreshAll(); return;
+    }
+    sel = { hex: k, units: new Set(units.map(u => u.id)), extra: [] };
     SFX.select();
     refreshAll();
+  }
+  // every selected group that can attack hex k, with its staging hex
+  function assaultGroups(ds, k, idx) {
+    if (!sel) return [];
+    const out = [];
+    for (const g of [{ hex: sel.hex, units: sel.units }, ...(sel.extra || [])]) {
+      const ids = [...g.units].filter(id => ds.units[id]);
+      if (!ids.length) continue;
+      const r = E.reachable(ds, you, ids, g.hex, idx);
+      if (r[k] && r[k].kind === 'attack') out.push({ from: g.hex, units: ids, stage: E.pathTo(r, k).slice(-2)[0] });
+    }
+    return out;
   }
   function updateOverlays() {
     const ov = Render.ov, ds = dispState();
     ov.me = you; ov.myTurn = isMyTurn() || planning();
     ov.reach = null; ov.probs = null; ov.fire = null; ov.spawn = null; ov.targets = null; ov.path = null;
     ov.selected = sel ? sel.hex : null;
+    ov.selectedExtra = sel && sel.extra ? sel.extra.map(g => g.hex) : [];
     ov.unsupplied = null;
     if (!ds || ds.phase !== 'play') { ov.planArrows = []; ov.planGhost = null; return; }
     const me = ds.players.find(p => p.id === you);
@@ -274,9 +330,14 @@
       ov.reach = E.reachable(ds, you, ids, sel.hex, idx);
       const units = ids.map(id => ds.units[id]);
       ov.probs = {};
+      // extra selected stacks add their attack targets (pincers)
+      for (const g of sel.extra || []) {
+        const r2 = E.reachable(ds, you, [...g.units], g.hex, idx);
+        for (const k in r2) if (r2[k].kind === 'attack' && (!ov.reach[k] || ov.reach[k].kind !== 'attack')) ov.reach[k] = { ...r2[k], extra: true };
+      }
       for (const k in ov.reach) if (ov.reach[k].kind === 'attack') {
-        const path = E.pathTo(ov.reach, k);
-        ov.probs[k] = E.combatCalc(ds, you, units, path[path.length - 2], k, false, idx).winProb;
+        const gs = assaultGroups(ds, k, idx);
+        if (gs.length) ov.probs[k] = E.combatCalc(ds, you, gs.flatMap(g => g.units.map(id => ds.units[id])), gs.map(g => g.stage), k, false, idx).winProb;
       }
       const fire = E.rangedTargets(ds, you, ids, sel.hex, idx);
       if (fire.length) { ov.fire = new Set(fire); for (const k of fire) ov.probs[k] = E.combatCalc(ds, you, units, sel.hex, k, true, idx).winProb; }
@@ -301,7 +362,7 @@
 
   // ───────────── input ─────────────
   const cvs = $('#map');
-  let down = null;
+  let down = null, shiftDown = false;
   cvs.addEventListener('pointerdown', e => { down = { x: e.clientX, y: e.clientY, b: e.button, moved: false }; cvs.setPointerCapture(e.pointerId); });
   cvs.addEventListener('pointermove', e => {
     if (down) {
@@ -316,7 +377,7 @@
     cvs.style.cursor = 'default';
     if (down && !down.moved) {
       if (down.b === 2) cancel();
-      else if (down.b === 0) onHexClick(Render.hexAt(e.clientX, e.clientY));
+      else if (down.b === 0) { shiftDown = e.shiftKey; onHexClick(Render.hexAt(e.clientX, e.clientY)); }
     }
     down = null;
   });
@@ -330,7 +391,7 @@
     if (e.key === 'Escape') cancel();
     if (e.key === 'Enter' && S) $('#chatIn').focus();
     if (e.key.toLowerCase() === 'f' && myP()) Render.focus(myP().hq);
-    if (e.key === ' ' && S && isMyTurn()) { e.preventDefault(); $('#endBtn').click(); }
+    if (e.key === ' ') e.preventDefault(); // space is for flipping cards / throwing dice only — never ends the turn
     if (S && S.phase === 'play') {
       const kk = e.key.toLowerCase(), items = hotbarItems();
       const ui = UNIT_KEYS.indexOf(kk); if (ui >= 0 && items.units[ui]) { armSlot('unit', items.units[ui]); keys.delete(kk); }
@@ -384,14 +445,19 @@
       const ov = Render.ov;
       if (ov.fire && ov.fire.has(k)) { const a = { a: 'fire', from: sel.hex, units: [...sel.units], to: k }; sel = null; refreshAll(); await doAction(a); return; }
       const r = ov.reach && ov.reach[k];
-      if (r && r.kind !== 'start' && r.kind !== 'pass') {
+      if (r && r.kind === 'attack' && sel.extra && sel.extra.length) {
+        const gs = assaultGroups(ds, k, E.buildIndex(ds));
+        if (gs.length > 1) { const a = { a: 'assault', to: k, groups: gs.map(g => ({ from: g.from, units: g.units })) }; sel = null; refreshAll(); await doAction(a); return; }
+        if (gs.length === 1) { const a = { a: 'move', from: gs[0].from, units: gs[0].units, to: k }; sel = null; refreshAll(); await doAction(a); return; }
+      }
+      if (r && r.kind !== 'start' && r.kind !== 'pass' && !r.extra) {
         const a = { a: 'move', from: sel.hex, units: [...sel.units], to: k };
         sel = null; refreshAll();
         await doAction(a); return;
       }
     }
-    if (!k || (sel && sel.hex === k)) { sel = null; refreshAll(); return; }
-    selectHex(k);
+    if (!k || (sel && sel.hex === k && !shiftDown)) { sel = null; refreshAll(); return; }
+    selectHex(k, shiftDown);
   }
 
   // ───────────── HUD rendering ─────────────
@@ -433,8 +499,9 @@
     else if (!countCash.running) $('#cash').textContent = me.cash;
     const inc = E.computeIncome(S, you);
     $('#incomeLine').innerHTML = `Income <b>+$${inc.total}</b> /turn` + (planning() ? ' · <span style="color:var(--blue)">blueprint view</span>' : '');
-    $('#incomeLine').title = `Base $${inc.base} + $${inc.fromHex} from ${inc.hexes} hexes (1 per 3) + $${inc.fromRes} resources + $${inc.ref} refineries`;
-    $('#hexLine').innerHTML = `⬢ ${inc.hexes + inc.cut} hexes` + (inc.cut ? ` · <span style="color:#ff9aa3">${inc.cut} cut off</span>` : '');
+    $('#incomeLine').title = `Base $${inc.base} + $${inc.fromHex} land (${inc.hexes} hexes, 1 per 3) + $${inc.fromSea} sea (${inc.sea} hexes, 1 per 4) + $${inc.fromRes} resources/rigs + $${inc.ref} refineries + $${inc.trade} markets`;
+    $('#hexLine').innerHTML = `⬢ ${inc.hexes} land · ≈ ${inc.sea} sea` + (inc.cut ? ` · <span style="color:#ff9aa3">${inc.cut} cut off</span>` : '');
+
   }
   function countCash(from, to) {
     const e = $('#cash'); countCash.running = true;
@@ -486,55 +553,52 @@
     });
   }
 
-  function cardEl(id, opts = {}) {
-    const d = E.cardDef(id);
-    const c = el('div', `card r-${d.rarity} k-${d.kind}${opts.mini ? ' mini' : ''}`);
-    c.style.setProperty('--dl', (-Math.random() * 4).toFixed(2) + 's');
-    const cost = opts.cost ?? d.cost;
-    let stats = '';
-    if (d.kind === 'unit') stats = `<div class="c-stats"><span class="a">⚔${d.atk}</span><span class="d">⛨${d.def}</span><span class="m">➜${d.mv}</span></div>`;
-    c.innerHTML = `<div class="ci"><div class="c-cost">$${cost}</div><div class="badge">${E.RARITY[d.rarity].name.toUpperCase()}</div><div class="c-art" style="background-image:url(${Art.cardArt(id)})"></div><div class="c-name">${d.name}</div><div class="c-type">${d.kind === 'unit' ? 'Unit · ' + ({ inf: 'Infantry', veh: 'Vehicle', air: 'Air', art: 'Artillery', sea: 'Naval' })[d.cls] : 'Tactic · single use'}</div>${stats}<div class="c-desc">${d.desc}</div><div class="c-shine"></div></div>`;
-    const ci = c.firstChild;
-    c.addEventListener('mousemove', e => { const r = c.getBoundingClientRect(); const x = (e.clientX - r.left) / r.width - 0.5, y = (e.clientY - r.top) / r.height - 0.5; ci.style.setProperty('--ry', (x * 22).toFixed(1) + 'deg'); ci.style.setProperty('--rx', (-y * 22).toFixed(1) + 'deg'); c.style.setProperty('--ry', (x * 22).toFixed(1) + 'deg'); });
-    c.addEventListener('mouseleave', () => { ci.style.setProperty('--rx', '0deg'); ci.style.setProperty('--ry', '0deg'); });
-    c.addEventListener('mouseenter', () => SFX.hover());
-    return c;
-  }
+  function cardEl(id, opts = {}) { return Cards.make(id, opts); }
 
-  // ───────────── hotbar (units 1-0, buildings Z-M) + tactic hand ─────────────
+  // ───────────── bars: unit deck (cards, keys 1-0), build bar (Z-M), tactic hand ─────────────
   const UNIT_KEYS = ['1', '2', '3', '4', '5', '6', '7', '8', '9', '0'];
-  const BUILD_KEYS = ['z', 'x', 'c', 'v', 'b', 'n', 'm'];
-  const BUILDS = ['fob', 'bunker', 'refinery', 'flak', 'port', 'market', 'depot'];
+  const BUILD_KEYS = ['z', 'x', 'c', 'v', 'b', 'n', 'm', ','];
   let hotbarSig = '';
   function hotbarItems() {
     const ds = dispState(); const me = ds && ds.players.find(p => p.id === you);
     if (!me || !me.alive) return { units: [], builds: [] };
-    return { me, ds, units: me.arsenal.slice(0, 10), builds: BUILDS };
+    return { me, ds, units: me.arsenal.slice(0, 10), builds: E.BUILD_ORDER };
   }
-  function slotEl(kind, id, key, cost, me, count) {
-    const d = kind === 'unit' ? E.UNITS[id] : E.STRUCTS[id];
-    const s = el('div', 'slot k-' + kind + (kind === 'unit' ? ' r-' + d.rarity : ''));
-    s.dataset.kind = kind; s.dataset.id = id;
-    s.innerHTML = `<span class="sk">${key.toUpperCase()}</span><img src="${Art.iconURL(kind === 'unit' ? 'unit' : 'struct', id, '#fff', 72)}"><span class="sc">$${cost}</span>` + (count ? `<span class="sn">${count}</span>` : '');
+  function buildSlot(id, key, me) {
+    const cost = E.structCost(me, id);
+    const s = el('div', 'slot k-build');
+    s.dataset.kind = 'build'; s.dataset.id = id;
+    s.innerHTML = `<span class="sk">${key.toUpperCase()}</span><img src="${Art.iconURL('struct', id, '#fff', 72)}"><span class="sc">$${cost}</span>`;
     if (me.cash < cost) s.classList.add('poor');
-    if (mode && ((mode.type === 'deploy' && kind === 'unit' && mode.unit === id) || (mode.type === 'build' && kind === 'build' && mode.struct === id))) s.classList.add('on');
-    s.onclick = () => armSlot(kind, id);
-    s.onmouseenter = () => { SFX.hover(); showSlotTip(s, kind, id); };
+    if (mode && mode.type === 'build' && mode.struct === id) s.classList.add('on');
+    s.onclick = () => armSlot('build', id);
+    s.onmouseenter = () => { SFX.hover(); showSlotTip(s, 'build', id); };
     s.onmouseleave = hideSlotTip;
     return s;
   }
   function renderHand() {
     const { me, ds, units, builds } = hotbarItems();
     const hu = $('#hbUnits'), hb = $('#hbBuild'), hand = $('#hand');
+    $('#deckBar').hidden = $('#buildBar').hidden = !me;
     if (!me) { hu.innerHTML = hb.innerHTML = hand.innerHTML = ''; return; }
     const counts = {}; for (const u of Object.values(ds.units)) if (u.owner === you) counts[u.type] = (counts[u.type] || 0) + 1;
-    const sig = JSON.stringify([units, me.cash, mode, counts, me.tactics.map(c => c.uid), canCommand()]);
+    const sig = JSON.stringify([units, me.levels, me.cash, mode && { ...mode, el: null }, counts, me.tactics.map(c => c.uid), canCommand()]);
     if (sig === hotbarSig) return; hotbarSig = sig;
     const prevIds = new Set([...hu.children].map(c => c.dataset.id));
     hu.innerHTML = ''; hb.innerHTML = '';
-    units.forEach((id, i) => { const s = slotEl('unit', id, UNIT_KEYS[i], E.unitCost(me, id), me, counts[id]); if (prevIds.size && !prevIds.has(id)) s.classList.add('new'); hu.appendChild(s); });
-    builds.forEach((id, i) => hb.appendChild(slotEl('build', id, BUILD_KEYS[i], E.structCost(me, id), me)));
-    // tactic hand
+    $('#deckBar .bar-label').textContent = `DECK ${units.length}/${E.DECK_MAX} · KEYS 1–0`;
+    units.forEach((id, i) => {
+      const cost = E.unitCost(me, id);
+      const c = cardEl(id, { mini: true, cost, level: me.levels[id] || 0, key: UNIT_KEYS[i], count: counts[id] });
+      c.dataset.kind = 'unit';
+      if (me.cash < cost) c.classList.add('poor');
+      if (mode && mode.type === 'deploy' && mode.unit === id) c.classList.add('active');
+      if (prevIds.size && !prevIds.has(id)) c.classList.add('new');
+      c.style.setProperty('--fan', ((i - (units.length - 1) / 2) * 1.6) + 'deg');
+      c.onclick = () => armSlot('unit', id);
+      hu.appendChild(c);
+    });
+    builds.forEach((id, i) => hb.appendChild(buildSlot(id, BUILD_KEYS[i], me)));
     const prevHand = new Set([...hand.children].map(c => c.dataset.uid));
     hand.innerHTML = '';
     const n = me.tactics.length;
@@ -552,8 +616,8 @@
   }
   function showSlotTip(slot, kind, id) {
     const tip = $('#slotTip'); tip.innerHTML = '';
-    if (kind === 'unit') tip.appendChild(cardEl(id));
-    else { const d = E.STRUCTS[id]; tip.innerHTML = `<div class="btip"><img src="${Art.iconURL('struct', id, '#fff', 96)}"><b>${d.name}</b><span>${d.desc}</span></div>`; }
+    const d = E.STRUCTS[id];
+    tip.innerHTML = `<div class="btip"><img src="${Art.iconURL('struct', id, '#fff', 96)}"><b>${d.name} <span class="gold">$${d.cost}</span></b><span>${d.desc}</span></div>`;
     const r = slot.getBoundingClientRect();
     tip.style.left = (r.left + r.width / 2) + 'px'; tip.style.top = (r.top - 12) + 'px';
     tip.hidden = false;
@@ -562,24 +626,46 @@
 
   function armSlot(kind, id) {
     const ds = dispState(); const me = ds.players.find(p => p.id === you);
-    if (!me || !canCommand()) { toast(isMyTurn() ? 'Collect your supply drop first' : 'Wait for your turn', 'err'); SFX.error(); return; }
+    if (!me || !canCommand()) { toast(isMyTurn() ? 'Open your supply crate first' : 'Wait for your turn', 'err'); SFX.error(); return; }
     if (kind === 'unit') {
       const cost = E.unitCost(me, id);
       if (mode && mode.type === 'deploy' && mode.unit === id) { mode = null; refreshAll(); return; }
       if (me.cash < cost) { toast('Need $' + cost, 'err'); SFX.error(); shakeSlot(kind, id); return; }
-      const spots = E.deployHexes(ds, you, id);
-      if (!spots.length) { toast(E.isSea(id) ? 'Build a Port on the coast to launch ships' : 'All deploy points are full', 'err'); SFX.error(); shakeSlot(kind, id); return; }
+      if (!E.deployHexes(ds, you, id).length) { toast(E.isSea(id) ? 'Build a Port on the coast to launch ships' : 'All deploy points are full', 'err'); SFX.error(); shakeSlot(kind, id); return; }
       mode = { type: 'deploy', unit: id };
     } else {
       const cost = E.structCost(me, id);
       if (mode && mode.type === 'build' && mode.struct === id) { mode = null; refreshAll(); return; }
       if (me.cash < cost) { toast('Need $' + cost, 'err'); SFX.error(); shakeSlot(kind, id); return; }
-      if (!E.buildHexes(ds, you, id).length) { toast(id === 'port' ? 'No free coastal hex in supply' : 'Nowhere to build that', 'err'); SFX.error(); shakeSlot(kind, id); return; }
+      if (!E.buildHexes(ds, you, id).length) { toast(id === 'port' ? 'No free coastal hex in supply' : id === 'bridge' ? 'No 1-hex sea gap next to your supplied land' : 'Nowhere to build that', 'err'); SFX.error(); shakeSlot(kind, id); return; }
       mode = { type: 'build', struct: id };
     }
     sel = null; SFX.select(); refreshAll();
   }
-  function shakeSlot(kind, id) { const s = document.querySelector(`.slot[data-kind="${kind}"][data-id="${id}"]`); if (s) { s.classList.remove('nope'); void s.offsetWidth; s.classList.add('nope'); } }
+  function shakeSlot(kind, id) { const s = document.querySelector(`[data-kind="${kind}"][data-id="${id}"]`); if (s) { s.classList.remove('nope'); void s.offsetWidth; s.classList.add('nope'); } }
+
+  // crate decisions
+  async function pickFromCrate(idx, replace, frontEl) {
+    const d = E.cardDef(S.turn.crate.cards[idx]);
+    const target = d.kind === 'unit' ? ($('#hbUnits').querySelector(`[data-id="${d.id}"]`) || $('#hbUnits').lastElementChild || $('#deckBar')) : ($('#hand').lastElementChild || $('#hand'));
+    if (frontEl) flyTo(frontEl, target, () => { pulseTarget(target); SFX.coin(2); });
+    const ok = await act({ a: 'pick', idx, replace });
+    if (ok && plan.length && planAuto) runPlan();
+    return ok;
+  }
+  async function pickFromSupply(idx, replace, frontEl) {
+    const d = E.cardDef(S.turn.offer[idx]);
+    const target = d.kind === 'unit' ? ($('#hbUnits').querySelector(`[data-id="${d.id}"]`) || $('#hbUnits').lastElementChild || $('#deckBar')) : ($('#hand').lastElementChild || $('#hand'));
+    if (frontEl) flyTo(frontEl, target, () => { pulseTarget(target); SFX.coin(2); });
+    const ok = await act({ a: 'choose', pick: 'card', idx, replace });
+    if (ok && plan.length) runPlan();
+    return ok;
+  }
+  async function scrapCrate() {
+    const ok = await act({ a: 'scrap' });
+    if (ok && plan.length && planAuto) runPlan();
+    return ok;
+  }
 
   async function playTactic(card, elc) {
     const ds = dispState(); const me = ds.players.find(p => p.id === you); const d = E.TACTICS[card.id];
@@ -654,124 +740,51 @@
     const ov = Render.ov, ds = dispState();
     let html = '';
     if (ov.reach && ov.reach[k] && (ov.reach[k].kind === 'attack') && sel) {
-      const path = E.pathTo(ov.reach, k);
-      const c = E.combatCalc(ds, you, [...sel.units].map(id => ds.units[id]), path[path.length - 2], k, false);
-      html = combatTip('ATTACK', c);
+      const gs = assaultGroups(ds, k, E.buildIndex(ds));
+      if (gs.length) {
+        const c = E.combatCalc(ds, you, gs.flatMap(g => g.units.map(id => ds.units[id])), gs.map(g => g.stage), k, false);
+        html = combatTip(gs.length > 1 ? gs.length + '-WAY PINCER' : 'ATTACK', c) + intel(ds, k);
+      }
     } else if (ov.fire && ov.fire.has(k) && sel) {
       const c = E.combatCalc(ds, you, [...sel.units].map(id => ds.units[id]), sel.hex, k, true);
       html = combatTip('BOMBARD', c) + '<div class="sub">Win: destroy 1 unit (2 on double score). Lose: nothing happens.</div>';
-    } else if (ov.reach && ov.reach[k] && ov.reach[k].kind === 'capture') html = '<b>SEIZE</b> — empty enemy hex';
+    } else if (ov.reach && ov.reach[k] && ov.reach[k].kind === 'capture') html = '<b>SEIZE</b> — empty ' + (E.isWater(ds.map.tiles[k]) ? 'sea lane' : 'enemy hex');
+    else if (ov.reach && ov.reach[k] && ov.reach[k].kind === 'board') html = '<b>BOARD</b> — climb aboard the transport';
     else {
       const t = ds.map.tiles[k];
       const units = Object.values(ds.units).filter(u => u.hex === k);
-      if (!units.length && !t.struct) return hideTip();
-      html = `<b>${t.owner ? esc(pName(t.owner)) : 'Unclaimed'}</b>` + (t.struct ? ' · ' + E.STRUCTS[t.struct.type].name : '');
-      if (units.length) html += '<br>' + units.map(u => E.UNITS[u.type].name).join(', ');
+      if (!units.length && !t.struct && !t.res && !t.owner) return hideTip();
+      html = `<b style="color:${t.owner ? pColor(t.owner) : '#fff'}">${t.owner ? esc(pName(t.owner)) : 'Unclaimed'}</b> · ${t.bridge ? 'Bridge' : t.contam ? 'Fallout' : E.TERRAIN[t.t].name}` + (t.res ? ` · <span style="color:#9ffcf2">${E.isWater(t) ? 'Oil rig' : 'Resource'} +$2</span>` : '');
+      if (t.struct && !t.bridge) html += `<div class="tip-struct"><img src="${Art.iconURL('struct', t.struct.type, '#fff', 40)}">${E.STRUCTS[t.struct.type].name}</div>`;
+      html += intel(ds, k);
     }
     tip.innerHTML = html; tip.hidden = false;
-    tip.style.left = Math.min(innerWidth - 270, x + 16) + 'px'; tip.style.top = (y + 16) + 'px';
+    const w = tip.offsetWidth || 280;
+    tip.style.left = Math.min(innerWidth - w - 10, x + 16) + 'px'; tip.style.top = Math.min(innerHeight - tip.offsetHeight - 10, y + 16) + 'px';
+  }
+  // hover intel: the actual unit cards sitting on a hex
+  function intel(ds, k) {
+    const units = Object.values(ds.units).filter(u => u.hex === k);
+    if (!units.length) return '';
+    const by = {};
+    for (const u of units) { const key = u.type; (by[key] || (by[key] = [])).push(u); }
+    const owner = ds.players.find(p => p.id === units[0].owner);
+    let h = `<div class="intel">`;
+    for (const type in by) {
+      const d = E.UNITS[type], lv = owner && owner.levels ? owner.levels[type] || 0 : 0, n = by[type].length;
+      const flags = by[type].some(u => u.stun) ? ' <span class="frz">FROZEN</span>' : '';
+      h += `<div class="ic r-${d.rarity}"><img src="${Art.cardArt(type)}"><div><b>${n > 1 ? n + '× ' : ''}${d.name}</b>${lv ? ' <span class="gold">' + '★'.repeat(lv) + '</span>' : ''}${flags}<div class="ic-s"><span class="a">⚔ ${d.atk + (d.atk ? lv : 0)}</span><span class="d">⛨ ${d.def + lv}</span><span>➜ ${d.mv}</span>${d.range ? '<span>◎ ' + d.range + '</span>' : ''}</div><div class="ic-r" style="color:${E.RARITY[d.rarity].color}">${E.RARITY[d.rarity].name} ${E.CLASS_NAME[d.cls]}</div></div></div>`;
+    }
+    return h + '</div>';
   }
   function combatTip(title, c) {
     const col = c.winProb >= 0.66 ? 'var(--green)' : c.winProb >= 0.4 ? 'var(--gold)' : 'var(--red)';
-    const bon = b => b.map(x => `${x.label} ${x.chips ? '+' + x.chips + 'c' : '+' + x.mult + 'x'}`).join(', ');
+    const bon = b => b.filter(x => !x.note).map(x => `${x.label} ${x.chips ? '+' + x.chips + 'c' : (x.mult > 0 ? '+' : '') + x.mult + 'x'}`).join(', ');
     return `<b>${title}</b> <span class="odds" style="color:${col}">${Math.round(c.winProb * 100)}%</span><br>` +
       `You: <span style="color:var(--chips)">${c.att.chips}</span> × (d6<span style="color:var(--mult)">${c.att.mult ? '+' + c.att.mult : ''}</span>)` + (c.att.bonuses.length ? `<div class="sub">${bon(c.att.bonuses)}</div>` : '') +
       `Them: <span style="color:var(--chips)">${c.def.chips}</span> × (d6<span style="color:var(--mult)">${c.def.mult ? '+' + c.def.mult : ''}</span>)` + (c.def.bonuses.length ? `<div class="sub">${bon(c.def.bonuses)}</div>` : '');
   }
   function hideTip() { $('#tooltip').hidden = true; }
-
-  // ───────────── supply drop: face-down deal, flip reveal, pick flies to your bar ─────────────
-  let supplyKey = '';
-  const RANK = { common: 0, uncommon: 1, rare: 2, legendary: 3 };
-  function showSupply() {
-    const box = $('#supply');
-    const key = S.turn.round + ':' + S.turn.idx + ':' + S.turn.rerolls;
-    if (!box.hidden && supplyKey === key) return;
-    supplyKey = key;
-    const me = myP(); const inc = S.turn.income, half = Math.floor(inc / 2);
-    box.innerHTML = `<div class="sd-rays"></div><h2>SUPPLY DROP</h2><div class="sub">Round ${S.turn.round} — take a card <b>and $${half}</b>, or skip the cards and collect the full <b>$${inc}</b>.</div>`;
-    const offer = el('div', 'offer');
-    const cards = [];
-    let locked = true;
-    S.turn.offer.forEach((id, i) => {
-      const d = E.cardDef(id);
-      const wrap = el('div', 'flip r-' + d.rarity);
-      wrap.style.setProperty('--dl', (i * 0.1) + 's');
-      const back = el('div', 'cback', '<div class="cb-logo">S</div>');
-      const front = cardEl(id); front.classList.add('cfront');
-      front.appendChild(el('div', 'take', 'TAKE + $' + half));
-      wrap.append(back, front);
-      wrap.onclick = async () => {
-        if (locked || wrap.dataset.busy) return;
-        if (!wrap.classList.contains('open')) return;
-        locked = true; wrap.dataset.busy = 1;
-        cards.forEach(c => { if (c !== wrap) c.classList.add('discard'); });
-        d.rarity === 'legendary' ? SFX.legendary() : d.rarity === 'rare' ? SFX.rare() : SFX.select();
-        // fly to the matching slot (or the hand for tactics)
-        const target = d.kind === 'unit' ? ($('#hbUnits').lastElementChild || $('#hbUnits')) : ($('#hand').lastElementChild || $('#hand'));
-        box.classList.add('leaving');
-        flyTo(front, target, () => { pulseTarget(target); SFX.coin(2); });
-        wrap.style.visibility = 'hidden';
-        const ok = await act({ a: 'choose', pick: 'card', idx: i });
-        if (ok && plan.length) runPlan();
-      };
-      cards.push(wrap); offer.appendChild(wrap);
-    });
-    box.appendChild(offer);
-    const row = el('div', 'supply-row');
-    const col = el('button', 'btn big green', 'COLLECT $' + inc);
-    col.onclick = async () => { if (col.disabled) return; col.disabled = true; SFX.coin(5); burstCash(col); box.classList.add('leaving'); const ok = await act({ a: 'choose', pick: 'income' }); if (ok && plan.length) runPlan(); };
-    const rr = el('button', 'btn big gold', 'REROLL $' + (2 + S.turn.rerolls));
-    rr.disabled = me.cash < 2 + S.turn.rerolls;
-    rr.onclick = () => { if (locked) return; SFX.card(); cards.forEach(c => c.classList.add('discard')); setTimeout(() => act({ a: 'reroll' }), 250 * speed()); };
-    const look = el('button', 'btn big', 'PEEK MAP');
-    look.onmousedown = () => { box.style.opacity = 0.06; }; look.onmouseup = look.onmouseleave = () => { box.style.opacity = 1; };
-    row.append(col, rr, look); box.appendChild(row);
-    box.classList.remove('leaving');
-    box.hidden = false;
-    // flip them one by one; rarer cards get a bigger reveal
-    (async () => {
-      await sleep(450);
-      for (let i = 0; i < cards.length; i++) {
-        const d = E.cardDef(S.turn.offer[i] || 'grunt'); const c = cards[i]; const rank = RANK[d.rarity];
-        if (rank >= 2) { c.classList.add('charge'); SFX.zap(); await sleep(rank === 3 ? 900 : 450); }
-        c.classList.add('open'); SFX.card();
-        if (rank >= 1) revealFx(c, d.rarity);
-        await sleep(rank === 3 ? 700 : 230);
-      }
-      locked = false;
-    })();
-  }
-  function revealFx(c, rarity) {
-    const r = c.getBoundingClientRect(), x = r.left + r.width / 2, y = r.top + r.height / 2;
-    const col = E.RARITY[rarity].color;
-    const n = { uncommon: 14, rare: 28, legendary: 70 }[rarity];
-    for (let i = 0; i < n; i++) {
-      const p = el('div', 'spark'); p.style.background = i % 3 ? col : '#fff';
-      const a = Math.random() * Math.PI * 2, dist = 80 + Math.random() * (rarity === 'legendary' ? 320 : 160);
-      p.style.left = x + 'px'; p.style.top = y + 'px';
-      $('#flyLayer').appendChild(p);
-      p.animate([{ transform: 'translate(-50%,-50%) scale(1)', opacity: 1 }, { transform: `translate(${Math.cos(a) * dist - 4}px, ${Math.sin(a) * dist - 4}px) scale(0)`, opacity: 0 }], { duration: 600 + Math.random() * 600, easing: 'cubic-bezier(.1,.8,.3,1)' }).onfinish = () => p.remove();
-    }
-    const ring = el('div', 'ringfx'); ring.style.left = x + 'px'; ring.style.top = y + 'px'; ring.style.borderColor = col; $('#flyLayer').appendChild(ring);
-    setTimeout(() => ring.remove(), 800);
-    if (rarity === 'rare') { SFX.rare(); Render.shake(4); }
-    if (rarity === 'legendary') {
-      SFX.legendary(); Render.shake(14); Render.flash(0.35, '#ffb52e');
-      const b = el('div', 'legend-banner', 'LEGENDARY'); $('#flyLayer').appendChild(b); setTimeout(() => b.remove(), 1800);
-      $('#supply').classList.add('legend');
-    }
-  }
-  function burstCash(btn) {
-    const r = btn.getBoundingClientRect(), t = $('#cash').getBoundingClientRect();
-    for (let i = 0; i < 12; i++) {
-      const c = el('div', 'coinfx', '$'); c.style.left = (r.left + r.width / 2) + 'px'; c.style.top = (r.top + r.height / 2) + 'px';
-      $('#flyLayer').appendChild(c);
-      const mx = (Math.random() - 0.5) * 300, my = -100 - Math.random() * 150;
-      c.animate([{ transform: 'translate(-50%,-50%) scale(.6)' }, { transform: `translate(${mx}px, ${my}px) scale(1.2)`, offset: 0.4 }, { transform: `translate(${t.left - r.left - r.width / 2}px, ${t.top - r.top - r.height / 2}px) scale(.5)` }], { duration: 700 + i * 40, easing: 'cubic-bezier(.4,0,.6,1)' }).onfinish = () => { c.remove(); SFX.chip(i); };
-    }
-  }
-  function hideSupply() { $('#supply').hidden = true; $('#supply').classList.remove('legend'); supplyKey = ''; }
 
   // ───────────── combat sequence (chips × mult) ─────────────
   function dieFace(d, n) {
@@ -915,6 +928,10 @@
         fling(d, vx * k, vy * k);
       };
       cv.onclick = e => e.stopPropagation();
+      // SPACE flings your die
+      const onKey = e => { if (e.key !== ' ') return; e.preventDefault(); e.stopPropagation(); const d = dice.find(d => d.human && !d.thrown); if (d) fling(d, -d.side * (900 + Math.random() * 500), (Math.random() - 0.5) * 700); };
+      addEventListener('keydown', onKey, true);
+      const cleanupKey = () => removeEventListener('keydown', onKey, true);
       const settle = d => {
         d.settled = true; d.face = d.final; d.vx = d.vy = d.va = 0;
         d.snapFrom = d.a; d.snapTo = Math.round(d.a / (Math.PI / 2)) * (Math.PI / 2); d.snapT = 0; d.pop = 1;
@@ -961,7 +978,7 @@
         if (dice.some(d => d.human && !d.thrown)) {
           const pulse = 0.55 + 0.45 * Math.sin(now / 160);
           c.font = '22px "Black Ops One", sans-serif'; c.textAlign = 'center'; c.fillStyle = `rgba(255,214,90,${pulse})`;
-          c.fillText('DRAG & FLING YOUR DIE!', W / 2, H / 2 + 8);
+          c.fillText('DRAG & FLING — OR PRESS SPACE!', W / 2, H / 2 + 8);
           const left = Math.max(0, Math.ceil((5000 - (now - waitStart)) / 1000)); c.font = '13px "Chakra Petch", sans-serif'; c.fillStyle = 'rgba(255,255,255,.4)'; c.fillText('auto-throw in ' + left + 's', W / 2, H / 2 + 30);
         }
         for (let i = parts.length - 1; i >= 0; i--) { const pt = parts[i]; pt.life += dt * sub; if (pt.life > pt.max) { parts.splice(i, 1); continue; } pt.x += pt.vx * dt * sub; pt.y += pt.vy * dt * sub; pt.vx *= 0.95; pt.vy *= 0.95; c.globalAlpha = 1 - pt.life / pt.max; c.fillStyle = pt.col; c.fillRect(pt.x - 2, pt.y - 2, 4, 4); c.globalAlpha = 1; }
@@ -978,7 +995,7 @@
           for (const [px, py] of PIPS[d.face]) { c.beginPath(); c.arc(px * SZ * 0.26, py * SZ * 0.26, SZ * 0.085, 0, Math.PI * 2); c.fill(); }
           c.restore();
         }
-        if (dice.every(d => d.settled && d.snapT >= 1)) { done = true; setTimeout(resolve, 260 * speed()); return; }
+        if (dice.every(d => d.settled && d.snapT >= 1)) { done = true; cleanupKey(); setTimeout(resolve, 260 * speed()); return; }
         setTimeout(step, 16);
       };
       step();
@@ -1086,8 +1103,22 @@
           break;
         }
         case 'income': Render.float(ev.hq, '+$' + ev.amount, '#ffc53d', 26); if (ev.pid === you) SFX.coin(Math.min(8, ev.amount / 2 | 0)); await sleep(250); break;
+        case 'crate': {
+          if (ev.pid !== you) {
+            const n = pName(ev.pid), tn = E.CRATES[ev.tier].name;
+            if (ev.tier === 'mythic') { toast(`🟪 ${n} spun a MYTHIC CRATE!`, 'leg'); SFX.legendary(); }
+            else if (ev.tier === 'gilded') { toast(`🟨 ${n} opened a ${tn}`); SFX.rare(); }
+            else toast(`${n} called in a Supply Drop`);
+          }
+          break;
+        }
+        case 'scrap': if (ev.pid === you) Render.float(ev.hq, '+$' + ev.amount, '#ffc53d', 22); break;
+        case 'draft': if (ev.round > 1) SFX.card(); break;
+        case 'draftDone': banner('THE WAR BEGINS', 'Draft complete', '#b52b38'); SFX.yourTurn(); await sleep(900); break;
         case 'card': {
           const d = ev.id ? E.cardDef(ev.id) : null;
+          if (ev.pid === you && d && ev.level) { toast(`★ ${d.name} upgraded to level ${ev.level}!`, 'leg'); break; }
+          if (ev.pid === you && d && ev.refund) { toast(`${d.name} is maxed — +$${ev.refund}`); break; }
           if (ev.pid !== you) {
             if (ev.rarity === 'legendary') { toast(`★ ${pName(ev.pid)} drafted LEGENDARY ${d ? d.name : ''}!`, 'leg'); SFX.legendary(); Render.flash(0.25, '#ffb52e'); }
             else toast(`${pName(ev.pid)} drafted ${d && ev.kind === 'unit' ? d.name : 'a ' + E.RARITY[ev.rarity].name + ' card'}`);
@@ -1159,6 +1190,7 @@
         }
         case 'win': break;
         case 'reroll': SFX.card(); break;
+        case 'tactic': break;
       }
     }
   }
@@ -1192,6 +1224,12 @@
       case 'smoke': Render.smoke(ev.target, 22); SFX.whoosh(); break;
       case 'march': Render.ring(ev.target, pColor(ev.pid), 60, 0.6, 4); Render.float(ev.target, 'FORCED MARCH', '#fff', 16); SFX.select(); break;
       case 'conscript': for (const u of ev.units) { S.units[u.id] = u; } Render.ring(ev.target, pColor(ev.pid), 50, 0.5); SFX.deploy(); Render.shake(4); break;
+      case 'carpet': {
+        SFX.whoosh(); await sleep(300);
+        for (let i = 0; i < 7; i++) { const k2 = ev.area[i % ev.area.length]; if (S.map.tiles[k2]) { Render.burst(k2, ['#ffb03a', '#ff5a2a', '#fff2a8'], 14, { speed: 1.2 }); SFX.boom(0.5); Render.shake(7); } await sleep(110); }
+        Render.float(ev.target, ev.kills.length + ' DESTROYED', '#ff4f5e', 20); killUnits(ev.kills); await sleep(300); break;
+      }
+      case 'jackpot': SFX.coin(8); Render.flash(0.2, '#ffc53d'); break;
       case 'airstrike': {
         SFX.whoosh(); await sleep(350);
         for (let i = 0; i < 3; i++) { const [x, y] = Render.topOf(ev.target); Render.burst([x + (Math.random() - 0.5) * 40, y + (Math.random() - 0.5) * 20], ['#ffb03a', '#ff5a2a', '#fff2a8'], 18, { speed: 1.3 }); SFX.boom(0.7); Render.shake(9); await sleep(170); }
@@ -1261,7 +1299,7 @@
     <p>Grab land, build an economy, crush your rivals. <b>Every hex you hold pays you</b>, so sitting still is losing.</p>
     <div class="grid2"><div>
     <h4>YOUR TURN</h4>
-    <b>1. Supply Drop</b> — take one of 3 cards <i>plus half your income</i>, or skip them for the full income. Reroll the offer for cash.<br>
+    <b>1. Resupply</b> — flip 3 cards: take one <i>plus half your income</i>, or skip them for the full income. Reroll for cash.<br>
     <b>2. Act</b> — deploy (hotbar <kbd>1</kbd>–<kbd>0</kbd>), build (<kbd>Z</kbd>–<kbd>M</kbd>), move, attack, play tactics, trade — any order.<br>
     <b>3. End turn.</b>
     <h4>INCOME</h4>
@@ -1281,14 +1319,15 @@
     <b>Bonuses:</b> Flanking (+1 mult per other friendly stack touching the target), Combined Arms (3+ unit types), Forest +1, Highlands +2, Bunker +2, FOB +1, HQ +2 & garrison.
     <b>You throw your own die</b> — drag & fling it in the tray.
     <h4>ARTILLERY & GUNSHIPS</h4> Ranged units fire instead of moving. Win = destroy 1 unit (2 if you double their score). Lose = nothing. Can't shoot through mountains.
-    <h4>CARDS</h4> <b>Units</b> are permanent unlocks — deploy as many as you can afford. <b>Tactics</b> are single-use. <b style="color:var(--gold)">Legendaries are unique</b>: only one exists until it's spent or its owner falls.
+    <h4>CARDS</h4> <b>Units</b> form your deck (max 10): deploy as many as you can afford. Pull a unit you already own and it levels up (★ +1 ATK/DEF, max ★★★). Deck full? Replace a card. <b>Tactics</b> are single-use. <b style="color:var(--gold)">Legendaries are unique</b>: only one exists until it's spent or its owner falls.
     <h4>TRADING</h4> On your turn click <b>TRADE</b> under a rival's name: offer cash/cards for cash. They accept or decline.
-    <h4>CONTROLS</h4> <kbd>1</kbd>–<kbd>0</kbd> deploy · <kbd>Z</kbd>–<kbd>M</kbd> build · <kbd>Click</kbd> select / order · <kbd>Right-click</kbd> cancel · <kbd>Drag</kbd> / <kbd>WASD</kbd> pan · <kbd>Wheel</kbd> zoom · <kbd>F</kbd> find HQ · <kbd>Space</kbd> end turn · <kbd>Enter</kbd> chat
+    <h4>CONTROLS</h4> <kbd>1</kbd>–<kbd>0</kbd> deploy · <kbd>Z</kbd>–<kbd>M</kbd> build · <kbd>Click</kbd> select / order · <kbd>Right-click</kbd> cancel · <kbd>Drag</kbd> / <kbd>WASD</kbd> pan · <kbd>Wheel</kbd> zoom · <kbd>F</kbd> find HQ · <kbd>Enter</kbd> chat
     </div></div>
     <div class="row" style="justify-content:center;margin-top:16px"><button class="btn big red" id="rulesClose">GOT IT</button></div></div>`;
     r.hidden = false; $('#rulesClose').onclick = () => { r.hidden = true; SFX.click(); };
   }
   $('#rulesBtn').onclick = showRules; $('#rulesBtn2').onclick = showRules;
+  for (const b of ['#indexBtn', '#indexBtn2', '#indexBtn3']) $(b).onclick = () => { SFX.select(); Cards.showIndex(); };
 
   window.SECTOR_DEBUG = { send, state: () => S, you: () => you, plan: () => plan, click: onHexClick };
   connect();

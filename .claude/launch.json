@@ -1,1 +1,4 @@
-{ "version": "0.0.1", "configurations": [ { "name": "sector", "runtimeExecutable": "node", "runtimeArgs": ["server.js"], "port": 3000 }, { "name": "sector-dev", "runtimeExecutable": "node", "runtimeArgs": ["server.js"], "port": 3000, "env": { "SECTOR_DEV": "1" } } ] }
+{ "version": "0.0.1", "configurations": [
+  { "name": "sector", "runtimeExecutable": "node", "runtimeArgs": ["C:\Users\Blacksheep\Documents\Sector_Boardgame\server.js"], "port": 3000 },
+  { "name": "sector-dev", "runtimeExecutable": "node", "runtimeArgs": ["C:\Users\Blacksheep\Documents\Sector_Boardgame\server.js"], "port": 3000, "env": { "SECTOR_DEV": "1" } }
+] }
