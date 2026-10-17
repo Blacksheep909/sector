@@ -556,7 +556,7 @@
     if (!S) return;
     Render.setState(dispState());
     updateOverlays();
-    renderTop(); renderCash(); renderPlan(); renderHexPanel(); renderHand(); renderEnd(); renderModeHint(); renderOffer();
+    renderTop(); renderCash(); renderSiege(); renderPlan(); renderHexPanel(); renderHand(); renderEnd(); renderModeHint(); renderOffer();
   }
 
   function renderTop() {
@@ -580,6 +580,14 @@
   }
 
   let shownCash = null;
+  function renderSiege() {
+    let w = document.querySelector('#siegeWarn');
+    const me = myP();
+    const h = me && S.map.tiles[me.hq] && E.structsOf(S.map.tiles[me.hq]).find(x => x.type === 'hq' && x.owner === you && x.siege);
+    if (!h) { if (w) w.remove(); return; }
+    if (!w) { w = el('div', '', ''); w.id = 'siegeWarn'; document.body.appendChild(w); w.onclick = () => Render.focus(me.hq); }
+    w.innerHTML = `🔥 YOUR HQ IS UNDER SIEGE by <b>${esc(pName(h.siege.by))}</b> — retake it this turn or you're eliminated <span>(click to look)</span>`;
+  }
   function renderCash() {
     const me = myP(); const box = $('#cashBox');
     box.hidden = !me;
@@ -623,7 +631,12 @@
     if (ds.map.beacon === k) tags.push('<span class="hp-tag" style="color:var(--gold)">◆ BEACON</span>');
     if (t.owner === you && !E.supplySet(ds, you).has(k)) tags.push('<span class="hp-tag cut">Cut off — no income</span>');
     let h = `<div class="hp-title">${t.contam ? 'Fallout Zone' : E.TERRAIN[t.t].name}</div><div class="hp-own">${owner ? `<span style="color:${owner.color}">■ ${esc(owner.name)}</span>` : '<span class="sub">Unclaimed</span>'}</div><div class="hp-tags">${tags.join('')}</div>`;
-    if (t.struct) { const sd = E.STRUCTS[t.struct.type], L = t.struct.lvl || 1; h += `<div class="urow" style="cursor:default"><img src="${Art.iconURL('struct', t.struct.type)}"><div class="un">${sd.name} <span class="gold">${'★'.repeat(L)}</span><div class="st">${sd.desc}${E.UPGRADABLE.includes(t.struct.type) && L < E.MAX_SLVL && t.owner === you ? '<br><b class="gold">Upgrade: $' + E.buildCost(ds, ds.players.find(p => p.id === you), t.struct.type, k) + '</b> (build it again here)' : ''}</div></div></div>`; }
+    for (const st of E.structsOf(t)) {
+      const sd = E.STRUCTS[st.type], L = st.lvl || 1;
+      const flags = (st.siege ? ' <span class="hp-tag cut">UNDER SIEGE</span>' : '') + (st.lock ? ' <span class="hp-tag">online next turn</span>' : '');
+      h += `<div class="urow" style="cursor:default"><img src="${Art.iconURL('struct', st.type)}"><div class="un">${sd.name} <span class="gold">${'★'.repeat(L)}</span>${flags}<div class="st">${sd.desc}${E.UPGRADABLE.includes(st.type) && L < E.MAX_SLVL && t.owner === you && st.owner === you ? '<br><b class="gold">Upgrade: $' + E.buildCost(ds, ds.players.find(p => p.id === you), st.type, k) + '</b> (build it again here)' : ''}</div></div></div>`;
+    }
+    if (t.owner === you && !t.bridge && E.structsOf(t).length < E.MAX_STRUCTS && canCommand()) h += `<div class="hp-sec">${E.MAX_STRUCTS - E.structsOf(t).length} building slot${E.MAX_STRUCTS - E.structsOf(t).length === 1 ? '' : 's'} free on this hex</div>`;
     const units = Object.values(ds.units).filter(u => u.hex === k);
     if (units.length) {
       const mine = units[0].owner === you;
@@ -658,7 +671,7 @@
   function buildSlot(id, key, me) {
     const ds = dispState();
     const spots = E.buildHexes(ds, you, id);
-    const ups = spots.filter(k => ds.map.tiles[k].struct && ds.map.tiles[k].struct.type === id);
+    const ups = spots.filter(k => E.structsOf(ds.map.tiles[k]).some(x => x.type === id));
     const cost = id === 'hq' ? E.buildCost(ds, me, 'hq', me.hq) : E.structCost(me, id);
     const name = id === 'hq' ? 'Fortify' : E.STRUCTS[id].name;
     const s = el('div', 'slot k-build');
@@ -852,7 +865,7 @@
       const units = Object.values(ds.units).filter(u => u.hex === k);
       if (!units.length && !t.struct && !t.res && !t.owner) return hideTip();
       html = `<b style="color:${t.owner ? pColor(t.owner) : '#fff'}">${t.owner ? esc(pName(t.owner)) : 'Unclaimed'}</b> · ${t.bridge ? 'Bridge' : t.contam ? 'Fallout' : E.TERRAIN[t.t].name}` + (t.res ? ` · <span style="color:#9ffcf2">${E.isWater(t) ? 'Oil rig' : 'Resource'} +$2</span>` : '');
-      if (t.struct && !t.bridge) html += `<div class="tip-struct"><img src="${Art.iconURL('struct', t.struct.type, '#fff', 40)}">${E.STRUCTS[t.struct.type].name}</div>`;
+      if (!t.bridge) for (const st of E.structsOf(t)) html += `<div class="tip-struct"><img src="${Art.iconURL('struct', st.type, '#fff', 40)}">${E.STRUCTS[st.type].name} <span class="gold">${'★'.repeat(st.lvl || 1)}</span>${st.siege ? ' <b style="color:#ff6a4a">UNDER SIEGE</b>' : ''}</div>`;
       html += intel(ds, k);
     }
     tip.innerHTML = html; tip.hidden = false;
@@ -1235,7 +1248,9 @@
           await sleep(120); break;
         }
         case 'build': {
-          S.map.tiles[ev.hex].struct = { type: ev.struct, owner: ev.pid, lvl: ev.lvl || 1 };
+          { const tt = S.map.tiles[ev.hex]; tt.structs = E.structsOf(tt).slice(); const ex = tt.structs.find(x => x.type === ev.struct);
+            if (ex) ex.lvl = ev.lvl || ex.lvl; else tt.structs.push({ type: ev.struct, owner: ev.pid, lvl: ev.lvl || 1 });
+            if (!tt.struct || ev.struct === 'hq' || ev.struct === 'fob') tt.struct = tt.structs.find(x => x.type === ev.struct); }
           if (ev.lvl > 1) { Render.ring(ev.hex, '#ffc53d', 70, 0.6, 5); Render.float(ev.hex, '★'.repeat(ev.lvl) + ' UPGRADED', '#ffc53d', 18); }
           Render.pop(ev.hex); SFX.build(); Render.burst(ev.hex, [pColor(ev.pid), '#fff', '#ffc53d'], 22, { square: true, up: 140 }); Render.float(ev.hex, E.STRUCTS[ev.struct].name.toUpperCase(), '#fff', 16);
           await sleep(350); break;
@@ -1278,6 +1293,14 @@
           Render.float(mid, 'ENCIRCLED +' + ev.hexes.length, pColor(ev.pid), 22);
           await sleep(300); break;
         }
+        case 'siege': {
+          follow(ev.hex);
+          Render.ring(ev.hex, '#ff4a2a', 120, 0.9, 7); Render.shake(14); SFX.alarm();
+          if (ev.victim === you) banner('YOUR HQ IS UNDER SIEGE', 'Retake it on your turn or you fall', '#b52b38');
+          else toast(`🔥 ${pName(ev.pid)} is besieging ${pName(ev.victim)}'s HQ!`, 'leg');
+          await sleep(900); break;
+        }
+        case 'siegeBroken': toast(`🛡 ${pName(ev.pid)}'s HQ siege collapsed`); SFX.rare(); break;
         case 'drown': for (const id of ev.units) { const u = S.units[id]; if (u) { Render.burst(u.hex, ['#9fe8ff', '#ffffff', '#2a6688'], 22, { up: 160 }); Render.ring(u.hex, '#9fe8ff', 50, 0.6); delete S.units[id]; } } SFX.whoosh(); toast('🌊 ' + ev.units.length + ' unit(s) lost at sea'); break;
         case 'trade': {
           const f = pName(ev.from), t2 = ev.to ? pName(ev.to) : '';
