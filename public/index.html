@@ -1,0 +1,96 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>SECTOR</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Black+Ops+One&family=Chakra+Petch:wght@500;600;700&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="style.css">
+</head>
+<body>
+<canvas id="map"></canvas>
+
+<!-- ───────── menu / lobby ───────── -->
+<section id="menu">
+  <div class="title-wrap">
+    <h1 class="logo"><span>S</span><span>E</span><span>C</span><span>T</span><span>O</span><span>R</span></h1>
+    <div class="tagline">CAPTURE · DEPLOY · DESTROY</div>
+  </div>
+  <div id="joinBox" class="panel join">
+    <label>CALLSIGN</label>
+    <input id="nameIn" maxlength="16" placeholder="Commander" autocomplete="off">
+    <button id="joinBtn" class="btn big red">ENLIST</button>
+    <div class="hint">Everyone on the same Wi-Fi / LAN opens this server's address to join.</div>
+  </div>
+  <div id="lobbyBox" class="lobby" hidden>
+    <div class="panel lobby-players">
+      <h3>COMMANDERS <span id="pCount"></span></h3>
+      <div id="playerList"></div>
+      <div class="row"><button id="addBot" class="btn">+ ADD BOT</button></div>
+      <div class="lan" id="lanBox"></div>
+    </div>
+    <div class="panel lobby-me">
+      <h3>YOUR FACTION</h3>
+      <div id="factionList" class="factions"></div>
+      <h3>COLOUR</h3>
+      <div id="colorList" class="colors"></div>
+    </div>
+    <div class="panel lobby-settings">
+      <h3>WAR SETTINGS</h3>
+      <div class="set"><label>Mode</label><select id="setMode"><option value="domination">Domination — take every HQ</option><option value="conquest">Conquest — hold 60% of land</option><option value="koth">Beacon — hold the centre 3 turns</option></select></div>
+      <div class="set"><label>Map type</label><select id="setType"><option value="random">Random</option><option value="continent">Continent</option><option value="pangaea">Supercontinent</option><option value="twin">Twin continents</option><option value="archipelago">Archipelago</option><option value="inland">Inland sea</option><option value="crescent">Crescent isles</option></select></div>
+      <div class="set"><label>Map size</label><select id="setSize"><option value="small">Small</option><option value="medium">Medium</option><option value="large">Large</option></select></div>
+      <div class="set"><label>Turn timer</label><select id="setTimer"><option value="0">Off</option><option value="45">45s</option><option value="90">90s</option><option value="150">150s</option></select></div>
+      <div class="set"><label>Round limit</label><select id="setRounds"><option value="0">None</option><option value="15">15</option><option value="25">25</option><option value="40">40</option></select></div>
+      <div class="set"><label>Map seed</label><input id="setSeed" placeholder="random" maxlength="20"></div>
+      <button id="startBtn" class="btn big red">DEPLOY</button>
+      <div id="waitHost" class="hint" hidden>Waiting for the host to start…</div>
+      <button class="btn ghost" id="rulesBtn2">HOW TO PLAY</button>
+    </div>
+  </div>
+</section>
+
+<!-- ───────── in-game HUD ───────── -->
+<section id="hud" hidden>
+  <div id="topbar"><div id="roundBox"></div><div id="players"></div><div class="top-btns"><button id="muteBtn" class="icon-btn" title="Sound">♪</button><button id="rulesBtn" class="icon-btn" title="How to play">?</button></div></div>
+  <div id="cashBox" class="panel">
+    <div class="cash-row"><span class="cur">$</span><span id="cash">0</span></div>
+    <div id="incomeLine" class="sub"></div>
+    <div id="hexLine" class="sub"></div>
+  </div>
+  <div id="planBox" class="panel" hidden>
+    <div class="plan-head"><b>BLUEPRINT</b><span class="sub">queue moves, deploys &amp; builds — they fire the instant your turn starts</span></div>
+    <div id="planList"></div>
+    <div class="row"><label class="chk"><input type="checkbox" id="planAuto" checked> auto-collect income</label><button id="planClear" class="btn tiny">CLEAR</button></div>
+  </div>
+  <div id="logBox"><div id="log"></div><input id="chatIn" placeholder="Enter to chat…" maxlength="140"></div>
+  <div id="hexPanel" class="panel" hidden></div>
+  <div id="modeHint" hidden></div>
+  <div id="bottom">
+    <div id="hotbar"><div class="hb-row" id="hbUnits"></div><div class="hb-row" id="hbBuild"></div></div>
+    <div id="hand"></div>
+  </div>
+  <div id="slotTip" hidden></div>
+  <button id="endBtn" class="btn big red">END TURN</button>
+  <div id="banner"></div>
+</section>
+
+<div id="supply" hidden></div>
+<div id="trade" hidden></div>
+<div id="offerPop" hidden></div>
+<div id="flyLayer"></div>
+<div id="combat" hidden></div>
+<div id="victory" hidden></div>
+<div id="rules" hidden></div>
+<div id="tooltip" hidden></div>
+<div id="toasts"></div>
+<div id="crt"></div>
+
+<script src="engine.js"></script>
+<script src="audio.js"></script>
+<script src="art.js"></script>
+<script src="render.js"></script>
+<script src="main.js"></script>
+</body>
+</html>

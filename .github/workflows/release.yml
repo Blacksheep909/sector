@@ -1,0 +1,38 @@
+# Push a tag like v0.2.0 and GitHub builds Sector.exe and attaches it to a Release.
+name: release
+
+on:
+  push:
+    tags: ['v*']
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+jobs:
+  build:
+    runs-on: windows-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 24
+      - name: Bot-vs-bot smoke test
+        run: node tools/sim.js domination 4 2
+      - name: Build Sector.exe
+        run: node tools/build-exe.js
+      - name: Zip portable source
+        shell: pwsh
+        run: Compress-Archive -Path server.js, package.json, shared, public, "Start Sector.bat", README.md -DestinationPath dist/Sector-source.zip
+      - name: Publish release
+        if: startsWith(github.ref, 'refs/tags/')
+        uses: softprops/action-gh-release@v2
+        with:
+          files: |
+            dist/Sector.exe
+            dist/Sector-source.zip
+          generate_release_notes: true
+          body: |
+            **Download `Sector.exe`, double-click it, and your browser opens the game.**
+            Friends on the same Wi-Fi open the "Same network" address shown in the window.
+            Windows may ask to allow network access the first time — allow it on Private networks.
