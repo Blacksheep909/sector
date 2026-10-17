@@ -15,6 +15,9 @@
   let sel = null;            // { hex, units:Set }
   let mode = null;           // {type:'deploy', unit} | {type:'tactic', uid, id, from}
   let plan = []; let planState = null; let planAuto = true; let executing = false;
+  const plans = {}; // pass & play: every local seat keeps its own blueprint
+  let qid = -1;      // placeholder ids for units deployed inside a blueprint
+  const remap = (a, m) => a.a === 'move' ? { ...a, units: a.units.map(id => m[id] || id) } : a;
   let hoverK = null;
   let lastTurnKey = '';
   try { token = localStorage.getItem('sector.token'); } catch (e) {}
@@ -26,7 +29,7 @@
     ws = new WebSocket((location.protocol === 'https:' ? 'wss://' : 'ws://') + location.host + '/ws');
     ws.onopen = () => { if (token || joinedOnce) send({ t: 'hello', token, name: $('#nameIn').value || savedName() }); };
     ws.onmessage = ev => onMsg(JSON.parse(ev.data));
-    ws.onclose = () => { toast('Connection lost — reconnecting…', 'err'); setTimeout(connect, 1500); };
+    ws.onclose = () => { if (closedFor) return; toast('Connection lost — reconnecting…', 'err'); setTimeout(connect, 1500); };
   }
   let joinedOnce = false, leftGame = false;
   const send = o => { if (ws && ws.readyState === 1) ws.send(JSON.stringify(o)); };
@@ -44,6 +47,7 @@
       case 'err':
         if (m.seq && pending.has(m.seq)) { pending.get(m.seq)(false); pending.delete(m.seq); }
         toast(m.msg, 'err'); SFX.error(); break;
+      case 'serverClosed': serverClosed(m); break;
       case 'chat': addLog(`<b style="--c:${m.color}">${esc(m.from)}:</b> ${esc(m.text)}`, 'chat'); SFX.click(); break;
       case 'left': leftGame = true; token = null; try { localStorage.removeItem('sector.token'); } catch (e) {} you = null; realId = null; joinedOnce = false; S = null; Render.setState(null); msgQ = []; $('#escMenu').hidden = true; showMenu(); showJoin(); toast('You left the game'); break;
       case 'kicked': token = null; try { localStorage.removeItem('sector.token'); } catch (e) {} you = null; toast('You were removed from the lobby', 'err'); showJoin(); break;
@@ -139,12 +143,12 @@
       cl.appendChild(d);
     }
     const st = lobby.settings;
-    for (const [id, k] of [['#setMode', 'mode'], ['#setType', 'mapType'], ['#setSize', 'mapSize'], ['#setTimer', 'timer'], ['#setRounds', 'maxRounds'], ['#setSeed', 'seed']]) {
+    for (const [id, k] of [['#setMode', 'mode'], ['#setType', 'mapType'], ['#setSize', 'mapSize'], ['#setSpawns', 'spawns'], ['#setTimer', 'timer'], ['#setRounds', 'maxRounds'], ['#setSeed', 'seed']]) {
       const e = $(id); if (document.activeElement !== e) e.value = st[k] ?? ''; e.disabled = !host;
     }
     $('#startBtn').hidden = !host; $('#waitHost').hidden = host;
   }
-  for (const [id, k] of [['#setMode', 'mode'], ['#setType', 'mapType'], ['#setSize', 'mapSize'], ['#setTimer', 'timer'], ['#setRounds', 'maxRounds'], ['#setSeed', 'seed']])
+  for (const [id, k] of [['#setMode', 'mode'], ['#setType', 'mapType'], ['#setSize', 'mapSize'], ['#setSpawns', 'spawns'], ['#setTimer', 'timer'], ['#setRounds', 'maxRounds'], ['#setSeed', 'seed']])
     $(id).addEventListener('change', e => send({ t: 'settings', settings: { [k]: e.target.value } }));
   $('#addBot').onclick = () => { SFX.click(); send({ t: 'addBot' }); };
   $('#addLocal').onclick = () => { SFX.click(); send({ t: 'addLocal' }); };
@@ -157,6 +161,7 @@
   // does this seat have something to do in this state?
   function needsAction(st, seat) {
     if (!st) return false;
+    if (st.phase === 'spawn') return !!st.spawn && st.spawn.order[st.spawn.i] === seat;
     if (st.phase === 'draft') return !!st.draft && !st.draft.picked[seat];
     if (st.phase !== 'play') return false;
     const cur = st.players[st.turn.idx];
@@ -164,6 +169,7 @@
   }
   function seatChange(seat, st) {
     const prev = you; you = seat;
+    if (prev) plans[prev] = plan; plan = plans[seat] || []; sel = null; mode = null;
     if (!localSeats().length || !prev) return;
     if (unlocked === null) unlocked = prev;
     // only cover the screen when a *different* local player now has to act
@@ -178,12 +184,12 @@
 
   // ───────────── game entry / state ─────────────
   function enterGame(state) {
-    S = state; plan = []; sel = null; mode = null; lastTurnKey = '';
+    S = state; plan = []; for (const k in plans) delete plans[k]; sel = null; mode = null; lastTurnKey = '';
     $('#menu').hidden = true; $('#hud').hidden = false; $('#victory').hidden = true;
     Render.setState(state);
     Render.fitMap();
     const me = myP();
-    if (me) setTimeout(() => Render.focus(me.hq, Math.max(Render.cam.z, 1.05)), 300);
+    if (me && me.hq) setTimeout(() => Render.focus(me.hq, Math.max(Render.cam.z, 1.05)), 300);
     $('#log').innerHTML = ''; for (const l of state.log.slice(-6)) addLog(esc(l));
     applyState(state, true);
   }
@@ -217,6 +223,7 @@
       lastTurnKey = tk;
       if (isMyTurn()) onMyTurn();
     }
+    renderSpawnPick();
     if (S.phase === 'draft') Cards.showDraft(S, you, (idx, replace) => act({ a: 'draftPick', idx, replace })); else Cards.hideDraft();
     const me2 = myP();
     if (isMyTurn() && S.turn.stage === 'choose' && me2 && !executing && !(plan.length && planAuto) && passReady())
@@ -229,34 +236,64 @@
     if (S.phase === 'over') showVictory();
   }
 
+  // pick-your-HQ phase: highlight the legal hexes and wait for a click
+  const mySpawnPick = () => !!S && S.phase === 'spawn' && S.spawn && S.spawn.order[S.spawn.i] === you && passReady();
+  function renderSpawnPick() {
+    let b = $('#spawnBar');
+    if (!S || S.phase !== 'spawn' || !S.spawn) { if (b) b.remove(); return; }
+    if (!b) { b = el('div', '', ''); b.id = 'spawnBar'; document.body.appendChild(b); }
+    const cur = S.spawn.order[S.spawn.i], left = S.spawn.order.length - S.spawn.i;
+    b.style.setProperty('--pc', pColor(cur));
+    b.innerHTML = mySpawnPick()
+      ? `<b>CHOOSE YOUR HQ</b><span>Click a glowing hex. HQs must be ${S.spawn.minDist}+ hexes apart. Look for resources ◆ and room to grow.</span>`
+      : `<b>${esc(pName(cur)).toUpperCase()} IS CHOOSING</b><span>${left} HQ${left > 1 ? 's' : ''} left to place</span>`;
+  }
   async function onMyTurn() {
-    if (plan.length && planAuto && S.turn.stage === 'choose') {
-      executing = true;
-      await act({ a: 'choose', pick: 'income' });
-      await runPlan();
-    }
+    if (!plan.length || executing) return;
+    if (S.turn.stage === 'choose' && planAuto) {
+      executing = true; Cards.closeSupply();
+      const ok = await act({ a: 'choose', pick: 'income' });
+      executing = false;
+      if (ok) await runPlan(); else refreshAll();
+    } else if (S.turn.stage === 'act') await runPlan();
   }
   async function runPlan() {
-    executing = true;
-    toast('▶ Executing blueprint (' + plan.length + ' orders)');
-    const items = plan.slice(); plan = [];
+    if (executing || !plan.length || !isMyTurn()) return;
+    executing = true; sel = null; mode = null;
+    const seat = you, items = plan.slice(); plan = [];
+    toast('▶ Executing blueprint (' + items.length + ' order' + (items.length > 1 ? 's' : '') + ')');
+    const idMap = {}; let done = 0;
     for (const it of items) {
-      const ok = await act(it.a);
-      if (!ok) toast('Blueprint order skipped: ' + describe(it.a), 'err');
+      if (you !== seat || !isMyTurn() || S.turn.stage !== 'act') break;
+      const a = remap(it.a, idMap);
+      if (a.a === 'move' && a.units.some(id => !S.units[id] || S.units[id].hex !== a.from)) { toast('Blueprint order skipped: ' + describe(a) + ' (units not there)', 'err'); continue; }
+      const before = new Set(Object.keys(S.units));
+      const ok = await act(a);
+      if (!ok) { toast('Blueprint order skipped: ' + describe(a), 'err'); continue; }
+      done++;
+      if (a.a === 'deploy' && it.qid) { const nu = Object.values(S.units).find(u => !before.has(String(u.id)) && u.owner === seat && u.type === a.unit); if (nu) idMap[it.qid] = nu.id; }
     }
-    executing = false; recomputePlan(); refreshAll();
+    executing = false;
+    if (done) toast('✔ Blueprint done: ' + done + '/' + items.length + ' orders', 'good');
+    recomputePlan(); refreshAll();
   }
 
   // ───────────── planning (blueprint) ─────────────
   function recomputePlan() {
     if (!planning()) { planState = null; return; }
     let sim = E.simulateTurnStart(S, you, planAuto);
+    const idMap = {};
     for (const it of plan) {
+      const a = remap(it.a, idMap);
+      if (a.a === 'move') { const r = E.reachable(sim, you, a.units, a.from); it.path = r[a.to] ? E.pathTo(r, a.to) : null; }
       const trial = JSON.parse(JSON.stringify(sim));
-      const r = E.applyAction(trial, you, it.a, () => 0.5);
+      const before = trial.nextId;
+      const r = E.applyAction(trial, you, a, () => 0.5);
       it.ok = r.ok; it.err = r.err;
-      if (r.ok) sim = trial;
+      if (r.ok) { if (a.a === 'deploy' && it.qid) { const nu = Object.values(trial.units).find(u => u.id >= before && u.owner === you && u.type === a.unit); if (nu) idMap[it.qid] = nu.id; } sim = trial; }
     }
+    // show blueprint-deployed units under their placeholder ids so they can be selected and queued
+    for (const q in idMap) { const u = sim.units[idMap[q]]; if (u) { delete sim.units[idMap[q]]; u.id = +q; sim.units[q] = u; } }
     planState = sim;
   }
   function describe(a) {
@@ -288,7 +325,10 @@
       const trial = JSON.parse(JSON.stringify(planState));
       const r = E.applyAction(trial, you, a, () => 0.5);
       if (!r.ok) { toast(r.err, 'err'); SFX.error(); return false; }
-      plan.push({ a }); SFX.select();
+      if (plan.length >= 30) { toast('Blueprint is full (30 orders)', 'err'); SFX.error(); return false; }
+      const it = { a };
+      if (a.a === 'deploy') it.qid = qid--;
+      plan.push(it); SFX.select();
       recomputePlan(); refreshAll();
       return true;
     }
@@ -331,6 +371,7 @@
     ov.selected = sel ? sel.hex : null;
     ov.selectedExtra = sel && sel.extra ? sel.extra.map(g => g.hex) : [];
     ov.unsupplied = null;
+    if (ds && ds.phase === 'spawn' && mySpawnPick()) ov.spawn = new Set(E.spawnChoices(ds));
     if (!ds || ds.phase !== 'play') { ov.planArrows = []; ov.planGhost = null; return; }
     const me = ds.players.find(p => p.id === you);
     if (me && me.alive) { const sup = E.supplySet(ds, you); const un = new Set(); for (const k in ds.map.tiles) if (ds.map.tiles[k].owner === you && !sup.has(k)) un.add(k); ov.unsupplied = un; }
@@ -359,10 +400,7 @@
     ov.planArrows = []; ov.planGhost = null;
     if (planning()) {
       const col = pColor(you);
-      for (const it of plan) if (it.a.a === 'move' && it.ok) {
-        const r = E.reachable(S, you, it.a.units, it.a.from);
-        ov.planArrows.push({ path: r[it.a.to] ? E.pathTo(r, it.a.to) : [it.a.from, it.a.to], color: col });
-      }
+      for (const it of plan) if (it.a.a === 'move' && it.ok) ov.planArrows.push({ path: it.path || [it.a.from, it.a.to], color: col });
     }
     if (hoverK) hoverPath(hoverK);
   }
@@ -402,13 +440,22 @@
     if (e.target.tagName === 'INPUT' || e.target.tagName === 'SELECT') { if (e.key === 'Escape') e.target.blur(); return; }
     keys.add(e.key.toLowerCase());
     if (e.key === 'Escape') {
-      if (!$('#escMenu').hidden) closeEsc();
+      if (!$('#hostPanel').hidden) closeHost();
+      else if (!$('#escMenu').hidden) closeEsc();
       else if (!$('#index').hidden) $('#index').hidden = true;
       else if (!$('#rules').hidden) $('#rules').hidden = true;
       else if (mode || sel) cancel();
       else if (S) openEsc();
     }
-    if (e.key === 'Enter' && S) $('#chatIn').focus();
+    if (e.key === 'Enter' && S) {
+      // Enter ends your turn (when nothing is open); otherwise it opens chat. T always opens chat.
+      const overlay = ['#supply', '#crate', '#draft', '#escMenu', '#trade', '#modal', '#index', '#rules', '#passCover', '#hostPanel'].some(id => $(id) && !$(id).hidden);
+      const eb = $('#endBtn');
+      if (isMyTurn() && !overlay && !eb.hidden && !eb.disabled) { if (!e.repeat) eb.click(); }
+      else if (!overlay) $('#chatIn').focus();
+      e.preventDefault();
+    }
+    if (e.key.toLowerCase() === 't' && S) { $('#chatIn').focus(); e.preventDefault(); }
     if (e.key.toLowerCase() === 'f' && myP()) Render.focus(myP().hq);
     if (e.key === ' ') e.preventDefault(); // space is for flipping cards / throwing dice only — never ends the turn
     if (S && S.phase === 'play') {
@@ -438,6 +485,66 @@
     $('#escLeave').textContent = spectator || !myP() ? 'BACK TO MENU' : 'LEAVE GAME';
   }
   function closeEsc() { $('#escMenu').hidden = true; }
+
+  // ───────────── host panel: only answers on the computer running the server ─────────────
+  let hostInfo = null, hostTimer = null, closedFor = null, stopArm = 0;
+  const hostFetch = (p, post) => fetch(p, post ? { method: 'POST', headers: { 'X-Sector-Host': '1' } } : { cache: 'no-store' }).then(r => r.ok ? r.json() : null).catch(() => null);
+  async function pollHost() {
+    hostInfo = await hostFetch('/host');
+    $('#hostBtn').hidden = !hostInfo; $('#escServer').hidden = !hostInfo;
+    $('#hostDot').hidden = !(hostInfo && hostInfo.update.available);
+    if (!$('#hostPanel').hidden) renderHost();
+  }
+  const fmtUp = ms => { const m = Math.floor(ms / 60000); return m < 60 ? m + 'm' : Math.floor(m / 60) + 'h ' + (m % 60) + 'm'; };
+  function renderHost() {
+    const h = hostInfo, card = $('#hostCard');
+    if (!h) { card.innerHTML = '<h2>SERVER</h2><div class="sub">Not reachable.</div><button class="btn big" id="hpClose">CLOSE</button>'; $('#hpClose').onclick = closeHost; return; }
+    const u = h.update;
+    let up;
+    if (u.state === 'downloading') up = `<div class="hp-upd busy">Downloading v${esc(u.latest)}… <b>${u.pct}%</b><div class="bar"><i style="width:${u.pct}%"></i></div></div>`;
+    else if (u.state === 'restarting') up = `<div class="hp-upd busy">Restarting into v${esc(u.latest)}…</div>`;
+    else if (u.available) up = `<div class="hp-upd new"><b>v${esc(u.latest)} is out!</b> You have v${esc(h.version)}.${u.err ? `<div class="err">${esc(u.err)}</div>` : ''}
+      ${u.canApply ? '<button class="btn green" id="hpUpdate">UPDATE &amp; RESTART</button>' : `<a class="btn green" href="${esc(u.page)}" target="_blank">DOWNLOAD</a>`}</div>`;
+    else up = `<div class="hp-upd">${u.latest ? 'Up to date (latest is v' + esc(u.latest) + ')' : u.checked ? "Couldn't reach GitHub to check for updates" : 'Checking for updates…'} <button class="btn ghost" id="hpCheck">CHECK</button></div>`;
+    card.innerHTML = `<h2>SERVER <span class="ver">v${esc(h.version)}</span></h2>
+      <div class="sub">Running for ${fmtUp(h.uptime)} · ${h.inGame ? (h.phase === 'play' ? 'war in progress, round ' + h.round : h.phase === 'over' ? 'game over' : 'starting up') : 'in the lobby'}</div>
+      <h3>INVITE FRIENDS ON YOUR WI-FI</h3>
+      ${h.lan.length ? h.lan.map(a => `<div class="hp-addr"><code>${esc(a)}</code><button class="btn" data-copy="${esc(a)}">COPY</button></div>`).join('') : '<div class="sub">No network found — connect to Wi-Fi to play with others.</div>'}
+      <div class="hint">They open that address in a browser, or use JOIN A GAME → Scan network.</div>
+      <h3>CONNECTED (${h.clients.length})${h.bots ? ' · ' + h.bots + ' bot' + (h.bots > 1 ? 's' : '') : ''}</h3>
+      <div class="hp-list">${h.clients.map(c => `<div class="hp-row"><span>${esc(c.name)}${c.seats > 1 ? ` <small>+${c.seats - 1} local</small>` : ''}</span><span class="tags">${c.host ? '<i class="gold">HOST</i>' : ''}${c.here ? '<i>THIS PC</i>' : `<i>${esc(c.addr)}</i>`}</span></div>`).join('') || '<div class="sub">Nobody yet.</div>'}</div>
+      <h3>UPDATES</h3>${up}
+      <div class="row hp-btns"><button class="btn big" id="hpClose">CLOSE</button><button class="btn big red" id="hpStop">${stopArm > Date.now() ? 'CLICK AGAIN TO STOP' : 'STOP SERVER'}</button></div>
+      <div class="hint">${h.packaged ? 'The server also shuts itself down a minute after everyone leaves.' : 'Running from source — stop it with Ctrl+C in its terminal, or here.'}</div>`;
+    card.querySelectorAll('[data-copy]').forEach(b => b.onclick = () => { navigator.clipboard && navigator.clipboard.writeText(b.dataset.copy); b.textContent = 'COPIED'; SFX.coin(1); setTimeout(() => b.textContent = 'COPY', 1200); });
+    $('#hpClose').onclick = closeHost;
+    $('#hpStop').onclick = async () => {
+      if (stopArm < Date.now()) { stopArm = Date.now() + 3000; SFX.error(); renderHost(); setTimeout(() => !$('#hostPanel').hidden && renderHost(), 3100); return; }
+      await hostFetch('/host/stop', true);
+    };
+    if ($('#hpUpdate')) $('#hpUpdate').onclick = async () => { SFX.select(); await hostFetch('/host/update', true); pollHost(); };
+    if ($('#hpCheck')) $('#hpCheck').onclick = async () => { SFX.click(); await hostFetch('/host/check', true); setTimeout(pollHost, 1500); };
+  }
+  function openHost() { $('#hostPanel').hidden = false; SFX.select(); renderHost(); clearInterval(hostTimer); hostTimer = setInterval(pollHost, 1500); pollHost(); }
+  function closeHost() { $('#hostPanel').hidden = true; clearInterval(hostTimer); hostTimer = setInterval(pollHost, 20000); SFX.click(); }
+  $('#hostBtn').onclick = openHost;
+  $('#escServer').onclick = () => { closeEsc(); openHost(); };
+  $('#hostPanel').addEventListener('click', e => { if (e.target.id === 'hostPanel') closeHost(); });
+  pollHost(); hostTimer = setInterval(pollHost, 20000);
+  // the server is going away: say why, and after an update wait for the new version and reload
+  function serverClosed(m) {
+    closedFor = m;
+    $('#hostPanel').hidden = true;
+    const c = $('#closedCover'); c.hidden = false;
+    $('#closedCard').innerHTML = m.restart
+      ? `<h2>UPDATING</h2><div class="sub">${esc(m.reason)}</div><div class="spinner"></div><div class="hint">The game reloads by itself when the new version is up.</div>`
+      : `<h2>SERVER STOPPED</h2><div class="sub">${esc(m.reason)}</div><div class="hint">You can close this window.</div>`;
+    if (m.restart) {
+      const t0 = Date.now();
+      const tick = async () => { const i = await fetch('/info', { cache: 'no-store' }).then(r => r.json()).catch(() => null); if (i && Date.now() - t0 > 2500) location.reload(); else if (Date.now() - t0 < 120000) setTimeout(tick, 1000); else $('#closedCard .hint').textContent = 'The update is taking a while — start Sector.exe again.'; };
+      setTimeout(tick, 2000);
+    }
+  }
   $('#menuBtn').onclick = openEsc;
   $('#escResume').onclick = () => { SFX.click(); closeEsc(); };
   $('#escRules').onclick = () => { closeEsc(); showRules(); };
@@ -501,6 +608,11 @@
   };
 
   async function onHexClick(k) {
+    if (S && S.phase === 'spawn') {
+      if (!k || !mySpawnPick()) return;
+      if (!E.spawnChoices(S).includes(k)) { toast('Pick a glowing hex', 'err'); SFX.error(); return; }
+      SFX.select(); await act({ a: 'spawnPick', hex: k }); return;
+    }
     if (!S || S.phase !== 'play') return;
     const ds = dispState();
     if (mode && mode.type === 'deploy') {
@@ -626,11 +738,14 @@
     if (t.res) tags.push('<span class="hp-tag res">◆ Resource +$2</span>');
     if (E.TERRAIN[t.t].defMult) tags.push(`<span class="hp-tag">+${E.TERRAIN[t.t].defMult} Mult defence</span>`);
     if (E.TERRAIN[t.t].moveCost) tags.push('<span class="hp-tag">Costs 2 move</span>');
+    if (E.TERRAIN[t.t].bog) tags.push('<span class="hp-tag">Attackers −1 Mult</span>');
+    if (t.poi && E.POI[t.poi] && !(t.poi === 'fort' && t.owner)) tags.push(`<span class="hp-tag" style="color:var(--gold)">${E.POI[t.poi].name}</span>`);
     if (t.contam) tags.push(`<span class="hp-tag cut">☢ Fallout ${t.contam} rounds</span>`);
     if (t.smoke) tags.push('<span class="hp-tag">Smoke</span>');
     if (ds.map.beacon === k) tags.push('<span class="hp-tag" style="color:var(--gold)">◆ BEACON</span>');
     if (t.owner === you && !E.supplySet(ds, you).has(k)) tags.push('<span class="hp-tag cut">Cut off — no income</span>');
     let h = `<div class="hp-title">${t.contam ? 'Fallout Zone' : E.TERRAIN[t.t].name}</div><div class="hp-own">${owner ? `<span style="color:${owner.color}">■ ${esc(owner.name)}</span>` : '<span class="sub">Unclaimed</span>'}</div><div class="hp-tags">${tags.join('')}</div>`;
+    if (t.poi && E.POI[t.poi] && !(t.poi === 'fort' && t.owner)) h += `<div class="urow" style="cursor:default"><img src="${Art.iconURL('poi', t.poi)}"><div class="un">${E.POI[t.poi].name}<div class="st">${E.POI[t.poi].desc}</div></div></div>`;
     for (const st of E.structsOf(t)) {
       const sd = E.STRUCTS[st.type], L = st.lvl || 1;
       const flags = (st.siege ? ' <span class="hp-tag cut">UNDER SIEGE</span>' : '') + (st.lock ? ' <span class="hp-tag">online next turn</span>' : '');
@@ -760,7 +875,7 @@
     const target = d.kind === 'unit' ? ($('#hbUnits').querySelector(`[data-id="${d.id}"]`) || $('#hbUnits').lastElementChild || $('#deckBar')) : ($('#hand').lastElementChild || $('#hand'));
     if (frontEl) flyTo(frontEl, target, () => { pulseTarget(target); SFX.coin(2); });
     const ok = await act({ a: 'pick', idx, replace });
-    if (ok && plan.length && planAuto) runPlan();
+    if (ok && plan.length) runPlan();
     return ok;
   }
   async function pickFromSupply(idx, replace, frontEl) {
@@ -773,7 +888,7 @@
   }
   async function scrapCrate() {
     const ok = await act({ a: 'scrap' });
-    if (ok && plan.length && planAuto) runPlan();
+    if (ok && plan.length) runPlan();
     return ok;
   }
 
@@ -864,7 +979,7 @@
       const t = ds.map.tiles[k];
       const units = Object.values(ds.units).filter(u => u.hex === k);
       if (!units.length && !t.struct && !t.res && !t.owner) return hideTip();
-      html = `<b style="color:${t.owner ? pColor(t.owner) : '#fff'}">${t.owner ? esc(pName(t.owner)) : 'Unclaimed'}</b> · ${t.bridge ? 'Bridge' : t.contam ? 'Fallout' : E.TERRAIN[t.t].name}` + (t.res ? ` · <span style="color:#9ffcf2">${E.isWater(t) ? 'Oil rig' : 'Resource'} +$2</span>` : '');
+      html = `<b style="color:${t.owner ? pColor(t.owner) : '#fff'}">${t.owner ? esc(pName(t.owner)) : 'Unclaimed'}</b> · ${t.bridge ? 'Bridge' : t.contam ? 'Fallout' : E.TERRAIN[t.t].name}` + (t.res ? ` · <span style="color:#9ffcf2">${E.isWater(t) ? 'Oil rig' : 'Resource'} +$2</span>` : '') + (t.poi && E.POI[t.poi] && !(t.poi === 'fort' && t.owner) ? ` · <span style="color:var(--gold)">${E.POI[t.poi].name}</span>` : '');
       if (!t.bridge) for (const st of E.structsOf(t)) html += `<div class="tip-struct"><img src="${Art.iconURL('struct', st.type, '#fff', 40)}">${E.STRUCTS[st.type].name} <span class="gold">${'★'.repeat(st.lvl || 1)}</span>${st.siege ? ' <b style="color:#ff6a4a">UNDER SIEGE</b>' : ''}</div>`;
       html += intel(ds, k);
     }
@@ -1284,6 +1399,21 @@
           break;
         }
         case 'tactic': if (ev.target) { follow(ev.target); await sleep(200); } await animTactic(ev); break;
+        case 'spawnPicked': {
+          Render.recolor && Render.recolor();
+          Render.ring(ev.hex, pColor(ev.pid), 90, 0.8, 6); Render.burst(ev.hex, [pColor(ev.pid), '#fff'], 30, { up: 140, square: true });
+          SFX.deploy(); Render.shake(6); follow(ev.hex); await sleep(500); break;
+        }
+        case 'spawnTurn': if (ev.pid === you) { toast('Your pick — choose an HQ hex'); SFX.yourTurn(); } break;
+        case 'loot': {
+          Render.ring(ev.hex, '#ffcf4a', 60, 0.6, 4);
+          Render.burst(ev.hex, ['#ffcf4a', '#fff3a8', '#d9b77a'], 22, { up: 120, square: true });
+          if (ev.poi === 'ruins') { Render.float(ev.hex, '+$' + ev.amount + ' LOOT', '#ffc53d', 22); if (ev.pid === you) SFX.coin(6); }
+          else { Render.float(ev.hex, 'SUPPLY CACHE!', '#ffcf4a', 20); if (ev.pid === you) { SFX.rare(); toast('📦 Found a cache: ' + E.TACTICS[ev.card].name, 'leg'); } }
+          if (S.map.tiles[ev.hex]) delete S.map.tiles[ev.hex].poi;
+          await sleep(350); break;
+        }
+        case 'embargoHit': if (ev.pid === you) banner('EMBARGO', 'Your income is halved this turn', '#b52b38'); else toast(`⛔ ${pName(ev.pid)} is under embargo`); break;
         case 'annex': {
           // encirclement: ring pulse, then the pocket flips hex by hex
           const mid = ev.hexes[Math.floor(ev.hexes.length / 2)];
@@ -1378,6 +1508,18 @@
         for (const k of ev.area) { const t = S.map.tiles[k]; if (t && E.isLandTile(t)) { t.owner = null; t.struct = null; t.contam = 4; } }
         Render.recolor(); await sleep(1100); break;
       }
+      case 'rally': banner('RALLY!', who + ' — next attack +2 Mult', pColor(ev.pid)); SFX.rare(); await sleep(500); break;
+      case 'bounty': Render.float(me.hq, 'BOUNTY: $2 PER KILL', '#ffc53d', 18); SFX.coin(3); break;
+      case 'fortify': Render.ring(ev.target, pColor(ev.pid), 60, 0.6, 5); Render.float(ev.target, 'FORTIFIED ' + '★'.repeat(ev.lvl || 1), '#ffc53d', 18); SFX.deploy(); Render.shake(4); break;
+      case 'embargo': Render.ring(ev.target, '#ff4f5e', 90, 0.8, 5); Render.float(ev.target, 'EMBARGO', '#ff4f5e', 20); SFX.alarm(); break;
+      case 'orbital': {
+        SFX.zap(); await sleep(250);
+        const [x, y] = Render.topOf(ev.target);
+        for (let i = 0; i < 4; i++) { Render.ring(ev.target, ['#bff6ff', '#7ff3ff', '#fff', '#36c9ff'][i], 50 + i * 30, 0.5 + i * 0.15, 6); await sleep(80); }
+        Render.flash(0.5, '#bff6ff'); SFX.boom(1.6); Render.shake(22);
+        Render.burst([x, y], ['#fff', '#bff6ff', '#36c9ff', '#ffb03a'], 70, { speed: 2.4, size: 4 });
+        Render.float(ev.target, ev.kills.length + ' VAPORISED', '#7ff3ff', 22); killUnits(ev.kills); await sleep(500); break;
+      }
       case 'mutiny': for (const id of ev.units) if (S.units[id]) S.units[id].owner = ev.pid; flipTile(ev.target, ev.pid, 5); Render.ring(ev.target, pColor(ev.pid), 70, 0.7, 5); SFX.rare(); break;
     }
     await sleep(250);
@@ -1428,7 +1570,7 @@
     <h4>ENCIRCLEMENT</h4>
     Completely surround a pocket of land (≤10 hexes, no enemy troops or bases inside) and it's <b>annexed</b> automatically.
     <h4>MOVING</h4>
-    Units move once per turn and <b>seize every unclaimed hex they pass through</b>. Highlands cost 2 move. Mountains and water block (drones fly, hover tanks glide). Max 5 units per hex. Freshly deployed units wait a turn.
+    Units move once per turn and <b>seize every unclaimed hex they pass through</b>. Highlands, jungle, tundra and swamp cost 2 move. Ruins, caches, villages, forts and relics are worth grabbing. Mountains and water block (drones fly, hover tanks glide). Max 5 units per hex (10 if they are all Grunts). Freshly deployed units wait a turn.
     <h4>NAVY</h4>
     Build a <b>Port</b> on the coast to launch ships next to it (Ports are supply sources too). Land units board an <b>Ark</b> by moving onto it (3 per Ark), sail, then step off onto any coast. Sink an Ark and its cargo drowns.
     <h4>BLUEPRINT</h4>
@@ -1450,6 +1592,6 @@
   $('#rulesBtn').onclick = showRules; $('#rulesBtn2').onclick = showRules;
   for (const b of ['#indexBtn', '#indexBtn2', '#indexBtn3']) $(b).onclick = () => { SFX.select(); Cards.showIndex(); };
 
-  window.SECTOR_DEBUG = { send, state: () => S, you: () => you, plan: () => plan, click: onHexClick };
+  window.SECTOR_DEBUG = { resume: () => pump(), send, state: () => S, you: () => you, plan: () => plan, planState: () => planState, act: doAction, click: onHexClick };
   connect();
 })();

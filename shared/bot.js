@@ -36,10 +36,10 @@ function choosePick(s, p, cards) {
 }
 
 const SKILL = {
-  easy: { attack: 0.72, noise: 2.5, idle: 0.35, tactics: 0.4 },
-  medium: { attack: 0.55, noise: 0.6, idle: 0.05, tactics: 1 },
-  hard: { attack: 0.5, noise: 0.3, idle: 0, tactics: 1 },
-  impossible: { attack: 0.45, noise: 0.15, idle: 0, tactics: 1 },
+  easy: { attack: 0.8, noise: 3, idle: 0.45, tactics: 0.3 },
+  medium: { attack: 0.64, noise: 1.4, idle: 0.18, tactics: 0.7 },
+  hard: { attack: 0.53, noise: 0.45, idle: 0.03, tactics: 1 },
+  impossible: { attack: 0.46, noise: 0.15, idle: 0, tactics: 1 },
 };
 
 // accept a trade if what we get is worth clearly more than what we give
@@ -54,6 +54,21 @@ function tradeReply(s, pid) {
   return { a: 'tradeReply', accept: cost <= p.cash && gain >= cost * greed && !(leader && cost > 0) };
 }
 
+function spawnStep(s, pid) {
+  if (!s.spawn || s.spawn.order[s.spawn.i] !== pid) return null;
+  const ch = E.spawnChoices(s); if (!ch.length) return { a: 'spawnPick', auto: true };
+  const taken = s.players.filter(p => p.hq).map(p => p.hq);
+  const isL = k => s.map.tiles[k] && E.TERRAIN[s.map.tiles[k].t].land;
+  let best = ch[0], bv = -1e9;
+  for (const k of ch) {
+    const room = E.area(k, 3).filter(isL).length;
+    const res = E.area(k, 3).filter(n => s.map.tiles[n] && s.map.tiles[n].res).length;
+    const far = taken.length ? Math.min(...taken.map(h => E.dist(h, k))) : 0;
+    const v = room + res * 3 + Math.min(far, 12) * 1.5 + Math.random() * 4;
+    if (v > bv) { bv = v; best = k; }
+  }
+  return { a: 'spawnPick', hex: best };
+}
 function draftStep(s, pid) {
   const p = E.player(s, pid);
   if (!s.draft || s.draft.picked[pid]) return null;
@@ -88,7 +103,10 @@ function botStep(s, pid, mem) {
     if (p.cash < d.cost || Math.random() > K.tactics) continue;
     let act = null;
     if (c.id === 'bonds' || c.id.startsWith('drop_')) act = { a: 'tactic', uid: c.uid };
-    else if (['airstrike', 'mutiny', 'nuke', 'sabotage', 'emp', 'carpet'].includes(c.id)) {
+    else if ((c.id === 'rally' || c.id === 'bounty') && Object.values(s.units).filter(u => u.owner === pid && !u.moved).length >= 4) act = { a: 'tactic', uid: c.uid };
+    else if (c.id === 'fortify' && enemyNear(p.hq, 4)) act = { a: 'tactic', uid: c.uid, target: p.hq };
+    else if (c.id === 'embargo') { const lead = s.players.filter(o => o.alive && o.id !== pid).sort((a, b) => E.ownedLand(s, b.id).length - E.ownedLand(s, a.id).length)[0]; const k = lead && E.tacticTargets(s, pid, 'embargo').find(k => tiles[k].owner === lead.id); if (k) act = { a: 'tactic', uid: c.uid, target: k }; }
+    else if (['airstrike', 'mutiny', 'nuke', 'sabotage', 'emp', 'carpet', 'orbital'].includes(c.id)) {
       const ts = E.tacticTargets(s, pid, c.id);
       let best = null, bv = 0;
       for (const k of ts) {
@@ -98,7 +116,7 @@ function botStep(s, pid, mem) {
         else v = stackValue(idx[k] || []);
         if (v > bv) { bv = v; best = k; }
       }
-      const need = { airstrike: 9, mutiny: 8, nuke: 30, sabotage: 5, emp: 20, carpet: 18 }[c.id];
+      const need = { airstrike: 9, mutiny: 8, nuke: 30, sabotage: 5, emp: 20, carpet: 18, orbital: 14 }[c.id];
       if (best && bv >= need) act = { a: 'tactic', uid: c.uid, target: best };
     } else if (c.id === 'conscript') {
       const ts = E.tacticTargets(s, pid, c.id); if (ts.length) act = { a: 'tactic', uid: c.uid, target: ts[0] };
@@ -197,6 +215,7 @@ function botStep(s, pid, mem) {
         const stage = path[path.length - 2];
         const c = E.combatCalc(s, pid, movers, stage, dest, false, idx);
         const isHQ = t.struct && t.struct.type === 'hq';
+        const neutralSite = !t.owner && (t.poi === 'village' || t.poi === 'fort');
         const need = isHQ ? K.attack - 0.2 : K.attack;
         if (carrying) continue;
         if (c.winProb < need) {
@@ -217,7 +236,7 @@ function botStep(s, pid, mem) {
           }
           continue;
         }
-        v += c.winProb * (8 + stackValue(c.defenders) + (isHQ ? 80 : 0) + (t.struct ? 5 : 0)) - (1 - c.winProb) * stackValue(movers);
+        v += c.winProb * (8 + stackValue(c.defenders) + (isHQ ? 80 : 0) + (t.struct ? 5 : 0) + (neutralSite ? 10 : 0)) - (1 - c.winProb) * stackValue(movers);
       } else if (fleet) {
         // transports with cargo sail for un-owned coast; warships hunt enemies
         for (const pk of path.slice(1)) if (tiles[pk].owner !== pid && E.isWater(tiles[pk])) v += tiles[pk].res ? 5 : 1.2;
@@ -225,6 +244,8 @@ function botStep(s, pid, mem) {
         else if (enemyTiles.length) v += (nearest(k, enemyTiles) - nearest(dest, enemyTiles)) * 0.6;
       } else {
         if (t.owner !== pid) v += t.owner ? 6 : 3;
+        if (t.poi === 'ruins' || t.poi === 'cache') v += 6;
+        if (t.poi === 'relic' && t.owner !== pid) v += 8;
         if (t.res && t.owner !== pid) v += 4;
         if (t.struct && t.owner !== pid) v += 6;
         if (s.map.beacon === dest) v += 10;
@@ -263,7 +284,7 @@ function botStep(s, pid, mem) {
     const k = ups.sort((a, b) => (tiles[a].struct.lvl || 1) - (tiles[b].struct.lvl || 1))[0];
     if (k && p.cash >= E.buildCost(s, p, tiles[k].struct.type, k) + 6) return { a: 'build', struct: tiles[k].struct.type, hex: k };
   }
-  if (!mem.hqTried && enemyNear(p.hq, 3) && tiles[p.hq].struct && tiles[p.hq].struct.type === 'hq' && (tiles[p.hq].struct.lvl || 1) < 3) {
+  if (!mem.hqTried && tiles[p.hq].owner === pid && enemyNear(p.hq, 3) && tiles[p.hq].struct && tiles[p.hq].struct.type === 'hq' && (tiles[p.hq].struct.lvl || 1) < 3) {
     mem.hqTried = true;
     if (p.cash >= E.buildCost(s, p, 'hq', p.hq) + 3) return { a: 'build', struct: 'hq', hex: p.hq };
   }
@@ -313,4 +334,4 @@ function botStep(s, pid, mem) {
   return { a: 'end' };
 }
 
-module.exports = { botStep, draftStep, tradeReply, BOT_NAMES };
+module.exports = { botStep, draftStep, spawnStep, tradeReply, BOT_NAMES };

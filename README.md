@@ -18,8 +18,10 @@ Procedural maps · card drafting · naval warfare · Balatro-style dice combat.
 ## Play in 30 seconds
 
 1. Download **`Sector.exe`** from the [latest release](../../releases/latest).
-2. Double-click it. The game opens in its own window, with a small console window running the server.
-3. Friends on the **same network** run `Sector.exe` too and choose **Join a game → Scan network**, or just type the *"Same network"* address shown in your console into any browser (for example `http://192.168.1.20:3000`).
+2. Double-click it. The game opens in its own window. Click **🖥 SERVER** in the menu to see your invite addresses and who's connected, and to stop the server.
+3. Friends on the **same network** run `Sector.exe` too and choose **Join a game → Scan network**, or just type an invite address into any browser (for example `http://192.168.1.20:3000`).
+
+**Updates install themselves.** Sector.exe checks this repo's releases, and when there's a new version the Server panel offers **Update & restart**. Only the host needs the exe: friends who join through a browser always get the host's version.
 
 > The first launch asks for network access. Tick **Private networks** so friends can connect. Windows SmartScreen may warn that the exe is unsigned: click *More info → Run anyway*.
 
@@ -64,6 +66,7 @@ There are no accounts, no internet servers and no port forwarding. Prefer one sc
 | 🤝 **Diplomacy** | Trade cash and cards with other players. Bots haggle too. |
 | 🧠 **Bots** | Four difficulties. Bots draft, build, invade by sea, set up pincers and judge trades. |
 | 📋 **Blueprint** | Queue your turn while others play; it runs the moment your turn begins. |
+| 🗺️ **Living maps** | Biomes (desert, jungle, tundra, swamp), ruins and caches to loot, villages and forts to conquer, relics to fight over. Small to Huge sizes. Random spawns or pick your HQ. |
 | ⚔️ **Factions** | Iron Covenant, Volt Syndicate, Ashen Nomads, Verdant Host and Null Order, each with a perk and a starting unit. |
 | 🎨 **No assets** | Every unit, card and building is procedural vector art, and every sound is synthesized. The whole game is about 300 KB of code. |
 
@@ -114,7 +117,7 @@ shared/engine.js     all game rules (authoritative on the server; also used in t
 shared/bot.js        AI opponents
 public/              the client: render.js (board), main.js (HUD & flow), cards.js (cards, reveals, index),
                      art.js (vector art), audio.js (synth SFX), style.css
-tools/               sim.js (headless bot games), maps.js (map previews), build-exe.js, screenshots.js, e2e-pass.js
+tools/               sim.js (headless bot games), maps.js (map previews), build-exe.js, screenshots.js, e2e-pass.js, e2e-blueprint.js, e2e-spawn.js, balance.js
 docs/                rules, card reference, development notes, screenshots
 ```
 
