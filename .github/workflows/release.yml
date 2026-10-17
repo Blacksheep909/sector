@@ -31,8 +31,4 @@ jobs:
           files: |
             dist/Sector.exe
             dist/Sector-source.zip
-          generate_release_notes: true
-          body: |
-            **Download `Sector.exe`, double-click it, and your browser opens the game.**
-            Friends on the same Wi-Fi open the "Same network" address shown in the window.
-            Windows may ask to allow network access the first time — allow it on Private networks.
+          body_path: docs/RELEASE_NOTES.md
