@@ -10,6 +10,7 @@ const { botStep, draftStep, tradeReply, BOT_NAMES } = require('./shared/bot');
 
 let PORT = +process.env.PORT || 3000;
 const PUBLIC = path.join(__dirname, 'public');
+const SERVER_ID = crypto.randomBytes(6).toString('hex'); // lets LAN scanners spot one server reachable on several addresses
 const MIME = { '.html': 'text/html', '.js': 'text/javascript', '.css': 'text/css', '.png': 'image/png', '.svg': 'image/svg+xml', '.ico': 'image/x-icon', '.json': 'application/json', '.woff2': 'font/woff2' };
 
 function lanAddresses() {
@@ -27,6 +28,12 @@ const server = http.createServer((req, res) => {
   let url;
   try { url = decodeURIComponent(req.url.split('?')[0]); } catch (e) { res.writeHead(400); return res.end(); }
   if (url === '/') url = '/index.html';
+  if (url === '/info') {
+    // discovery: other SECTOR clients on the LAN scan for this
+    const host = lobby.players.find(p => p.id === lobby.hostId);
+    res.writeHead(200, { 'Content-Type': 'application/json', 'Access-Control-Allow-Origin': '*', 'Cache-Control': 'no-cache' });
+    return res.end(JSON.stringify({ game: 'sector', id: SERVER_ID, host: host ? host.name : null, players: lobby.players.length, humans: lobby.players.filter(p => !p.bot).length, inGame: !!game, round: game ? game.turn.round : 0, port: PORT, lan: lanAddresses() }));
+  }
   const name = url.replace(/^\/+/, '');
   if (!name || name.includes('..') || name.includes('\\')) { res.writeHead(403); return res.end(); }
   const rel = name === 'engine.js' ? (sea ? 'engine.js' : 'shared/engine.js') : 'public/' + name;
@@ -127,7 +134,7 @@ function seatFor(c) {
 }
 function broadcastLobby() { const v = lobbyView(); for (const c of clients) send(c, { t: 'lobby', lobby: v }); }
 function broadcastState(events, by, seq) {
-  for (const c of clients) { const seat = seatFor(c); send(c, { t: 'state', state: E.view(game, seat), events: filterEvents(events, seat), by, seq, seat, mine: controls(c, by) }); }
+  for (const c of clients) { if (c.left) continue; const seat = seatFor(c); send(c, { t: 'state', state: E.view(game, seat), events: filterEvents(events, seat), by, seq, seat, mine: controls(c, by) }); }
 }
 function filterEvents(events, pid) {
   return events.map(e => (e.e === 'card' && e.pid !== pid && e.kind === 'tactic' && e.rarity !== 'legendary') ? { ...e, id: null } : e);
@@ -137,6 +144,7 @@ function freeColor() { return E.COLORS.find(c => !lobby.players.some(p => p.colo
 function onMessage(c, m) {
   switch (m.t) {
     case 'hello': {
+      c.left = false;
       let p = m.token && lobby.players.find(x => x.token === m.token);
       if (!p && game) { send(c, { t: 'welcome', you: null, spectator: true }); send(c, { t: 'lobby', lobby: lobbyView() }); send(c, { t: 'state', state: E.view(game, null), events: [] }); return; }
       if (!p) {
@@ -221,10 +229,33 @@ function onMessage(c, m) {
       for (const cl of clients) send(cl, { t: 'chat', from: p ? p.name : 'Spectator', color: p ? p.color : '#888', text });
       return;
     }
+    case 'leave': {
+      // leaving: in a running game your seats become bots so the match carries on
+      const seats = seatsOf(c);
+      if (game) {
+        for (const id of seats) {
+          const lp = lobby.players.find(p => p.id === id), gp = game.players.find(p => p.id === id);
+          if (lp) { lp.bot = true; lp.diff = lp.diff || 'medium'; lp.local = false; lp.controller = null; lp.token = null; lp.name = lp.name.replace(/ \(bot\)$/, '') + ' (bot)'; }
+          if (gp && gp.alive) { gp.bot = true; gp.diff = gp.diff || 'medium'; gp.name = lp ? lp.name : gp.name; }
+          if (game.trade && game.trade.to === id) game.trade = null;
+        }
+        pushLeave(seats);
+      } else lobby.players = lobby.players.filter(p => !seats.includes(p.id));
+      if (seats.includes(lobby.hostId)) { const h = lobby.players.find(p => !p.bot && !p.local && isConnected(p.id) && !seats.includes(p.id)); lobby.hostId = h ? h.id : null; }
+      c.pid = null; c.left = true;
+      send(c, { t: 'left' });
+      broadcastLobby();
+      if (game) { game.v++; broadcastState([], null); afterChange(); }
+      return;
+    }
     case 'toLobby': if (c.pid !== lobby.hostId || !game) return; console.log('[game] host ' + c.pid + ' ended the game'); endGame(); return;
     case 'ping': return send(c, { t: 'pong' });
     case 'autoplay': if (!process.env.SECTOR_DEV || !c.pid) return; m.on ? autoPids.add(c.pid) : autoPids.delete(c.pid); return afterChange();
   }
+}
+function pushLeave(seats) {
+  for (const id of seats) { const gp = game.players.find(p => p.id === id); if (gp) game.log.push('🚪 ' + gp.name.replace(' (bot)', '') + ' left — a bot took over.'); }
+  while (game.log.length > 40) game.log.shift();
 }
 function pick(o, keys) { const r = {}; for (const k of keys) if (o && k in o) r[k] = o[k]; return r; }
 
@@ -317,6 +348,25 @@ function runBot() {
   afterChange(r.events);
 }
 
+// open the game in its own app window (Edge/Chrome --app: no tabs, no address bar), else the default browser
+function openGameWindow(url) {
+  const cp = require('child_process');
+  if (process.platform === 'win32') {
+    const pf = [process.env['ProgramFiles(x86)'], process.env.ProgramFiles, process.env.LOCALAPPDATA].filter(Boolean);
+    const cands = [];
+    for (const base of pf) cands.push(path.join(base, 'Microsoft', 'Edge', 'Application', 'msedge.exe'), path.join(base, 'Google', 'Chrome', 'Application', 'chrome.exe'));
+    const exe = cands.find(f => { try { return fs.existsSync(f); } catch (e) { return false; } });
+    if (exe) {
+      const prof = path.join(os.tmpdir(), 'sector-app-profile');
+      const child = cp.spawn(exe, ['--app=' + url, '--window-size=1600,900', '--user-data-dir=' + prof, '--no-first-run', '--autoplay-policy=no-user-gesture-required'], { detached: true, stdio: 'ignore' });
+      child.unref();
+      console.log('  Opened the game window. (Close it any time; reopen with ' + url + ')');
+      return;
+    }
+    cp.exec('start "" "' + url + '"', () => {});
+  } else cp.exec((process.platform === 'darwin' ? 'open ' : 'xdg-open ') + url, () => {});
+}
+
 server.on('error', err => {
   if (err.code === 'EADDRINUSE' && PORT < (+process.env.PORT || 3000) + 10) { console.log('  Port ' + PORT + ' is busy, trying ' + (PORT + 1) + '…'); PORT++; setTimeout(() => server.listen(PORT, '0.0.0.0'), 200); }
   else { console.error(err); process.exit(1); }
@@ -328,10 +378,6 @@ server.on('listening', () => {
   for (const a of lan) console.log('  Same network:   http://' + a + ':' + PORT);
   console.log('\n  Share a "Same network" link with friends on your Wi-Fi/LAN.');
   console.log('  Keep this window open while you play. Close it to stop the server.\n');
-  if ((sea || process.env.SECTOR_OPEN) && !process.env.SECTOR_NO_OPEN) {
-    const url = 'http://localhost:' + PORT;
-    const cmd = process.platform === 'win32' ? 'start "" "' + url + '"' : process.platform === 'darwin' ? 'open ' + url : 'xdg-open ' + url;
-    require('child_process').exec(cmd, () => {});
-  }
+  if ((sea || process.env.SECTOR_OPEN) && !process.env.SECTOR_NO_OPEN) openGameWindow('http://localhost:' + PORT);
 });
 server.listen(PORT, '0.0.0.0');

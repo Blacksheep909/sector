@@ -257,6 +257,16 @@ function botStep(s, pid, mem) {
     if (best) return { a: 'build', struct: 'port', hex: best };
   }
   const owns = type => Object.keys(tiles).filter(k => tiles[k].owner === pid && tiles[k].struct && tiles[k].struct.type === type).length;
+  if (!mem.upTried && p.cash >= 20) {
+    mem.upTried = true;
+    const ups = Object.keys(tiles).filter(k => { const t = tiles[k]; return t.owner === pid && t.struct && ['market', 'refinery'].includes(t.struct.type) && (t.struct.lvl || 1) < 3 && sup.has(k); });
+    const k = ups.sort((a, b) => (tiles[a].struct.lvl || 1) - (tiles[b].struct.lvl || 1))[0];
+    if (k && p.cash >= E.buildCost(s, p, tiles[k].struct.type, k) + 6) return { a: 'build', struct: tiles[k].struct.type, hex: k };
+  }
+  if (!mem.hqTried && enemyNear(p.hq, 3) && tiles[p.hq].struct && tiles[p.hq].struct.type === 'hq' && (tiles[p.hq].struct.lvl || 1) < 3) {
+    mem.hqTried = true;
+    if (p.cash >= E.buildCost(s, p, 'hq', p.hq) + 3) return { a: 'build', struct: 'hq', hex: p.hq };
+  }
   if (p.diff !== 'easy' && !mem.mktTried && p.cash >= E.structCost(p, 'market') + 4 && owns('market') < 1 + Math.floor(s.turn.round / 10)) {
     mem.mktTried = true;
     const spot = supLand.find(k => !tiles[k].struct && !tiles[k].contam && !enemyNear(k, 3));

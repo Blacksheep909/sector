@@ -162,6 +162,7 @@ const Cards = (() => {
     }
   }
   function revealRow(box, slots) {
+    box.querySelectorAll('.reveal-bar').forEach(b => b.remove());
     return new Promise(res => {
       const hint = el('div', 'cr-hint', 'CLICK A CARD TO REVEAL · SPACE FOR NEXT');
       const all = el('button', 'btn reveal-all', 'REVEAL ALL');
@@ -228,9 +229,10 @@ const Cards = (() => {
         if (!ok) { busy = false; slots.forEach(o => o.flip.classList.remove('discard')); }
       });
     });
+    const tok = box.dataset.tok = String(Math.random());
     (async () => {
-      await sleep(350); await dealIn(slots);
-      for (const s of slots) { if (!document.contains(s.flip)) return; await flipCard(s, box); await sleep(160); }
+      await sleep(350); if (box.dataset.tok !== tok) return; await dealIn(slots);
+      for (const s of slots) { if (box.dataset.tok !== tok || !document.contains(s.flip)) return; await flipCard(s, box); await sleep(160); }
     })();
   }
   function closeSupply() { $('#supply').hidden = true; supplyKey = ''; }
@@ -314,8 +316,10 @@ const Cards = (() => {
       row.appendChild(flip);
       return { flip, front, d, id };
     });
-    cr.remove();
+    cr.remove(); reel.remove(); luckBar.remove();
+    await sleep(60);
     await dealIn(slots);
+    if (!document.contains(row)) return;
     await revealRow(box, slots);
     // 4. choose
     const bar = el('div', 'cr-actions');
@@ -405,7 +409,8 @@ const Cards = (() => {
     box.appendChild(row);
     box.appendChild(who);
     const dslots = [...row.children].map((f, i) => ({ flip: f, front: f.querySelector('.cfront'), d: E.cardDef(offer[i]) }));
-    (async () => { await sleep(fresh ? 450 : 150); await dealIn(dslots); await revealRow(box, dslots); })();
+    const tok = box.dataset.tok = String(Math.random());
+    (async () => { await sleep(fresh ? 450 : 150); if (box.dataset.tok !== tok) return; await dealIn(dslots); if (box.dataset.tok !== tok) return; await revealRow(box, dslots); })();
   }
   function hideDraft() { $('#draft').hidden = true; draftKey = ''; }
 

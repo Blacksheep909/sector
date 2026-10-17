@@ -639,3 +639,58 @@ input:focus, select:focus { border-color: var(--blue); }
 .flip.tell.r-legendary { animation: none !important; }
 .flip .cback { background-image: radial-gradient(circle at 50% 40%, #2c3f52, #101820 72%), repeating-linear-gradient(45deg, rgba(255,255,255,.03) 0 8px, transparent 8px 16px) !important; }
 .flip.cracking .cback { box-shadow: 0 6px 0 #000, 0 0 90px #ffb52e, inset 0 0 70px #fff3a8 !important; animation: crack .09s linear infinite !important; }
+
+/* a card mid-flip ignores hover so the fly-to-centre transform isn't skewed */
+.cr-cards .flip.lifting, .cr-cards .flip.lifting:hover { translate: none !important; scale: none !important; transition: none !important; }
+/* background beams always reach the screen edges */
+.sd-rays { width: 260vmax !important; height: 260vmax !important; }
+.rays.big { width: 220vmax; height: 220vmax; }
+
+/* pass & play: hands are hidden while bots (or remote players) take their turns */
+body.pp-idle #hand, body.pp-idle #hbUnits { visibility: hidden; }
+body.pp-idle #deckBar::after { content: 'Hands hidden until a local player is up'; position: absolute; inset: 18px 12px 12px; display: grid; place-items: center; color: var(--dim); font-size: 13px; }
+
+/* ══════════ build bar: big, bright, labelled ══════════ */
+#buildBar { padding: 20px 10px 10px; background: rgba(10,15,20,.88); border-color: #05080b; }
+#buildBar .bar-label { font-size: 13px; padding: 2px 10px; }
+#hbBuild { grid-template-columns: repeat(5, 72px) !important; gap: 8px !important; }
+#hbBuild .slot { width: 72px !important; height: 84px !important; display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 2px; padding-top: 6px;
+  background: linear-gradient(180deg, #f4ecd8, #e1d4b6); border: 3px solid #0b0f13; box-shadow: 0 4px 0 #000, inset 0 0 0 2px #c9a15a; border-radius: 12px; }
+#hbBuild .slot img { width: 34px; height: 34px; filter: none; }
+#hbBuild .slot .bname { font-family: var(--title); font-size: 10px; color: #1b1712; letter-spacing: .3px; text-transform: uppercase; white-space: nowrap; }
+#hbBuild .slot .sk { color: #6b5a3a; top: 2px; left: 6px; }
+#hbBuild .slot .sc { bottom: -9px; right: 50%; transform: translateX(50%); font-size: 12px; }
+#hbBuild .slot .up { position: absolute; top: -8px; right: -7px; background: #59f08a; color: #062010; font-size: 10px; font-weight: 800; padding: 0 5px; border-radius: 6px; border: 2px solid #05080b; }
+#hbBuild .slot:hover { transform: translateY(-6px) scale(1.07); filter: brightness(1.06); }
+#hbBuild .slot.on { box-shadow: 0 0 0 3px #fff, 0 0 22px #ffc53d, 0 6px 0 #000, inset 0 0 0 2px #c9a15a; }
+#hbBuild .slot.poor { filter: none; opacity: .92; }
+#hbBuild .slot.poor .sc { background: #ff4f5e; color: #fff; }
+#hbBuild .slot.nowhere { filter: saturate(.3); opacity: .55; }
+.tip-up { grid-column: 1 / -1; margin-top: 6px; color: #59f08a; font-size: 11px; }
+#logBox { bottom: 220px !important; }
+
+/* ══════════ host / join + esc menu ══════════ */
+.net-tabs { display: flex; gap: 8px; }
+.net-tabs .btn.on { --c: var(--gold); --d: var(--gold-d); color: #1d1404; }
+.join-net { width: min(520px, 94vw); display: flex; flex-direction: column; gap: 10px; }
+.join-net input { flex: 1; font-size: 16px; }
+.scan-list { display: flex; flex-direction: column; gap: 6px; }
+.srv { display: flex; align-items: center; justify-content: space-between; gap: 10px; padding: 8px 10px; background: #0f171e; border: 2px solid var(--line); border-radius: 10px; animation: popIn .25s; font-size: 13px; }
+.srv.me { border-color: #2a3947; opacity: .75; }
+#escMenu { position: fixed; inset: 0; z-index: 125; background: rgba(4,8,12,.78); display: grid; place-items: center; animation: fadeIn .15s; backdrop-filter: blur(3px); }
+.esc-card { width: min(360px, 92vw); display: flex; flex-direction: column; gap: 10px; text-align: center; animation: popIn .2s cubic-bezier(.2,1.5,.5,1); }
+.esc-card h2 { font-family: var(--title); font-weight: 400; font-size: 44px; margin: 0; letter-spacing: 3px; text-shadow: 0 4px 0 var(--red-d), 0 7px 0 #000; }
+.esc-card .btn { width: 100%; }
+
+/* ══════════ performance ══════════ */
+/* the beams are one pre-rendered layer that only rotates (GPU-composited), no per-frame repaint */
+.sd-rays { width: 150vmax !important; height: 150vmax !important; will-change: transform; contain: strict; animation-duration: 60s; }
+@keyframes spin { from { transform: translate(-50%, -50%) rotate(0deg); } to { transform: translate(-50%, -50%) rotate(360deg); } }
+#supply, #escMenu, #crate, #draft { backdrop-filter: none !important; }
+/* scanlines without a full-screen blend mode */
+#crt { mix-blend-mode: normal !important; background: repeating-linear-gradient(0deg, rgba(0,0,0,.07) 0 1px, transparent 1px 3px), radial-gradient(ellipse at center, transparent 60%, rgba(0,0,0,.45) 100%) !important; }
+/* only the fancy rarities shimmer; nothing idles with blend modes */
+.card .c-shine { mix-blend-mode: normal; }
+#hbUnits .card .c-foil, #hand .card .c-foil { animation-play-state: paused; }
+#hbUnits .card:hover .c-foil, #hand .card:hover .c-foil { animation-play-state: running; }
+.cr-cards .flip, .cr-cards .card { will-change: transform; }

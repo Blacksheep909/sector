@@ -17,6 +17,15 @@
     <h1 class="logo"><span>S</span><span>E</span><span>C</span><span>T</span><span>O</span><span>R</span></h1>
     <div class="tagline">CAPTURE · DEPLOY · DESTROY</div>
   </div>
+  <div id="netTabs" class="net-tabs"><button class="btn on" data-tab="host">HOST / PLAY HERE</button><button class="btn" data-tab="join">JOIN A GAME</button></div>
+  <div id="joinNet" class="panel join-net" hidden>
+    <h3>FIND A GAME ON YOUR NETWORK</h3>
+    <button id="scanBtn" class="btn big blue">SCAN NETWORK</button>
+    <div id="scanList" class="scan-list"><div class="hint">Scans your Wi-Fi for SECTOR servers. Everyone must be on the same network.</div></div>
+    <h3>OR ENTER AN ADDRESS</h3>
+    <div class="row"><input id="joinAddr" placeholder="192.168.1.20:3000" autocomplete="off"><button id="joinGo" class="btn red">JOIN</button></div>
+    <div id="recentList" class="scan-list"></div>
+  </div>
   <div id="joinBox" class="panel join">
     <label>CALLSIGN</label>
     <input id="nameIn" maxlength="16" placeholder="Commander" autocomplete="off">
@@ -55,7 +64,7 @@
 
 <!-- ───────── in-game HUD ───────── -->
 <section id="hud" hidden>
-  <div id="topbar"><div id="roundBox"></div><div id="players"></div><div class="top-btns"><button id="muteBtn" class="icon-btn" title="Sound">♪</button><button id="indexBtn" class="icon-btn" title="Card index">▤</button><button id="rulesBtn" class="icon-btn" title="How to play">?</button></div></div>
+  <div id="topbar"><div id="roundBox"></div><div id="players"></div><div class="top-btns"><button id="muteBtn" class="icon-btn" title="Sound">♪</button><button id="menuBtn" class="icon-btn" title="Menu (Esc)">☰</button><button id="indexBtn" class="icon-btn" title="Card index">▤</button><button id="rulesBtn" class="icon-btn" title="How to play">?</button></div></div>
   <div id="cashBox" class="panel">
     <div class="cash-row"><span class="cur">$</span><span id="cash">0</span></div>
     <div id="incomeLine" class="sub"></div>
@@ -86,6 +95,19 @@
 <div id="index" hidden></div>
 <div id="modal" hidden></div>
 <div id="passCover" hidden></div>
+<div id="escMenu" hidden>
+  <div class="panel esc-card">
+    <h2>PAUSED</h2>
+    <div class="sub" id="escInfo"></div>
+    <button class="btn big green" id="escResume">RESUME</button>
+    <button class="btn big" id="escRules">HOW TO PLAY</button>
+    <button class="btn big" id="escIndex">CARD INDEX</button>
+    <button class="btn big" id="escSound">SOUND: ON</button>
+    <button class="btn big gold" id="escLeave">LEAVE GAME</button>
+    <button class="btn big red" id="escEnd" hidden>END GAME FOR EVERYONE</button>
+    <div class="hint" id="escHint">Leaving hands your empire to a bot so the others can keep playing.</div>
+  </div>
+</div>
 <div id="offerPop" hidden></div>
 <div id="flyLayer"></div>
 <div id="combat" hidden></div>

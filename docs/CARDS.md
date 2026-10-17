@@ -54,14 +54,14 @@ Built from the hotbar (keys Z–M) on hexes you own that are connected to supply
 
 | Structure | Cost | Effect |
 |---|---|---|
-| **FOB** | $8 | Forward base: deploy point and supply source. +1 Mult defence. |
-| **Market** | $7 | +$3 per turn. +$1 more for each other Market or Port you own (trade network). |
-| **Refinery** | $6 | +$2 per turn (+$4 on a Resource node or oil rig). |
-| **Depot** | $4 | Logistics hub: your units starting their turn within 1 hex get +1 move. |
+| **FOB** | $8 | Forward base: deploy point and supply source. +1 Mult defence per level. |
+| **Market** | $7 | +$3 per turn per level, +$1 more for each other Market level or Port you own (trade network). |
+| **Refinery** | $6 | +$2 per turn per level (+$4 per level on a Resource node or oil rig). |
+| **Depot** | $4 | Logistics hub: your units starting their turn nearby get +1 move. Range = level. |
 | **Port** | $5 | Coast only. Launch ships into the adjacent sea. Supply source for sea lanes. |
 | **Bridge** | $6 | Span a 1-hex sea gap between two shores. Land units cross; ships cannot pass. |
-| **Bunker** | $4 | +2 Mult defence. |
-| **Flak** | $5 | Blocks enemy air tactics within 1 hex. +2 Mult vs air. |
+| **Bunker** | $4 | +2 Mult defence, +1 more per extra level. |
+| **Flak** | $5 | Blocks enemy air tactics nearby (range = level). +2 Mult vs air. |
 
 ## Factions
 
