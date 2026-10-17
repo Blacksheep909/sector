@@ -14,17 +14,23 @@ Unit cards are permanent unlocks: deploy as many as you can afford.
 | **Skitter** | Vehicle | Common | $3 | 2 | 1 | 4 | – | Raider buggy. Grabs land fast. |
 | **Thumper** | Artillery | Common | $4 | 3 | 1 | 1 | 2 | Mortar crew. Fires 2 hexes instead of moving. |
 | **Barracuda** | Naval | Common | $4 | 3 | 2 | 4 | – | Fast gunboat. Claims sea lanes, raids coasts. |
+| **Corpsman** | Infantry | Common | $3 | 1 | 3 | 2 | – | Medic squad. Its stack never suffers pyrrhic losses. |
 | **Lancer** | Infantry | Uncommon | $4 | 3 | 2 | 2 | – | Tank Hunter: +3 Chips when fighting vehicles. |
 | **Warden** | Air | Uncommon | $4 | 1 | 3 | 3 | – | Shield drone. Aegis: +1 Mult when its hex defends. |
-| **Bulwark** | Vehicle | Uncommon | $5 | 3 | 5 | 3 | – | Armoured carrier. Holds the line. |
+| **Sapper** | Infantry | Uncommon | $4 | 2 | 2 | 2 | – | Demolitions: +3 Chips attacking a hex with buildings. |
+| **Scorpion** | Vehicle | Uncommon | $5 | 2 | 3 | 3 | – | Anti-air: +4 Chips in any fight involving enemy aircraft. |
+| **Bulwark** | Vehicle | Uncommon | $6 | 3 | 5 | 3 | – | Armoured carrier. Holds the line. |
 | **Hornet** | Air | Uncommon | $5 | 4 | 1 | 4 | – | Strike drone. Flies over mountains and water. |
 | **Mauler** | Vehicle | Uncommon | $6 | 5 | 4 | 2 | – | Main battle tank. |
 | **Ark** | Naval | Uncommon | $4 | 0 | 3 | 4 | – | Transport. Carries up to 3 land units across the sea. |
 | **Marlin** | Naval | Rare | $7 | 5 | 4 | 4 | 2 | Destroyer. Shells coasts and ships 2 hexes away. |
-| **Basilisk** | Artillery | Rare | $8 | 7 | 2 | 1 | 3 | Railgun platform. Fires 3 hexes. |
+| **Basilisk** | Artillery | Rare | $7 | 7 | 2 | 1 | 3 | Railgun platform. Fires 3 hexes. |
+| **Ranger** | Infantry | Rare | $6 | 4 | 3 | 3 | – | Pathfinders: rough terrain costs only 1 move. |
+| **Hellcat** | Vehicle | Rare | $7 | 6 | 2 | 3 | – | Strike tank. Can act on the turn it is deployed. |
 | **Wraith** | Vehicle | Rare | $8 | 6 | 3 | 4 | – | Hover tank. Glides across water. |
 | **Kraken** | Naval | Rare | $8 | 7 | 2 | 4 | – | Submarine. Torpedoes: +4 Chips vs ships. |
 | **Leviathan** | Vehicle | Legendary | $14 | 12 | 10 | 1 | – | Land dreadnought. Never suffers pyrrhic losses. |
+| **Titan** | Vehicle | Legendary | $16 | 13 | 12 | 1 | – | Colossus. Siege Breaker and never suffers pyrrhic losses. |
 | **Seraph** | Air | Legendary | $12 | 9 | 4 | 5 | – | Gunship. Seizes enemy hexes it flies over. |
 | **Oracle** | Artillery | Legendary | $11 | 8 | 3 | 2 | 4 | Orbital uplink. Range 4, ignores mountains. |
 | **Abyssal** | Naval | Legendary | $15 | 12 | 10 | 3 | 4 | Sea dreadnought. Range 4. Never suffers pyrrhic losses. |
@@ -37,10 +43,14 @@ Single-use cards from your hand.
 |---|---|---|---|
 | **Smoke Screen** | Common | $1 | A hex you own gets +2 Mult on defence until your next turn. |
 | **Forced March** | Common | $1 | Units on one hex may act again, with +2 move. |
+| **Rally** | Common | $1 | Your next attack this turn gets +2 Mult. |
+| **Fortify** | Common | $2 | Build or upgrade a Bunker on one of your hexes for free. |
 | **Conscription** | Common | $1 | Deploy 2 free Grunts at a deploy point. |
 | **Airstrike** | Uncommon | $4 | Bomb enemy units within 4 of your land. Roll: kills 1–3. |
 | **Heli Drop** | Uncommon | $3 | Fly a stack up to 5 hexes onto any empty land and seize it. |
 | **Sabotage** | Uncommon | $3 | Destroy an enemy structure (or bridge) within 3 of your land. |
+| **Embargo** | Uncommon | $3 | Pick an enemy hex: its owner gets only half income next turn. |
+| **Bounty** | Uncommon | $1 | This turn, earn $2 for every enemy unit you destroy. |
 | **War Bonds** | Rare | $0 | Gain $1 for every 2 hexes you own. |
 | **Blitz Doctrine** | Rare | $3 | This turn: all units +1 move, fresh units may act. |
 | **Supply Drop** | Rare | $0 | Spin the reel for a crate (60% Standard · 32% Gilded · 8% Mythic), then keep 1 of 3 cards. |
@@ -67,10 +77,10 @@ Built from the hotbar (keys Z–M) on hexes you own that are connected to supply
 
 | Faction | Perk | Starts with |
 |---|---|---|
-| **Iron Covenant** | Steel Wall: +1 defence Chip per unit when defending. | Bulwark |
-| **Volt Syndicate** | Overclock: Vehicles and air units get +1 move. | Hornet |
-| **Ashen Nomads** | Raiders: Move through and seize empty enemy hexes. | Skitter |
+| **Iron Covenant** | Steel Wall: +2 defence Chips per unit when defending. | Bulwark |
+| **Volt Syndicate** | Overclock: Air units get +1 move. Hornets cost $1 less. | Hornet |
+| **Ashen Nomads** | Looters: Earn $2 for every enemy hex you capture. Skitters cost $1 less. | Skitter |
 | **Verdant Host** | Deep Roots: Structures cost $2 less. Start with a Bunker by your HQ. | Thumper |
-| **Null Order** | Loaded Dice: Your combat rolls of 1 count as 3. | Lancer |
+| **Null Order** | Loaded Dice: Your combat rolls of 1 and 2 count as 3. | Lancer |
 
 Every commander also starts with **Grunts** and the **Ark** transport.

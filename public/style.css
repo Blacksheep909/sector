@@ -698,3 +698,32 @@ body.pp-idle #deckBar::after { content: 'Hands hidden until a local player is up
 #siegeWarn { position: fixed; top: 74px; left: 50%; transform: translateX(-50%); z-index: 30; background: #3a0d0d; border: 3px solid #ff4a2a; color: #ffd0c4; padding: 8px 16px; border-radius: 10px; font-size: 14px; box-shadow: 0 4px 0 #000, 0 0 30px rgba(255,74,42,.6); animation: siegePulse 1s ease-in-out infinite; cursor: pointer; white-space: nowrap; }
 #siegeWarn span { color: #ff9a8a; font-size: 12px; }
 @keyframes siegePulse { 50% { box-shadow: 0 4px 0 #000, 0 0 50px rgba(255,74,42,.95); } }
+
+#spawnBar { position: fixed; top: 74px; left: 50%; transform: translateX(-50%); z-index: 30; background: #10161c; border: 3px solid var(--pc, #fff); color: #f1efe6; padding: 10px 20px; border-radius: 12px; display: flex; flex-direction: column; align-items: center; gap: 2px; box-shadow: 0 5px 0 #000, 0 0 28px color-mix(in srgb, var(--pc, #fff) 50%, transparent); text-align: center; }
+#spawnBar b { font-size: 20px; letter-spacing: 2px; color: var(--pc, #fff); text-shadow: 0 3px 0 #000; }
+#spawnBar span { font-size: 13px; color: #c9c6ba; }
+
+/* host panel */
+.host-btn { position: fixed; top: 16px; right: 16px; z-index: 5; }
+.host-btn i { position: absolute; top: -5px; right: -5px; width: 14px; height: 14px; border-radius: 50%; background: var(--green, #59f08a); border: 2px solid #000; animation: siegePulse 1s infinite; }
+#hostPanel, #closedCover { position: fixed; inset: 0; z-index: 80; background: rgba(5,8,12,.78); display: flex; align-items: center; justify-content: center; }
+#closedCover { z-index: 120; }
+.host-card { width: min(560px, calc(100vw - 32px)); max-height: calc(100vh - 40px); overflow: auto; padding: 22px 26px; }
+.host-card h2 { margin: 0 0 4px; letter-spacing: 3px; }
+.host-card h2 .ver { font-size: 14px; color: var(--gold, #ffc53d); letter-spacing: 1px; }
+.host-card h3 { margin: 18px 0 8px; font-size: 13px; letter-spacing: 2px; color: #9aa4ad; }
+.hp-addr { display: flex; gap: 8px; align-items: center; margin-bottom: 6px; }
+.hp-addr code { flex: 1; background: #0b1016; border: 2px solid #2a3440; border-radius: 8px; padding: 8px 12px; font-size: 17px; color: #fff; user-select: all; }
+.hp-list { display: flex; flex-direction: column; gap: 4px; }
+.hp-row { display: flex; justify-content: space-between; background: #121a22; border-radius: 8px; padding: 7px 12px; }
+.hp-row small { color: #9aa4ad; }
+.hp-row .tags i { font-style: normal; font-size: 11px; color: #9aa4ad; margin-left: 8px; }
+.hp-row .tags i.gold { color: var(--gold, #ffc53d); }
+.hp-upd { display: flex; flex-wrap: wrap; gap: 10px; align-items: center; color: #c9c6ba; }
+.hp-upd.new { background: #12261a; border: 2px solid #3fbf6a; border-radius: 10px; padding: 10px 12px; color: #dff7e6; }
+.hp-upd .err { width: 100%; color: #ff8a7a; font-size: 13px; }
+.hp-upd .bar { width: 100%; height: 8px; background: #0b1016; border-radius: 4px; overflow: hidden; }
+.hp-upd .bar i { display: block; height: 100%; background: linear-gradient(90deg, #3fbf6a, #9cf0b4); transition: width .3s; }
+.hp-btns { margin-top: 18px; justify-content: space-between; }
+.spinner { width: 46px; height: 46px; margin: 18px auto; border: 5px solid #2a3440; border-top-color: var(--gold, #ffc53d); border-radius: 50%; animation: spin 0.9s linear infinite; }
+@keyframes spin { to { transform: rotate(360deg); } }

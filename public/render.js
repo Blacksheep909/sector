@@ -4,9 +4,10 @@ const Render = (() => {
   const S = 34, TILT = 0.68, SQ3 = Math.sqrt(3);
   const VERT = [-90, -30, 30, 90, 150, 210].map(a => [Math.cos(a * Math.PI / 180), Math.sin(a * Math.PI / 180)]);
   const EDGE_DIR = [1, 0, 5, 4, 3, 2];
-  const HEIGHT = { water: 2, plains: 8, forest: 8, hills: 10, mountain: 10 };
+  const HEIGHT = { water: 2, plains: 8, forest: 8, hills: 10, mountain: 10, desert: 7, jungle: 8, tundra: 9, swamp: 5 };
   // neutral land is deliberately muted so player territory pops
-  const COL = { shallow: '#2a6688', water: '#173d58', plains: '#55644a', forest: '#3f5640', hills: '#6b6150', mountain: '#4a4752', fallout: '#6f7a25' };
+  const COL = { shallow: '#2a6688', water: '#173d58', plains: '#55644a', forest: '#3f5640', hills: '#6b6150', mountain: '#4a4752', fallout: '#6f7a25', desert: '#9c8a5c', jungle: '#2f5a37', tundra: '#9aa7ae', swamp: '#4b5a46' };
+  const POI_COL = { ruins: '#d9b77a', cache: '#ffcf4a', village: '#f1efe6', fort: '#c9cfd6', relic: '#c27bff' };
 
   let cv, ctx, W = 0, H = 0, DPR = 1;
   let S_ = null;                 // display state
@@ -62,7 +63,7 @@ const Render = (() => {
       if (t.owner && pc[t.owner] && t.t === 'water') base = mix(base, pc[t.owner], t.bridge ? 0.5 : 0.32);
       if (owned) {
         // flat, saturated team colour; terrain only nudges the brightness
-        const tb = { plains: 0, forest: -0.12, hills: 0.08 }[t.t] || 0;
+        const tb = { plains: 0, forest: -0.12, hills: 0.08, desert: 0.1, jungle: -0.16, tundra: 0.14, swamp: -0.1 }[t.t] || 0;
         base = mix(shade(pc[t.owner], -0.18), hx(COL[t.t]), 0.18);
         base = shade(base, tb);
       }
@@ -328,6 +329,31 @@ const Render = (() => {
       prism(cx + off, cy + 2 * z, s * 0.56, 6 * z, c.light, c.side1, c.side2);
     } else if (tile.t === 'mountain') {
       drawMountain(c, cx, cy, s, z);
+    } else if (tile.t === 'desert') {
+      // dunes
+      ctx.strokeStyle = 'rgba(255,240,200,.28)'; ctx.lineWidth = 1.6 * z;
+      for (let i = 0; i < 2; i++) { const y = cy + (i * 7 - 3 + (v - 0.5) * 4) * z; ctx.beginPath(); ctx.moveTo(cx - s * 0.45, y); ctx.quadraticCurveTo(cx - s * 0.1, y - 5 * z, cx + s * 0.1, y); ctx.quadraticCurveTo(cx + s * 0.3, y + 4 * z, cx + s * 0.45, y - 1 * z); ctx.stroke(); }
+      if (v > 0.75 && !tile.struct) { ctx.fillStyle = c.owned ? 'rgba(0,0,0,.25)' : '#5f7a3d'; const x = cx + s * 0.25; ctx.fillRect(x - 1.5 * z, cy - 12 * z, 3 * z, 12 * z); ctx.fillRect(x - 5 * z, cy - 8 * z, 2.5 * z, 5 * z); ctx.fillRect(x + 2.5 * z, cy - 10 * z, 2.5 * z, 5 * z); }
+    } else if (tile.t === 'jungle') {
+      ctx.save(); if (c.owned) ctx.globalAlpha = 0.55;
+      for (const [ox, oy, sz] of [[-0.32, 0.05, 0.9], [0.25, -0.1, 0.8], [0.02, 0.28, 1]]) {
+        const x = cx + ox * s, y = cy + oy * s * TILT * 1.6, sway = Math.sin(t * 1.1 + c.q + ox * 3) * 1.5 * z;
+        ctx.fillStyle = 'rgba(0,0,0,.2)'; ctx.beginPath(); ctx.ellipse(x, y, 7 * z * sz, 2.6 * z * sz, 0, 0, Math.PI * 2); ctx.fill();
+        ctx.fillStyle = '#4a3423'; ctx.fillRect(x - 1 * z, y - 11 * z * sz, 2 * z, 11 * z * sz);
+        ctx.fillStyle = c.dark;
+        for (let i = 0; i < 4; i++) { const a = i * Math.PI / 2 + 0.6; ctx.beginPath(); ctx.ellipse(x + sway + Math.cos(a) * 4.5 * z * sz, y - 12 * z * sz + Math.sin(a) * 2 * z * sz, 5.5 * z * sz, 2 * z * sz, a, 0, Math.PI * 2); ctx.fill(); }
+      }
+      ctx.restore();
+    } else if (tile.t === 'tundra') {
+      ctx.fillStyle = 'rgba(255,255,255,.35)';
+      for (let i = 0; i < 4; i++) { const x = cx + (hash(c.q + i, c.r) - 0.5) * s * 0.9, y = cy + (hash(c.q, c.r + i) - 0.5) * s * 0.45; ctx.beginPath(); ctx.ellipse(x, y, 4 * z, 1.6 * z, 0, 0, Math.PI * 2); ctx.fill(); }
+      if (v > 0.6 && !tile.struct) { ctx.save(); if (c.owned) ctx.globalAlpha = 0.5; const x = cx - s * 0.2, y = cy + 2 * z; ctx.fillStyle = '#3c5a4c'; ctx.beginPath(); ctx.moveTo(x, y - 13 * z); ctx.lineTo(x + 5 * z, y); ctx.lineTo(x - 5 * z, y); ctx.fill(); ctx.fillStyle = '#f2f6f8'; ctx.beginPath(); ctx.moveTo(x, y - 13 * z); ctx.lineTo(x + 2.4 * z, y - 7 * z); ctx.lineTo(x - 2.4 * z, y - 7 * z); ctx.fill(); ctx.restore(); }
+    } else if (tile.t === 'swamp') {
+      const a = 0.3 + 0.1 * Math.sin(t * 1.5 + v * 7);
+      ctx.fillStyle = `rgba(70,110,95,${a})`;
+      for (const [ox, oy, r] of [[-0.25, 0.05, 0.22], [0.2, -0.08, 0.17], [0.08, 0.22, 0.14]]) { ctx.beginPath(); ctx.ellipse(cx + ox * s, cy + oy * s * TILT, r * s, r * s * TILT * 0.6, 0, 0, Math.PI * 2); ctx.fill(); }
+      ctx.strokeStyle = c.owned ? 'rgba(0,0,0,.3)' : '#8a9a5a'; ctx.lineWidth = 1.3 * z;
+      for (let i = 0; i < 4; i++) { const x = cx + (i - 1.5) * 6 * z + (v - 0.5) * 6 * z, y = cy + (i % 2 ? -4 : 5) * z; ctx.beginPath(); ctx.moveTo(x, y); ctx.lineTo(x - 1 * z, y - 7 * z); ctx.stroke(); }
     } else if (tile.t === 'plains' && v > 0.7 && !tile.struct && !c.owned) {
       ctx.fillStyle = 'rgba(255,255,255,.12)'; for (let i = 0; i < 3; i++) ctx.fillRect(cx + (i - 1) * 7 * z + (v * 10 - 5) * z, cy + (i % 2) * 4 * z, 1.6 * z, 4 * z);
     }
@@ -339,6 +365,15 @@ const Render = (() => {
       ctx.fillStyle = gl; ctx.fillRect(x - 16 * z, y - 16 * z, 32 * z, 32 * z);
       ctx.fillStyle = '#9ffcf2'; ctx.beginPath(); ctx.moveTo(x, y - 9 * z); ctx.lineTo(x + 4.5 * z, y); ctx.lineTo(x, y + 4 * z); ctx.lineTo(x - 4.5 * z, y); ctx.fill();
       ctx.fillStyle = '#34c7c0'; ctx.beginPath(); ctx.moveTo(x, y - 9 * z); ctx.lineTo(x + 4.5 * z, y); ctx.lineTo(x, y + 4 * z); ctx.fill();
+    }
+    if (tile.poi && !(tile.poi === 'fort' && tile.owner)) {
+      const bob = Math.sin(t * 2 + v * 6) * 1.6 * z, x = cx, y = cy - 14 * z + bob, col = POI_COL[tile.poi];
+      const pulse = (tile.poi === 'relic' || tile.poi === 'cache' || tile.poi === 'ruins') ? 0.5 + 0.5 * Math.sin(t * 3 + v * 5) : 0.3;
+      ctx.fillStyle = 'rgba(0,0,0,.35)'; ctx.beginPath(); ctx.ellipse(x, cy + 2 * z, 8 * z, 3 * z, 0, 0, Math.PI * 2); ctx.fill();
+      ctx.save(); ctx.shadowColor = col; ctx.shadowBlur = (6 + 10 * pulse) * z;
+      ctx.fillStyle = '#121820'; ctx.beginPath(); ctx.arc(x, y, 9.5 * z, 0, Math.PI * 2); ctx.fill(); ctx.restore();
+      ctx.strokeStyle = col; ctx.lineWidth = 2 * z; ctx.beginPath(); ctx.arc(x, y, 9.5 * z, 0, Math.PI * 2); ctx.stroke();
+      Art.drawIcon(ctx, 'poi', tile.poi, x, y, 6 * z, col);
     }
     if (tile.contam) {
       const a = 0.4 + 0.3 * Math.sin(t * 3 + v * 9);

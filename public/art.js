@@ -114,6 +114,29 @@ const Art = (() => {
     mutiny(c) { rr(c, -0.65, -0.85, 0.12, 1.7, 0.03); c.fill(); c.beginPath(); c.moveTo(-0.53, -0.8); c.quadraticCurveTo(0, -0.95, 0.2, -0.75); c.quadraticCurveTo(0.5, -0.55, 0.85, -0.7); c.lineTo(0.85, 0.05); c.quadraticCurveTo(0.5, 0.2, 0.2, 0.0); c.quadraticCurveTo(0, -0.15, -0.53, 0.0); c.closePath(); c.fill(); },
   };
 
+  Object.assign(UNIT, {
+    corpsman(c) { UNIT.grunt(c); c.save(); c.fillStyle = 'rgba(0,0,0,.55)'; c.fillRect(-0.09, 0.08, 0.18, 0.42); c.fillRect(-0.21, 0.2, 0.42, 0.18); c.restore(); },
+    sapper(c) { c.save(); c.translate(-0.2, 0.05); c.scale(0.8, 0.8); UNIT.grunt(c); c.restore(); rr(c, 0.35, -0.2, 0.55, 0.45, 0.08); c.fill(); c.lineWidth = 0.07; c.beginPath(); c.moveTo(0.62, -0.2); c.quadraticCurveTo(0.7, -0.6, 0.95, -0.7); c.stroke(); circ(c, 0.95, -0.72, 0.09); c.fill(); },
+    scorpion(c) { rr(c, -0.85, 0.05, 1.7, 0.42, 0.12); c.fill(); for (const x of [-0.55, 0, 0.55]) wheel(c, x, 0.55, 0.17); c.save(); c.translate(0.05, -0.05); c.rotate(-0.8); for (const dx of [-0.15, 0.08]) { rr(c, dx, -0.9, 0.09, 0.85, 0.03); c.fill(); } c.restore(); rr(c, -0.35, -0.2, 0.6, 0.3, 0.06); c.fill(); },
+    ranger(c) { UNIT.grunt(c); poly(c, [-0.55, -0.3, 0.55, -0.3, 0.75, -0.18, -0.75, -0.18]); c.fill(); rr(c, 0.45, -0.05, 0.5, 0.09, 0.03); c.fill(); },
+    hellcat(c) { poly(c, [-0.95, 0.1, 0.85, 0.1, 0.6, 0.55, -0.75, 0.55]); c.fill(); poly(c, [-0.5, 0.1, -0.3, -0.3, 0.3, -0.3, 0.45, 0.1]); c.fill(); rr(c, 0.3, -0.2, 0.7, 0.11, 0.03); c.fill(); poly(c, [-0.95, 0.1, -1, -0.15, -0.7, 0.1]); c.fill(); },
+    phantom(c) { poly(c, [0, -0.85, 1, 0.45, 0.45, 0.3, 0, 0.55, -0.45, 0.3, -1, 0.45]); c.fill(); c.save(); c.fillStyle = 'rgba(0,0,0,.4)'; poly(c, [0, -0.45, 0.18, 0.05, -0.18, 0.05]); c.fill(); c.restore(); },
+    titan(c) { rr(c, -0.95, 0.15, 1.9, 0.6, 0.14); c.fill(); poly(c, [-0.7, 0.15, -0.5, -0.4, 0.5, -0.4, 0.7, 0.15]); c.fill(); for (const y of [-0.3, -0.12]) { rr(c, 0.3, y, 0.7, 0.1, 0.03); c.fill(); } rr(c, -0.25, -0.65, 0.4, 0.28, 0.05); c.fill(); c.save(); c.fillStyle = 'rgba(0,0,0,.45)'; for (let i = 0; i < 5; i++) { circ(c, -0.72 + i * 0.36, 0.47, 0.11); c.fill(); } c.restore(); },
+  });
+  Object.assign(TACTIC, {
+    rally(c) { rr(c, -0.7, -0.9, 0.1, 1.8, 0.03); c.fill(); poly(c, [-0.6, -0.85, 0.85, -0.6, -0.6, -0.15]); c.fill(); for (let i = 0; i < 3; i++) { poly(c, [-0.3 + i * 0.35, 0.85, -0.15 + i * 0.35, 0.1, 0 + i * 0.35, 0.85]); c.fill(); } },
+    fortify(c) { STRUCT.bunker(c); rr(c, -0.08, -0.9, 0.16, 0.6, 0.04); c.fill(); rr(c, -0.3, -0.68, 0.6, 0.16, 0.04); c.fill(); },
+    embargo(c) { c.lineWidth = 0.16; circ(c, 0, 0, 0.75); c.stroke(); c.beginPath(); c.moveTo(-0.53, 0.53); c.lineTo(0.53, -0.53); c.stroke(); c.save(); c.font = 'bold 0.8px sans-serif'; c.textAlign = 'center'; c.textBaseline = 'middle'; c.globalAlpha = 0.8; c.fillText('$', 0, 0.05); c.restore(); },
+    bounty(c) { c.lineWidth = 0.1; circ(c, 0, 0, 0.7); c.stroke(); circ(c, 0, 0, 0.38); c.stroke(); for (const [x, y, w, h] of [[-0.05, -1, 0.1, 0.5], [-0.05, 0.5, 0.1, 0.5], [-1, -0.05, 0.5, 0.1], [0.5, -0.05, 0.5, 0.1]]) c.fillRect(x, y, w, h); circ(c, 0, 0, 0.12); c.fill(); },
+    orbital(c) { rr(c, -0.25, -0.95, 0.5, 0.32, 0.05); c.fill(); rr(c, -0.8, -0.88, 0.45, 0.18, 0.03); c.fill(); rr(c, 0.35, -0.88, 0.45, 0.18, 0.03); c.fill(); poly(c, [-0.12, -0.6, 0.12, -0.6, 0.3, 0.55, -0.3, 0.55]); c.fill(); c.beginPath(); c.ellipse(0, 0.65, 0.7, 0.2, 0, 0, P * 2); c.fill(); },
+  });
+  const POI = {
+    ruins(c) { for (const [x, h] of [[-0.6, 0.9], [-0.2, 0.55], [0.2, 1.1], [0.6, 0.7]]) { rr(c, x - 0.13, 0.6 - h, 0.26, h, 0.03); c.fill(); } rr(c, -0.85, 0.55, 1.7, 0.2, 0.04); c.fill(); rr(c, -0.75, -0.5, 0.75, 0.15, 0.03); c.fill(); },
+    cache(c) { TACTIC.cache(c); },
+    village(c) { for (const [x, s] of [[-0.45, 0.8], [0.4, 1]]) { c.save(); c.translate(x, 0.2); c.scale(s, s); poly(c, [-0.45, -0.1, 0, -0.55, 0.45, -0.1]); c.fill(); rr(c, -0.35, -0.12, 0.7, 0.6, 0.03); c.fill(); c.restore(); } },
+    fort(c) { rr(c, -0.85, -0.2, 1.7, 0.95, 0.04); c.fill(); for (let i = 0; i < 4; i++) c.fillRect(-0.85 + i * 0.5, -0.45, 0.3, 0.3); c.save(); c.fillStyle = 'rgba(0,0,0,.5)'; c.beginPath(); c.arc(0, 0.75, 0.25, P, 0); c.fill(); c.restore(); },
+    relic(c) { poly(c, [0, -0.95, 0.5, -0.1, 0, 0.95, -0.5, -0.1]); c.fill(); c.save(); c.fillStyle = 'rgba(0,0,0,.3)'; poly(c, [0, -0.95, 0.5, -0.1, 0, -0.1]); c.fill(); c.restore(); },
+  };
   const STRUCT = {
     hq(c) { poly(c, [-0.55, 0.8, -0.4, -0.3, 0.4, -0.3, 0.55, 0.8]); c.fill(); rr(c, -0.55, -0.5, 1.1, 0.28, 0.04); c.fill(); for (let i = -2; i <= 2; i++) c.fillRect(i * 0.22 - 0.07, -0.68, 0.14, 0.2); },
     fob(c) { poly(c, [-0.85, 0.7, 0, -0.35, 0.85, 0.7]); c.fill(); rr(c, -0.04, -0.95, 0.08, 0.7, 0.02); c.fill(); poly(c, [0.04, -0.95, 0.6, -0.8, 0.04, -0.62]); c.fill(); },
@@ -135,7 +158,7 @@ const Art = (() => {
   };
 
   function drawIcon(c, kind, id, x, y, size, color) {
-    const fn = (kind === 'unit' ? UNIT : kind === 'tactic' ? TACTIC : kind === 'struct' ? STRUCT : GLYPH)[id];
+    const fn = (kind === 'unit' ? UNIT : kind === 'tactic' ? TACTIC : kind === 'struct' ? STRUCT : kind === 'poi' ? POI : GLYPH)[id];
     if (!fn) return;
     c.save(); c.translate(x, y); c.scale(size, size); c.fillStyle = color || '#fff'; c.strokeStyle = color || '#fff'; c.lineCap = 'round';
     fn(c); c.restore();

@@ -91,6 +91,10 @@
     plains: { name: 'Plains', land: true },
     forest: { name: 'Forest', land: true, defMult: 1 },
     hills: { name: 'Highlands', land: true, defMult: 2, moveCost: 2 },
+    desert: { name: 'Desert', land: true },
+    jungle: { name: 'Jungle', land: true, defMult: 1, moveCost: 2 },
+    tundra: { name: 'Tundra', land: true, moveCost: 2 },
+    swamp: { name: 'Swamp', land: true, moveCost: 2, bog: true },
     mountain: { name: 'Mountains', land: false },
   };
 
@@ -100,20 +104,27 @@
     skitter: { name: 'Skitter', cls: 'veh', cost: 3, atk: 2, def: 1, mv: 4, rarity: 'common', desc: 'Raider buggy. Grabs land fast.' },
     thumper: { name: 'Thumper', cls: 'art', cost: 4, atk: 3, def: 1, mv: 1, range: 2, rarity: 'common', desc: 'Mortar crew. Fires 2 hexes instead of moving.' },
     barracuda: { name: 'Barracuda', cls: 'sea', cost: 4, atk: 3, def: 2, mv: 4, rarity: 'common', desc: 'Fast gunboat. Claims sea lanes, raids coasts.' },
+    corpsman: { name: 'Corpsman', cls: 'inf', cost: 3, atk: 1, def: 3, mv: 2, rarity: 'common', ability: 'medic', desc: 'Medic squad. Its stack never suffers pyrrhic losses.' },
     lancer: { name: 'Lancer', cls: 'inf', cost: 4, atk: 3, def: 2, mv: 2, rarity: 'uncommon', ability: 'hunter', desc: 'Tank Hunter: +3 Chips when fighting vehicles.' },
     warden: { name: 'Warden', cls: 'air', cost: 4, atk: 1, def: 3, mv: 3, rarity: 'uncommon', ability: 'aegis', desc: 'Shield drone. Aegis: +1 Mult when its hex defends.' },
-    bulwark: { name: 'Bulwark', cls: 'veh', cost: 5, atk: 3, def: 5, mv: 3, rarity: 'uncommon', desc: 'Armoured carrier. Holds the line.' },
+    sapper: { name: 'Sapper', cls: 'inf', cost: 4, atk: 2, def: 2, mv: 2, rarity: 'uncommon', ability: 'sapper', desc: 'Demolitions: +3 Chips attacking a hex with buildings.' },
+    scorpion: { name: 'Scorpion', cls: 'veh', cost: 5, atk: 2, def: 3, mv: 3, rarity: 'uncommon', ability: 'aa', desc: 'Anti-air: +4 Chips in any fight involving enemy aircraft.' },
+    bulwark: { name: 'Bulwark', cls: 'veh', cost: 6, atk: 3, def: 5, mv: 3, rarity: 'uncommon', desc: 'Armoured carrier. Holds the line.' },
     hornet: { name: 'Hornet', cls: 'air', cost: 5, atk: 4, def: 1, mv: 4, rarity: 'uncommon', desc: 'Strike drone. Flies over mountains and water.' },
     mauler: { name: 'Mauler', cls: 'veh', cost: 6, atk: 5, def: 4, mv: 2, rarity: 'uncommon', desc: 'Main battle tank.' },
     ark: { name: 'Ark', cls: 'sea', cost: 4, atk: 0, def: 3, mv: 4, rarity: 'uncommon', ability: 'transport', desc: 'Transport. Carries up to 3 land units across the sea.' },
     marlin: { name: 'Marlin', cls: 'sea', cost: 7, atk: 5, def: 4, mv: 4, range: 2, rarity: 'rare', desc: 'Destroyer. Shells coasts and ships 2 hexes away.' },
-    basilisk: { name: 'Basilisk', cls: 'art', cost: 8, atk: 7, def: 2, mv: 1, range: 3, rarity: 'rare', desc: 'Railgun platform. Fires 3 hexes.' },
+    basilisk: { name: 'Basilisk', cls: 'art', cost: 7, atk: 7, def: 2, mv: 1, range: 3, rarity: 'rare', desc: 'Railgun platform. Fires 3 hexes.' },
+    ranger: { name: 'Ranger', cls: 'inf', cost: 6, atk: 4, def: 3, mv: 3, rarity: 'rare', ability: 'pathfinder', desc: 'Pathfinders: rough terrain costs only 1 move.' },
+    hellcat: { name: 'Hellcat', cls: 'veh', cost: 7, atk: 6, def: 2, mv: 3, rarity: 'rare', ability: 'blitzer', desc: 'Strike tank. Can act on the turn it is deployed.' },
     wraith: { name: 'Wraith', cls: 'veh', cost: 8, atk: 6, def: 3, mv: 4, rarity: 'rare', ability: 'hover', desc: 'Hover tank. Glides across water.' },
     kraken: { name: 'Kraken', cls: 'sea', cost: 8, atk: 7, def: 2, mv: 4, rarity: 'rare', ability: 'torpedo', desc: 'Submarine. Torpedoes: +4 Chips vs ships.' },
-    goliath: { name: 'Goliath', cls: 'veh', cost: 9, atk: 7, def: 7, mv: 1, rarity: 'epic', ability: 'siege', desc: 'Siege walker. +2 Mult vs fortified hexes.' },
-    valkyrie: { name: 'Valkyrie', cls: 'air', cost: 9, atk: 6, def: 4, mv: 5, rarity: 'epic', ability: 'strafe', desc: 'Assault VTOL. Seizes enemy hexes it flies over.' },
+    goliath: { name: 'Goliath', cls: 'veh', cost: 10, atk: 7, def: 6, mv: 1, rarity: 'epic', ability: 'siege', desc: 'Siege walker. +2 Mult vs fortified hexes.' },
+    valkyrie: { name: 'Valkyrie', cls: 'air', cost: 10, atk: 6, def: 4, mv: 4, rarity: 'epic', ability: 'strafe', desc: 'Assault VTOL. Seizes enemy hexes it flies over.' },
+    phantom: { name: 'Phantom', cls: 'air', cost: 10, atk: 7, def: 3, mv: 5, rarity: 'epic', ability: 'stealth', desc: 'Stealth bomber. Immune to artillery, airstrikes and bombardment.' },
     bastion: { name: 'Bastion', cls: 'sea', cost: 11, atk: 8, def: 8, mv: 3, range: 3, rarity: 'epic', desc: 'Battleship. Long guns, range 3.' },
     leviathan: { name: 'Leviathan', cls: 'veh', cost: 14, atk: 12, def: 10, mv: 1, rarity: 'legendary', ability: 'juggernaut', desc: 'Land dreadnought. Never suffers pyrrhic losses.' },
+    titan: { name: 'Titan', cls: 'veh', cost: 16, atk: 13, def: 12, mv: 1, rarity: 'legendary', ability: 'titan', desc: 'Colossus. Siege Breaker and never suffers pyrrhic losses.' },
     seraph: { name: 'Seraph', cls: 'air', cost: 12, atk: 9, def: 4, mv: 5, rarity: 'legendary', ability: 'strafe', desc: 'Gunship. Seizes enemy hexes it flies over.' },
     oracle: { name: 'Oracle', cls: 'art', cost: 11, atk: 8, def: 3, mv: 2, range: 4, rarity: 'legendary', ability: 'orbital', desc: 'Orbital uplink. Range 4, ignores mountains.' },
     abyssal: { name: 'Abyssal', cls: 'sea', cost: 15, atk: 12, def: 10, mv: 3, range: 4, rarity: 'legendary', ability: 'juggernaut', desc: 'Sea dreadnought. Range 4. Never suffers pyrrhic losses.' },
@@ -123,16 +134,21 @@
   const TACTICS = {
     smoke: { name: 'Smoke Screen', rarity: 'common', cost: 1, target: 'ownHex', desc: 'A hex you own gets +2 Mult on defence until your next turn.' },
     march: { name: 'Forced March', rarity: 'common', cost: 1, target: 'ownStack', desc: 'Units on one hex may act again, with +2 move.' },
+    rally: { name: 'Rally', rarity: 'common', cost: 1, target: 'none', desc: 'Your next attack this turn gets +2 Mult.' },
+    fortify: { name: 'Fortify', rarity: 'common', cost: 2, target: 'ownHex', desc: 'Build or upgrade a Bunker on one of your hexes for free.' },
     conscript: { name: 'Conscription', rarity: 'common', cost: 1, target: 'spawn', desc: 'Deploy 2 free Grunts at a deploy point.' },
     airstrike: { name: 'Airstrike', rarity: 'uncommon', cost: 4, target: 'enemyUnits', range: 4, desc: 'Bomb enemy units within 4 of your land. Roll: kills 1–3.' },
     heli: { name: 'Heli Drop', rarity: 'uncommon', cost: 3, target: 'heli', range: 5, desc: 'Fly a stack up to 5 hexes onto any empty land and seize it.' },
     sabotage: { name: 'Sabotage', rarity: 'uncommon', cost: 3, target: 'enemyStruct', range: 3, desc: 'Destroy an enemy structure (or bridge) within 3 of your land.' },
+    embargo: { name: 'Embargo', rarity: 'uncommon', cost: 3, target: 'enemyHex', desc: 'Pick an enemy hex: its owner gets only half income next turn.' },
+    bounty: { name: 'Bounty', rarity: 'uncommon', cost: 1, target: 'none', desc: 'This turn, earn $2 for every enemy unit you destroy.' },
     bonds: { name: 'War Bonds', rarity: 'rare', cost: 0, target: 'none', desc: 'Gain $1 for every 2 hexes you own.' },
     blitz: { name: 'Blitz Doctrine', rarity: 'rare', cost: 3, target: 'none', desc: 'This turn: all units +1 move, fresh units may act.' },
     drop_rare: { name: 'Supply Drop', rarity: 'rare', cost: 0, target: 'none', desc: 'Spin the reel for a crate (60% Standard · 32% Gilded · 8% Mythic), then keep 1 of 3 cards.' },
     emp: { name: 'EMP Burst', rarity: 'epic', cost: 4, target: 'area', range: 5, desc: 'Enemy units in a 1-hex radius are frozen for their next turn.' },
     drop_epic: { name: 'Supply Drop', rarity: 'epic', cost: 0, target: 'none', desc: 'Spin the reel for a crate (15% Standard · 55% Gilded · 30% Mythic), then keep 1 of 3 cards.' },
     carpet: { name: 'Carpet Bombing', rarity: 'epic', cost: 7, target: 'area', range: 4, desc: 'Bomb a hex and its neighbours: each enemy unit there has a 50% chance to be destroyed.' },
+    orbital: { name: 'Orbital Strike', rarity: 'epic', cost: 8, target: 'orbital', range: 6, desc: 'Erase every enemy unit on one hex within 6 of your land. Ignores Flak.' },
     nuke: { name: 'Tactical Nuke', rarity: 'legendary', cost: 10, target: 'nuke', range: 6, desc: 'Erase everything in a 1-hex radius. Leaves a fallout zone for 4 rounds.' },
     drop_legendary: { name: 'Supply Drop', rarity: 'legendary', cost: 0, target: 'none', desc: 'Spin the reel for a crate (35% Gilded · 65% Mythic), then keep 1 of 3 cards.' },
     mutiny: { name: 'Mutiny', rarity: 'legendary', cost: 6, target: 'mutiny', desc: 'An enemy stack (≤3) bordering your land defects to you.' },
@@ -168,21 +184,31 @@
   function removeStruct(t, st) { t.structs = structsOf(t).filter(x => x !== st); syncStructs(t); }
 
   const FACTIONS = {
-    iron: { name: 'Iron Covenant', perk: 'Steel Wall', desc: '+1 defence Chip per unit when defending.', starter: 'bulwark', glyph: 'shield' },
-    volt: { name: 'Volt Syndicate', perk: 'Overclock', desc: 'Vehicles and air units get +1 move.', starter: 'hornet', glyph: 'bolt' },
-    ashen: { name: 'Ashen Nomads', perk: 'Raiders', desc: 'Move through and seize empty enemy hexes.', starter: 'skitter', glyph: 'skull' },
+    iron: { name: 'Iron Covenant', perk: 'Steel Wall', desc: '+2 defence Chips per unit when defending.', starter: 'bulwark', glyph: 'shield' },
+    volt: { name: 'Volt Syndicate', perk: 'Overclock', desc: 'Air units get +1 move. Hornets cost $1 less.', starter: 'hornet', glyph: 'bolt' },
+    ashen: { name: 'Ashen Nomads', perk: 'Looters', desc: 'Earn $2 for every enemy hex you capture. Skitters cost $1 less.', starter: 'skitter', glyph: 'skull' },
     verdant: { name: 'Verdant Host', perk: 'Deep Roots', desc: 'Structures cost $2 less. Start with a Bunker by your HQ.', starter: 'thumper', glyph: 'leaf' },
-    null: { name: 'Null Order', perk: 'Loaded Dice', desc: 'Your combat rolls of 1 count as 3.', starter: 'lancer', glyph: 'eye' },
+    null: { name: 'Null Order', perk: 'Loaded Dice', desc: 'Your combat rolls of 1 and 2 count as 3.', starter: 'lancer', glyph: 'eye' },
   };
 
   const DIFFICULTY = {
-    easy: { name: 'Easy', income: 0.8 },
-    medium: { name: 'Medium', income: 1 },
-    hard: { name: 'Hard', income: 1.25 },
-    impossible: { name: 'Impossible', income: 1.7 },
+    easy: { name: 'Easy', income: 0.75 },
+    medium: { name: 'Medium', income: 0.9 },
+    hard: { name: 'Hard', income: 1.1 },
+    impossible: { name: 'Impossible', income: 1.5 },
+  };
+  const POI = {
+    ruins: { name: 'Ruins', desc: 'First unit to arrive loots $4–10.' },
+    cache: { name: 'Supply Cache', desc: 'First unit to arrive finds a tactic card.' },
+    village: { name: 'Village', desc: 'Neutral town with a militia garrison. Conquer it for +$2 per turn.' },
+    fort: { name: 'Old Fort', desc: 'Garrisoned ruin with a ★★ Bunker. Take it and the bunker is yours.' },
+    relic: { name: 'Ancient Relic', desc: '+$3 per turn while you hold it.' },
   };
   const COLORS = ['#ff4f5e', '#36c9ff', '#ffc53d', '#59f08a', '#c27dff', '#ff8ad0', '#ff9a3c', '#e9edf2'];
-  const MAX_STACK = 5;
+  const MAX_STACK = 5, GRUNT_STACK = 10;
+  // a hex holds 5 units, or up to 10 when every unit on it is a Grunt
+  const typeOf = u => typeof u === 'string' ? u : u.type;
+  const stackFits = (occ, add) => { const all = occ.concat(add); return all.length <= (all.every(u => typeOf(u) === 'grunt') ? GRUNT_STACK : MAX_STACK); };
   const CLASS_NAME = { inf: 'Infantry', veh: 'Vehicle', air: 'Air', art: 'Artillery', sea: 'Naval' };
 
   function cardDef(id) { return UNITS[id] ? { ...UNITS[id], id, kind: 'unit' } : TACTICS[id] ? { ...TACTICS[id], id, kind: 'tactic' } : null; }
@@ -204,7 +230,8 @@
     const rng = mulberry32(seed);
     const noise = makeNoise(seed % 100000), noise2 = makeNoise((seed * 3 + 17) % 100000), warpN = makeNoise((seed * 7 + 5) % 100000);
     const arch = forceArch || ARCHETYPES[Math.floor(rng() * ARCHETYPES.length)];
-    const sizeMul = size === 'small' ? 0.75 : size === 'large' ? 1.4 : 1;
+    const sizeMul = { small: 0.7, medium: 1, large: 1.8, huge: 2.6 }[size] || 1;
+    const tempN = makeNoise((seed * 11 + 3) % 100000);
     const landTarget = Math.round((70 + nP * 38) * sizeMul);
     const landFrac = arch === 'archipelago' ? 0.36 : arch === 'pangaea' ? 0.55 : 0.45;
     const total = landTarget / landFrac;
@@ -249,12 +276,20 @@
     const le = landCells.map(c => c.e).sort((a, b) => b - a);
     const mThr = le[Math.floor(le.length * 0.07)], hThr = le[Math.floor(le.length * 0.2)];
     const tiles = {};
+    // biomes: temperature runs warm at the equator (middle rows) and cold toward the edges
+    const maxPy = Math.max(...landCells.map(c => Math.abs(c.py))) || 1;
+    const lowE = le[Math.floor(le.length * 0.85)];
     for (const c of landCells) {
       const ridge = 1 - Math.abs(noise2(c.px * 0.11 + oy, c.py * 0.11 + ox, 2) * 2 - 1);
       const moist = noise2(c.px * 0.22 + 40, c.py * 0.22 + 40, 2);
+      const temp = 1 - Math.abs(c.py) / maxPy * 0.85 + (tempN(c.px * 0.08, c.py * 0.08, 2) - 0.5) * 0.6;
       let t = 'plains';
       if (c.e > mThr || (ridge > 0.96 && c.e > hThr)) t = 'mountain';
       else if (c.e > hThr) t = 'hills';
+      else if (temp < 0.3) t = 'tundra';
+      else if (moist > 0.66 && c.e < lowE) t = 'swamp';
+      else if (temp > 0.7 && moist < 0.44) t = 'desert';
+      else if (temp > 0.62 && moist > 0.58) t = 'jungle';
       else if (moist > 0.56) t = 'forest';
       tiles[key(c.q, c.r)] = { q: c.q, r: c.r, t, owner: null, struct: null, res: false, contam: 0, smoke: null };
     }
@@ -275,7 +310,7 @@
     }
     const land = Object.keys(tiles).filter(isLand);
     const minComp = Math.max(14, Math.floor(land.length / (nP * 2.2)));
-    const cands = land.filter(k => comps[compOf[k]].length >= minComp && tiles[k].t !== 'hills' && neighbors(k).filter(isLand).length >= 4);
+    const cands = land.filter(k => comps[compOf[k]].length >= minComp && !['hills', 'swamp', 'tundra', 'jungle'].includes(tiles[k].t) && neighbors(k).filter(isLand).length >= 4);
     if (cands.length < nP * 3) return null;
     // farthest-point sampling for fair spawns
     const spawns = [cands[Math.floor(rng() * cands.length)]];
@@ -289,7 +324,7 @@
     for (const s of spawns) if (area(s, 4).filter(isLand).length < 16) return null;
     for (const s of spawns) {
       tiles[s].t = 'plains';
-      for (const n of neighbors(s)) if (tiles[n] && tiles[n].t === 'mountain') tiles[n].t = 'hills';
+      for (const n of neighbors(s)) if (tiles[n] && ['mountain', 'swamp'].includes(tiles[n].t)) tiles[n].t = tiles[n].t === 'mountain' ? 'hills' : 'plains';
     }
     const landNow = Object.keys(tiles).filter(isLand);
     const want = Math.round(landNow.length * 0.06);
@@ -309,11 +344,28 @@
       if (spawns.some(s => dist(s, k) < 3) || neighbors(k).some(n => tiles[n] && tiles[n].res)) continue;
       tiles[k].res = true; rigs++;
     }
+    // points of interest: loot to grab, neutral strongholds to conquer, relics to hold
+    const free = landNow.filter(k => !tiles[k].res && spawns.every(sp => dist(sp, k) >= 3)).sort(() => rng() - 0.5);
+    const want2 = { ruins: 0.035, cache: 0.025, village: 0.03, fort: 0.015 };
+    let fi = 0;
+    for (const [poi, frac] of Object.entries(want2)) {
+      const n = Math.max(1, Math.round(landNow.length * frac));
+      for (let i = 0; i < n && fi < free.length; fi++) {
+        const k = free[fi];
+        if (neighbors(k).some(nb => tiles[nb] && tiles[nb].poi)) continue;
+        tiles[k].poi = poi; i++;
+        if (poi === 'fort') { tiles[k].structs = [{ type: 'bunker', owner: null, lvl: 2 }]; tiles[k].struct = tiles[k].structs[0]; }
+      }
+    }
+    // relics sit far from everyone's HQ
+    const relics = Math.max(1, Math.round(nP / 2));
+    const farthest = landNow.filter(k => !tiles[k].poi && !tiles[k].res).map(k => [k, Math.min(...spawns.map(sp => dist(sp, k)))]).sort((a, b) => b[1] - a[1]);
+    for (let i = 0, placedR = 0; i < farthest.length && placedR < relics; i++) { const k = farthest[i][0]; if (neighbors(k).some(nb => tiles[nb] && tiles[nb].poi === 'relic')) continue; tiles[k].poi = 'relic'; placedR++; }
     let cx = 0, cy = 0; for (const k of landNow) { cx += tiles[k].q; cy += tiles[k].r; }
     const centre = key(Math.round(cx / landNow.length), Math.round(cy / landNow.length));
     let beacon = null, bd = 1e9;
     for (const k of landNow) { const d = dist(k, centre); if (d < bd && !spawns.includes(k)) { bd = d; beacon = k; } }
-    tiles[beacon].t = 'plains'; tiles[beacon].res = false;
+    tiles[beacon].t = 'plains'; tiles[beacon].res = false; delete tiles[beacon].poi; tiles[beacon].structs = []; tiles[beacon].struct = null;
     return { tiles, spawns, beacon, landCount: landNow.length, arch };
   }
 
@@ -325,8 +377,9 @@
     const seed = settings.seed ? hashStr(String(settings.seed)) : (Math.random() * 1e9) >>> 0;
     const shuffled = roster.slice().sort(() => Math.random() - 0.5);
     const map = generateMap({ size: settings.mapSize, seed, nPlayers: roster.length, archetype: ARCHETYPES.includes(settings.mapType) ? settings.mapType : null });
+    const pickSpawns = settings.spawns === 'pick' && roster.length > 1;
     const state = {
-      v: 0, phase: 'draft', settings: { ...settings }, seed: map.seed,
+      v: 0, phase: pickSpawns ? 'spawn' : 'draft', settings: { ...settings }, seed: map.seed,
       map: { arch: map.arch, tiles: map.tiles, beacon: settings.mode === 'koth' ? map.beacon : null, landCount: map.landCount },
       players: [], units: {}, nextId: 1,
       turn: { idx: 0, round: 1, stage: 'choose', offer: [], rerolls: 0, crate: null, income: 0, deadline: 0 },
@@ -334,7 +387,7 @@
       log: [], winner: null, trade: null,
     };
     shuffled.forEach((p, i) => {
-      const hq = map.spawns[i];
+      const hq = pickSpawns ? null : map.spawns[i];
       const pl = {
         id: p.id, name: p.name, color: p.color, faction: p.faction, bot: !!p.bot, diff: p.bot ? (DIFFICULTY[p.diff] ? p.diff : 'medium') : null,
         cash: 6, arsenal: ['grunt'], levels: {}, tactics: [], alive: true, hq, koth: 0, blitz: false, local: !!p.local,
@@ -345,18 +398,62 @@
       pl.arsenal.push('ark');
       pl.tactics.push({ uid: state.nextId++, id: 'drop_rare' });
       state.players.push(pl);
-      const t = state.map.tiles[hq];
-      t.owner = p.id; addStruct(t, { type: 'hq', owner: p.id, lvl: 1 });
-      for (const n of neighbors(hq)) { const nt = state.map.tiles[n]; if (nt && TERRAIN[nt.t].land && !nt.owner) nt.owner = p.id; }
-      if (p.faction === 'verdant') {
-        const spot = neighbors(hq).find(n => state.map.tiles[n] && state.map.tiles[n].owner === p.id && !structsOf(state.map.tiles[n]).length);
-        if (spot) addStruct(state.map.tiles[spot], { type: 'bunker', owner: p.id, lvl: 1 });
-      }
-      for (let j = 0; j < 2; j++) addUnit(state, p.id, 'grunt', hq, false);
+      if (hq) placeHQ(state, pl, hq);
     });
-    pushLog(state, 'Sector ' + (state.seed % 9000 + 1000) + ' (' + map.arch + ') deployed. ' + state.players.length + ' commanders — opening draft!');
+    if (pickSpawns) {
+      // players choose their HQ one at a time; whoever moves last in turn order picks first
+      const minDist = Math.max(4, Math.round(Math.min(...map.spawns.flatMap((a, i) => map.spawns.slice(i + 1).map(b => dist(a, b)))) * 0.6));
+      const isL = k => state.map.tiles[k] && TERRAIN[state.map.tiles[k].t].land;
+      const cands = Object.keys(state.map.tiles).filter(k => {
+        const t = state.map.tiles[k];
+        return ['plains', 'forest', 'desert'].includes(t.t) && !t.poi && !t.res && k !== map.beacon && neighbors(k).filter(isL).length >= 4 && area(k, 4).filter(isL).length >= 16;
+      });
+      for (const k of map.spawns) if (!cands.includes(k)) cands.push(k);
+      state.spawn = { order: state.players.map(p => p.id).reverse(), i: 0, cands, minDist, fallback: map.spawns.slice() };
+      pushLog(state, 'Sector ' + (state.seed % 9000 + 1000) + ' (' + map.arch + ') revealed. Commanders, choose your HQ locations!');
+      return { state, events: [{ e: 'spawnTurn', pid: state.spawn.order[0] }] };
+    }
+    return { state, events: startDraft(state) };
+  }
+  function placeHQ(state, pl, hq) {
+    pl.hq = hq;
+    const t = state.map.tiles[hq];
+    t.owner = pl.id; delete t.poi; addStruct(t, { type: 'hq', owner: pl.id, lvl: 1 });
+    for (const n of neighbors(hq)) { const nt = state.map.tiles[n]; if (nt && TERRAIN[nt.t].land && !nt.owner && !(nt.poi === 'village' || nt.poi === 'fort')) nt.owner = pl.id; }
+    if (pl.faction === 'verdant') {
+      const spot = neighbors(hq).find(n => state.map.tiles[n] && state.map.tiles[n].owner === pl.id && !structsOf(state.map.tiles[n]).length);
+      if (spot) addStruct(state.map.tiles[spot], { type: 'bunker', owner: pl.id, lvl: 1 });
+    }
+    for (let j = 0; j < 2; j++) addUnit(state, pl.id, 'grunt', hq, false);
+  }
+  function startDraft(state) {
+    state.phase = 'draft';
+    pushLog(state, 'Sector ' + (state.seed % 9000 + 1000) + ' (' + state.map.arch + ') deployed. ' + state.players.length + ' commanders — opening draft!');
     for (const p of state.players) state.draft.offers[p.id] = drawCards(state, p, 3, DRAFT_ODDS, Math.random);
-    return { state, events: [{ e: 'draft', round: 1 }] };
+    return [{ e: 'draft', round: 1 }];
+  }
+  // HQ hexes the current picker may still choose
+  function spawnChoices(s) {
+    if (!s.spawn) return [];
+    const taken = s.players.filter(p => p.hq).map(p => p.hq);
+    return s.spawn.cands.filter(k => taken.every(h => dist(h, k) >= s.spawn.minDist));
+  }
+  function spawnPick(s, p, a, ev) {
+    const sp = s.spawn;
+    if (sp.order[sp.i] !== p.id) return { ok: false, err: 'Wait for your turn to pick', events: [] };
+    let hex = a.hex;
+    const ok = spawnChoices(s);
+    if (a.auto || !ok.includes(hex)) {
+      if (!a.auto) return { ok: false, err: 'Pick a highlighted hex — too close to another HQ or bad ground', events: [] };
+      hex = ok[0] || sp.fallback.find(k => s.players.every(o => o.hq !== k && (!o.hq || dist(o.hq, k) >= 3)));
+    }
+    placeHQ(s, p, hex);
+    ev.push({ e: 'spawnPicked', pid: p.id, hex });
+    pushLog(s, '🏳 ' + p.name + ' set up their HQ.');
+    sp.i++;
+    if (sp.i >= sp.order.length) { s.spawn = null; return { ok: true, events: ev.concat(startDraft(s)) }; }
+    ev.push({ e: 'spawnTurn', pid: sp.order[sp.i] });
+    return { ok: true, events: ev };
   }
 
   function hashStr(s) { let h = 2166136261; for (let i = 0; i < s.length; i++) { h ^= s.charCodeAt(i); h = Math.imul(h, 16777619); } return h >>> 0; }
@@ -382,7 +479,7 @@
   function levelOf(s, u) { const p = player(s, u.owner); return (p && p.levels && p.levels[u.type]) || 0; }
   function unitAtk(s, u) { const d = UNITS[u.type]; return d.atk + (d.atk ? levelOf(s, u) : 0); }
   function unitDef(s, u) { return UNITS[u.type].def + levelOf(s, u); }
-  function unitCost(p, type) { return UNITS[type].cost; }
+  function unitCost(p, type) { let c = UNITS[type].cost; if (p && p.faction === 'volt' && type === 'hornet') c--; if (p && p.faction === 'ashen' && type === 'skitter') c--; return c; }
   function structCost(p, type, lvl) {
     let c = STRUCTS[type].cost;
     if (lvl === 2) c = Math.round(c * 1.5); else if (lvl >= 3) c = Math.round(c * 2.25);
@@ -395,11 +492,11 @@
     const st = t && getS(t, type);
     return structCost(p, type, st ? slvlOf(st) + 1 : 1);
   }
-  function canAct(s, u) { const p = player(s, u.owner); return !u.moved && !u.stun && (!u.fresh || (p && p.blitz)); }
+  function canAct(s, u) { const p = player(s, u.owner); return !u.moved && !u.stun && (!u.fresh || (p && p.blitz) || UNITS[u.type].ability === 'blitzer'); }
   function moveAllow(s, u) {
     const p = player(s, u.owner), d = UNITS[u.type];
     let m = d.mv + (u.mvBonus || 0) + (p && p.blitz ? 1 : 0);
-    if (p && p.faction === 'volt' && (d.cls === 'veh' || d.cls === 'air')) m += 1;
+    if (p && p.faction === 'volt' && d.cls === 'air') m += 1;
     return m;
   }
   function ownedTiles(s, pid) { const o = []; for (const k in s.map.tiles) if (s.map.tiles[k].owner === pid) o.push(k); return o; }
@@ -463,7 +560,7 @@
   // land units at HQ/FOB, ships in the sea next to a Port
   function deployHexes(s, pid, type, idx) {
     idx = idx || buildIndex(s);
-    if (!isSea(type)) return spawnPoints(s, pid).filter(k => (idx[k] || []).length < MAX_STACK);
+    if (!isSea(type)) return spawnPoints(s, pid).filter(k => stackFits(idx[k] || [], [type]));
     const out = new Set();
     for (const k in s.map.tiles) {
       const t = s.map.tiles[k];
@@ -472,19 +569,20 @@
       for (const n of neighbors(k)) {
         const w = s.map.tiles[n]; if (!isWater(w)) continue;
         const occ = idx[n] || [];
-        if (occ.length < MAX_STACK && !(occ.length && occ[0].owner !== pid)) out.add(n);
+        if (stackFits(occ, [type]) && !(occ.length && occ[0].owner !== pid)) out.add(n);
       }
     }
     return [...out];
   }
   function computeIncome(s, pid) {
     const sup = supplySet(s, pid);
-    let hexes = 0, sea = 0, cut = 0, res = 0, ref = 0, markets = 0, ports = 0;
+    let hexes = 0, sea = 0, cut = 0, res = 0, ref = 0, markets = 0, ports = 0, poi = 0;
     for (const k in s.map.tiles) {
       const t = s.map.tiles[k]; if (t.owner !== pid) continue;
       if (!sup.has(k)) { cut++; continue; }
       if (isWater(t)) sea++; else hexes++;
       if (t.res) res++;
+      if (t.poi === 'village') poi += 2; else if (t.poi === 'relic') poi += 3;
       for (const st of structsOf(t)) {
         if (st.type === 'refinery') ref += (t.res ? 4 : 2) * slvlOf(st);
         if (st.type === 'market') markets += slvlOf(st);
@@ -493,11 +591,11 @@
     }
     const trade = markets ? markets * 3 + markets * (markets - 1 + ports) : 0;
     const base = 3, fromHex = Math.floor(hexes / 3), fromSea = Math.floor(sea / 4), fromRes = res * 2;
-    let total = base + fromHex + fromSea + fromRes + ref + trade;
+    let total = base + fromHex + fromSea + fromRes + ref + trade + poi;
     const p = player(s, pid), d = p && p.bot && DIFFICULTY[p.diff];
     const bonus = d ? Math.round(total * d.income) - total : 0;
     total += bonus;
-    return { total, base, fromHex, fromSea, fromRes, ref, trade, bonus, hexes, sea, cut, res };
+    return { total, base, fromHex, fromSea, fromRes, ref, trade, poi, bonus, hexes, sea, cut, res };
   }
   function nearOwned(s, pid, k, r) {
     for (const a of area(k, r)) { const t = s.map.tiles[a]; if (t && t.owner === pid) return true; }
@@ -523,7 +621,8 @@
     const navy = units.every(u => isSea(u.type));
     const allAir = units.every(u => UNITS[u.type].cls === 'air');
     const allHover = units.every(u => UNITS[u.type].cls === 'air' || UNITS[u.type].ability === 'hover');
-    const strafe = !navy && ((p && p.faction === 'ashen') || units.every(u => UNITS[u.type].ability === 'strafe'));
+    const strafe = !navy && units.every(u => UNITS[u.type].ability === 'strafe');
+    const pathfind = units.every(u => UNITS[u.type].ability === 'pathfinder');
     const canFight = units.some(u => UNITS[u.type].atk > 0);
     const mv = Math.min(...units.map(u => moveAllow(s, u)));
     out[from] = { c: 0, prev: null, kind: 'start' };
@@ -544,7 +643,7 @@
           if (!isWater(t)) { if (enemy && canFight && c <= mv && isLandTile(t)) set(n, c, cur, 'attack'); continue; }
           if (c > mv) continue;
           if (enemy) { if (canFight) set(n, c, cur, 'attack'); continue; }
-          const room = occ.length + all.length <= MAX_STACK;
+          const room = stackFits(occ, all);
           set(n, c, cur, t.owner !== pid ? (room ? 'capture' : 'pass') : (room ? 'move' : 'pass'));
           continue;
         }
@@ -553,19 +652,20 @@
           if (enemy) { if (canFight) set(n, c, cur, 'attack'); continue; }   // shore guns vs ships
           if (occ.length) {
             const aboard = occ.filter(u => !isSea(u.type)).length;
-            if (cargoCap(occ) >= aboard + units.length && occ.length + units.length <= MAX_STACK) set(n, c, cur, 'board');
+            if (cargoCap(occ) >= aboard + units.length && stackFits(occ, units)) set(n, c, cur, 'board');
           }
           continue;
         }
         if (t.t === 'mountain' && !allAir) continue;
-        const step = (t.t === 'hills' && !allAir) ? 2 : 1;
+        const step = (!allAir && !pathfind && TERRAIN[t.t].moveCost) || 1;
         const cc = cn.c + step;
         if (cc > mv) continue;
         const land = isLandTile(t);
         let kind;
         if (enemy) { if (!canFight) continue; kind = 'attack'; }
+        else if (land && !t.owner && (t.poi === 'village' || t.poi === 'fort')) { if (!canFight) continue; kind = 'attack'; }
         else if (land && t.owner && t.owner !== pid) { const h = getS(t, 'hq'); kind = h && h.owner === t.owner ? (canFight ? 'attack' : null) : 'capture'; }
-        else kind = land && !t.contam && occ.length + units.length <= MAX_STACK ? 'move' : 'pass';
+        else kind = land && !t.contam && stackFits(occ, units) ? 'move' : 'pass';
         if (!kind || (kind === 'capture' && t.contam)) continue;
         set(n, cc, cur, kind);
       }
@@ -589,6 +689,7 @@
     for (const k of area(from, range)) {
       if (k === from) continue;
       const occ = idx[k]; if (!occ || !occ.length || occ[0].owner === pid) continue;
+      if (occ.every(u => UNITS[u.type].ability === 'stealth')) continue;
       if (!orbital && !hasLOS(s, from, k)) continue;
       out.push(k);
     }
@@ -612,6 +713,12 @@
     if (hunters && has(defenders, 'veh')) { att.chips += 3 * hunters; att.bonuses.push({ label: 'Tank Hunter', chips: 3 * hunters }); }
     const torps = units.filter(u => UNITS[u.type].ability === 'torpedo').length;
     if (torps && has(defenders, 'sea')) { att.chips += 4 * torps; att.bonuses.push({ label: 'Torpedoes', chips: 4 * torps }); }
+    const aaA = units.filter(u => UNITS[u.type].ability === 'aa').length;
+    if (aaA && has(defenders, 'air')) { att.chips += 4 * aaA; att.bonuses.push({ label: 'Anti-Air', chips: 4 * aaA }); }
+    const sap = units.filter(u => UNITS[u.type].ability === 'sapper').length;
+    if (!ranged && sap && structsOf(t).some(x => x.type !== 'bridge')) { att.chips += 3 * sap; att.bonuses.push({ label: 'Demolitions', chips: 3 * sap }); }
+    if (!ranged && ap && ap.rally) { att.mult += ap.rally; att.bonuses.push({ label: 'Rally', mult: ap.rally }); }
+    if (!ranged && TERRAIN[t.t] && TERRAIN[t.t].bog && !units.every(u => UNITS[u.type].cls === 'air')) { att.mult -= 1; att.bonuses.push({ label: 'Bogged Down', mult: -1 }); }
     if (!ranged) {
       const classes = new Set(units.filter(u => UNITS[u.type].atk > 0).map(u => UNITS[u.type].cls));
       const ca = Math.min(3, classes.size - 1);
@@ -626,7 +733,7 @@
       flank = Math.min(2, flank);
       if (flank) { att.mult += flank; att.bonuses.push({ label: 'Flanking', mult: flank }); }
       if (stages.length > 1) { const pin = Math.min(2, stages.length - 1); att.mult += pin; att.bonuses.push({ label: 'Pincer ×' + stages.length, mult: pin }); }
-      if (structsOf(t).some(x => ['hq', 'fob', 'bunker'].includes(x.type)) && units.some(u => UNITS[u.type].ability === 'siege')) { att.mult += 2; att.bonuses.push({ label: 'Siege Breaker', mult: 2 }); }
+      if (structsOf(t).some(x => ['hq', 'fob', 'bunker'].includes(x.type)) && units.some(u => ['siege', 'titan'].includes(UNITS[u.type].ability))) { att.mult += 2; att.bonuses.push({ label: 'Siege Breaker', mult: 2 }); }
       if (isLandTile(t) && units.every(u => isSea(u.type))) { att.mult -= 1; att.bonuses.push({ label: 'Shore Assault', mult: -1 }); }
       void multi;
     } else {
@@ -636,7 +743,10 @@
     for (const u of defenders) def.chips += unitDef(s, u);
     const dlv = defenders.reduce((a, u) => a + levelOf(s, u), 0);
     if (dlv) def.bonuses.push({ label: 'Veteran ★', chips: dlv, note: true });
-    if (dp && dp.faction === 'iron' && defenders.length) { def.chips += defenders.length; def.bonuses.push({ label: 'Steel Wall', chips: defenders.length }); }
+    if (dp && dp.faction === 'iron' && defenders.length) { def.chips += 2 * defenders.length; def.bonuses.push({ label: 'Steel Wall', chips: 2 * defenders.length }); }
+    const aaD = defenders.filter(u => UNITS[u.type].ability === 'aa').length;
+    if (aaD && has(units, 'air')) { def.chips += 4 * aaD; def.bonuses.push({ label: 'Anti-Air', chips: 4 * aaD }); }
+    if (!t.owner && (t.poi === 'village' || t.poi === 'fort') && !defenders.length) { const g = t.poi === 'village' ? 6 : 5; def.chips += g; def.bonuses.push({ label: t.poi === 'village' ? 'Village Militia' : 'Fort Garrison', chips: g }); if (t.poi === 'village') { def.mult += 1; def.bonuses.push({ label: 'Barricades', mult: 1 }); } }
     const dHunt = defenders.filter(u => UNITS[u.type].ability === 'hunter').length;
     if (dHunt && has(units, 'veh')) { def.chips += 3 * dHunt; def.bonuses.push({ label: 'Tank Hunter', chips: 3 * dHunt }); }
     const hq = getS(t, 'hq');
@@ -653,7 +763,7 @@
     const aNull = ap && ap.faction === 'null', dNull = dp && dp.faction === 'null';
     let wins = 0;
     for (let a = 1; a <= 6; a++) for (let d = 1; d <= 6; d++) {
-      const ra = aNull && a === 1 ? 3 : a, rd = dNull && d === 1 ? 3 : d;
+      const ra = aNull && a <= 2 ? 3 : a, rd = dNull && d <= 2 ? 3 : d;
       if (att.chips * Math.max(1, ra + att.mult) > def.chips * Math.max(1, rd + def.mult)) wins++;
     }
     return { att, def, defenders, winProb: wins / 36, aNull, dNull };
@@ -671,19 +781,20 @@
     const tile = s.map.tiles[target];
     const defenders = calc.defenders, defPid = calc.def.pid;
     let ra = rollDie(rng), rd = rollDie(rng); const rawA = ra, rawD = rd;
-    if (calc.aNull && ra === 1) ra = 3;
-    if (calc.dNull && rd === 1) rd = 3;
+    if (calc.aNull && ra <= 2) ra = 3;
+    if (calc.dNull && rd <= 2) rd = 3;
     const aScore = calc.att.chips * Math.max(1, ra + calc.att.mult), dScore = calc.def.chips * Math.max(1, rd + calc.def.mult);
     const attWin = aScore > dScore;
     const killed = [], pyrrhic = [];
     if (attWin) {
       killed.push(...defenders);
-      if (dScore >= 0.6 * aScore && units.length > 1 && !units.some(u => UNITS[u.type].ability === 'juggernaut')) pyrrhic.push(weakest(units));
+      if (dScore >= 0.6 * aScore && units.length > 1 && !units.some(u => ['juggernaut', 'titan', 'medic'].includes(UNITS[u.type].ability))) pyrrhic.push(weakest(units));
     } else {
       killed.push(...units);
-      if (aScore >= 0.6 * dScore && defenders.length > 1 && !defenders.some(u => UNITS[u.type].ability === 'juggernaut')) pyrrhic.push(weakest(defenders));
+      if (aScore >= 0.6 * dScore && defenders.length > 1 && !defenders.some(u => ['juggernaut', 'titan', 'medic'].includes(UNITS[u.type].ability))) pyrrhic.push(weakest(defenders));
     }
     tallyLosses(s, pid, defPid, killed.concat(pyrrhic));
+    { const apr = player(s, pid); if (apr) apr.rally = 0; }
     ev.push({
       e: 'combat', ranged: false, from: stages[0], stages, to: target,
       att: { ...calc.att, roll: ra, raw: rawA, score: aScore, units: units.map(u => u.type) },
@@ -693,7 +804,8 @@
     const ap = player(s, pid), dp = player(s, defPid);
     const survivors = units.filter(u => s.units[u.id]);
     if (attWin) {
-      const holders = survivors.filter(u => canHold(tile, u)).sort((a, b) => UNITS[b.type].cost - UNITS[a.type].cost).slice(0, MAX_STACK);
+      const fit = survivors.filter(u => canHold(tile, u)).sort((a, b) => UNITS[b.type].cost - UNITS[a.type].cost);
+      const holders = fit.slice(0, stackFits([], fit) ? GRUNT_STACK : MAX_STACK);
       if (holders.length) {
         holders.forEach(u => { u.hex = target; });
         const hqs = getS(tile, 'hq'), hqTaken = hqs && hqs.owner === defPid && !hqs.siege;
@@ -714,12 +826,12 @@
     const calc = combatCalc(s, pid, units, from, target, true);
     const defenders = calc.defenders, defPid = calc.def.pid;
     let ra = rollDie(rng), rd = rollDie(rng); const rawA = ra, rawD = rd;
-    if (calc.aNull && ra === 1) ra = 3;
-    if (calc.dNull && rd === 1) rd = 3;
+    if (calc.aNull && ra <= 2) ra = 3;
+    if (calc.dNull && rd <= 2) rd = 3;
     const aScore = calc.att.chips * Math.max(1, ra + calc.att.mult), dScore = calc.def.chips * Math.max(1, rd + calc.def.mult);
     const attWin = aScore > dScore, killed = [];
     if (attWin) {
-      const pool = defenders.slice();
+      const pool = defenders.filter(u => UNITS[u.type].ability !== 'stealth');
       const n = aScore >= 2 * dScore ? 2 : 1;
       for (let i = 0; i < n && pool.length; i++) killed.push(pool.splice(Math.floor(rng() * pool.length), 1)[0]);
     }
@@ -737,6 +849,8 @@
   function tallyLosses(s, pid, defPid, dead) {
     const ap = player(s, pid), dp = player(s, defPid);
     for (const u of dead) {
+      const killer = u.owner === pid ? dp : ap;
+      if (killer && killer.bounty) killer.cash += 2;
       const owner = player(s, u.owner); if (owner) owner.stats.lost++;
       const other = u.owner === pid ? dp : ap; if (other) other.stats.kills++;
       delete s.units[u.id];
@@ -746,6 +860,8 @@
   function captureTile(s, k, pid) {
     const t = s.map.tiles[k];
     if (!t || t.t === 'mountain' || t.owner === pid) return false;
+    const cp = player(s, pid);
+    if (cp && cp.faction === 'ashen' && t.owner && t.owner !== pid) { cp.cash += 2; cp.loot = (cp.loot || 0) + 2; }
     t.owner = pid;
     t.smoke = null;
     for (const st of structsOf(t)) {
@@ -784,7 +900,7 @@
     return held;
   }
   // draw n distinct cards: roll a rarity from `odds`, then a card of that rarity
-  function drawCards(s, p, n, odds, rng) {
+  function drawCards(s, p, n, odds, rng, noDrops) {
     const held = heldLegendaries(s);
     const pools = {};
     for (const r of RARITY_ORDER) pools[r] = [];
@@ -793,7 +909,10 @@
       if (p.arsenal.includes(id) && (p.levels[id] || 0) >= MAX_LEVEL) continue;
       pools[UNITS[id].rarity].push(id);
     }
-    for (const id in TACTICS) if (!(TACTICS[id].rarity === 'legendary' && id !== 'drop_legendary' && held.has(id))) pools[TACTICS[id].rarity].push(id);
+    for (const id in TACTICS) {
+      if (noDrops && id.startsWith('drop_')) continue;
+      if (!(TACTICS[id].rarity === 'legendary' && id !== 'drop_legendary' && held.has(id))) pools[TACTICS[id].rarity].push(id);
+    }
     const out = [];
     for (let i = 0; i < n; i++) {
       const avail = RARITY_ORDER.filter(r => pools[r].some(id => !out.includes(id)) && odds[r] > 0);
@@ -811,7 +930,7 @@
     return x < o.mythic ? 'mythic' : x < o.mythic + o.gilded ? 'gilded' : 'standard';
   }
   function openCrate(s, p, tier, rng, ev, source) {
-    const cards = drawCards(s, p, 3, CRATES[tier].odds, rng);
+    const cards = drawCards(s, p, 3, CRATES[tier].odds, rng, true);
     p.stats.crates++;
     s.turn.crate = { tier, cards, source };
     s.turn.stage = 'crate';
@@ -865,7 +984,7 @@
     if (s.phase !== 'play') return;
     const p = current(s);
     if (!p.alive) return endTurn(s, ev, rng);
-    p.blitz = false;
+    p.blitz = false; p.bounty = false; p.rally = 0;
     for (const id in s.units) {
       const u = s.units[id]; if (u.owner !== p.id) continue;
       u.moved = false; u.fresh = false; u.mvBonus = 0;
@@ -893,6 +1012,7 @@
     }
     s.turn.deadline = s.settings.timer ? Date.now() + s.settings.timer * 1000 : 0;
     s.turn.income = computeIncome(s, p.id).total;
+    if (p.embargo) { s.turn.income = Math.floor(s.turn.income / 2); delete p.embargo; ev.push({ e: 'embargoHit', pid: p.id }); pushLog(s, '⛔ ' + p.name + "'s income is halved by an embargo."); }
     s.turn.rerolls = 0; s.turn.crate = null;
     ev.push({ e: 'turn', pid: p.id, round: s.turn.round });
     if (s.turn.round === 1) {
@@ -950,7 +1070,7 @@
       case 'none': return [];
       case 'ownHex': for (const k in tiles) if (tiles[k].owner === pid && isLandTile(tiles[k])) out.push(k); return out;
       case 'ownStack': for (const k in idx) if (idx[k][0].owner === pid && !idx[k].some(u => u.stun)) out.push(k); return out;
-      case 'spawn': return spawnPoints(s, pid).filter(k => (idx[k] || []).length < MAX_STACK);
+      case 'spawn': return spawnPoints(s, pid).filter(k => stackFits(idx[k] || [], ['grunt']));
       case 'enemyUnits': for (const k in idx) if (idx[k][0].owner !== pid && nearOwned(s, pid, k, def.range) && !flakCovered(s, pid, k)) out.push(k); return out;
       case 'heli':
         if (!from) { for (const k in idx) if (idx[k][0].owner === pid && idx[k].some(u => canAct(s, u) && !isSea(u.type))) out.push(k); return out; }
@@ -959,13 +1079,15 @@
           for (const k of area(from, def.range)) {
             const t = tiles[k]; if (!isLandTile(t) || k === from || t.contam) continue;
             if ((idx[k] || []).length) continue;
-            if (getS(t, 'hq')) continue;
+            if (getS(t, 'hq') || (!t.owner && ['village', 'fort'].includes(t.poi))) continue;
             if (t.owner !== pid && flakCovered(s, pid, k)) continue;
-            if (ms.length > MAX_STACK) continue;
+            if (!stackFits([], ms)) continue;
             out.push(k);
           }
           return out;
         }
+      case 'enemyHex': { const seen = new Set(); for (const k in tiles) { const o = tiles[k].owner; if (o && o !== pid && !seen.has(o) && isLandTile(tiles[k])) { const op = player(s, o); if (op && op.alive && !op.embargo) out.push(k); } } return out; }
+      case 'orbital': for (const k in idx) if (idx[k][0].owner !== pid && !getS(tiles[k], 'hq') && nearOwned(s, pid, k, def.range) && idx[k].some(u => UNITS[u.type].ability !== 'stealth')) out.push(k); return out;
       case 'enemyStruct': for (const k in tiles) { const t = tiles[k]; if (structsOf(t).some(x => x.type !== 'hq' && x.owner !== pid) && nearOwned(s, pid, k, def.range)) out.push(k); } return out;
       case 'area': for (const k in tiles) if (nearOwned(s, pid, k, def.range) && !flakCovered(s, pid, k)) out.push(k); return out;
       case 'nuke':
@@ -1015,7 +1137,7 @@
       }
       if (!enclosed || comp.length > 10) continue;
       if (comp.some(c => (idx[c] || []).some(u => u.owner !== pid))) continue;
-      if (comp.some(c => structsOf(tiles[c]).some(x => ['hq', 'fob', 'port'].includes(x.type)))) continue;
+      if (comp.some(c => structsOf(tiles[c]).some(x => ['hq', 'fob', 'port'].includes(x.type)) || (!tiles[c].owner && ['village', 'fort'].includes(tiles[c].poi)))) continue;
       for (const c of comp) if (captureTile(s, c, pid)) flipped.push(c);
     }
     if (flipped.length) {
@@ -1044,6 +1166,17 @@
     if (!dest || dest.kind === 'start' || dest.kind === 'pass') return { err: 'Cannot reach that hex' };
     return { units, reach, dest, path: pathTo(reach, to) };
   }
+  // ruins and caches are looted by the first unit to pass through
+  function lootPath(s, pid, path, ev, rng) {
+    const p = player(s, pid); if (!p) return;
+    for (const k of path.slice(1)) {
+      const t = s.map.tiles[k];
+      if (!t || !(t.poi === 'ruins' || t.poi === 'cache')) continue;
+      if (t.poi === 'ruins') { const amt = 4 + Math.floor(rng() * 7); p.cash += amt; ev.push({ e: 'loot', pid, hex: k, poi: 'ruins', amount: amt }); pushLog(s, '🏺 ' + p.name + ' looted ruins: +$' + amt + '.'); }
+      else { const id = drawCards(s, p, 1, { common: 50, uncommon: 35, rare: 15, epic: 0, legendary: 0 }, rng, true).find(x => TACTICS[x]) || 'rally'; p.tactics.push({ uid: s.nextId++, id }); ev.push({ e: 'loot', pid, hex: k, poi: 'cache', card: id }); pushLog(s, '📦 ' + p.name + ' found a supply cache.'); }
+      delete t.poi;
+    }
+  }
   function pathCaptures(s, pid, path, units, idx) {
     const navy = units.every(u => isSea(u.type)), out = [];
     for (const k of path.slice(1, -1)) {
@@ -1059,6 +1192,7 @@
     const fail = err => ({ ok: false, err, events: [] });
     const p = player(s, pid);
     if (!p || !p.alive) return fail('You are not in this game');
+    if (s.phase === 'spawn') return a.a === 'spawnPick' ? spawnPick(s, p, a, ev) : fail('Choose your HQ location first');
     if (s.phase === 'draft') return a.a === 'draftPick' ? draftPick(s, p, a, ev, rng) : fail('Finish the opening draft first');
     if (s.phase !== 'play') return fail('Game is not running');
     if (a.a === 'tradeReply') return tradeReply(s, p, a, ev);
@@ -1170,6 +1304,7 @@
           const stageK = c.path[c.path.length - 2];
           fleet.forEach(u => { u.moved = true; u.hex = stageK; });
           ev.push({ e: 'move', pid, units: fleet.map(u => u.id), path: c.path.slice(0, -1), captures: caps });
+          lootPath(s, pid, c.path.slice(0, -1), ev, rng);
           ag.push({ units: fleet, stage: stageK, from: c.from });
         }
         resolveAssault(s, pid, ag, a.to, rng, ev);
@@ -1185,6 +1320,7 @@
         const navy = fleet.every(u => isSea(u.type));
         if (c.dest.kind !== 'board' && (navy ? isWater(t) : isLandTile(t)) && captureTile(s, a.to, pid)) caps.push(a.to);
         ev.push({ e: 'move', pid, units: fleet.concat(cargo).map(u => u.id), path: c.path, captures: caps });
+        lootPath(s, pid, c.path, ev, rng);
       }
       return { ok: true, events: ev };
     }
@@ -1214,10 +1350,24 @@
     const def = TACTICS[id], pid = p.id, tiles = s.map.tiles;
     if (def.target !== 'none' && def.target !== 'heli' && !tacticTargets(s, pid, id).includes(a.target)) return 'Invalid target';
     const base = { e: 'tactic', pid, id, target: a.target };
-    const kill = (u) => { const o = player(s, u.owner); if (o) o.stats.lost++; if (u.owner !== pid) p.stats.kills++; delete s.units[u.id]; };
+    const kill = (u) => { const o = player(s, u.owner); if (o) o.stats.lost++; if (u.owner !== pid) { p.stats.kills++; if (p.bounty) p.cash += 2; } delete s.units[u.id]; };
     switch (id) {
       case 'bonds': { const n = Math.floor(ownedLand(s, pid).length / 2); p.cash += n; ev.push({ ...base, amount: n }); break; }
       case 'blitz': p.blitz = true; ev.push(base); break;
+      case 'rally': p.rally = (p.rally || 0) + 2; ev.push(base); break;
+      case 'bounty': p.bounty = true; ev.push(base); break;
+      case 'fortify': {
+        const t = tiles[a.target], bk = getS(t, 'bunker');
+        if (bk) { if (slvlOf(bk) >= MAX_SLVL) return 'That Bunker is already ★★★'; bk.lvl = slvlOf(bk) + 1; }
+        else { if (structsOf(t).length >= MAX_STRUCTS || getS(t, 'bridge') || !isLandTile(t)) return 'No room for a Bunker there'; addStruct(t, { type: 'bunker', owner: pid, lvl: 1 }); }
+        ev.push({ ...base, lvl: slvlOf(getS(t, 'bunker')) }); break;
+      }
+      case 'embargo': { const o = player(s, tiles[a.target].owner); o.embargo = true; ev.push({ ...base, victim: o.id }); pushLog(s, '⛔ ' + p.name + ' placed ' + o.name + ' under embargo.'); break; }
+      case 'orbital': {
+        const kills = Object.values(s.units).filter(u => u.hex === a.target && u.owner !== pid && UNITS[u.type].ability !== 'stealth');
+        kills.forEach(kill);
+        ev.push({ ...base, kills: kills.map(u => u.id) }); pushLog(s, '🛰 ' + p.name + ' called an orbital strike: ' + kills.length + ' destroyed.'); break;
+      }
       case 'drop_rare': case 'drop_epic': case 'drop_legendary':
         ev.push(base); p.tactics.splice(p.tactics.findIndex(c => c.uid === a.uid), 1);
         openCrate(s, p, rollTier(id, rng), rng, ev, id);
@@ -1230,12 +1380,12 @@
         ev.push(base); break;
       }
       case 'conscript': {
-        const room = MAX_STACK - (buildIndex(s)[a.target] || []).length, made = [];
-        for (let i = 0; i < Math.min(2, room); i++) made.push({ ...addUnit(s, pid, 'grunt', a.target, true) });
+        const here = buildIndex(s)[a.target] || [], made = [];
+        for (let i = 0; i < 2 && stackFits(here, Array(i + 1).fill('grunt')); i++) made.push({ ...addUnit(s, pid, 'grunt', a.target, true) });
         ev.push({ ...base, units: made }); break;
       }
       case 'airstrike': {
-        const occ = Object.values(s.units).filter(u => u.hex === a.target);
+        const occ = Object.values(s.units).filter(u => u.hex === a.target && UNITS[u.type].ability !== 'stealth');
         const roll = rollDie(rng), n = Math.min(occ.length, roll <= 2 ? 1 : roll <= 5 ? 2 : 3);
         const pool = occ.slice(), kills = [];
         for (let i = 0; i < n; i++) kills.push(pool.splice(Math.floor(rng() * pool.length), 1)[0]);
@@ -1246,7 +1396,7 @@
       }
       case 'carpet': {
         const ar = area(a.target, 1), kills = [];
-        for (const u of Object.values(s.units)) if (ar.includes(u.hex) && u.owner !== pid && rng() < 0.5) kills.push(u);
+        for (const u of Object.values(s.units)) if (ar.includes(u.hex) && u.owner !== pid && UNITS[u.type].ability !== 'stealth' && rng() < 0.5) kills.push(u);
         kills.forEach(kill);
         ev.push({ ...base, area: ar, kills: kills.map(u => u.id) });
         pushLog(s, '💣 ' + p.name + ' carpet-bombed: ' + kills.length + ' destroyed.');
@@ -1331,10 +1481,11 @@
     c.turn.idx = c.players.findIndex(p => p.id === pid);
     const p = player(c, pid);
     if (!p || !p.alive || c.phase !== 'play') return c;
-    p.blitz = false;
-    if (takeIncome) p.cash += computeIncome(c, pid).total;
-    for (const id in c.units) { const u = c.units[id]; if (u.owner !== pid) continue; u.moved = false; u.fresh = false; u.mvBonus = 0; if (u.stun > 0) { u.moved = true; u.stun--; } }
-    c.turn.stage = 'act'; c.turn.crate = null; c.turn.offer = [];
+    c.trade = null;
+    startTurn(c, [], () => 0.5);
+    if (c.phase !== 'play' || current(c).id !== pid) return c;
+    if (c.turn.stage === 'choose') { if (takeIncome) p.cash += c.turn.income; c.turn.stage = 'act'; }
+    c.turn.crate = null; c.turn.offer = [];
     return c;
   }
 
@@ -1352,8 +1503,8 @@
 
   return {
     DIRS, key, parse, dist, neighbors, area, line, mulberry32, hashStr,
-    RARITY, RARITY_ORDER, CRATES, DROP_TIERS, SCRAP_VALUE, DECK_MAX, MAX_LEVEL, TERRAIN, DIFFICULTY, UNITS, TACTICS, STRUCTS, BUILD_ORDER, UPGRADABLE, MAX_SLVL, FACTIONS, COLORS, MAX_STACK, CLASS_NAME, cardDef,
-    generateMap, createGame, applyAction, startTurn, endTurn, simulateTurnStart, view, drawCards,
+    POI, RARITY, RARITY_ORDER, CRATES, DROP_TIERS, SCRAP_VALUE, DECK_MAX, MAX_LEVEL, TERRAIN, DIFFICULTY, UNITS, TACTICS, STRUCTS, BUILD_ORDER, UPGRADABLE, MAX_SLVL, FACTIONS, COLORS, MAX_STACK, GRUNT_STACK, stackFits, CLASS_NAME, cardDef,
+    generateMap, createGame, applyAction, spawnChoices, startTurn, endTurn, simulateTurnStart, view, drawCards,
     player, current, buildIndex, canAct, moveAllow, ownedTiles, ownedLand, spawnPoints, supplySet, computeIncome, levelOf, unitAtk, unitDef,
     reachable, pathTo, rangedTargets, deployHexes, buildHexes, buildError, isSea, isWater, isCoastal, movers, combatCalc, tacticTargets, unitCost, structCost, buildCost, structsOf, MAX_STRUCTS, conquestTarget, isLandTile, flakCovered,
   };

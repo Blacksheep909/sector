@@ -5,7 +5,8 @@ Grab land, build an economy, crush your rivals. **Every hex you hold pays you**,
 ## Setup and the opening draft
 
 - 2–6 commanders: humans over the network, bots (Easy, Medium, Hard, Impossible), and **pass-and-play** players sharing one device. A cover screen hides each player's hand between turns.
-- Every map is procedurally generated from one of six layouts: continent, supercontinent, twin continents, archipelago, inland sea, or crescent isles. The coastline is noise-warped, so no two boards share an outline.
+- Every map is procedurally generated from one of six layouts: continent, supercontinent, twin continents, archipelago, inland sea, or crescent isles. The coastline is noise-warped, so no two boards share an outline. Sizes run from Small to **Huge** (about 3.5× the land of Small).
+- **Spawns.** With *Random* spawns, HQs are placed fairly far apart. With *Pick your HQ*, commanders take turns choosing their HQ hex (whoever moves last picks first). HQs must sit a minimum distance apart, and bots pick roomy spots near resources.
 - Everyone starts with an HQ and its surrounding hexes, 2 Grunts, $6, a **Rare Supply Drop** card, and three unit cards: **Grunts**, the **Ark** transport, and their faction's starter unit.
 - **Opening draft.** Before round 1, every commander picks simultaneously. In each of 3 draft rounds you're offered 3 cards and keep 1.
 
@@ -90,12 +91,34 @@ $3 base
 
 **Supply:** a hex pays only if it connects through your own territory to your HQ, a FOB, or a Port. Owned sea counts as territory, so sea lanes carry supply to your islands. Cut-off hexes are hatched on the map and pay nothing.
 
+## The land
+
+Maps have climate. It's colder toward the top and bottom edges and hotter in the middle, so you'll find:
+
+| Terrain | Effect |
+|---|---|
+| Plains, Desert | Open ground |
+| Forest | +1 defender mult |
+| Jungle | +1 defender mult, costs 2 move |
+| Highlands | +2 defender mult, costs 2 move |
+| Tundra | Costs 2 move |
+| Swamp | Costs 2 move. Attackers get −1 mult (air units excepted) |
+| Mountains | Impassable except to air |
+
+**Points of interest** are scattered across the map:
+
+- **Ruins.** The first unit to pass through loots $4–10.
+- **Supply cache.** The first unit to pass through finds a tactic card.
+- **Village.** Neutral town with a militia (6 chips, +1 mult). Conquer it for **+$2 every turn**.
+- **Old fort.** Garrisoned ruin with a ★★ Bunker. Take it and the bunker is yours.
+- **Ancient relic.** **+$3 every turn** while you hold it. Relics sit as far from every HQ as possible.
+
 ## Moving
 
 - Units **seize every unclaimed hex they pass through**.
-- Highlands cost 2 move.
+- Highlands, jungle, tundra and swamp cost 2 move. Rangers ignore this.
 - Mountains block movement except for air units. Open water blocks land units unless they're aboard an Ark; air units and hover tanks fly or glide across it.
-- A hex holds at most 5 units, and mixed types share a stack freely.
+- A hex holds at most 5 units, and mixed types share a stack freely. A hex of nothing but Grunts can hold 10.
 - Entering an empty enemy hex captures it. Entering an occupied hex starts a fight.
 
 ## Combined assaults (pincers)
@@ -166,6 +189,14 @@ Build from the build bar (`Z` and onward, nine slots). To **upgrade** a structur
 
 Ports and bridges don't upgrade. **Sabotage** knocks a level off a structure, and destroys it only at ★.
 
+**Stacking.** A hex can hold up to **3 different buildings**, for example a Market★★, a Bunker and a Depot. Bridges take a hex to themselves.
+
+**Captured bases.** A FOB or Port you capture comes online at the start of your next turn, so you can't capture one and deploy on it the same turn.
+
+## HQ sieges
+
+Taking an enemy HQ doesn't knock them out straight away: it puts their HQ **under siege**. The defender gets one full turn cycle to strike back. If your troops are still standing on that HQ when your next turn starts, they're eliminated. If they retake it or drive you off, the siege collapses. A besieged HQ can't deploy units or supply territory, and its garrison bonus is gone.
+
 ## Menus and joining
 
 - **Esc** opens the pause menu: resume, rules, card index, sound, and **Leave game**. When you leave, a bot takes over your empire so everyone else can keep playing. The host can also **End game for everyone**.
@@ -181,7 +212,7 @@ On your turn, click **TRADE** under a rival's name. You can offer cash and tacti
 
 ## Blueprint
 
-While others play, queue moves, deploys and builds. When your turn starts, income is collected automatically and the queue runs. Untick *auto-collect income* if you'd rather choose from the resupply first. Attacks and tactics are live-only.
+While others play, queue moves, deploys and builds. The preview shows exactly what your turn will look like, including income, Depot move bonuses and newly online bases. When your turn starts, income is collected automatically and the queue runs. Untick *auto-collect income* if you'd rather choose from the resupply first; the queue then runs right after your pick. You can queue a move from the spot an earlier queued move left your units. Attacks and tactics are live-only, and any order the board no longer allows is skipped with a note.
 
 ## Controls
 
@@ -197,5 +228,6 @@ While others play, queue moves, deploys and builds. When your turn starts, incom
 | `Space` | Flip the next card · throw your die (never ends your turn) |
 | Crate (Supply Drop) | Click or `Space` to burst it open |
 | `F` | Jump to your HQ |
-| `Enter` | Chat |
+| `Enter` | **End your turn** (opens chat when it isn't your turn) |
+| `T` | Chat |
 | Hover a card | Enlarge it |

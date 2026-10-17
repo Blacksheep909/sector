@@ -11,7 +11,8 @@ fs.mkdirSync(dist, { recursive: true });
 
 // 1. bundle server + shared modules into one CommonJS file (SEA can only `require` built-ins)
 const mods = { './shared/engine': 'shared/engine.js', './shared/bot': 'shared/bot.js', './engine': 'shared/engine.js' };
-let bundle = "'use strict';\nconst __mods = {}, __cache = {};\nconst __req = require;\n";
+const version = process.env.SECTOR_BUILD_VERSION || JSON.parse(fs.readFileSync(path.join(root, 'package.json'), 'utf8')).version;
+let bundle = "'use strict';\nconst __SECTOR_VERSION = " + JSON.stringify(version) + ";\nconst __mods = {}, __cache = {};\nconst __req = require;\n";
 bundle += "function __require(id) { if (__mods[id]) { if (!__cache[id]) { const m = { exports: {} }; __cache[id] = m; __mods[id](m, m.exports, __require); } return __cache[id].exports; } return __req(id); }\n";
 for (const [id, file] of Object.entries(mods)) {
   const src = fs.readFileSync(path.join(root, file), 'utf8');
@@ -34,5 +35,14 @@ const npx = process.platform === 'win32' ? 'npx.cmd' : 'npx';
 const args = ['--yes', 'postject@1.0.0-alpha.6', exe, 'NODE_SEA_BLOB', path.join(dist, 'sea-prep.blob'), '--sentinel-fuse', 'NODE_SEA_FUSE_fce680ab2cc467b6e072b8b5df1996b2'];
 if (process.platform === 'darwin') args.push('--macho-segment-name', 'NODE_SEA');
 execFileSync(npx, args, { stdio: 'inherit', shell: process.platform === 'win32' });
+// 4. Windows: switch the exe to the GUI subsystem so no console window appears (the game window is the UI)
+if (process.platform === 'win32' && !process.env.SECTOR_KEEP_CONSOLE) {
+  const fd = fs.openSync(exe, 'r+'), b4 = Buffer.alloc(4), b2 = Buffer.alloc(2);
+  fs.readSync(fd, b4, 0, 4, 0x3c); const pe = b4.readUInt32LE(0);
+  fs.readSync(fd, b4, 0, 4, pe); if (b4.toString('latin1') !== 'PE\0\0') throw new Error('not a PE file');
+  const sub = pe + 24 + 68; fs.readSync(fd, b2, 0, 2, sub);
+  console.log('PE subsystem ' + b2.readUInt16LE(0) + ' -> 2 (windows GUI)');
+  b2.writeUInt16LE(2, 0); fs.writeSync(fd, b2, 0, 2, sub); fs.closeSync(fd);
+}
 for (const f of ['sea-prep.blob', 'sea-config.json', 'sector-bundle.js']) fs.rmSync(path.join(dist, f), { force: true });
-console.log('\nBuilt ' + exe);
+console.log('\nBuilt ' + exe + ' (v' + version + ')');
