@@ -1,0 +1,43 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>SECTOR Server</title>
+<link rel="icon" href="icon.png">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Black+Ops+One&family=Chakra+Petch:wght@500;600;700&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="style.css">
+</head>
+<body class="host-page">
+<main id="hp">
+  <header class="hp-head">
+    <img src="icon.png" alt="" class="hp-logo">
+    <div>
+      <div class="hp-title">SECTOR SERVER</div>
+      <div class="hp-status" id="hpStatus">Starting…</div>
+    </div>
+  </header>
+  <button id="hpPlay" class="btn big red hp-play">▶ PLAY</button>
+  <section class="panel">
+    <h3>INVITE FRIENDS</h3>
+    <div id="hpAddrs"></div>
+    <div class="hint">Friends on the same Wi-Fi open an address in any browser, or run Sector.exe and use <b>Join a game → Scan network</b>.</div>
+  </section>
+  <section class="panel">
+    <h3>COMMANDERS <span id="hpCount"></span></h3>
+    <div id="hpPlayers" class="hp-list"></div>
+  </section>
+  <section class="panel">
+    <h3>UPDATES</h3>
+    <div id="hpUpdate"></div>
+  </section>
+  <footer class="hp-foot">
+    <button id="hpStop" class="btn red">STOP SERVER</button>
+    <span class="hint" id="hpFoot"></span>
+  </footer>
+</main>
+<div id="hpGone" hidden><div class="panel"><h2 id="hpGoneT">SERVER STOPPED</h2><div class="sub" id="hpGoneS">You can close this window.</div></div></div>
+<script src="host.js"></script>
+</body>
+</html>

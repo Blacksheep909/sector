@@ -1,12 +1,24 @@
 ## ⬇ How to play
 
-1. Download **`Sector.exe`** below.
-2. Double-click it. The game opens in its own window. There's no console window any more: click **🖥 SERVER** (top right of the menu, or in the Esc menu) to see your invite addresses, who's connected, and the Stop button.
-3. Friends on the **same Wi-Fi / LAN** either run `Sector.exe` themselves and use **Join a game → Scan network**, or type an invite address from the Server panel into any browser.
-
-**Updating:** from v0.4 on, Sector.exe checks GitHub for new versions. When one is out, the Server panel shows **Update & restart**, and it downloads, swaps and relaunches by itself. (Coming from v0.3 or earlier? Download this one by hand, once.)
+1. Download **`Sector.exe`** below and double-click it. A **SECTOR server window** opens: a live dashboard showing your addresses, who's connected, the game status, updates and recent activity.
+2. Press **O** in that window, or open **http://localhost:3000** in your browser, to play. Everyone plays in the browser.
+3. Friends on the **same Wi-Fi / LAN** open the **INVITE** address in their browser. Press **C** in the server window to copy it.
+4. Press **Q** twice to stop the server. When a new version is out, the dashboard says so and **U** updates and restarts it.
 
 > The first launch asks for network access: tick **Private networks**. SmartScreen may warn that the exe is unsigned: click *More info → Run anyway*.
+
+## What's new in v0.4.1
+
+- **A real server window.** Sector.exe is a dedicated server with a live terminal dashboard showing your addresses, players, status, updates and activity. Keys: **O** open the game, **C** copy the invite, **U** update, **Q** stop. The game itself lives in the browser.
+- **SECTOR icon** on the exe, the server window and the browser tab.
+- **Draft at your own pace.** Make all 3 picks back to back; the war starts once everyone's done.
+- **Leaving works everywhere.** Leaving during the draft, HQ picking, a crate, a trade or pass and play now returns you to the main menu. The victory screen has a **Main menu** button for everyone.
+- **New card art:**
+  - Every unit has been redrawn with shading, wheels and tracks, cockpits and weapons.
+  - The infantry have faces and rifles held across the chest.
+  - The Hornet is now an MQ-9-style drone.
+- **SECTOR card backs:** a crimson hex weave, a cream frame and the SECTOR emblem. Every card shares the same back.
+- **Fixed:** card names that turned into scribbles on cards with long descriptions.
 
 ## What's new in v0.4
 

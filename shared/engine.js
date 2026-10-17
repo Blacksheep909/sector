@@ -383,7 +383,7 @@
       map: { arch: map.arch, tiles: map.tiles, beacon: settings.mode === 'koth' ? map.beacon : null, landCount: map.landCount },
       players: [], units: {}, nextId: 1,
       turn: { idx: 0, round: 1, stage: 'choose', offer: [], rerolls: 0, crate: null, income: 0, deadline: 0 },
-      draft: { round: 1, rounds: DRAFT_ROUNDS, offers: {}, picked: {} },
+      draft: { rounds: DRAFT_ROUNDS, offers: {}, step: {}, picked: {} },
       log: [], winner: null, trade: null,
     };
     shuffled.forEach((p, i) => {
@@ -429,7 +429,7 @@
   function startDraft(state) {
     state.phase = 'draft';
     pushLog(state, 'Sector ' + (state.seed % 9000 + 1000) + ' (' + state.map.arch + ') deployed. ' + state.players.length + ' commanders — opening draft!');
-    for (const p of state.players) state.draft.offers[p.id] = drawCards(state, p, 3, DRAFT_ODDS, Math.random);
+    for (const p of state.players) { state.draft.offers[p.id] = drawCards(state, p, 3, DRAFT_ODDS, Math.random); state.draft.step[p.id] = 0; }
     return [{ e: 'draft', round: 1 }];
   }
   // HQ hexes the current picker may still choose
@@ -958,23 +958,20 @@
   }
   function draftPick(s, p, a, ev, rng) {
     const fail = err => ({ ok: false, err, events: [] });
-    if (s.draft.picked[p.id]) return fail('Waiting for the others');
-    const offer = s.draft.offers[p.id] || [];
+    const d = s.draft;
+    if (d.picked[p.id]) return fail('Waiting for the others');
+    const offer = d.offers[p.id] || [];
     const id = offer[a.idx]; if (!id) return fail('No such card');
     const err = grantCard(s, p, id, a.replace, ev); if (err) return fail(err);
-    s.draft.picked[p.id] = true;
-    ev.push({ e: 'draftPick', pid: p.id, round: s.draft.round });
-    if (s.players.every(pl => !pl.alive || s.draft.picked[pl.id])) {
-      if (s.draft.round >= s.draft.rounds) {
-        s.phase = 'play'; s.draft = null;
-        pushLog(s, 'Draft complete. The war begins!');
-        ev.push({ e: 'draftDone' });
-        startTurn(s, ev, rng);
-      } else {
-        s.draft.round++; s.draft.picked = {};
-        for (const pl of s.players) s.draft.offers[pl.id] = drawCards(s, pl, 3, DRAFT_ODDS, rng);
-        ev.push({ e: 'draft', round: s.draft.round });
-      }
+    d.step[p.id] = (d.step[p.id] || 0) + 1;
+    ev.push({ e: 'draftPick', pid: p.id, round: d.step[p.id] });
+    if (d.step[p.id] >= d.rounds) { d.picked[p.id] = true; d.offers[p.id] = []; }
+    else { d.offers[p.id] = drawCards(s, p, 3, DRAFT_ODDS, rng); ev.push({ e: 'draft', pid: p.id, round: d.step[p.id] + 1 }); }
+    if (s.players.every(pl => !pl.alive || d.picked[pl.id])) {
+      s.phase = 'play'; s.draft = null;
+      pushLog(s, 'Draft complete. The war begins!');
+      ev.push({ e: 'draftDone' });
+      startTurn(s, ev, rng);
     }
     return { ok: true, events: ev };
   }

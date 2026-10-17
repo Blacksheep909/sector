@@ -727,3 +727,31 @@ body.pp-idle #deckBar::after { content: 'Hands hidden until a local player is up
 .hp-btns { margin-top: 18px; justify-content: space-between; }
 .spinner { width: 46px; height: 46px; margin: 18px auto; border: 5px solid #2a3440; border-top-color: var(--gold, #ffc53d); border-radius: 50%; animation: spin 0.9s linear infinite; }
 @keyframes spin { to { transform: rotate(360deg); } }
+
+/* host dashboard window */
+body.host-page { overflow: auto; background: radial-gradient(ellipse at top, #16222d, #0a0f14 70%); }
+#hp { max-width: 560px; margin: 0 auto; padding: 18px 16px 24px; display: flex; flex-direction: column; gap: 14px; }
+.hp-head { display: flex; gap: 14px; align-items: center; }
+.hp-logo { width: 58px; height: 58px; filter: drop-shadow(0 4px 0 #000); }
+.hp-title { font-family: var(--title); font-size: 28px; letter-spacing: 3px; color: var(--ink); text-shadow: 0 4px 0 var(--red-d), 0 7px 0 #000; }
+.hp-status { color: var(--dim); font-size: 13px; margin-top: 4px; }
+.hp-status .dot { display: inline-block; width: 9px; height: 9px; border-radius: 50%; background: var(--green); box-shadow: 0 0 8px var(--green); margin-right: 4px; animation: siegePulse 1.6s infinite; }
+.hp-play { width: 100%; font-size: 30px; padding: 14px; }
+#hp .panel h3 { margin-top: 0; }
+#hp .hint { margin-top: 6px; }
+.hp-row .sw { display: inline-block; width: 10px; height: 10px; border-radius: 3px; background: var(--pc); margin-right: 8px; }
+.hp-row .tags i.off { color: var(--red); }
+.hp-foot { display: flex; gap: 12px; align-items: center; }
+.hp-foot .hint { flex: 1; font-size: 12px; margin: 0; }
+#hpGone { position: fixed; inset: 0; background: rgba(5,8,12,.88); display: flex; align-items: center; justify-content: center; text-align: center; }
+#hpGone .panel { padding: 26px 34px; }
+
+/* card layout: name/type/stats never shrink; long descriptions get the squeeze instead */
+.card .c-name, .card .c-type, .card .c-stats, .card .c-top { flex: none; }
+.card .c-desc { flex: 1 1 auto; min-height: 0; overflow: hidden; }
+
+/* painted SECTOR card back (Art.cardBack), shared by every card so rarity stays hidden until the flip */
+.flip .cback, .flip.r-common .cback, .flip.r-uncommon .cback, .flip.r-rare .cback, .flip.r-epic .cback, .flip.r-legendary .cback, .cback.tb-gilded, .cback.tb-mythic, .cback.tb-standard {
+  background: var(--card-back, #9e1f2c) center / 100% 100% no-repeat !important; border-color: #2a0a0f; }
+.flip .cback::after { display: none; }
+.flip .cback .cb-logo { display: none; }
