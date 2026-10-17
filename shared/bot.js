@@ -7,11 +7,32 @@ const BOT_NAMES = ['Vex', 'Kestrel', 'Morrow', 'Juno', 'Halcyon', 'Rook', 'Sable
 function unitValue(type) { const d = E.UNITS[type]; return d.atk + d.def + d.mv * 0.6; }
 function stackValue(units) { return units.reduce((a, u) => a + unitValue(u.type), 0); }
 
+const RAR = { common: 1, uncommon: 2, rare: 3.2, epic: 4.6, legendary: 6.5 };
+// how much a card is worth to this player right now
 function cardScore(s, p, id) {
   const d = E.cardDef(id);
-  const rar = { common: 1, uncommon: 2, rare: 3.2, legendary: 6 }[d.rarity];
-  if (d.kind === 'unit') return rar * (p.arsenal.length < 4 ? 1.4 : 0.9);
-  return rar * 0.8;
+  let v = RAR[d.rarity];
+  if (d.kind === 'unit') {
+    if (p.arsenal.includes(id)) v = 2 + (E.UNITS[id].cost / 3);              // upgrade
+    else v *= p.arsenal.length < 6 ? 1.4 : 1;
+    if (d.cls === 'sea' && !hasCoast(s, p)) v *= 0.4;
+  } else v *= 0.85;
+  return v;
+}
+function hasCoast(s, p) { return E.ownedLand(s, p.id).some(k => E.isCoastal(s, k)); }
+// pick the best card from an offer; if the deck is full, replace the weakest unit
+function choosePick(s, p, cards) {
+  let bi = -1, bv = -1;
+  cards.forEach((id, i) => { const v = cardScore(s, p, id); if (v > bv) { bv = v; bi = i; } });
+  if (bi < 0) return null;
+  const id = cards[bi], d = E.cardDef(id);
+  const act = { idx: bi, value: bv };
+  if (d.kind === 'unit' && !p.arsenal.includes(id) && p.arsenal.length >= E.DECK_MAX) {
+    const worst = p.arsenal.filter(t => t !== 'grunt').sort((a, b) => cardScore(s, p, a) - cardScore(s, p, b))[0];
+    if (!worst || cardScore(s, p, worst) >= bv) return { scrap: true };
+    act.replace = worst;
+  }
+  return act;
 }
 
 const SKILL = {
@@ -25,24 +46,35 @@ const SKILL = {
 function tradeReply(s, pid) {
   const t = s.trade; if (!t || t.to !== pid) return null;
   const p = E.player(s, pid), from = E.player(s, t.from);
-  const cardVal = id => { const d = E.TACTICS[id]; return d ? d.cost + { common: 2, uncommon: 4, rare: 7, legendary: 14 }[d.rarity] : 0; };
+  const cardVal = id => { const d = E.TACTICS[id]; return d ? d.cost + { common: 2, uncommon: 4, rare: 7, epic: 10, legendary: 14 }[d.rarity] : 0; };
   const gain = t.give.cash + (t.cardIds || []).reduce((a, id) => a + cardVal(id), 0);
   const cost = t.get.cash;
   const greed = { easy: 1, medium: 1.15, hard: 1.35, impossible: 1.6 }[p.diff] || 1.15;
-  const leader = E.ownedTiles(s, from.id).length > E.ownedTiles(s, pid).length * 1.6;
+  const leader = E.ownedLand(s, from.id).length > E.ownedLand(s, pid).length * 1.6;
   return { a: 'tradeReply', accept: cost <= p.cash && gain >= cost * greed && !(leader && cost > 0) };
+}
+
+function draftStep(s, pid) {
+  const p = E.player(s, pid);
+  if (!s.draft || s.draft.picked[pid]) return null;
+  const c = choosePick(s, p, s.draft.offers[pid] || []);
+  if (!c || c.scrap) return { a: 'draftPick', idx: 0 };
+  return { a: 'draftPick', idx: c.idx, replace: c.replace };
 }
 
 function botStep(s, pid, mem) {
   const p = E.player(s, pid);
   const K = SKILL[p.diff] || SKILL.medium;
   if (s.turn.stage === 'choose') {
-    const scores = s.turn.offer.map(id => cardScore(s, p, id));
-    let bi = 0; scores.forEach((v, i) => { if (v > scores[bi]) bi = i; });
-    const income = s.turn.income;
-    const threshold = 2.2 + income / 10 - (s.turn.round <= 3 ? 0.6 : 0);
-    if (scores.length && scores[bi] >= threshold) return { a: 'choose', pick: 'card', idx: bi };
+    const c = choosePick(s, p, s.turn.offer);
+    const threshold = 2.4 + s.turn.income / 10 - (s.turn.round <= 3 ? 0.6 : 0);
+    if (c && !c.scrap && c.value >= threshold) return { a: 'choose', pick: 'card', idx: c.idx, replace: c.replace };
     return { a: 'choose', pick: 'income' };
+  }
+  if (s.turn.stage === 'crate') {
+    const c = choosePick(s, p, s.turn.crate.cards);
+    if (!c || c.scrap) return { a: 'scrap' };
+    return { a: 'pick', idx: c.idx, replace: c.replace };
   }
   mem.tried = mem.tried || new Set();
   const tryOnce = (act) => { const k = JSON.stringify(act); if (mem.tried.has(k)) return null; mem.tried.add(k); return act; };
@@ -55,18 +87,18 @@ function botStep(s, pid, mem) {
     const d = E.TACTICS[c.id];
     if (p.cash < d.cost || Math.random() > K.tactics) continue;
     let act = null;
-    if (c.id === 'cache' || c.id === 'bonds') act = { a: 'tactic', uid: c.uid };
-    else if (['airstrike', 'mutiny', 'nuke', 'sabotage', 'emp'].includes(c.id)) {
+    if (c.id === 'bonds' || c.id.startsWith('drop_')) act = { a: 'tactic', uid: c.uid };
+    else if (['airstrike', 'mutiny', 'nuke', 'sabotage', 'emp', 'carpet'].includes(c.id)) {
       const ts = E.tacticTargets(s, pid, c.id);
       let best = null, bv = 0;
       for (const k of ts) {
         let v = 0;
         if (c.id === 'sabotage') v = tiles[k].struct.type === 'fob' ? 10 : 5;
-        else if (c.id === 'nuke' || c.id === 'emp') for (const a of E.area(k, 1)) for (const u of idx[a] || []) v += u.owner === pid ? -unitValue(u.type) * 2 : unitValue(u.type);
+        else if (c.id === 'nuke' || c.id === 'emp' || c.id === 'carpet') for (const a of E.area(k, 1)) for (const u of idx[a] || []) v += u.owner === pid ? -unitValue(u.type) * 2 : unitValue(u.type);
         else v = stackValue(idx[k] || []);
         if (v > bv) { bv = v; best = k; }
       }
-      const need = { airstrike: 9, mutiny: 8, nuke: 30, sabotage: 5, emp: 20 }[c.id];
+      const need = { airstrike: 9, mutiny: 8, nuke: 30, sabotage: 5, emp: 20, carpet: 18 }[c.id];
       if (best && bv >= need) act = { a: 'tactic', uid: c.uid, target: best };
     } else if (c.id === 'conscript') {
       const ts = E.tacticTargets(s, pid, c.id); if (ts.length) act = { a: 'tactic', uid: c.uid, target: ts[0] };
@@ -77,15 +109,16 @@ function botStep(s, pid, mem) {
     if (act && (act = tryOnce(act))) return act;
   }
 
-  // 2. economy builds
+  // economy builds
   const sup = E.supplySet(s, pid);
+  const supLand = [...sup].filter(k => E.isLandTile(tiles[k]) && !tiles[k].bridge);
   for (const k of sup) {
     const t = tiles[k];
-    if (t.res && !t.struct && p.cash >= E.structCost(p, 'refinery')) { const a = tryOnce({ a: 'build', struct: 'refinery', hex: k }); if (a) return a; }
+    if (t.res && !t.struct && !t.contam && p.cash >= E.structCost(p, 'refinery')) { const a = tryOnce({ a: 'build', struct: 'refinery', hex: k }); if (a) return a; }
   }
   if (!tiles[p.hq].struct || tiles[p.hq].struct.type !== 'hq') { /* lost */ }
   if (enemyNear(p.hq, 3)) {
-    const ring = E.neighbors(p.hq).filter(n => tiles[n] && tiles[n].owner === pid && !tiles[n].struct && sup.has(n));
+    const ring = E.neighbors(p.hq).filter(n => supLand.includes(n) && !tiles[n].struct && !tiles[n].contam);
     if (ring.length && p.cash >= E.structCost(p, 'bunker') + 4) { const a = tryOnce({ a: 'build', struct: 'bunker', hex: ring[0] }); if (a) return a; }
   }
 
@@ -165,13 +198,31 @@ function botStep(s, pid, mem) {
         const c = E.combatCalc(s, pid, movers, stage, dest, false, idx);
         const isHQ = t.struct && t.struct.type === 'hq';
         const need = isHQ ? K.attack - 0.2 : K.attack;
-        if (c.winProb < need || carrying) continue;
+        if (carrying) continue;
+        if (c.winProb < need) {
+          // look for a second stack that can also hit this target (pincer)
+          for (const k2 in idx) {
+            if (k2 === k || mem.skip.has(k2)) continue;
+            const m2 = idx[k2].filter(u => u.owner === pid && E.canAct(s, u) && !E.UNITS[u.type].range);
+            if (!m2.length) continue;
+            const r2 = E.reachable(s, pid, m2.map(u => u.id), k2, idx);
+            if (!r2[dest] || r2[dest].kind !== 'attack') continue;
+            const st2 = E.pathTo(r2, dest).slice(-2)[0];
+            const c2 = E.combatCalc(s, pid, movers.concat(m2), [stage, st2], dest, false, idx);
+            if (c2.winProb >= need) {
+              mem.skip.add(k); mem.skip.add(k2);
+              const a = tryOnce({ a: 'assault', to: dest, groups: [{ from: k, units: movers.map(u => u.id) }, { from: k2, units: m2.map(u => u.id) }] });
+              if (a) return a;
+            }
+          }
+          continue;
+        }
         v += c.winProb * (8 + stackValue(c.defenders) + (isHQ ? 80 : 0) + (t.struct ? 5 : 0)) - (1 - c.winProb) * stackValue(movers);
       } else if (fleet) {
         // transports with cargo sail for un-owned coast; warships hunt enemies
+        for (const pk of path.slice(1)) if (tiles[pk].owner !== pid && E.isWater(tiles[pk])) v += tiles[pk].res ? 5 : 1.2;
         if (carrying) v += (nearest(k, targets) - nearest(dest, targets)) * 2.5 + (nearest(dest, targets) <= 1 ? 4 : 0);
-        else if (enemyTiles.length) v += (nearest(k, enemyTiles) - nearest(dest, enemyTiles)) * 0.8;
-        else continue;
+        else if (enemyTiles.length) v += (nearest(k, enemyTiles) - nearest(dest, enemyTiles)) * 0.6;
       } else {
         if (t.owner !== pid) v += t.owner ? 6 : 3;
         if (t.res && t.owner !== pid) v += 4;
@@ -191,32 +242,37 @@ function botStep(s, pid, mem) {
     if (best) { const a = tryOnce({ a: 'move', from: k, units: ids, to: best }); if (a) return a; }
   }
 
-  // 5. infrastructure: forward base, and a port when the sea is the only way forward
+  // 5. infrastructure: bridges over narrow straits, forward base, and a port when the sea is the only way forward
+  if (stuck && !mem.bridgeTried && p.cash >= E.structCost(p, 'bridge') + 2) {
+    mem.bridgeTried = true;
+    const spots = E.buildHexes(s, pid, 'bridge');
+    if (spots.length) return { a: 'build', struct: 'bridge', hex: spots.sort((a, b) => nearest(a, targets) - nearest(b, targets))[0] };
+  }
   const myPorts = Object.keys(tiles).filter(k => tiles[k].owner === pid && tiles[k].struct && tiles[k].struct.type === 'port');
   const wantsNavy = stuck || p.arsenal.some(t => E.isSea(t) && t !== 'ark');
   if (wantsNavy && !myPorts.length && p.cash >= E.structCost(p, 'port') && !mem.portTried) {
     mem.portTried = true;
     let best = null, bv = 99;
-    for (const k of sup) { const t = tiles[k]; if (t.struct || !E.isCoastal(s, k)) continue; const v = nearest(k, targets.length ? targets : enemyTiles); if (v < bv) { bv = v; best = k; } }
+    for (const k of supLand) { const t = tiles[k]; if (t.struct || t.contam || !E.isCoastal(s, k)) continue; const v = nearest(k, targets.length ? targets : enemyTiles); if (v < bv) { bv = v; best = k; } }
     if (best) return { a: 'build', struct: 'port', hex: best };
   }
   const owns = type => Object.keys(tiles).filter(k => tiles[k].owner === pid && tiles[k].struct && tiles[k].struct.type === type).length;
   if (p.diff !== 'easy' && !mem.mktTried && p.cash >= E.structCost(p, 'market') + 4 && owns('market') < 1 + Math.floor(s.turn.round / 10)) {
     mem.mktTried = true;
-    const spot = [...sup].find(k => !tiles[k].struct && !enemyNear(k, 3));
+    const spot = supLand.find(k => !tiles[k].struct && !tiles[k].contam && !enemyNear(k, 3));
     if (spot) return { a: 'build', struct: 'market', hex: spot };
   }
   if (!mem.depotTried && p.cash >= E.structCost(p, 'depot') + 6 && owns('depot') < 1 && s.turn.round > 4) {
     mem.depotTried = true;
-    const spot = [...sup].filter(k => !tiles[k].struct).sort((a, b) => nearest(a, enemyTiles) - nearest(b, enemyTiles))[0];
+    const spot = supLand.filter(k => !tiles[k].struct && !tiles[k].contam).sort((a, b) => nearest(a, enemyTiles) - nearest(b, enemyTiles))[0];
     if (spot && enemyTiles.length) return { a: 'build', struct: 'depot', hex: spot };
   }
   if (p.cash >= E.structCost(p, 'fob') + 3 && !mem.fobTried && !stuck) {
     mem.fobTried = true;
     const bases = E.spawnPoints(s, pid);
     let best = null, bv = -1;
-    for (const k of sup) {
-      const t = tiles[k]; if (t.struct) continue;
+    for (const k of supLand) {
+      const t = tiles[k]; if (t.struct || t.contam) continue;
       if (E.area(k, 2).some(a => tiles[a] && tiles[a].struct && ['hq', 'fob'].includes(tiles[a].struct.type))) continue;
       const far = Math.min(...bases.map(b => E.dist(b, k)));
       if (far < 4) continue;
@@ -247,4 +303,4 @@ function botStep(s, pid, mem) {
   return { a: 'end' };
 }
 
-module.exports = { botStep, tradeReply, BOT_NAMES };
+module.exports = { botStep, draftStep, tradeReply, BOT_NAMES };

@@ -4,7 +4,7 @@ const Render = (() => {
   const S = 34, TILT = 0.68, SQ3 = Math.sqrt(3);
   const VERT = [-90, -30, 30, 90, 150, 210].map(a => [Math.cos(a * Math.PI / 180), Math.sin(a * Math.PI / 180)]);
   const EDGE_DIR = [1, 0, 5, 4, 3, 2];
-  const HEIGHT = { water: 2, plains: 8, forest: 8, hills: 10, mountain: 11 };
+  const HEIGHT = { water: 2, plains: 8, forest: 8, hills: 10, mountain: 10 };
   // neutral land is deliberately muted so player territory pops
   const COL = { shallow: '#2a6688', water: '#173d58', plains: '#55644a', forest: '#3f5640', hills: '#6b6150', mountain: '#4a4752', fallout: '#6f7a25' };
 
@@ -59,6 +59,7 @@ const Render = (() => {
       let base = hx(t.contam ? COL.fallout : t.t === 'water' ? (t.deep ? COL.water : COL.shallow) : COL[t.t]);
       base = shade(base, (c.v - 0.5) * 0.06);
       const owned = t.owner && pc[t.owner] && t.t !== 'water';
+      if (t.owner && pc[t.owner] && t.t === 'water') base = mix(base, pc[t.owner], t.bridge ? 0.5 : 0.32);
       if (owned) {
         // flat, saturated team colour; terrain only nudges the brightness
         const tb = { plains: 0, forest: -0.12, hills: 0.08 }[t.t] || 0;
@@ -212,8 +213,9 @@ const Render = (() => {
     }
     if (ov.fire && ov.fire.has(k)) { crosshair(cx, cy, s, z, pulse); }
     if (ov.hover === k) { hexPath(cx, cy, s); ctx.strokeStyle = 'rgba(255,255,255,.9)'; ctx.lineWidth = 2.2 * z; ctx.stroke(); }
+    if (ov.selectedExtra && ov.selectedExtra.includes(k)) { hexPath(cx, cy, s * (1.02 + pulse * 0.04)); ctx.strokeStyle = '#ffc53d'; ctx.lineWidth = 3 * z; ctx.setLineDash([8 * z, 5 * z]); ctx.lineDashOffset = t * 30; ctx.stroke(); ctx.setLineDash([]); }
     if (ov.selected === k) { hexPath(cx, cy, s * (1.02 + pulse * 0.04)); ctx.strokeStyle = '#fff'; ctx.lineWidth = 3 * z; ctx.setLineDash([8 * z, 5 * z]); ctx.lineDashOffset = t * 30; ctx.stroke(); ctx.setLineDash([]); }
-    if (tile.struct) drawStruct(tile, cx, cy, z, k);
+    if (tile.struct && tile.struct.type !== 'bridge') drawStruct(tile, cx, cy, z, k);
   }
 
   function crosshair(cx, cy, s, z, pulse) {
@@ -235,6 +237,67 @@ const Render = (() => {
     ctx.beginPath(); ctx.moveTo(cx + VERT[4][0] * s, ty + VERT[4][1] * s * TILT); ctx.lineTo(cx + VERT[5][0] * s, ty + VERT[5][1] * s * TILT); ctx.lineTo(cx + VERT[0][0] * s, ty + VERT[0][1] * s * TILT); ctx.lineTo(cx + VERT[1][0] * s, ty + VERT[1][1] * s * TILT); ctx.stroke();
     return ty;
   }
+  // a little low-poly range: back peak + two foothills, light from the upper left
+  function drawMountain(c, cx, cy, s, z) {
+    const v = c.v, v2 = (v * 7.3) % 1;
+    const peaks = [
+      { ox: -0.05 + (v - 0.5) * 0.2, oy: -0.1, w: 0.66, h: 34 + v * 12 },
+      { ox: -0.46, oy: 0.16, w: 0.4, h: 17 + v2 * 8 },
+      { ox: 0.44, oy: 0.2, w: 0.38, h: 14 + v * 7 },
+    ];
+    ctx.fillStyle = 'rgba(0,0,0,.22)';
+    ctx.beginPath(); ctx.ellipse(cx + s * 0.05, cy + s * 0.12 * TILT, s * 0.82, s * 0.42 * TILT, 0, 0, Math.PI * 2); ctx.fill();
+    for (const pk of peaks) {
+      const x = cx + pk.ox * s, y = cy + pk.oy * s * TILT * 1.4 + 4 * z, w = pk.w * s, H = pk.h * z;
+      const A = [x + w * 0.06, y - H], L = [x - w, y], R = [x + w, y], F = [x + w * 0.18, y + w * 0.34 * TILT];
+      let g = ctx.createLinearGradient(A[0], A[1], L[0], L[1]);
+      g.addColorStop(0, '#a7a1b6'); g.addColorStop(1, '#6f6a80');
+      ctx.fillStyle = g; ctx.beginPath(); ctx.moveTo(...A); ctx.lineTo(...L); ctx.lineTo(...F); ctx.closePath(); ctx.fill();
+      g = ctx.createLinearGradient(A[0], A[1], R[0], R[1]);
+      g.addColorStop(0, '#5f5a72'); g.addColorStop(1, '#3d3a4c');
+      ctx.fillStyle = g; ctx.beginPath(); ctx.moveTo(...A); ctx.lineTo(...F); ctx.lineTo(...R); ctx.closePath(); ctx.fill();
+      const M = [A[0] + (L[0] - A[0]) * 0.55, A[1] + (L[1] - A[1]) * 0.55];
+      ctx.fillStyle = 'rgba(255,255,255,.07)'; ctx.beginPath(); ctx.moveTo(...A); ctx.lineTo(...M); ctx.lineTo(F[0] - w * 0.25, F[1] - H * 0.15); ctx.closePath(); ctx.fill();
+      if (H > 18 * z) {
+        const k = 0.34 + v * 0.06;
+        const lerp = (P, Q, t2) => [P[0] + (Q[0] - P[0]) * t2, P[1] + (Q[1] - P[1]) * t2];
+        const SL = lerp(A, L, k), SF = lerp(A, F, k * 1.15), SR = lerp(A, R, k * 0.9);
+        const J1 = lerp(SL, SF, 0.5); J1[1] += H * 0.07;
+        const J2 = lerp(SF, SR, 0.5); J2[1] += H * 0.06;
+        ctx.fillStyle = '#f6f8fc'; ctx.beginPath(); ctx.moveTo(...A); ctx.lineTo(...SL); ctx.lineTo(J1[0], J1[1]); ctx.lineTo(...SF); ctx.closePath(); ctx.fill();
+        ctx.fillStyle = '#c3cad8'; ctx.beginPath(); ctx.moveTo(...A); ctx.lineTo(...SF); ctx.lineTo(J2[0], J2[1]); ctx.lineTo(...SR); ctx.closePath(); ctx.fill();
+      }
+      ctx.strokeStyle = 'rgba(255,255,255,.18)'; ctx.lineWidth = 1.2 * z; ctx.beginPath(); ctx.moveTo(...A); ctx.lineTo(...F); ctx.stroke();
+    }
+  }
+  function drawBridge(tile, k, cx, cy, s, z) {
+    const nb = E.neighbors(k).filter(n => S_.map.tiles[n] && E.TERRAIN[S_.map.tiles[n].t].land);
+    let a = nb[0], b = nb[1], best = -1;
+    for (const p of nb) for (const q of nb) { const d = E.dist(p, q); if (d > best) { best = d; a = p; b = q; } }
+    if (!a || !b) return;
+    const [ax, ay] = toScreen(tc[a].wx, tc[a].wy), [bx, by] = toScreen(tc[b].wx, tc[b].wy);
+    const ang = Math.atan2(by - ay, bx - ax), len = s * 1.9, wd = s * 0.42;
+    ctx.save(); ctx.translate(cx, cy - 6 * z); ctx.rotate(ang);
+    ctx.fillStyle = 'rgba(0,0,0,.35)'; ctx.fillRect(-len / 2, -wd / 2 + 6 * z, len, wd);
+    ctx.fillStyle = '#7a5a3a'; ctx.fillRect(-len / 2, -wd / 2, len, wd);
+    ctx.fillStyle = '#9b7650';
+    for (let x = -len / 2 + 2 * z; x < len / 2; x += 6 * z) ctx.fillRect(x, -wd / 2 + 1 * z, 4 * z, wd - 2 * z);
+    ctx.fillStyle = bridgeCol(tile); ctx.fillRect(-len / 2, -wd / 2 - 2 * z, len, 2.5 * z); ctx.fillRect(-len / 2, wd / 2 - 0.5 * z, len, 2.5 * z);
+    for (let x = -len / 2; x <= len / 2; x += len / 4) { ctx.fillStyle = '#4b3826'; ctx.fillRect(x - 1.5 * z, -wd / 2 - 3 * z, 3 * z, wd + 6 * z); }
+    ctx.restore();
+  }
+  function bridgeCol(tile) { const p = tile.owner && S_.players.find(pl => pl.id === tile.owner); return p ? p.color : '#5a4630'; }
+  function drawRig(cx, cy, z, v) {
+    const x = cx + 6 * z, y = cy - 2 * z;
+    ctx.strokeStyle = '#2b3138'; ctx.lineWidth = 2 * z;
+    for (const dx of [-7, 7]) { ctx.beginPath(); ctx.moveTo(x + dx * z, y); ctx.lineTo(x + dx * z, y + 7 * z); ctx.stroke(); }
+    ctx.fillStyle = '#59626d'; ctx.fillRect(x - 10 * z, y - 4 * z, 20 * z, 5 * z);
+    ctx.fillStyle = '#c9a53a'; ctx.fillRect(x - 10 * z, y - 4 * z, 20 * z, 1.5 * z);
+    ctx.strokeStyle = '#8e98a3'; ctx.lineWidth = 1.4 * z;
+    ctx.beginPath(); ctx.moveTo(x - 4 * z, y - 4 * z); ctx.lineTo(x, y - 20 * z); ctx.lineTo(x + 4 * z, y - 4 * z); ctx.moveTo(x - 2.5 * z, y - 10 * z); ctx.lineTo(x + 2.5 * z, y - 10 * z); ctx.stroke();
+    const f = 0.7 + 0.3 * Math.sin(t * 9 + v * 20);
+    ctx.fillStyle = `rgba(255,${150 + 60 * f | 0},40,.9)`; ctx.beginPath(); ctx.ellipse(x + 7 * z, y - 9 * z - f * 2 * z, 2 * z, 3.5 * z * f, 0, 0, Math.PI * 2); ctx.fill();
+  }
   function decorate(tile, c, cx, cy, s, z) {
     const v = c.v;
     if (tile.t === 'forest') {
@@ -253,15 +316,13 @@ const Render = (() => {
       const off = (c.v - 0.5) * s * 0.2;
       prism(cx + off, cy + 2 * z, s * 0.56, 6 * z, c.light, c.side1, c.side2);
     } else if (tile.t === 'mountain') {
-      // stepped hex massif with a snow cap
-      const off = (c.v - 0.5) * s * 0.16;
-      let ty = prism(cx + off, cy + 1 * z, s * 0.74, 12 * z, '#6a6679', '#3f3c4b', '#312f3b');
-      ty = prism(cx + off * 0.6, ty, s * 0.47, 11 * z, '#85819a', '#55526a', '#46435a');
-      prism(cx + off * 0.3, ty, s * 0.23, 8 * z, '#f2f4f8', '#bcc3d0', '#a2a9b8');
+      drawMountain(c, cx, cy, s, z);
     } else if (tile.t === 'plains' && v > 0.7 && !tile.struct && !c.owned) {
       ctx.fillStyle = 'rgba(255,255,255,.12)'; for (let i = 0; i < 3; i++) ctx.fillRect(cx + (i - 1) * 7 * z + (v * 10 - 5) * z, cy + (i % 2) * 4 * z, 1.6 * z, 4 * z);
     }
-    if (tile.res) {
+    if (tile.bridge) drawBridge(tile, c.q + ',' + c.r, cx, cy, s, z);
+    if (tile.res && tile.t === 'water') drawRig(cx, cy, z, v);
+    else if (tile.res) {
       const bob = Math.sin(t * 2.2 + v * 6) * 2 * z, x = cx + s * 0.38, y = cy - 4 * z + bob;
       const gl = ctx.createRadialGradient(x, y, 0, x, y, 16 * z); gl.addColorStop(0, 'rgba(110,255,240,.55)'); gl.addColorStop(1, 'rgba(110,255,240,0)');
       ctx.fillStyle = gl; ctx.fillRect(x - 16 * z, y - 16 * z, 32 * z, 32 * z);

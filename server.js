@@ -6,7 +6,7 @@ const path = require('path');
 const os = require('os');
 const crypto = require('crypto');
 const E = require('./shared/engine');
-const { botStep, tradeReply, BOT_NAMES } = require('./shared/bot');
+const { botStep, draftStep, tradeReply, BOT_NAMES } = require('./shared/bot');
 
 let PORT = +process.env.PORT || 3000;
 const PUBLIC = path.join(__dirname, 'public');
@@ -46,7 +46,7 @@ server.on('upgrade', (req, socket) => {
   const accept = crypto.createHash('sha1').update(req.headers['sec-websocket-key'] + '258EAFA5-E914-47DA-95CA-C5AB0DC85B11').digest('base64');
   socket.write('HTTP/1.1 101 Switching Protocols\r\nUpgrade: websocket\r\nConnection: Upgrade\r\nSec-WebSocket-Accept: ' + accept + '\r\n\r\n');
   socket.setNoDelay(true);
-  const client = { socket, buf: Buffer.alloc(0), pid: null, frags: [] };
+  const client = { socket, buf: Buffer.alloc(0), pid: null, frags: [], seen: Date.now() };
   clients.add(client);
   socket.on('data', d => { client.buf = Buffer.concat([client.buf, d]); readFrames(client); });
   const close = () => { if (!clients.has(client)) return; clients.delete(client); onDisconnect(client); };
@@ -54,6 +54,7 @@ server.on('upgrade', (req, socket) => {
 });
 
 function readFrames(c) {
+  c.seen = Date.now();
   while (c.buf.length >= 2) {
     const b0 = c.buf[0], b1 = c.buf[1];
     const fin = b0 & 0x80, op = b0 & 0x0f, masked = b1 & 0x80;
@@ -83,6 +84,14 @@ function sendFrame(c, data, op = 1) {
 }
 const send = (c, obj) => sendFrame(c, JSON.stringify(obj));
 
+// heartbeat: ping everyone; sockets silent for 20s are treated as gone
+setInterval(() => {
+  for (const c of [...clients]) {
+    if (Date.now() - c.seen > 20000) { try { c.socket.destroy(); } catch (e) {} clients.delete(c); onDisconnect(c); }
+    else sendFrame(c, Buffer.alloc(0), 9);
+  }
+}, 6000);
+
 // ───────────────────────── lobby / game ─────────────────────────
 const lobby = { players: [], hostId: null, settings: { mode: 'domination', mapSize: 'medium', mapType: 'random', timer: 0, maxRounds: 0, conquestPct: 60, seed: '' } };
 let game = null;           // engine state
@@ -92,14 +101,33 @@ const autoPids = new Set(); // dev: humans driven by the bot AI (SECTOR_DEV=1)
 
 function lobbyView() {
   return {
-    players: lobby.players.map(p => ({ id: p.id, name: p.name, color: p.color, faction: p.faction, bot: p.bot, diff: p.diff, connected: p.bot || isConnected(p.id) })),
+    players: lobby.players.map(p => ({ id: p.id, name: p.name, color: p.color, faction: p.faction, bot: p.bot, diff: p.diff, local: !!p.local, controller: p.controller || null, connected: p.bot || isConnected(p.id) })),
     hostId: lobby.hostId, settings: lobby.settings, inGame: !!game, lan: lanAddresses().map(a => 'http://' + a + ':' + PORT), port: PORT,
   };
 }
-const isConnected = pid => [...clients].some(c => c.pid === pid);
+const isConnected = pid => {
+  const lp = lobby.players.find(p => p.id === pid);
+  if (lp && lp.local) return [...clients].some(c => c.pid === lp.controller);
+  return [...clients].some(c => c.pid === pid);
+};
+// pass & play: a client controls its own seat plus any local seats it added
+const seatsOf = c => c.pid ? [c.pid, ...lobby.players.filter(p => p.local && p.controller === c.pid).map(p => p.id)] : [];
+const controls = (c, pid) => seatsOf(c).includes(pid);
+// which seat a client is looking through right now
+function seatFor(c) {
+  const seats = seatsOf(c);
+  if (!game || seats.length < 2) return c.pid;
+  if (game.phase === 'draft' && game.draft) { const open = seats.find(id => { const pl = game.players.find(p => p.id === id); return pl && pl.alive && !game.draft.picked[id]; }); return open || c.pid; }
+  if (game.phase === 'play') {
+    const cur = game.players[game.turn.idx];
+    if (cur && seats.includes(cur.id)) return cur.id;
+    if (game.trade && seats.includes(game.trade.to)) return game.trade.to;
+  }
+  return c.pid;
+}
 function broadcastLobby() { const v = lobbyView(); for (const c of clients) send(c, { t: 'lobby', lobby: v }); }
 function broadcastState(events, by, seq) {
-  for (const c of clients) send(c, { t: 'state', state: E.view(game, c.pid), events: filterEvents(events, c.pid), by, seq });
+  for (const c of clients) { const seat = seatFor(c); send(c, { t: 'state', state: E.view(game, seat), events: filterEvents(events, seat), by, seq, seat, mine: controls(c, by) }); }
 }
 function filterEvents(events, pid) {
   return events.map(e => (e.e === 'card' && e.pid !== pid && e.kind === 'tactic' && e.rarity !== 'legendary') ? { ...e, id: null } : e);
@@ -120,7 +148,7 @@ function onMessage(c, m) {
       if (!lobby.hostId || !lobby.players.some(x => x.id === lobby.hostId && !x.bot)) lobby.hostId = p.id;
       send(c, { t: 'welcome', you: p.id, token: p.token });
       broadcastLobby();
-      if (game) { send(c, { t: 'state', state: E.view(game, p.id), events: [] }); afterChange(); }
+      if (game) { const seat = seatFor(c); send(c, { t: 'state', state: E.view(game, seat), events: [], seat }); afterChange(); }
       return;
     }
     case 'me': {
@@ -131,6 +159,20 @@ function onMessage(c, m) {
       return broadcastLobby();
     }
     case 'settings': if (c.pid !== lobby.hostId || game) return; Object.assign(lobby.settings, pick(m.settings, ['mode', 'mapSize', 'mapType', 'timer', 'maxRounds', 'conquestPct', 'seed'])); return broadcastLobby();
+    case 'addLocal': {
+      if (game || !c.pid || lobby.players.length >= 6) return;
+      const n = lobby.players.filter(p => p.local).length + 2;
+      lobby.players.push({ id: 'p' + nextPid++, token: null, name: 'Player ' + n, color: freeColor(), faction: Object.keys(E.FACTIONS)[Math.floor(Math.random() * 5)], bot: false, local: true, controller: c.pid });
+      return broadcastLobby();
+    }
+    case 'seatCfg': {
+      const sp = lobby.players.find(p => p.id === m.id && p.local && p.controller === c.pid);
+      if (!sp || game) return;
+      if (m.name) sp.name = String(m.name).slice(0, 16);
+      if (m.faction && E.FACTIONS[m.faction]) sp.faction = m.faction;
+      if (m.color && E.COLORS.includes(m.color) && !lobby.players.some(x => x.color === m.color && x !== sp)) sp.color = m.color;
+      return broadcastLobby();
+    }
     case 'addBot': {
       if (c.pid !== lobby.hostId || game || lobby.players.length >= 6) return;
       const used = new Set(lobby.players.map(p => p.name));
@@ -146,8 +188,10 @@ function onMessage(c, m) {
       return broadcastLobby();
     }
     case 'kick': {
-      if (c.pid !== lobby.hostId || game || m.id === c.pid) return;
-      lobby.players = lobby.players.filter(p => p.id !== m.id);
+      if (game || m.id === c.pid) return;
+      const target = lobby.players.find(p => p.id === m.id);
+      if (!target || !(c.pid === lobby.hostId || (target.local && target.controller === c.pid))) return;
+      lobby.players = lobby.players.filter(p => p.id !== m.id && p.controller !== m.id);
       for (const cl of clients) if (cl.pid === m.id) { send(cl, { t: 'kicked' }); cl.pid = null; }
       return broadcastLobby();
     }
@@ -164,10 +208,11 @@ function onMessage(c, m) {
     }
     case 'act': {
       if (!game) return;
-      const r = E.applyAction(game, c.pid, m.action || {});
+      const actor = m.as && controls(c, m.as) ? m.as : c.pid;
+      const r = E.applyAction(game, actor, m.action || {});
       if (!r.ok) return send(c, { t: 'err', msg: r.err, seq: m.seq });
       game.v++;
-      broadcastState(r.events, c.pid, m.seq);
+      broadcastState(r.events, actor, m.seq);
       return afterChange(r.events);
     }
     case 'chat': {
@@ -195,8 +240,8 @@ function onDisconnect(c) {
     // leaving the lobby before a game removes you
     setTimeout(() => {
       if (game || isConnected(c.pid)) return;
-      lobby.players = lobby.players.filter(p => p.id !== c.pid);
-      if (lobby.hostId === c.pid) { const h = lobby.players.find(p => !p.bot); lobby.hostId = h ? h.id : null; }
+      lobby.players = lobby.players.filter(p => p.id !== c.pid && p.controller !== c.pid);
+      if (lobby.hostId === c.pid || !isConnected(lobby.hostId)) { const h = lobby.players.find(p => !p.bot && !p.local && isConnected(p.id)); lobby.hostId = h ? h.id : null; }
       broadcastLobby();
     }, 4000);
   } else broadcastLobby();
@@ -204,9 +249,26 @@ function onDisconnect(c) {
 }
 
 // after every change: schedule bots, timers, idle-skips
-let tradeTimer = null;
+let tradeTimer = null, draftTimer = null;
 function afterChange(events) {
   clearTimeout(botTimer); clearTimeout(turnTimer); clearTimeout(idleTimer);
+  if (game && game.phase === 'draft') {
+    // bots (and disconnected humans, after a grace period) make their draft picks
+    clearTimeout(draftTimer);
+    draftTimer = setTimeout(() => {
+      if (!game || game.phase !== 'draft') return;
+      for (const pl of game.players) {
+        const lp = lobby.players.find(x => x.id === pl.id);
+        if (!lp || game.draft.picked[pl.id]) continue;
+        if (!(lp.bot || autoPids.has(pl.id))) continue;
+        const a = draftStep(game, pl.id);
+        const r = a && E.applyAction(game, pl.id, a);
+        if (r && r.ok) { game.v++; broadcastState(r.events, pl.id); if (!game || game.phase !== 'draft') break; }
+      }
+      afterChange();
+    }, 900);
+    return;
+  }
   if (!game || game.phase !== 'play') return;
   if (game.trade && !tradeTimer) {
     const target = lobby.players.find(p => p.id === game.trade.to);
@@ -223,13 +285,14 @@ function afterChange(events) {
   if ((lp && lp.bot) || autoPids.has(cur.id)) {
     let delay = 450;
     if (events) for (const e of events) {
-      if (e.e === 'combat') delay = Math.max(delay, 5200);
+      if (e.e === 'combat') delay = Math.max(delay, 5600);
+      else if (e.e === 'crate') delay = Math.max(delay, 3200);
       else if (e.e === 'eliminate' || e.e === 'tactic') delay = Math.max(delay, 2600);
       else if (e.e === 'move') delay = Math.max(delay, 500 + e.path.length * 170);
       else if (e.e === 'turn') delay = Math.max(delay, 1500);
       else if (e.e === 'card') delay = Math.max(delay, 1200);
     }
-    botTimer = setTimeout(runBot, delay);
+    botTimer = setTimeout(runBot, delay * (process.env.SECTOR_FAST ? 0.25 : 1));
     return;
   }
   if (game.turn.deadline) {
