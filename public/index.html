@@ -22,12 +22,13 @@
     <input id="nameIn" maxlength="16" placeholder="Commander" autocomplete="off">
     <button id="joinBtn" class="btn big red">ENLIST</button>
     <div class="hint">Everyone on the same Wi-Fi / LAN opens this server's address to join.</div>
+    <button class="btn ghost" id="indexBtn3">CARD INDEX</button>
   </div>
   <div id="lobbyBox" class="lobby" hidden>
     <div class="panel lobby-players">
       <h3>COMMANDERS <span id="pCount"></span></h3>
       <div id="playerList"></div>
-      <div class="row"><button id="addBot" class="btn">+ ADD BOT</button></div>
+      <div class="row"><button id="addBot" class="btn">+ ADD BOT</button><button id="addLocal" class="btn" title="Pass &amp; play: another player on this device">+ LOCAL PLAYER</button></div>
       <div class="lan" id="lanBox"></div>
     </div>
     <div class="panel lobby-me">
@@ -47,13 +48,14 @@
       <button id="startBtn" class="btn big red">DEPLOY</button>
       <div id="waitHost" class="hint" hidden>Waiting for the host to start…</div>
       <button class="btn ghost" id="rulesBtn2">HOW TO PLAY</button>
+      <button class="btn ghost" id="indexBtn2">CARD INDEX</button>
     </div>
   </div>
 </section>
 
 <!-- ───────── in-game HUD ───────── -->
 <section id="hud" hidden>
-  <div id="topbar"><div id="roundBox"></div><div id="players"></div><div class="top-btns"><button id="muteBtn" class="icon-btn" title="Sound">♪</button><button id="rulesBtn" class="icon-btn" title="How to play">?</button></div></div>
+  <div id="topbar"><div id="roundBox"></div><div id="players"></div><div class="top-btns"><button id="muteBtn" class="icon-btn" title="Sound">♪</button><button id="indexBtn" class="icon-btn" title="Card index">▤</button><button id="rulesBtn" class="icon-btn" title="How to play">?</button></div></div>
   <div id="cashBox" class="panel">
     <div class="cash-row"><span class="cur">$</span><span id="cash">0</span></div>
     <div id="incomeLine" class="sub"></div>
@@ -68,16 +70,22 @@
   <div id="hexPanel" class="panel" hidden></div>
   <div id="modeHint" hidden></div>
   <div id="bottom">
-    <div id="hotbar"><div class="hb-row" id="hbUnits"></div><div class="hb-row" id="hbBuild"></div></div>
+    <div id="deckBar"><div class="bar-label">DEPLOY · 1–0</div><div id="hbUnits"></div></div>
     <div id="hand"></div>
   </div>
   <div id="slotTip" hidden></div>
+  <div id="buildBar"><div class="bar-label">BUILD · Z–M</div><div id="hbBuild"></div></div>
   <button id="endBtn" class="btn big red">END TURN</button>
   <div id="banner"></div>
 </section>
 
 <div id="supply" hidden></div>
 <div id="trade" hidden></div>
+<div id="crate" hidden></div>
+<div id="draft" hidden></div>
+<div id="index" hidden></div>
+<div id="modal" hidden></div>
+<div id="passCover" hidden></div>
 <div id="offerPop" hidden></div>
 <div id="flyLayer"></div>
 <div id="combat" hidden></div>
@@ -91,6 +99,7 @@
 <script src="audio.js"></script>
 <script src="art.js"></script>
 <script src="render.js"></script>
+<script src="cards.js"></script>
 <script src="main.js"></script>
 </body>
 </html>
