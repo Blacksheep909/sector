@@ -18,10 +18,10 @@ Procedural maps · card drafting · naval warfare · Balatro-style dice combat.
 ## Play in 30 seconds
 
 1. Download **`Sector.exe`** from the [latest release](../../releases/latest).
-2. Double-click it. The game opens in its own window. Click **🖥 SERVER** in the menu to see your invite addresses and who's connected, and to stop the server.
-3. Friends on the **same network** run `Sector.exe` too and choose **Join a game → Scan network**, or just type an invite address into any browser (for example `http://192.168.1.20:3000`).
+2. Double-click it. The **SECTOR server window** opens, a live dashboard with your addresses, players and status. Press **O** to open the game in your browser (or go to `http://localhost:3000`).
+3. Friends on the **same network** open the **INVITE** address shown in the server window in their browser (for example `http://192.168.1.20:3000`). Press **C** to copy it. They can also run `Sector.exe` and use **Join a game → Scan network**.
 
-**Updates install themselves.** Sector.exe checks this repo's releases, and when there's a new version the Server panel offers **Update & restart**. Only the host needs the exe: friends who join through a browser always get the host's version.
+**Updates install themselves.** Sector.exe checks this repo's releases, and when there's a new version the server window says so: press **U** to update and restart. Only the host needs the exe: friends who join through a browser always get the host's version.
 
 > The first launch asks for network access. Tick **Private networks** so friends can connect. Windows SmartScreen may warn that the exe is unsigned: click *More info → Run anyway*.
 
@@ -117,7 +117,7 @@ shared/engine.js     all game rules (authoritative on the server; also used in t
 shared/bot.js        AI opponents
 public/              the client: render.js (board), main.js (HUD & flow), cards.js (cards, reveals, index),
                      art.js (vector art), audio.js (synth SFX), style.css
-tools/               sim.js (headless bot games), maps.js (map previews), build-exe.js, screenshots.js, e2e-pass.js, e2e-blueprint.js, e2e-spawn.js, balance.js
+tools/               sim.js (headless bot games), maps.js (map previews), build-exe.js, screenshots.js, make-icon.js, e2e-pass.js, e2e-blueprint.js, e2e-spawn.js, balance.js
 docs/                rules, card reference, development notes, screenshots
 ```
 

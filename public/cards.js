@@ -1,5 +1,8 @@
 /* SECTOR — cards: faces, supply crates, opening draft, deck replacement, card index */
 const Cards = (() => {
+  // paint the shared card back once the title font is ready
+  const paintBack = () => { try { document.documentElement.style.setProperty('--card-back', 'url(' + Art.cardBack() + ')'); } catch (e) {} };
+  if (document.fonts && document.fonts.load) document.fonts.load('96px "Black Ops One"').then(paintBack, paintBack); else paintBack();
   const E = SectorEngine;
   const $ = s => document.querySelector(s);
   const el = (tag, cls, html) => { const e = document.createElement(tag); if (cls) e.className = cls; if (html !== undefined) e.innerHTML = html; return e; };
@@ -371,23 +374,30 @@ const Cards = (() => {
     const d = S.draft, me = S.players.find(p => p.id === you);
     if (!d || !me) { box.hidden = true; draftKey = ''; return; }
     const picked = !!d.picked[you];
-    const key = d.round + ':' + picked + ':' + Object.keys(d.picked).length;
-    if (key === draftKey && !box.hidden) return;
-    const fresh = !draftKey.startsWith(d.round + ':false') || !picked && draftKey === '';
+    const round = Math.min(d.rounds, (d.step[you] || 0) + 1);
+    const progress = S.players.map(p => d.picked[p.id] ? 'x' : (d.step[p.id] || 0)).join(',');
+    const key = round + ':' + picked + ':' + (picked ? progress : '');
+    if (key === draftKey && !box.hidden) {
+      // others progressing while I pick: just refresh the status chips
+      const w = box.querySelector('.dr-who'); if (w) w.outerHTML = whoHtml(S, d);
+      return;
+    }
+    const fresh = draftKey === '';
     draftKey = key;
     box.hidden = false; box.innerHTML = '';
     box.appendChild(el('div', 'sd-rays'));
     box.appendChild(el('h2', '', 'OPENING DRAFT'));
-    box.appendChild(el('div', 'dr-round', [1, 2, 3].map(i => `<i class="${i < d.round ? 'done' : i === d.round ? 'now' : ''}"></i>`).join('') + `<span>ROUND ${d.round} / ${d.rounds}</span>`));
-    const who = el('div', 'dr-who', S.players.map(p => `<span class="${d.picked[p.id] ? 'ok' : ''}" style="--pc:${p.color}">${d.picked[p.id] ? '✓' : '…'} ${p.name}</span>`).join(''));
+    box.appendChild(el('div', 'dr-round', [1, 2, 3].map(i => `<i class="${picked || i < round ? 'done' : i === round ? 'now' : ''}"></i>`).join('') + `<span>${picked ? 'ALL PICKS IN' : 'PICK ' + round + ' / ' + d.rounds}</span>`));
+    const who = el('div', '', whoHtml(S, d)).firstChild;
     if (picked) {
-      box.appendChild(el('div', 'sub', 'Locked in. Waiting for the other commanders…'));
+      const left = S.players.filter(p => p.alive && !d.picked[p.id]).length;
+      box.appendChild(el('div', 'sub', `Locked in. Waiting for ${left} commander${left === 1 ? '' : 's'} to finish drafting…`));
       box.appendChild(who);
       const deck = el('div', 'dr-deck'); me.arsenal.forEach(id => deck.appendChild(make(id, { mini: true, level: me.levels[id] || 0 })));
       box.appendChild(deck);
       return;
     }
-    box.appendChild(el('div', 'sub', 'Everyone picks at the same time. Choose 1 of 3 — you get 3 picks before the war starts.'));
+    box.appendChild(el('div', 'sub', 'Choose 1 of 3. Go at your own pace — the war starts when everyone has made all 3 picks.'));
     const row = el('div', 'cr-cards');
     const offer = d.offers[you] || [];
     offer.forEach((id, i) => {
@@ -411,6 +421,10 @@ const Cards = (() => {
     const dslots = [...row.children].map((f, i) => ({ flip: f, front: f.querySelector('.cfront'), d: E.cardDef(offer[i]) }));
     const tok = box.dataset.tok = String(Math.random());
     (async () => { await sleep(fresh ? 450 : 150); if (box.dataset.tok !== tok) return; await dealIn(dslots); if (box.dataset.tok !== tok) return; await revealRow(box, dslots); })();
+  }
+  const esc = s => String(s).replace(/[&<>"]/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;' })[c]);
+  function whoHtml(S, d) {
+    return '<div class="dr-who">' + S.players.map(p => { const n = d.picked[p.id] ? d.rounds : (d.step[p.id] || 0); return `<span class="${d.picked[p.id] ? 'ok' : ''}" style="--pc:${p.color}">${d.picked[p.id] ? '✓' : n + '/' + d.rounds} ${esc(p.name)}</span>`; }).join('') + '</div>';
   }
   function hideDraft() { $('#draft').hidden = true; draftKey = ''; }
 

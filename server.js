@@ -16,7 +16,7 @@ const REPO = 'Blacksheep909/sector';
 const STARTED = Date.now();
 const PUBLIC = path.join(__dirname, 'public');
 const SERVER_ID = crypto.randomBytes(6).toString('hex'); // lets LAN scanners spot one server reachable on several addresses
-const MIME = { '.html': 'text/html', '.js': 'text/javascript', '.css': 'text/css', '.png': 'image/png', '.svg': 'image/svg+xml', '.ico': 'image/x-icon', '.json': 'application/json', '.woff2': 'font/woff2' };
+const MIME = { '.html': 'text/html; charset=utf-8', '.js': 'text/javascript', '.css': 'text/css', '.png': 'image/png', '.svg': 'image/svg+xml', '.ico': 'image/x-icon', '.json': 'application/json', '.woff2': 'font/woff2' };
 
 function lanAddresses() {
   const out = [];
@@ -27,13 +27,22 @@ function lanAddresses() {
 // packaged as a single executable? then client files are embedded assets
 let sea = null;
 try { sea = require('node:sea'); if (!sea.isSea()) sea = null; } catch (e) { sea = null; }
-// the packaged exe has no console window: keep a log file instead
+// in a real terminal the server draws a live dashboard; log lines go to its activity feed and a log file
+const TUI = !!process.stdout.isTTY && !process.env.SECTOR_PLAIN;
 const LOG_FILE = path.join(os.tmpdir(), 'sector-server.log');
-if (sea && !process.env.SECTOR_CONSOLE) {
+const activity = [];
+function note(text) {
+  const line = String(text).trim(); if (!line) return;
+  try { fs.appendFileSync(LOG_FILE, new Date().toISOString() + ' ' + line + '\n'); } catch (e) {}
+  if (!TUI) return void process.stdout.write('  ' + line + '\n');
+  activity.push([new Date().toTimeString().slice(0, 5), line]); if (activity.length > 60) activity.shift();
+  if (typeof tuiDraw === 'function') setImmediate(tuiDraw);
+}
+if (TUI) {
   try { fs.writeFileSync(LOG_FILE, 'SECTOR v' + VERSION + ' ' + new Date().toISOString() + '\n'); } catch (e) {}
-  const w = (...a) => { try { fs.appendFileSync(LOG_FILE, a.map(x => x instanceof Error ? x.stack : String(x)).join(' ') + '\n'); } catch (e) {} };
+  const w = (...a) => { for (const l of a.map(x => x instanceof Error ? x.stack : String(x)).join(' ').split('\n')) note(l.replace(/^\s*\[(game|server)\]\s*/, '')); };
   console.log = console.info = console.warn = console.error = w;
-  process.on('uncaughtException', e => w('[crash]', e));
+  process.on('uncaughtException', e => w('[crash] ' + (e && e.stack || e)));
 }
 const isLoopback = req => ['127.0.0.1', '::1', '::ffff:127.0.0.1'].includes(req.socket.remoteAddress);
 
@@ -167,7 +176,8 @@ function onMessage(c, m) {
         if (lobby.players.length >= 8) return send(c, { t: 'err', msg: 'Lobby is full' });
         p = { id: 'p' + nextPid++, token: crypto.randomBytes(12).toString('hex'), name: String(m.name || 'Commander').slice(0, 16), color: freeColor(), faction: Object.keys(E.FACTIONS)[Math.floor(Math.random() * 5)], bot: false };
         lobby.players.push(p);
-      }
+        note(p.name + ' joined from ' + addrOf(c));
+      } else if (!isConnected(p.id)) note(p.name + ' reconnected');
       c.pid = p.id;
       if (!lobby.hostId || !lobby.players.some(x => x.id === lobby.hostId && !x.bot)) lobby.hostId = p.id;
       send(c, { t: 'welcome', you: p.id, token: p.token });
@@ -258,6 +268,7 @@ function onMessage(c, m) {
         pushLeave(seats);
       } else lobby.players = lobby.players.filter(p => !seats.includes(p.id));
       if (seats.includes(lobby.hostId)) { const h = lobby.players.find(p => !p.bot && !p.local && isConnected(p.id) && !seats.includes(p.id)); lobby.hostId = h ? h.id : null; }
+      { const p = lobby.players.find(x => x.id === seats[0]); if (p) note(p.name.replace(/ \(bot\)$/, '') + (game ? ' left — a bot took over' : ' left the lobby')); }
       c.pid = null; c.left = true;
       send(c, { t: 'left' });
       broadcastLobby();
@@ -282,7 +293,9 @@ function endGame() {
   broadcastLobby();
 }
 
+const addrOf = c => { const a = (c.socket.remoteAddress || '').replace('::ffff:', ''); return a === '127.0.0.1' || a === '::1' ? 'this PC' : a; };
 function onDisconnect(c) {
+  { const p = c.pid && lobby.players.find(x => x.id === c.pid); if (p && !c.left) note(p.name + ' disconnected'); }
   if (!game && c.pid) {
     // leaving the lobby before a game removes you
     setTimeout(() => {
@@ -384,6 +397,7 @@ function hostApi(req, res, url) {
   if (!isLoopback(req)) return json(403, { err: 'host panel is only available on the host computer' });
   if (req.method === 'POST' && req.headers['x-sector-host'] !== '1') return json(403, { err: 'bad request' });
   if (url === '/host' && req.method === 'GET') {
+    lastPanelAt = Date.now();
     const conns = [...clients].filter(c => !c.left).map(c => {
       const p = lobby.players.find(x => x.id === c.pid);
       const addr = (c.socket.remoteAddress || '').replace('::ffff:', '');
@@ -391,21 +405,24 @@ function hostApi(req, res, url) {
     });
     return json(200, {
       version: VERSION, uptime: Date.now() - STARTED, port: PORT, lan: lanAddresses().map(a => 'http://' + a + ':' + PORT), packaged: !!sea,
-      clients: conns, bots: lobby.players.filter(p => p.bot).length, inGame: !!game, round: game ? game.turn.round : 0, phase: game ? game.phase : 'lobby',
+      clients: conns, bots: lobby.players.filter(p => p.bot).length,
+      players: lobby.players.map(p => { const c = [...clients].find(x => x.pid === p.id && !x.left); return { name: p.name, color: p.color, bot: !!p.bot, diff: p.diff, local: !!p.local, host: p.id === lobby.hostId, connected: p.bot || isConnected(p.id), addr: c ? (c.socket.remoteAddress || '').replace('::ffff:', '').replace(/^(127\.0\.0\.1|::1)$/, 'this PC') : null }; }), inGame: !!game, round: game ? game.turn.round : 0, phase: game ? game.phase : 'lobby',
       update: { ...updateInfo, canApply: !!sea && process.platform === 'win32' && !!updateInfo.url }, log: sea ? LOG_FILE : null,
     });
   }
+  if (url === '/host/play' && req.method === 'POST') { openAppWindow('http://localhost:' + PORT, 'game'); return json(200, { ok: true }); }
   if (url === '/host/stop' && req.method === 'POST') { json(200, { ok: true }); return shutdown('The host stopped the server.'); }
   if (url === '/host/check' && req.method === 'POST') { checkUpdate(); return json(200, { ok: true }); }
   if (url === '/host/update' && req.method === 'POST') {
     if (!sea || process.platform !== 'win32') return json(400, { err: 'Auto-update works in the Windows Sector.exe. Download the new version from GitHub.' });
+    note('Update requested from the web panel');
     if (!updateInfo.available || !updateInfo.url) return json(400, { err: 'No update available' });
     applyUpdate(); return json(200, { ok: true });
   }
   json(404, { err: 'unknown' });
 }
 function shutdown(reason, restart) {
-  console.log('[server] shutting down: ' + reason);
+  note('Shutting down: ' + reason);
   for (const c of clients) send(c, { t: 'serverClosed', reason, restart: !!restart });
   setTimeout(() => process.exit(0), 400);
 }
@@ -465,14 +482,93 @@ function applyUpdate() {
 }
 
 // the packaged exe closes itself a minute after the last player leaves (there's no console window to close)
-let lastClientAt = Date.now();
-if (sea || process.env.SECTOR_IDLE_EXIT) setInterval(() => {
-  if ([...clients].some(c => !c.left)) { lastClientAt = Date.now(); return; }
+let lastClientAt = Date.now(), lastPanelAt = 0;
+if (process.env.SECTOR_IDLE_EXIT) setInterval(() => {
+  // the host dashboard polls every 1.5s, so an open dashboard keeps the server alive too
+  if ([...clients].some(c => !c.left) || Date.now() - lastPanelAt < 10000) { lastClientAt = Date.now(); return; }
   if (Date.now() - lastClientAt > (+process.env.SECTOR_IDLE_EXIT || 60) * 1000) shutdown('Nobody is connected.');
 }, 5000);
 
+// ───────────────────────── server console dashboard ─────────────────────────
+function openBrowser(url) {
+  const cp = require('child_process');
+  if (process.platform === 'win32') cp.spawn('cmd.exe', ['/d', '/c', 'start', '""', url], { detached: true, stdio: 'ignore', windowsHide: true }).unref();
+  else cp.spawn(process.platform === 'darwin' ? 'open' : 'xdg-open', [url], { detached: true, stdio: 'ignore' }).unref();
+}
+const fg = hex => { const n = parseInt(String(hex).slice(1), 16) || 0xffffff; return '\x1b[38;2;' + (n >> 16 & 255) + ';' + (n >> 8 & 255) + ';' + (n & 255) + 'm'; };
+const A = { r: '\x1b[0m', b: '\x1b[1m', red: fg('#ff4f5e'), gold: fg('#ffc53d'), green: fg('#59f08a'), blue: fg('#36c9ff'), ink: fg('#f1efe6'), dim: fg('#7f8c98'), banner: '\x1b[1;38;2;255;255;255;48;2;181;43;56m' };
+const vis = s => s.replace(/\x1b\[[0-9;]*m/g, '').length;
+const pad = (s, n) => s + ' '.repeat(Math.max(0, n - vis(s)));
+let quitArm = 0, lastPhase = null;
+function tuiDraw() {
+  if (!TUI) return;
+  const out = process.stdout, cols = Math.max(50, out.columns || 80), rows = Math.max(20, out.rows || 30), W = Math.min(cols - 4, 76);
+  const rule = '  ' + A.dim + '─'.repeat(W) + A.r, L = [], label = t => '  ' + A.gold + A.b + pad(t, 12) + A.r;
+  const phase = game ? game.phase : 'lobby';
+  if (phase !== lastPhase) { if (lastPhase && phase === 'over' && game && game.winner) { const w = game.players.find(p => p.id === game.winner.pid); setImmediate(() => note('Game over — ' + (w ? w.name : '?') + ' won')); } lastPhase = phase; }
+  const up = Math.floor((Date.now() - STARTED) / 60000);
+  L.push('');
+  L.push('  ' + A.banner + '  ▲ SECTOR SERVER  ' + A.r + '  ' + A.dim + 'v' + VERSION + A.r + '   ' + A.green + '● ONLINE' + A.r + A.dim + ' · up ' + (up < 60 ? up + 'm' : Math.floor(up / 60) + 'h ' + up % 60 + 'm') + A.r);
+  L.push(''); L.push(rule);
+  L.push(label('PLAY HERE') + A.blue + A.b + pad('http://localhost:' + PORT, 30) + A.r + A.dim + 'press O to open in your browser' + A.r);
+  const lan = lanAddresses();
+  if (!lan.length) L.push(label('INVITE') + A.dim + 'No network found — connect to Wi-Fi to play with friends' + A.r);
+  lan.forEach((a, i) => L.push((i ? '  ' + pad('', 12) : label('INVITE')) + A.green + A.b + pad('http://' + a + ':' + PORT, 30) + A.r + (i ? '' : A.dim + 'same Wi-Fi · C copies it' + A.r)));
+  L.push(rule);
+  const alive = game ? game.players.filter(p => p.alive).length : 0;
+  const status = !game ? 'Lobby open — waiting for the host to press DEPLOY' : phase === 'spawn' ? 'Commanders are choosing HQ locations' : phase === 'draft' ? 'Opening draft in progress' : phase === 'over' ? 'Game over' : 'War in progress · round ' + game.turn.round + ' · ' + alive + ' commanders standing · ' + (game.players[game.turn.idx] || {}).name + "'s turn";
+  L.push(label('STATUS') + A.ink + status + A.r);
+  const counts = {}; if (game) for (const k in game.map.tiles) { const o = game.map.tiles[k].owner; if (o) counts[o] = (counts[o] || 0) + 1; }
+  if (!lobby.players.length) L.push(label('COMMANDERS') + A.dim + 'Nobody yet — press O to open the game' + A.r);
+  lobby.players.slice(0, 8).forEach((p, i) => {
+    const c = [...clients].find(x => x.pid === p.id && !x.left), gp = game && game.players.find(x => x.id === p.id);
+    const tags = [p.id === lobby.hostId ? A.gold + 'HOST' + A.r : '', p.bot ? A.dim + 'bot · ' + (p.diff || 'medium') + A.r : p.local ? A.dim + 'local player' + A.r : c ? A.dim + addrOf(c) + A.r : A.red + 'disconnected' + A.r,
+      gp ? (gp.alive ? A.dim + (counts[p.id] || 0) + ' hexes' + A.r : A.red + 'eliminated' + A.r) : ''].filter(Boolean).join(A.dim + ' · ' + A.r);
+    L.push((i ? '  ' + pad('', 12) : label('COMMANDERS')) + fg(p.color) + '■ ' + A.r + A.ink + pad(p.name, 20) + A.r + tags);
+  });
+  L.push(rule);
+  const u = updateInfo;
+  let upd;
+  if (u.state === 'downloading') { const n = Math.round(u.pct / 5); upd = A.blue + 'Downloading v' + u.latest + '  [' + '█'.repeat(n) + '░'.repeat(20 - n) + '] ' + u.pct + '%' + A.r; }
+  else if (u.state === 'restarting') upd = A.blue + 'Restarting into v' + u.latest + '…' + A.r;
+  else if (u.available) upd = A.green + A.b + '★ v' + u.latest + ' is out!' + A.r + A.ink + (sea && process.platform === 'win32' ? '  Press U to update and restart.' : '  Download it from GitHub.') + A.r + (u.err ? A.red + '  (' + u.err + ')' + A.r : '');
+  else upd = A.dim + (process.env.SECTOR_NO_UPDATE ? 'Update checks are off' : u.latest ? 'Up to date (latest release v' + u.latest + ')' : u.checked ? "Couldn't reach GitHub to check for updates" : 'Checking GitHub for updates…') + A.r;
+  L.push(label('UPDATES') + upd);
+  L.push(rule);
+  const room = Math.max(2, rows - L.length - 4);
+  const act = activity.slice(-room);
+  if (!act.length) L.push(label('ACTIVITY') + A.dim + 'Quiet so far.' + A.r);
+  act.forEach((a, i) => L.push((i ? '  ' + pad('', 12) : label('ACTIVITY')) + A.dim + a[0] + '  ' + A.r + A.ink + a[1].slice(0, W - 20) + A.r));
+  L.push(rule);
+  const key = (k, t) => A.b + A.ink + '[' + A.gold + k + A.ink + ']' + A.r + A.dim + ' ' + t + A.r;
+  L.push('  ' + (quitArm > Date.now() ? A.red + A.b + 'Press Q again to stop the server' + ([...clients].some(c => !c.left && c.pid) ? ' — players are connected!' : '') + A.r
+    : [key('O', 'Open game'), key('C', 'Copy invite'), key('U', 'Update'), key('Q', 'Stop server')].join('   ')));
+  out.write('\x1b[H' + L.slice(0, rows - 1).map(l => l + '\x1b[K').join('\n') + '\x1b[J');
+}
+function tuiStart() {
+  const out = process.stdout;
+  process.title = 'SECTOR Server';
+  out.write('\x1b]0;SECTOR Server\x07\x1b[?25l\x1b[2J');
+  process.on('exit', () => { try { out.write('\x1b[?25h\x1b[0m\n'); } catch (e) {} });
+  out.on('resize', () => { out.write('\x1b[2J'); tuiDraw(); });
+  if (process.stdin.isTTY) {
+    process.stdin.setRawMode(true); process.stdin.resume(); process.stdin.setEncoding('utf8');
+    process.stdin.on('data', k => {
+      const key = k.toLowerCase();
+      if (key === 'o' || key === '\r') { openBrowser('http://localhost:' + PORT); note('Opened the game in your browser'); }
+      else if (key === 'c') { const a = lanAddresses()[0]; if (!a) return note('No network address to copy'); const url = 'http://' + a + ':' + PORT; if (process.platform === 'win32') { const p = require('child_process').spawn('clip', [], { windowsHide: true }); p.stdin.end(url); } note('Copied ' + url + ' — paste it to your friends'); }
+      else if (key === 'u') { if (updateInfo.available && sea && process.platform === 'win32' && updateInfo.url) { note('Updating to v' + updateInfo.latest + '…'); applyUpdate(); } else if (updateInfo.available) { openBrowser(updateInfo.page); note('Opened the download page'); } else { note('Checking for updates…'); checkUpdate(); } }
+      else if (key === 'q' || k === '\u0003') { if (quitArm > Date.now()) shutdown('The host stopped the server.'); else { quitArm = Date.now() + 3000; setTimeout(tuiDraw, 3100); } }
+      tuiDraw();
+    });
+  }
+  setInterval(tuiDraw, 1000);
+  tuiDraw();
+}
+
 // open the game in its own app window (Edge/Chrome --app: no tabs, no address bar), else the default browser
-function openGameWindow(url) {
+function openGameWindow(url) { openAppWindow(url, 'game'); }
+function openAppWindow(url, kind) {
   const cp = require('child_process');
   if (process.platform === 'win32') {
     const pf = [process.env['ProgramFiles(x86)'], process.env.ProgramFiles, process.env.LOCALAPPDATA].filter(Boolean);
@@ -481,9 +577,10 @@ function openGameWindow(url) {
     const exe = cands.find(f => { try { return fs.existsSync(f); } catch (e) { return false; } });
     if (exe) {
       const prof = path.join(os.tmpdir(), 'sector-app-profile');
-      const child = cp.spawn(exe, ['--app=' + url, '--window-size=1600,900', '--user-data-dir=' + prof, '--no-first-run', '--autoplay-policy=no-user-gesture-required'], { detached: true, stdio: 'ignore' });
+      const size = kind === 'host' ? '540,860' : '1600,900';
+      const child = cp.spawn(exe, ['--app=' + url, '--window-size=' + size, '--user-data-dir=' + prof, '--no-first-run', '--no-default-browser-check', '--autoplay-policy=no-user-gesture-required'], { detached: true, stdio: 'ignore' });
       child.unref();
-      console.log('  Opened the game window. (Close it any time; reopen with ' + url + ')');
+      console.log('  Opened the ' + kind + ' window: ' + url);
       return;
     }
     cp.exec('start "" "' + url + '"', () => {});
@@ -497,7 +594,7 @@ server.on('error', err => {
     probed = true;
     http.get({ host: '127.0.0.1', port: PORT, path: '/info', timeout: 1500 }, res => {
       let b = ''; res.on('data', d => { b += d; }); res.on('end', () => {
-        try { if (JSON.parse(b).game === 'sector') { openGameWindow('http://localhost:' + PORT); return setTimeout(() => process.exit(0), 1500); } } catch (e) {}
+        try { if (JSON.parse(b).game === 'sector') { process.stdout.write('\n  SECTOR is already running at http://localhost:' + PORT + ' — opening it in your browser.\n'); openBrowser('http://localhost:' + PORT); return setTimeout(() => process.exit(0), 2500); } } catch (e) {}
         PORT++; server.listen(PORT, '0.0.0.0');
       });
     }).on('error', () => { PORT++; server.listen(PORT, '0.0.0.0'); });
@@ -508,12 +605,13 @@ server.on('error', err => {
 });
 server.on('listening', () => {
   const lan = lanAddresses();
+  checkUpdate(); setInterval(checkUpdate, 30 * 60 * 1000).unref();
+  if (TUI) { tuiStart(); note('Server started on port ' + PORT); return; }
   console.log('\n  ███ SECTOR v' + VERSION + ' server running ███\n');
   console.log('  This computer:  http://localhost:' + PORT);
   for (const a of lan) console.log('  Same network:   http://' + a + ':' + PORT);
   console.log('\n  Share a "Same network" link with friends on your Wi-Fi/LAN.');
-  console.log(sea ? '  Manage the server from the SERVER button in the game window.\n' : '  Keep this window open while you play. Close it to stop the server.\n');
-  checkUpdate(); setInterval(checkUpdate, 30 * 60 * 1000).unref();
-  if ((sea || process.env.SECTOR_OPEN) && !process.env.SECTOR_NO_OPEN) openGameWindow('http://localhost:' + PORT);
+  console.log('  Keep this window open while you play. Close it to stop the server.\n');
+  if (process.env.SECTOR_OPEN && !process.env.SECTOR_NO_OPEN) openBrowser('http://localhost:' + PORT);
 });
 server.listen(PORT, '0.0.0.0');

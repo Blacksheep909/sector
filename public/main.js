@@ -49,7 +49,7 @@
         toast(m.msg, 'err'); SFX.error(); break;
       case 'serverClosed': serverClosed(m); break;
       case 'chat': addLog(`<b style="--c:${m.color}">${esc(m.from)}:</b> ${esc(m.text)}`, 'chat'); SFX.click(); break;
-      case 'left': leftGame = true; token = null; try { localStorage.removeItem('sector.token'); } catch (e) {} you = null; realId = null; joinedOnce = false; S = null; Render.setState(null); msgQ = []; $('#escMenu').hidden = true; showMenu(); showJoin(); toast('You left the game'); break;
+      case 'left': leftGame = true; token = null; try { localStorage.removeItem('sector.token'); } catch (e) {} you = null; realId = null; joinedOnce = false; backToMenu(); toast('You left the game'); break;
       case 'kicked': token = null; try { localStorage.removeItem('sector.token'); } catch (e) {} you = null; toast('You were removed from the lobby', 'err'); showJoin(); break;
     }
   }
@@ -485,6 +485,17 @@
     $('#escLeave').textContent = spectator || !myP() ? 'BACK TO MENU' : 'LEAVE GAME';
   }
   function closeEsc() { $('#escMenu').hidden = true; }
+  // tear down every in-game overlay and return to the title screen
+  function backToMenu() {
+    S = null; Render.setState(null); msgQ = []; plan = []; sel = null; mode = null; passTo = null; unlocked = null; lastTurnKey = '';
+    for (const k in plans) delete plans[k];
+    Cards.hideDraft(); Cards.closeSupply(); Cards.closeCrate();
+    for (const id of ['#escMenu', '#trade', '#modal', '#offerPop', '#victory', '#passCover', '#index', '#rules']) { const e = $(id); if (e) e.hidden = true; }
+    for (const id of ['#siegeWarn', '#spawnBar']) { const e = $(id); if (e) e.remove(); }
+    const z = $('#cardZoom'); if (z) z.hidden = true;
+    document.body.classList.remove('pp-idle');
+    showMenu(); showJoin();
+  }
 
   // ───────────── host panel: only answers on the computer running the server ─────────────
   let hostInfo = null, hostTimer = null, closedFor = null, stopArm = 0;
@@ -515,7 +526,7 @@
       <div class="hp-list">${h.clients.map(c => `<div class="hp-row"><span>${esc(c.name)}${c.seats > 1 ? ` <small>+${c.seats - 1} local</small>` : ''}</span><span class="tags">${c.host ? '<i class="gold">HOST</i>' : ''}${c.here ? '<i>THIS PC</i>' : `<i>${esc(c.addr)}</i>`}</span></div>`).join('') || '<div class="sub">Nobody yet.</div>'}</div>
       <h3>UPDATES</h3>${up}
       <div class="row hp-btns"><button class="btn big" id="hpClose">CLOSE</button><button class="btn big red" id="hpStop">${stopArm > Date.now() ? 'CLICK AGAIN TO STOP' : 'STOP SERVER'}</button></div>
-      <div class="hint">${h.packaged ? 'The server also shuts itself down a minute after everyone leaves.' : 'Running from source — stop it with Ctrl+C in its terminal, or here.'}</div>`;
+      <div class="hint">You can also manage it from the SECTOR server window (press Q there to stop).</div>`;
     card.querySelectorAll('[data-copy]').forEach(b => b.onclick = () => { navigator.clipboard && navigator.clipboard.writeText(b.dataset.copy); b.textContent = 'COPIED'; SFX.coin(1); setTimeout(() => b.textContent = 'COPY', 1200); });
     $('#hpClose').onclick = closeHost;
     $('#hpStop').onclick = async () => {
@@ -554,7 +565,7 @@
     if ($('#escLeave').dataset.armed !== '1' && myP() && S.phase === 'play') { $('#escLeave').dataset.armed = '1'; $('#escLeave').textContent = 'CLICK AGAIN TO LEAVE'; setTimeout(() => { $('#escLeave').dataset.armed = ''; if (!$('#escMenu').hidden) openEsc(); }, 2500); return; }
     $('#escLeave').dataset.armed = '';
     SFX.click(); send({ t: 'leave' });
-    if (!myP()) { S = null; Render.setState(null); closeEsc(); showMenu(); showJoin(); }
+    if (!myP()) backToMenu();
   };
   $('#escEnd').onclick = () => {
     if ($('#escEnd').dataset.armed !== '1') { $('#escEnd').dataset.armed = '1'; $('#escEnd').textContent = 'CLICK AGAIN — ENDS IT FOR ALL'; setTimeout(() => { $('#escEnd').dataset.armed = ''; $('#escEnd').textContent = 'END GAME FOR EVERYONE'; }, 2500); return; }
@@ -1338,7 +1349,7 @@
           break;
         }
         case 'scrap': if (ev.pid === you) Render.float(ev.hq, '+$' + ev.amount, '#ffc53d', 22); break;
-        case 'draft': if (ev.round > 1) SFX.card(); break;
+        case 'draft': if (ev.round > 1 && ev.pid === you) SFX.card(); break;
         case 'draftDone': banner('THE WAR BEGINS', 'Draft complete', '#b52b38'); SFX.yourTurn(); await sleep(900); break;
         case 'card': {
           const d = ev.id ? E.cardDef(ev.id) : null;
@@ -1535,11 +1546,12 @@
     const rows = S.players.slice().sort((a, b) => (counts[b.id] || 0) - (counts[a.id] || 0)).map(p => `<tr><td style="color:${p.color}">■ ${esc(p.name)}</td><td>${E.FACTIONS[p.faction] ? E.FACTIONS[p.faction].name : ''}</td><td>${counts[p.id] || 0}</td><td>${p.stats.captured}</td><td>${p.stats.kills}</td><td>${p.stats.lost}</td></tr>`).join('');
     v.innerHTML = `<div class="vic panel" style="padding:30px 40px"><h1 style="color:${wp.color};text-shadow:0 6px 0 #000">${mine ? 'VICTORY' : myP() ? 'DEFEAT' : 'GAME OVER'}</h1><div class="why"><b style="color:${wp.color}">${esc(wp.name)}</b> ${esc(w.reason)}</div>
       <table class="stats"><tr><th>COMMANDER</th><th>FACTION</th><th>HEXES</th><th>CAPTURED</th><th>KILLS</th><th>LOST</th></tr>${rows}</table>
-      <div class="row" style="justify-content:center"><button class="btn big" id="vicLook">VIEW BOARD</button>${lobby && lobby.hostId === you ? '<button class="btn big red" id="vicLobby">BACK TO LOBBY</button>' : '<span class="sub">Waiting for host…</span>'}</div></div>`;
+      <div class="row" style="justify-content:center"><button class="btn big" id="vicLook">VIEW BOARD</button>${lobby && lobby.hostId === realId ? '<button class="btn big red" id="vicLobby">BACK TO LOBBY</button>' : ''}<button class="btn big gold" id="vicMenu">MAIN MENU</button></div></div>`;
     v.hidden = false;
-    for (let i = 0; i < 6; i++) setTimeout(() => { const k = Object.keys(S.map.tiles).filter(k => S.map.tiles[k].owner === w.pid); const r = k[Math.floor(Math.random() * k.length)]; if (r) { Render.burst(r, [wp.color, '#fff', '#ffc53d'], 30, { speed: 1.6, up: 200, square: true }); } }, i * 300);
+    for (let i = 0; i < 6; i++) setTimeout(() => { if (!S) return; const k = Object.keys(S.map.tiles).filter(k => S.map.tiles[k].owner === w.pid); const r = k[Math.floor(Math.random() * k.length)]; if (r) { Render.burst(r, [wp.color, '#fff', '#ffc53d'], 30, { speed: 1.6, up: 200, square: true }); } }, i * 300);
     $('#vicLook').onclick = () => { v.hidden = true; setTimeout(() => { if (S && S.phase === 'over') { v.hidden = false; } }, 8000); };
     const bl = $('#vicLobby'); if (bl) bl.onclick = () => send({ t: 'toLobby' });
+    $('#vicMenu').onclick = () => { SFX.click(); send({ t: 'leave' }); setTimeout(() => { if (S) backToMenu(); }, 1500); };
   }
 
   // ───────────── misc UI ─────────────
