@@ -83,7 +83,7 @@ Full rules are in **[docs/RULES.md](docs/RULES.md)**.
 You need [Node.js](https://nodejs.org) 22 or newer. There are **no dependencies**, so there's nothing to `npm install`.
 
 ```bash
-git clone https://github.com/<you>/sector.git
+git clone https://github.com/Blacksheep909/sector.git
 cd sector
 node server.js
 ```
