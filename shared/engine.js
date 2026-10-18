@@ -533,7 +533,9 @@
     // ocean maps: every commander starts with a Port so the navy matters from turn one
     if (state.map.arch === 'ocean') {
       const spot = [hq].concat(neighbors(hq)).find(k => state.map.tiles[k] && state.map.tiles[k].owner === pl.id && isLandTile(state.map.tiles[k]) && isCoastal(state, k) && structsOf(state.map.tiles[k]).length < MAX_STRUCTS);
-      if (spot) addStruct(state.map.tiles[spot], { type: 'port', owner: pl.id, lvl: 1 });
+      // an inland HQ gets its Port on the nearest free coast instead (and that hex)
+      const far = spot || area(hq, 3).filter(k => { const t = state.map.tiles[k]; return t && isLandTile(t) && t.t !== 'mountain' && (!t.owner || t.owner === pl.id) && !t.poi && !structsOf(t).length && isCoastal(state, k); }).sort((a, b) => dist(a, hq) - dist(b, hq))[0];
+      if (far) { state.map.tiles[far].owner = pl.id; addStruct(state.map.tiles[far], { type: 'port', owner: pl.id, lvl: 1 }); }
     }
     for (let j = 0; j < 2; j++) addUnit(state, pl.id, 'grunt', hq, false);
   }
