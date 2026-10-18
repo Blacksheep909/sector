@@ -1531,6 +1531,12 @@
         }
         case 'tactic': if (ev.target) { follow(ev.target); await sleep(200); } await animTactic(ev); break;
         case 'undo': if (ev.pid === you) toast('↶ Undone'); break;
+        case 'razed': {
+          Render.burst(ev.hex, ['#ffb03a', '#ff5a2a', '#8a8a8a', '#3a3a3a'], 40, { speed: 1.8, size: 4, up: 160 });
+          Render.ring(ev.hex, '#ff6a2a', 70, 0.5, 5); Render.smoke(ev.hex, 14, 'rgba(90,85,80,');
+          Render.float(ev.hex, 'BUNKER DESTROYED', '#ff8a5a', 17); SFX.boom(1); Render.shake(10);
+          await sleep(500); break;
+        }
         case 'weather': {
           const w = E.WEATHER[ev.id]; if (!w) break;
           banner(w.icon + ' ' + w.name.toUpperCase(), w.desc, '#2a4f6b'); SFX.whoosh(); await sleep(1000); break;
