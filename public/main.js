@@ -717,7 +717,7 @@
     const h = me && S.map.tiles[me.hq] && E.structsOf(S.map.tiles[me.hq]).find(x => x.type === 'hq' && x.owner === you && x.siege);
     if (!h) { if (w) w.remove(); return; }
     if (!w) { w = el('div', '', ''); w.id = 'siegeWarn'; document.body.appendChild(w); w.onclick = () => Render.focus(me.hq); }
-    w.innerHTML = `🔥 YOUR HQ IS UNDER SIEGE by <b>${esc(pName(h.siege.by))}</b> — retake it this turn or you're eliminated <span>(click to look)</span>`;
+    w.innerHTML = `🔥 YOUR HQ IS UNDER SIEGE by <b>${esc(pName(h.siege.by))}</b> — deploy troops next to it (they can attack right away) and retake it this turn, or you're eliminated <span>(click to look)</span>`;
   }
   function renderCash() {
     const me = myP(); const box = $('#cashBox');
@@ -1413,6 +1413,7 @@
           delete Render.unitPos[u.id]; Render.extraUnits.splice(Render.extraUnits.indexOf(u), 1);
           S.units[u.id] = u;
           if (ev.claimed) flipTile(ev.hex, ev.pid, 3);
+          if (ev.muster) { Render.ring(ev.hex, '#ff4a2a', 60, 0.5, 5); Render.float(ev.hex, 'MUSTER! READY TO FIGHT', '#ffb03a', 15); if (ev.pid === you) SFX.rare(); }
           SFX.deploy(); Render.shake(3); Render.burst(ev.hex, ['#c9b78f', '#8f8068'], 14, { up: 30, g: 120, size: 3 }); Render.ring(ev.hex, pColor(ev.pid), 40, 0.4, 3);
           await sleep(120); break;
         }
@@ -1480,7 +1481,7 @@
         case 'siege': {
           follow(ev.hex);
           Render.ring(ev.hex, '#ff4a2a', 120, 0.9, 7); Render.shake(14); SFX.alarm();
-          if (ev.victim === you) banner('YOUR HQ IS UNDER SIEGE', 'Retake it on your turn or you fall', '#b52b38');
+          if (ev.victim === you) banner('YOUR HQ IS UNDER SIEGE', 'Muster troops around it and retake it on your turn', '#b52b38');
           else toast(`🔥 ${pName(ev.pid)} is besieging ${pName(ev.victim)}'s HQ!`, 'leg');
           await sleep(900); break;
         }

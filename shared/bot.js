@@ -97,6 +97,13 @@ function botStep(s, pid, mem) {
   const tiles = s.map.tiles;
   const enemyNear = (k, r) => E.area(k, r).some(a => (idx[a] || []).some(u => u.owner !== pid));
 
+  // 0. HQ under siege: rush defenders onto the muster hexes so the attack logic can retake it this turn
+  { const mh = E.musterHexes(s, pid);
+    if (mh.length && (mem.musterN || 0) < 4) {
+      const land = p.arsenal.filter(t => !E.isSea(t) && E.unitCost(p, t) <= p.cash && E.UNITS[t].atk > 0).sort((a, b) => E.UNITS[b].atk / E.unitCost(p, b) - E.UNITS[a].atk / E.unitCost(p, a));
+      const spot = E.deployHexes(s, pid, land[0] || 'grunt', idx).find(k => mh.includes(k));
+      if (land.length && spot) { mem.musterN = (mem.musterN || 0) + 1; return { a: 'deploy', unit: land[0], hex: spot }; }
+    } }
   // 1. instant / opportunistic tactics
   for (const c of p.tactics) {
     const d = E.TACTICS[c.id];

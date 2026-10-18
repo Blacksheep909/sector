@@ -527,6 +527,12 @@
   }
   function ownedTiles(s, pid) { const o = []; for (const k in s.map.tiles) if (s.map.tiles[k].owner === pid) o.push(k); return o; }
   function ownedLand(s, pid) { const o = []; for (const k in s.map.tiles) { const t = s.map.tiles[k]; if (t.owner === pid && isLandTile(t)) o.push(k); } return o; }
+  // emergency muster: while your HQ is under siege, your own land next to it becomes a deploy point
+  function musterHexes(s, pid) {
+    const p = player(s, pid); if (!p || !p.hq || !s.map.tiles[p.hq]) return [];
+    const h = getS(s.map.tiles[p.hq], 'hq'); if (!h || h.owner !== pid || !h.siege) return [];
+    return neighbors(p.hq).filter(n => { const t = s.map.tiles[n]; return t && t.owner === pid && isLandTile(t) && t.t !== 'mountain'; });
+  }
   function spawnPoints(s, pid) {
     const out = [];
     for (const k in s.map.tiles) {
@@ -534,6 +540,7 @@
       const h = getS(t, 'hq'), f = getS(t, 'fob');
       if ((h && h.owner === pid && !h.siege) || (f && f.owner === pid && !f.lock)) out.push(k);
     }
+    for (const k of musterHexes(s, pid)) if (!out.includes(k)) out.push(k);
     return out;
   }
   function supplySet(s, pid) {
@@ -1020,7 +1027,7 @@
   }
 
   // ───────────────────────── turn flow ─────────────────────────
-  function startTurn(s, ev, rng) {
+  function startTurn(s, ev, rng, preview) {
     if (s.phase !== 'play') return;
     const p = current(s);
     if (!p.alive) return endTurn(s, ev, rng);
@@ -1038,7 +1045,8 @@
       const t = s.map.tiles[k];
       for (const st of structsOf(t)) if (st.lock && st.owner === p.id) delete st.lock;
       const h = getS(t, 'hq');
-      if (h && h.siege && h.siege.by === p.id) {
+      // the blueprint preview must not resolve sieges: it would paint the victim's whole empire in your colour
+      if (h && h.siege && h.siege.by === p.id && !preview) {
         const holding = t.owner === p.id && Object.values(s.units).some(u => u.hex === k && u.owner === p.id);
         if (holding) { const victim = h.owner; eliminate(s, victim, p.id, ev); }
         else { delete h.siege; if (t.owner === p.id) t.owner = h.owner; ev.push({ e: 'siegeBroken', pid: h.owner, hex: k }); pushLog(s, '🛡 The siege of ' + (player(s, h.owner) || {}).name + "'s HQ collapsed."); }
@@ -1316,11 +1324,13 @@
       const cost = unitCost(p, a.unit);
       if (p.cash < cost) return fail('Need $' + cost);
       p.cash -= cost;
-      const u = addUnit(s, pid, a.unit, a.hex, true);
+      // troops mustered next to a besieged HQ can strike back straight away
+      const muster = !isSea(a.unit) && musterHexes(s, pid).includes(a.hex);
+      const u = addUnit(s, pid, a.unit, a.hex, !muster);
       // a ship launched into the sea claims the water it lands on, just like sailing through it
       const claimed = isSea(a.unit) && isWater(tiles[a.hex]) && tiles[a.hex].owner !== pid;
       if (claimed) { tiles[a.hex].owner = pid; p.stats.captured++; }
-      ev.push({ e: 'deploy', pid, unit: { ...u }, hex: a.hex, claimed });
+      ev.push({ e: 'deploy', pid, unit: { ...u }, hex: a.hex, claimed, muster });
       return { ok: true, events: ev };
     }
     if (a.a === 'build') {
@@ -1543,7 +1553,7 @@
     const p = player(c, pid);
     if (!p || !p.alive || c.phase !== 'play') return c;
     c.trade = null;
-    startTurn(c, [], () => 0.5);
+    startTurn(c, [], () => 0.5, true);
     if (c.phase !== 'play' || current(c).id !== pid) return c;
     if (c.turn.stage === 'choose') { if (takeIncome) p.cash += c.turn.income; c.turn.stage = 'act'; }
     c.turn.crate = null; c.turn.offer = [];
@@ -1566,7 +1576,7 @@
     DIRS, key, parse, dist, neighbors, area, line, mulberry32, hashStr,
     POI, RARITY, RARITY_ORDER, CRATES, DROP_TIERS, SCRAP_VALUE, DECK_MAX, MAX_LEVEL, TERRAIN, DIFFICULTY, UNITS, TACTICS, STRUCTS, BUILD_ORDER, UPGRADABLE, MAX_SLVL, FACTIONS, COLORS, MAX_STACK, GRUNT_STACK, stackFits, CLASS_NAME, cardDef,
     generateMap, createGame, applyAction, spawnChoices, startTurn, endTurn, simulateTurnStart, view, drawCards,
-    player, current, buildIndex, canAct, moveAllow, ownedTiles, ownedLand, spawnPoints, supplySet, computeIncome, levelOf, unitAtk, unitDef,
+    player, current, buildIndex, canAct, moveAllow, ownedTiles, ownedLand, spawnPoints, musterHexes, supplySet, computeIncome, levelOf, unitAtk, unitDef,
     reachable, pathTo, rangedTargets, deployHexes, buildHexes, buildError, isSea, isWater, isCoastal, movers, combatCalc, tacticTargets, unitCost, structCost, buildCost, structsOf, MAX_STRUCTS, conquestTarget, isLandTile, flakCovered,
   };
 });
