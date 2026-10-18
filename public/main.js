@@ -322,7 +322,9 @@
   }
   function renderPlan() {
     const box = $('#planBox');
+    if (box.parentNode && box.parentNode.id === 'leftCol') { $('#hud').appendChild(box); box.classList.add('right'); }
     box.hidden = !planning();
+    document.body.classList.toggle('planning', !box.hidden);
     if (box.hidden) return;
     const list = $('#planList'); list.innerHTML = '';
     if (!plan.length) list.innerHTML = '<div class="pempty">Nothing queued. Click units, cards and hexes like normal — orders are saved here.</div>';
@@ -931,7 +933,11 @@
   // any menu opening clears hover-only UI (card zoom, build tips, hex tooltip) so nothing floats on top of it
   function clearHoverUI() { Cards.zoomHide(); hideSlotTip(); const t = $('#tooltip'); if (t) t.hidden = true; }
   { const watched = ['#supply', '#crate', '#draft', '#combat', '#trade', '#offerPop', '#index', '#rules', '#modal', '#escMenu', '#hostPanel', '#victory', '#passCover', '#closedCover'];
-    const mo = new MutationObserver(muts => { if (muts.some(m => !m.target.hidden)) clearHoverUI(); });
+    const covers = ['#supply', '#crate', '#draft', '#index', '#mapReel'];
+    const mo = new MutationObserver(muts => {
+      if (muts.some(m => !m.target.hidden)) clearHoverUI();
+      document.body.classList.toggle('overlay-open', covers.some(id => { const e = $(id); return e && !e.hidden; }));
+    });
     for (const id of watched) { const e = $(id); if (e) mo.observe(e, { attributes: true, attributeFilter: ['hidden'] }); }
     setInterval(() => { if (slotTipFor && (!document.contains(slotTipFor) || !slotTipFor.matches(':hover'))) hideSlotTip(); }, 200); }
 

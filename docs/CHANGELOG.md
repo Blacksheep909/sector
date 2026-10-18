@@ -2,6 +2,13 @@
 
 Every release, newest first. Each version also has its own post on the [Releases page](https://github.com/Blacksheep909/sector/releases).
 
+## v0.6.4
+
+- **Smoother card screens.** The holographic foils on rare, epic and legendary cards used to repaint the whole card every frame and use expensive colour blending. They now slide a GPU layer instead and look the same. While a card screen (draft, resupply, crate, index) is open, everything behind it stops animating.
+- **Supply caches give better loot.** They now hold a real tactic card with proper rarity odds: common 40%, uncommon 35%, rare 18%, epic 6%, legendary 1%. Before, they almost always fell back to a common card.
+- **No more blueprint spoilers.** Planning a move through ruins or a cache no longer shows what's inside; you find out when your units actually get there.
+- **The Blueprint box moved** to the bottom right, so the log and event chips on the left no longer cover it.
+
 ## v0.6.3
 
 - **Real fog of war.** Turn it on in the lobby and the map starts dark.

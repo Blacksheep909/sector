@@ -200,7 +200,7 @@
   };
   const POI = {
     ruins: { name: 'Ruins', desc: 'First unit to arrive loots $4–10.' },
-    cache: { name: 'Supply Cache', desc: 'First unit to arrive finds a tactic card.' },
+    cache: { name: 'Supply Cache', desc: 'First unit to arrive finds a tactic card: usually common or uncommon, sometimes rare, epic or even legendary.' },
     village: { name: 'Village', desc: 'Neutral town with a militia garrison (strength varies). Conquer it for +$2 per turn.' },
     fort: { name: 'Old Fort', desc: 'Garrisoned ruin with a Bunker (★ to ★★★). Take it and the bunker is yours.' },
     relic: { name: 'Ancient Relic', desc: '+$3 per turn while you hold it.' },
@@ -1355,14 +1355,22 @@
     if (!dest || dest.kind === 'start' || dest.kind === 'pass') return { err: 'Cannot reach that hex' };
     return { units, reach, dest, path: pathTo(reach, to) };
   }
+  // supply caches hold a tactic: common 40%, uncommon 35%, rare 18%, epic 6%, legendary 1%
+  function cacheCard(rng) {
+    const odds = [['common', 40], ['uncommon', 35], ['rare', 18], ['epic', 6], ['legendary', 1]];
+    let x = rng() * 100, rar = 'common'; for (const [r, w] of odds) { if (x < w) { rar = r; break; } x -= w; }
+    let pool = Object.keys(TACTICS).filter(id => TACTICS[id].rarity === rar && !id.startsWith('drop_'));
+    if (!pool.length) pool = Object.keys(TACTICS).filter(id => TACTICS[id].rarity === 'rare' && !id.startsWith('drop_'));
+    return pool[Math.floor(rng() * pool.length)];
+  }
   // ruins and caches are looted by the first unit to pass through
   function lootPath(s, pid, path, ev, rng) {
-    const p = player(s, pid); if (!p) return;
+    const p = player(s, pid); if (!p || s._preview) return;
     for (const k of path.slice(1)) {
       const t = s.map.tiles[k];
       if (!t || !(t.poi === 'ruins' || t.poi === 'cache')) continue;
       if (t.poi === 'ruins') { const amt = 4 + Math.floor(rng() * 7); p.cash += amt; ev.push({ e: 'loot', pid, hex: k, poi: 'ruins', amount: amt }); pushLog(s, '🏺 ' + p.name + ' looted ruins: +$' + amt + '.'); }
-      else { const id = drawCards(s, p, 1, { common: 50, uncommon: 35, rare: 15, epic: 0, legendary: 0 }, rng, true).find(x => TACTICS[x]) || 'rally'; p.tactics.push({ uid: s.nextId++, id }); ev.push({ e: 'loot', pid, hex: k, poi: 'cache', card: id }); pushLog(s, '📦 ' + p.name + ' found a supply cache.'); }
+      else { const id = cacheCard(rng); p.tactics.push({ uid: s.nextId++, id }); ev.push({ e: 'loot', pid, hex: k, poi: 'cache', card: id }); pushLog(s, '📦 ' + p.name + ' found a supply cache.'); }
       delete t.poi;
     }
   }
@@ -1678,6 +1686,7 @@
   // planning: the state when this player's turn starts (income paid, crate resolved)
   function simulateTurnStart(s, pid, takeIncome) {
     const c = JSON.parse(JSON.stringify(s));
+    c._preview = true;
     c.turn.idx = c.players.findIndex(p => p.id === pid);
     const p = player(c, pid);
     if (!p || !p.alive || c.phase !== 'play') return c;
