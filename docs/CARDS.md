@@ -49,7 +49,7 @@ Single-use cards from your hand.
 | **Airstrike** | Uncommon | $4 | Bomb enemy units within 4 of your land. Roll: kills 1–3. |
 | **Heli Drop** | Uncommon | $3 | Fly a stack up to 5 hexes onto any empty land and seize it. |
 | **Sabotage** | Uncommon | $3 | Destroy an enemy structure (or bridge) within 3 of your land. |
-| **Embargo** | Uncommon | $3 | Pick an enemy hex: its owner gets only half income next turn. |
+| **Embargo** | Uncommon | $3 | Click any enemy territory: that commander earns half income for their next 2 turns and cannot trade. |
 | **Bounty** | Uncommon | $1 | This turn, earn $2 for every enemy unit you destroy. |
 | **War Bonds** | Rare | $0 | Gain $1 for every 2 hexes you own. |
 | **Blitz Doctrine** | Rare | $3 | This turn: all units +1 move, fresh units may act. |

@@ -141,7 +141,7 @@
     airstrike: { name: 'Airstrike', rarity: 'uncommon', cost: 4, target: 'enemyUnits', range: 4, desc: 'Bomb enemy units within 4 of your land. Roll: kills 1–3.' },
     heli: { name: 'Heli Drop', rarity: 'uncommon', cost: 3, target: 'heli', range: 5, desc: 'Fly a stack up to 5 hexes onto any empty land and seize it.' },
     sabotage: { name: 'Sabotage', rarity: 'uncommon', cost: 3, target: 'enemyStruct', range: 3, desc: 'Destroy an enemy structure (or bridge) within 3 of your land.' },
-    embargo: { name: 'Embargo', rarity: 'uncommon', cost: 3, target: 'enemyHex', desc: 'Pick an enemy hex: its owner gets only half income next turn.' },
+    embargo: { name: 'Embargo', rarity: 'uncommon', cost: 3, target: 'enemyHex', desc: 'Click any enemy territory: that commander earns half income for their next 2 turns and cannot trade.' },
     bounty: { name: 'Bounty', rarity: 'uncommon', cost: 1, target: 'none', desc: 'This turn, earn $2 for every enemy unit you destroy.' },
     bonds: { name: 'War Bonds', rarity: 'rare', cost: 0, target: 'none', desc: 'Gain $1 for every 2 hexes you own.' },
     blitz: { name: 'Blitz Doctrine', rarity: 'rare', cost: 3, target: 'none', desc: 'This turn: all units +1 move, fresh units may act.' },
@@ -423,6 +423,7 @@
       players: [], units: {}, nextId: 1,
       turn: { idx: 0, round: 1, stage: 'choose', offer: [], rerolls: 0, crate: null, income: 0, deadline: 0 },
       draft: { rounds: DRAFT_ROUNDS, offers: {}, step: {}, picked: {} },
+      nP: roster.length,
       log: [], winner: null, trade: null,
     };
     shuffled.forEach((p, i) => {
@@ -434,7 +435,6 @@
       };
       const starter = FACTIONS[p.faction] ? FACTIONS[p.faction].starter : null;
       if (starter && !pl.arsenal.includes(starter)) pl.arsenal.push(starter);
-      pl.arsenal.push('ark');
       pl.tactics.push({ uid: state.nextId++, id: 'drop_rare' });
       state.players.push(pl);
       if (hq) placeHQ(state, pl, hq);
@@ -456,6 +456,12 @@
   }
   function placeHQ(state, pl, hq) {
     pl.hq = hq;
+    // only commanders who start on a small island get an Ark (so nobody is stranded)
+    { const isL = k => state.map.tiles[k] && isLandTile(state.map.tiles[k]) && state.map.tiles[k].t !== 'mountain';
+      const seen = new Set([hq]), q = [hq];
+      for (let i = 0; i < q.length && q.length < 400; i++) for (const n of neighbors(q[i])) if (isL(n) && !seen.has(n)) { seen.add(n); q.push(n); }
+      const land = Object.values(state.map.tiles).filter(t => isLandTile(t) && t.t !== 'mountain').length;
+      if (q.length < Math.max(30, land / (Math.max(2, state.nP || state.players.length) * 1.4)) && !pl.arsenal.includes('ark')) pl.arsenal.push('ark'); }
     const t = state.map.tiles[hq];
     t.owner = pl.id; delete t.poi; addStruct(t, { type: 'hq', owner: pl.id, lvl: 1 });
     for (const n of neighbors(hq)) { const nt = state.map.tiles[n]; if (nt && TERRAIN[nt.t].land && !nt.owner && !(nt.poi === 'village' || nt.poi === 'fort')) nt.owner = pl.id; }
@@ -1120,7 +1126,10 @@
     // resupply pick gets 20s of its own on top; the full action clock restarts once you've chosen
     s.turn.deadline = s.settings.timer ? Date.now() + s.settings.timer * 1000 + (s.turn.round === 1 ? 0 : 20000) : 0;
     s.turn.income = computeIncome(s, p.id).total;
-    if (p.embargo) { s.turn.income = Math.floor(s.turn.income / 2); delete p.embargo; ev.push({ e: 'embargoHit', pid: p.id }); pushLog(s, '⛔ ' + p.name + "'s income is halved by an embargo."); }
+    if (p.embargo) {
+      s.turn.income = Math.floor(s.turn.income / 2); p.embargo = (p.embargo === true ? 1 : p.embargo) - 1; if (p.embargo <= 0) delete p.embargo;
+      ev.push({ e: 'embargoHit', pid: p.id, left: p.embargo || 0 }); pushLog(s, '⛔ ' + p.name + "'s income is halved by an embargo" + (p.embargo ? ' (1 more turn).' : '.'));
+    }
     s.turn.rerolls = 0; s.turn.crate = null;
     ev.push({ e: 'turn', pid: p.id, round: s.turn.round });
     if (s.turn.round === 1) {
@@ -1255,7 +1264,7 @@
           }
           return out;
         }
-      case 'enemyHex': { const seen = new Set(); for (const k in tiles) { const o = tiles[k].owner; if (o && o !== pid && !seen.has(o) && isLandTile(tiles[k])) { const op = player(s, o); if (op && op.alive && !op.embargo) out.push(k); } } return out; }
+      case 'enemyHex': { for (const k in tiles) { const o = tiles[k].owner; if (o && o !== pid && isLandTile(tiles[k])) { const op = player(s, o); if (op && op.alive && !op.embargo) out.push(k); } } return out; }
       case 'orbital': for (const k in idx) if (idx[k][0].owner !== pid && !getS(tiles[k], 'hq') && nearOwned(s, pid, k, def.range) && idx[k].some(u => UNITS[u.type].ability !== 'stealth')) out.push(k); return out;
       case 'enemyStruct': for (const k in tiles) { const t = tiles[k]; if (structsOf(t).some(x => x.type !== 'hq' && x.owner !== pid) && nearOwned(s, pid, k, def.range)) out.push(k); } return out;
       case 'area': for (const k in tiles) if (nearOwned(s, pid, k, def.range) && !flakCovered(s, pid, k)) out.push(k); return out;
@@ -1570,7 +1579,7 @@
         else { if (structsOf(t).length >= MAX_STRUCTS || getS(t, 'bridge') || !isLandTile(t)) return 'No room for a Bunker there'; addStruct(t, { type: 'bunker', owner: pid, lvl: 1 }); }
         ev.push({ ...base, lvl: slvlOf(getS(t, 'bunker')) }); break;
       }
-      case 'embargo': { const o = player(s, tiles[a.target].owner); o.embargo = true; ev.push({ ...base, victim: o.id }); pushLog(s, '⛔ ' + p.name + ' placed ' + o.name + ' under embargo.'); break; }
+      case 'embargo': { const o = player(s, tiles[a.target].owner); o.embargo = 2; if (s.trade && (s.trade.from === o.id || s.trade.to === o.id)) s.trade = null; ev.push({ ...base, victim: o.id }); pushLog(s, '⛔ ' + p.name + ' placed ' + o.name + ' under embargo.'); break; }
       case 'orbital': {
         const kills = Object.values(s.units).filter(u => u.hex === a.target && u.owner !== pid && UNITS[u.type].ability !== 'stealth');
         kills.forEach(kill);
@@ -1658,6 +1667,7 @@
     if (s.trade) return fail('You already have an offer on the table');
     const to = player(s, a.to);
     if (!to || !to.alive || to.id === p.id) return fail('Pick another living commander');
+    if (p.embargo || to.embargo) return fail((p.embargo ? 'You are' : to.name + ' is') + ' under embargo: no trading');
     const give = { cash: Math.max(0, a.give && a.give.cash | 0), cards: (a.give && a.give.cards || []).filter(uid => p.tactics.some(c => c.uid === uid)) };
     const get = { cash: Math.max(0, a.get && a.get.cash | 0) };
     if (!give.cash && !give.cards.length && !get.cash) return fail('Empty offer');

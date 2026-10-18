@@ -681,6 +681,47 @@ const Render = (() => {
     }
   }
 
+  // ── weather: snow flakes in depth layers with gusts and a frosty vignette; slanted rain with lightning ──
+  const wxParts = []; let wxKind = null, frost = null, frostKey = '';
+  function wxSpawn(kind, anywhere) {
+    const z = 0.25 + Math.random() * 0.75;
+    return kind === 'snow'
+      ? { x: Math.random() * (W + 200) - 100, y: anywhere ? Math.random() * H : -10 - Math.random() * 40, z, r: 0.8 + z * 2.6, vy: 18 + z * 55, ph: Math.random() * 6.28, f: 0.6 + Math.random() * 1.4, a: 0.35 + z * 0.55 }
+      : { x: Math.random() * (W + 300) - 150, y: anywhere ? Math.random() * H : -20 - Math.random() * 60, z, len: 8 + z * 18, vy: 520 + z * 520, a: 0.18 + z * 0.35 };
+  }
+  function drawWeather(dt) {
+    const id = S_ && S_.phase === 'play' && S_.weather && S_.weather.id;
+    const kind = id === 'blizzard' ? 'snow' : (id === 'storm' || id === 'seas') ? 'rain' : null;
+    if (kind !== wxKind) { wxParts.length = 0; wxKind = kind; }
+    if (!kind) return;
+    const target = Math.round(W * H / (kind === 'snow' ? 4200 : 5200));
+    while (wxParts.length < target) wxParts.push(wxSpawn(kind, true));
+    const gust = Math.sin(t * 0.33) * 0.7 + Math.sin(t * 1.27 + 1) * 0.3;
+    if (kind === 'snow') {
+      for (let i = 0; i < wxParts.length; i++) {
+        const p = wxParts[i];
+        p.y += p.vy * dt; p.x += (gust * 70 + Math.sin(t * p.f + p.ph) * 16) * p.z * dt;
+        if (p.y > H + 12 || p.x < -120 || p.x > W + 120) { wxParts[i] = wxSpawn('snow', false); continue; }
+        if (p.z > 0.7) { ctx.fillStyle = `rgba(235,245,255,${p.a * 0.22})`; ctx.beginPath(); ctx.arc(p.x, p.y, p.r * 2.4, 0, Math.PI * 2); ctx.fill(); }
+        ctx.fillStyle = `rgba(245,250,255,${p.a})`; ctx.beginPath(); ctx.arc(p.x, p.y, p.r, 0, Math.PI * 2); ctx.fill();
+      }
+      const k = W + 'x' + H;
+      if (frostKey !== k) { frostKey = k; frost = ctx.createRadialGradient(W / 2, H / 2, Math.min(W, H) * 0.35, W / 2, H / 2, Math.max(W, H) * 0.75); frost.addColorStop(0, 'rgba(220,235,250,0)'); frost.addColorStop(1, 'rgba(220,235,250,.22)'); }
+      ctx.fillStyle = frost; ctx.fillRect(0, 0, W, H);
+    } else {
+      ctx.fillStyle = 'rgba(10,18,30,.18)'; ctx.fillRect(0, 0, W, H);
+      const wind = 0.28 + gust * 0.12;
+      ctx.lineCap = 'round';
+      for (let i = 0; i < wxParts.length; i++) {
+        const p = wxParts[i];
+        p.y += p.vy * dt; p.x += p.vy * wind * dt;
+        if (p.y > H + 20 || p.x > W + 160) { wxParts[i] = wxSpawn('rain', false); continue; }
+        ctx.strokeStyle = `rgba(185,210,240,${p.a})`; ctx.lineWidth = 0.6 + p.z * 1.1;
+        ctx.beginPath(); ctx.moveTo(p.x, p.y); ctx.lineTo(p.x - p.len * wind, p.y - p.len); ctx.stroke();
+      }
+      if (id === 'storm' && Math.random() < dt * 0.06) { fx.flash = 0.35; fx.flashCol = '#dfe9ff'; }
+    }
+  }
   function drawFx(dt) {
     const z = cam.z;
     for (let i = fx.parts.length - 1; i >= 0; i--) {
@@ -755,6 +796,7 @@ const Render = (() => {
     drawProbs();
     drawFx(dt);
     ctx.setTransform(DPR, 0, 0, DPR, 0, 0);
+    drawWeather(dt);
     if (fx.flash > 0.01) { ctx.fillStyle = fx.flashCol; ctx.globalAlpha = Math.min(1, fx.flash); ctx.fillRect(0, 0, W, H); ctx.globalAlpha = 1; fx.flash *= Math.pow(0.04, dt); }
     const p4 = performance.now(), a = 0.08;
     perf.tiles += ((p1 - p0) - perf.tiles) * a; perf.fog += ((p2 - p1) - perf.fog) * a; perf.units += ((p3 - p2) - perf.units) * a; perf.rest += ((p4 - p3) - perf.rest) * a; perf.total += ((p4 - p0) - perf.total) * a;

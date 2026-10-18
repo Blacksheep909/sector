@@ -1080,6 +1080,16 @@
       html = combatTip('BOMBARD', c) + '<div class="sub">Win: destroy 1 unit (2 on double score). Lose: nothing happens.</div>';
     } else if (ov.reach && ov.reach[k] && ov.reach[k].kind === 'capture') html = '<b>SEIZE</b> — empty ' + (E.isWater(ds.map.tiles[k]) ? 'sea lane' : 'enemy hex');
     else if (ov.reach && ov.reach[k] && ov.reach[k].kind === 'board') html = '<b>BOARD</b> — climb aboard the transport';
+    else if (mode && mode.type === 'build' && ov.spawn && ov.spawn.has(k)) {
+      // build mode: show what this hex costs, upgrade or fresh build, and mirror it on the build-bar tile
+      const me = ds.players.find(p => p.id === you), t = ds.map.tiles[k], ex = E.structsOf(t).find(x => x.type === mode.struct);
+      const cost = E.buildCost(ds, me, mode.struct, k), name = mode.struct === 'hq' ? 'HQ' : E.STRUCTS[mode.struct].name, L = ex ? (ex.lvl || 1) : 0;
+      html = ex ? `<b>UPGRADE ${name.toUpperCase()}</b> <span class="gold">${'★'.repeat(L)}</span> → <span class="gold">${'★'.repeat(L + 1)}</span><div class="tip-cost">$${cost}</div>`
+                : `<b>BUILD ${name.toUpperCase()}</b><div class="tip-cost">$${cost}</div>`;
+      if (me && me.cash < cost) html += `<div class="sub" style="color:#ff8a7a">Need $${cost - me.cash} more</div>`;
+      const sc = document.querySelector(`.slot.k-build[data-id="${mode.struct}"] .sc`);
+      if (sc) { if (sc.dataset.base === undefined) sc.dataset.base = sc.textContent; sc.textContent = '$' + cost; sc.classList.toggle('upg', !!ex); }
+    }
     else {
       const t = ds.map.tiles[k];
       const units = Object.values(ds.units).filter(u => u.hex === k);
@@ -1114,7 +1124,7 @@
       `You: <span style="color:var(--chips)">${c.att.chips}</span> × (d6<span style="color:var(--mult)">${c.att.mult ? '+' + c.att.mult : ''}</span>)` + (c.att.bonuses.length ? `<div class="sub">${bon(c.att.bonuses)}</div>` : '') +
       `Them: <span style="color:var(--chips)">${c.def.chips}</span> × (d6<span style="color:var(--mult)">${c.def.mult ? '+' + c.def.mult : ''}</span>)` + (c.def.bonuses.length ? `<div class="sub">${bon(c.def.bonuses)}</div>` : '');
   }
-  function hideTip() { $('#tooltip').hidden = true; }
+  function hideTip() { document.querySelectorAll('.slot.k-build .sc[data-base]').forEach(e => { e.textContent = e.dataset.base; delete e.dataset.base; e.classList.remove('upg'); }); $('#tooltip').hidden = true; }
 
   // ───────────── combat sequence (chips × mult) ─────────────
   function dieFace(d, n) {

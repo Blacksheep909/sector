@@ -473,7 +473,21 @@ const Art = (() => {
   Object.assign(TACTIC, {
     rally(c) { rr(c, -0.7, -0.9, 0.1, 1.8, 0.03); c.fill(); poly(c, [-0.6, -0.85, 0.85, -0.6, -0.6, -0.15]); c.fill(); for (let i = 0; i < 3; i++) { poly(c, [-0.3 + i * 0.35, 0.85, -0.15 + i * 0.35, 0.1, 0 + i * 0.35, 0.85]); c.fill(); } },
     fortify(c) { STRUCT.bunker(c); rr(c, -0.08, -0.9, 0.16, 0.6, 0.04); c.fill(); rr(c, -0.3, -0.68, 0.6, 0.16, 0.04); c.fill(); },
-    embargo(c) { c.lineWidth = 0.16; circ(c, 0, 0, 0.75); c.stroke(); c.beginPath(); c.moveTo(-0.53, 0.53); c.lineTo(0.53, -0.53); c.stroke(); c.save(); c.font = 'bold 0.8px sans-serif'; c.textAlign = 'center'; c.textBaseline = 'middle'; c.globalAlpha = 0.8; c.fillText('$', 0, 0.05); c.restore(); },
+    embargo(c) {
+      // a crate of gold locked shut with chains and a padlock
+      rr(c, -0.78, -0.42, 1.56, 1.12, 0.08); c.fill();
+      c.save(); c.fillStyle = 'rgba(0,0,0,.32)'; c.fillRect(-0.78, -0.1, 1.56, 0.07); c.fillRect(-0.78, 0.28, 1.56, 0.07); c.fillRect(-0.05, -0.42, 0.1, 1.12); c.restore();
+      for (const [x, y] of [[-0.45, -0.62], [-0.1, -0.7], [0.28, -0.6]]) { c.beginPath(); c.ellipse(x, y, 0.2, 0.09, 0, 0, Math.PI * 2); c.fill(); }
+      c.save(); c.lineWidth = 0.11; c.lineCap = 'round'; c.strokeStyle = 'rgba(0,0,0,.55)';
+      // two chains crossing the crate in an X: links alternate flat and edge-on along each diagonal
+      for (const [x0, y0, x1, y1] of [[-0.82, -0.36, 0.82, 0.64], [0.82, -0.36, -0.82, 0.64]]) {
+        const ang = Math.atan2(y1 - y0, x1 - x0), n = 8;
+        for (let i = 0; i <= n; i++) { const x = x0 + (x1 - x0) * i / n, y = y0 + (y1 - y0) * i / n; c.beginPath(); if (i % 2) c.ellipse(x, y, 0.12, 0.035, ang, 0, Math.PI * 2); else c.ellipse(x, y, 0.12, 0.075, ang, 0, Math.PI * 2); c.stroke(); }
+      }
+      c.restore();
+      c.save(); c.fillStyle = 'rgba(0,0,0,.55)'; rr(c, -0.22, 0.02, 0.44, 0.38, 0.06); c.fill(); c.lineWidth = 0.09; c.strokeStyle = 'rgba(0,0,0,.55)'; c.beginPath(); c.arc(0, 0.02, 0.14, Math.PI, 0); c.stroke(); c.restore();
+      c.save(); c.fillStyle = 'rgba(255,255,255,.35)'; circ(c, 0, 0.2, 0.05); c.fill(); c.restore();
+    },
     bounty(c) { c.lineWidth = 0.1; circ(c, 0, 0, 0.7); c.stroke(); circ(c, 0, 0, 0.38); c.stroke(); for (const [x, y, w, h] of [[-0.05, -1, 0.1, 0.5], [-0.05, 0.5, 0.1, 0.5], [-1, -0.05, 0.5, 0.1], [0.5, -0.05, 0.5, 0.1]]) c.fillRect(x, y, w, h); circ(c, 0, 0, 0.12); c.fill(); },
     orbital(c) { rr(c, -0.25, -0.95, 0.5, 0.32, 0.05); c.fill(); rr(c, -0.8, -0.88, 0.45, 0.18, 0.03); c.fill(); rr(c, 0.35, -0.88, 0.45, 0.18, 0.03); c.fill(); poly(c, [-0.12, -0.6, 0.12, -0.6, 0.3, 0.55, -0.3, 0.55]); c.fill(); c.beginPath(); c.ellipse(0, 0.65, 0.7, 0.2, 0, 0, P * 2); c.fill(); },
   });

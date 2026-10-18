@@ -969,3 +969,9 @@ body.overlay-open #hud { visibility: hidden; }
 #planBox.right { position: fixed !important; right: 16px; bottom: 84px; width: 270px; max-height: 34vh; overflow-y: auto; z-index: 6; display: flex; }
 body.planning #hexPanel { max-height: calc(100vh - 34vh - 200px); }
 #planBox.right { left: auto !important; top: auto !important; }
+
+/* weather is drawn on the map canvas now; the CSS layer only keeps the soft colour tints */
+#wxLayer.wx-storm, #wxLayer.wx-seas, #wxLayer.wx-blizzard { background: none !important; animation: none !important; opacity: 0 !important; }
+
+.tip-cost { font-family: var(--title); font-size: 20px; color: var(--gold); margin-top: 2px; text-shadow: 0 2px 0 #000; }
+.slot .sc.upg { background: #3fbf6a !important; color: #062010 !important; }

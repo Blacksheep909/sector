@@ -2,6 +2,13 @@
 
 Every release, newest first. Each version also has its own post on the [Releases page](https://github.com/Blacksheep909/sector/releases).
 
+## v0.6.5
+
+- **Real weather.** Blizzards now bring drifting snow in layers (near flakes bigger and softly glowing), gusts of wind, and a frosty edge to the screen. Storms and rough seas bring slanted rain, a darker sky and, in storms, the odd lightning flash.
+- **No free Ark.** Commanders start with Grunts and their faction unit. Only those whose HQ starts on a small island get an Ark, so nobody is stranded.
+- **Embargo reworked:** click any enemy territory and that commander earns **half income for their next 2 turns** and **can't trade** while it lasts. It also has new art: a crate of gold chained shut.
+- **Upgrade prices on hover.** In build mode, hovering a building you already own shows the upgrade price (e.g. Market ★ → ★★ $12) on the tooltip and on the build-bar tile.
+
 ## v0.6.4
 
 - **Smoother card screens.** The holographic foils on rare, epic and legendary cards used to repaint the whole card every frame and use expensive colour blending. They now slide a GPU layer instead and look the same. While a card screen (draft, resupply, crate, index) is open, everything behind it stops animating.
