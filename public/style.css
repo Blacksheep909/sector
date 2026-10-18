@@ -949,3 +949,23 @@ body.host-page { overflow: auto; background: radial-gradient(ellipse at top, #16
 .cb-units { overflow: visible; max-width: 262px; }
 .cb-units .cb-card { margin-right: calc(-1 * max(0px, (var(--n) * 74px - 256px) / max(1, var(--n) - 1))); }
 .cb-units .cb-card:last-child { margin-right: 0; }
+
+/* ── GPU-cheap card effects: foils slide a composited layer instead of repainting, no blend modes ── */
+.card .c-foil, .card.r-rare .c-foil, .card.r-epic .c-foil, .card.r-legendary .c-foil { animation: none !important; mix-blend-mode: normal !important; background: none !important; overflow: hidden; }
+.card.r-rare .c-foil::before, .card.r-epic .c-foil::before, .card.r-legendary .c-foil::before { content: ''; position: absolute; top: 0; bottom: 0; left: -100%; width: 300%; will-change: transform; animation: foilSlide 3.4s linear infinite; pointer-events: none; }
+.card.r-rare .c-foil::before { background: linear-gradient(115deg, transparent 40%, rgba(150,205,255,.22) 50%, transparent 60%); }
+.card.r-epic .c-foil::before { background: linear-gradient(115deg, transparent 36%, rgba(255,150,255,.24) 46%, rgba(170,120,255,.22) 54%, transparent 64%); animation-duration: 2.6s; }
+.card.r-legendary .c-foil::before { background: linear-gradient(115deg, transparent 25%, rgba(255,90,170,.18) 35%, rgba(255,210,80,.2) 45%, rgba(80,255,190,.18) 55%, rgba(90,170,255,.18) 65%, transparent 75%); animation-duration: 2.4s; }
+@keyframes foilSlide { from { transform: translateX(-33%); } to { transform: translateX(33%); } }
+.c-shine, .r-legendary .c-shine { mix-blend-mode: normal !important; animation: none !important; }
+.r-legendary .c-shine { background: radial-gradient(circle at var(--mx, 50%) var(--my, 30%), rgba(255,240,200,.28), transparent 45%) !important; }
+.slot.r-legendary::after { animation: none !important; mix-blend-mode: normal !important; opacity: .55; }
+/* while a card screen is open, everything underneath stops animating */
+body.overlay-open #hud .card, body.overlay-open #hud .slot, body.overlay-open #hud * { animation-play-state: paused !important; }
+body.overlay-open #hud { visibility: hidden; }
+
+/* ── Blueprint box lives on the right, above END TURN, clear of the log and event chips ── */
+#leftCol > #planBox { display: none !important; }
+#planBox.right { position: fixed !important; right: 16px; bottom: 84px; width: 270px; max-height: 34vh; overflow-y: auto; z-index: 6; display: flex; }
+body.planning #hexPanel { max-height: calc(100vh - 34vh - 200px); }
+#planBox.right { left: auto !important; top: auto !important; }
