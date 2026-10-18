@@ -522,6 +522,8 @@ const Cards = (() => {
     zoomT = setTimeout(() => { if (zoomFor === card && document.contains(card)) zoomShow(card); }, 220);
   });
   document.addEventListener('mousedown', zoomHide, true);
+  // watchdog: the zoom closes as soon as its card isn't hovered (menus opening under the cursor, hand re-renders)
+  setInterval(() => { if (zoomFor && (!document.contains(zoomFor) || !zoomFor.matches(':hover'))) zoomHide(); }, 200);
 
   // dev/test helper: reveal a hand of specific cards (no game effect)
   function demoReveal(ids) {
@@ -533,5 +535,5 @@ const Cards = (() => {
     (async () => { await sleep(300); await dealIn(slots); await revealRow(box, slots); })();
     return slots;
   }
-  return { demoReveal, flipCard: (s) => flipCard(s, $('#supply')), make, openSupply, closeSupply, openCrate, closeCrate, showDraft, hideDraft, pickReplace, showIndex, burstAt, rays, revealFx, fast: false };
+  return { zoomHide, demoReveal, flipCard: (s) => flipCard(s, $('#supply')), make, openSupply, closeSupply, openCrate, closeCrate, showDraft, hideDraft, pickReplace, showIndex, burstAt, rays, revealFx, fast: false };
 })();

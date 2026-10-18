@@ -51,9 +51,16 @@ const Render = (() => {
     }
     recolor();
   }
+  function setCols(c, base, owned) {
+    c.top = rgb(base); c.side1 = rgb(shade(base, -0.42)); c.side2 = rgb(shade(base, -0.58));
+    c.dark = rgb(shade(base, owned ? -0.35 : -0.3)); c.light = rgb(shade(base, 0.18));
+  }
+  const FADE = 0.6;
+  function fadeNow(c, now) { const p = Math.min(1, (now - c.fadeT0) / FADE), e = p * p * (3 - 2 * p); return mix(c.fadeFrom, c.base, e); }
   function recolor() {
     if (!S_) return;
     const pc = {}; for (const p of S_.players) pc[p.id] = hx(p.color);
+    const now = t;
     for (const k of order) {
       const t = S_.map.tiles[k], c = tc[k];
       c.h = HEIGHT[t.t];
@@ -67,8 +74,10 @@ const Render = (() => {
         base = mix(shade(pc[t.owner], -0.18), hx(COL[t.t]), 0.18);
         base = shade(base, tb);
       }
-      c.top = rgb(base); c.side1 = rgb(shade(base, -0.42)); c.side2 = rgb(shade(base, -0.58));
-      c.dark = rgb(shade(base, owned ? -0.35 : -0.3)); c.light = rgb(shade(base, 0.18));
+      // sea hexes changing hands cross-fade to their new colour instead of snapping
+      if (t.t === 'water' && c.base && (c.base[0] !== base[0] || c.base[1] !== base[1] || c.base[2] !== base[2])) { c.fadeFrom = c.fadeFrom ? fadeNow(c, now) : c.base; c.fadeT0 = now; }
+      c.base = base;
+      setCols(c, base, owned);
       c.owned = !!owned;
       c.owner = t.owner; c.oc = t.owner && pc[t.owner] ? rgb(shade(pc[t.owner], 0.45)) : null;
     }
@@ -152,6 +161,7 @@ const Render = (() => {
 
   function drawTile(k) {
     const c = tc[k], tile = S_.map.tiles[k], z = cam.z, sc = S / 34;
+    if (c.fadeFrom) { if (t - c.fadeT0 >= FADE) { c.fadeFrom = null; setCols(c, c.base, c.owned); } else setCols(c, fadeNow(c, t), c.owned); }
     let h = c.h * sc;
     const popT = fx.pops[k]; let popS = 1;
     if (popT !== undefined) { const p = (t - popT) / 0.35; if (p < 1) { h += Math.sin(p * Math.PI) * 10; popS = 1 + Math.sin(p * Math.PI) * 0.08; } else delete fx.pops[k]; }
@@ -417,13 +427,41 @@ const Render = (() => {
     ctx.save(); ctx.translate(x, y - 8 * z * big);
     ctx.fillStyle = '#10161c'; ctx.beginPath(); ctx.arc(0, 0, 12.5 * z * big, 0, Math.PI * 2); ctx.fill();
     ctx.strokeStyle = col; ctx.lineWidth = 2.5 * z; ctx.stroke();
+    const building = !!tile.struct.lock;   // new FOB, or a captured FOB/Port: comes online next turn
+    if (building) { ctx.save(); ctx.globalAlpha = 0.38; }
     Art.drawIcon(ctx, 'struct', type, 0, 0, 8 * z * big, '#f1efe6');
+    if (building) {
+      ctx.restore();
+      // hazard ring
+      ctx.lineWidth = 3.2 * z; ctx.setLineDash([4.5 * z, 4.5 * z]);
+      ctx.strokeStyle = '#0b0f13'; ctx.lineDashOffset = -t * 14; ctx.beginPath(); ctx.arc(0, 0, 15.5 * z, 0, Math.PI * 2); ctx.stroke();
+      ctx.strokeStyle = '#ffc53d'; ctx.lineDashOffset = -t * 14 + 4.5 * z; ctx.beginPath(); ctx.arc(0, 0, 15.5 * z, 0, Math.PI * 2); ctx.stroke();
+      ctx.setLineDash([]);
+      // crane: mast, jib, swinging hook
+      const sw = Math.sin(t * 2.2) * 2.5 * z;
+      ctx.strokeStyle = '#ffc53d'; ctx.lineWidth = 2 * z; ctx.lineCap = 'round';
+      ctx.beginPath(); ctx.moveTo(-17 * z, 10 * z); ctx.lineTo(-17 * z, -24 * z); ctx.lineTo(4 * z, -24 * z); ctx.stroke();
+      ctx.lineWidth = 1.2 * z; ctx.beginPath(); ctx.moveTo(-17 * z, -18 * z); ctx.lineTo(-11 * z, -24 * z); ctx.moveTo(1 * z, -24 * z); ctx.lineTo(1 * z + sw, -14 * z); ctx.stroke();
+      ctx.fillStyle = '#f1efe6'; ctx.fillRect(-2 * z + sw, -14 * z, 6 * z, 4 * z);
+      // turns-left badge
+      ctx.fillStyle = '#ffc53d'; ctx.strokeStyle = '#0b0f13'; ctx.lineWidth = 2 * z;
+      ctx.beginPath(); ctx.arc(12 * z, -11 * z, 6.5 * z, 0, Math.PI * 2); ctx.fill(); ctx.stroke();
+      ctx.fillStyle = '#0b0f13'; ctx.font = `900 ${8.5 * z}px "Chakra Petch",sans-serif`; ctx.textAlign = 'center'; ctx.textBaseline = 'middle'; ctx.fillText('1', 12 * z, -10.5 * z);
+    }
     const L = tile.struct.lvl || 1;
     if (L > 1) {
       ctx.font = `900 ${9 * z}px "Chakra Petch",sans-serif`; ctx.textAlign = 'center'; ctx.textBaseline = 'middle';
       ctx.lineWidth = 3 * z; ctx.strokeStyle = '#0b0f13'; ctx.strokeText('★'.repeat(L), 0, 15 * z * big); ctx.fillStyle = '#ffc53d'; ctx.fillText('★'.repeat(L), 0, 15 * z * big);
     }
     ctx.restore();
+    if (tile.struct.lock && z > 0.55) {
+      const label = 'NEXT TURN';
+      ctx.font = `800 ${7 * Math.min(1.25, Math.max(0.85, z))}px "Chakra Petch",sans-serif`; ctx.textAlign = 'center'; ctx.textBaseline = 'middle';
+      const w = ctx.measureText(label).width + 10 * z, ly = y + 13 * z;
+      ctx.fillStyle = '#1d1404'; ctx.beginPath(); ctx.roundRect ? ctx.roundRect(x - w / 2, ly - 6 * z, w, 12 * z, 4 * z) : ctx.rect(x - w / 2, ly - 6 * z, w, 12 * z); ctx.fill();
+      ctx.strokeStyle = '#ffc53d'; ctx.lineWidth = 1.5 * z; ctx.stroke();
+      ctx.fillStyle = '#ffc53d'; ctx.fillText(label, x, ly + 0.5 * z);
+    }
     if (type === 'hq' && p) {
       const label = p.name.toUpperCase();
       ctx.font = `800 ${11 * Math.max(0.8, z)}px "Chakra Petch",sans-serif`; ctx.textAlign = 'center'; ctx.textBaseline = 'middle';

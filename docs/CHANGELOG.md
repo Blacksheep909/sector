@@ -2,6 +2,15 @@
 
 Every release, newest first. Each version also has its own post on the [Releases page](https://github.com/Blacksheep909/sector/releases).
 
+## v0.5.4
+
+- **Fixed: menus overlapping each other.** The hover-to-enlarge card and the build-bar tips used to get stuck on screen and float over the Card Index, the Supply Drop and other menus. They now close the moment you stop hovering, and every menu clears them when it opens.
+- **The camera stays where you put it.** Other players' moves no longer drag your view around while you plan blueprint orders. It only moves at the start of your turn and to follow your own actions.
+- **FOBs under construction are visible.** A new (or newly captured) base shows a greyed-out icon, a spinning hazard ring, a little crane with a swinging hook, a "1" turns-left badge and a NEXT TURN tag until it comes online.
+- **Sea fades instead of flickering.** Water hexes changing hands now cross-fade smoothly to their new colour.
+- **Buildings get pricier as you build more.** Each building you buy raises the price of the next one of that type by $1, upgrades included (for example Market $7 → $8 → $9). HQ fortification is exempt.
+- **Eliminated commanders are greyed out** in the top bar, with a struck-through name and a ☠ OUT tag.
+
 ## v0.5.3
 
 - **Supply Drops open like a real loot chest:**
