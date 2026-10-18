@@ -69,6 +69,7 @@ There are no accounts, no internet servers and no port forwarding. Prefer one sc
 | 🧠 **Bots** | Four difficulties. Bots draft, build, invade by sea, set up pincers and judge trades. |
 | 📋 **Blueprint** | Queue your turn while others play; it runs the moment your turn begins. |
 | 🗺️ **Living maps** | Biomes (desert, jungle, tundra, swamp), ruins and caches to loot, villages and forts to conquer, relics to fight over. Small to Huge sizes. Random spawns or pick your HQ. |
+| 🌫 **Fog, alliances and events** | Optional fog of war, alliances with shared victory (and betrayal), world events like storms and gold rushes, undo, and a Balance of Power chart at the end. |
 | ⚔️ **Factions** | Iron Covenant, Volt Syndicate, Ashen Nomads, Verdant Host and Null Order, each with a perk and a starting unit. |
 | 🎨 **No assets** | Every unit, card and building is procedural vector art, and every sound is synthesized. The whole game is about 300 KB of code. |
 

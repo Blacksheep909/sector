@@ -344,4 +344,12 @@ function botStep(s, pid, mem) {
   return { a: 'end' };
 }
 
-module.exports = { botStep, draftStep, spawnStep, tradeReply, BOT_NAMES };
+// alliance offers: say yes to someone who isn't running away with the game, when we aren't either
+function allyReply(s, pid) {
+  const o = s.allyOffer; if (!o || o.to !== pid) return null;
+  const land = id => E.ownedLand(s, id).length;
+  const alive = s.players.filter(p => p.alive), avg = alive.reduce((a, p) => a + land(p.id), 0) / alive.length;
+  const accept = land(o.from) < avg * 1.35 && land(pid) < avg * 1.6 && alive.length > 2;
+  return { a: 'allyReply', accept };
+}
+module.exports = { botStep, draftStep, spawnStep, tradeReply, allyReply, BOT_NAMES };

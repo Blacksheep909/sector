@@ -4,11 +4,29 @@ Grab land, build an economy, crush your rivals. **Every hex you hold pays you**,
 
 ## Setup and the opening draft
 
-- 2–6 commanders: humans over the network, bots (Easy, Medium, Hard, Impossible), and **pass-and-play** players sharing one device. Anyone can press 👁 in the lobby to **spectate** instead of play. A cover screen hides each player's hand between turns.
+- 2–8 commanders: humans over the network, bots (Easy, Medium, Hard, Impossible), and **pass-and-play** players sharing one device. Anyone can press 👁 in the lobby to **spectate** instead of play. A cover screen hides each player's hand between turns.
 - Every map is procedurally generated from one of six layouts: continent, supercontinent, twin continents, archipelago, inland sea, or crescent isles. The coastline is noise-warped, so no two boards share an outline. Sizes run from Small to **Huge** (about 3.5× the land of Small).
 - **Spawns.** With *Random* spawns, HQs are placed fairly far apart. With *Pick your HQ*, commanders take turns choosing their HQ hex (whoever moves last picks first). HQs must sit a minimum distance apart, and bots pick roomy spots near resources.
 - Everyone starts with an HQ and its surrounding hexes, 2 Grunts, $6, a **Rare Supply Drop** card, and three unit cards: **Grunts**, the **Ark** transport, and their faction's starter unit.
 - **Opening draft.** Before round 1, every commander picks simultaneously. In each of 3 draft rounds you're offered 3 cards and keep 1.
+
+## Fog of war, events and alliances
+
+- **Fog of war** (lobby option). You see one hex past your borders, two hexes around your units (three for aircraft), and everything your allies see. Enemy units and buildings in the fog are hidden; HQs are always known. March into a fogged hex that hides enemies and you'll fight them: an ambush.
+- **World events** (on by default). From round 3, most rounds roll an event that lasts the whole round:
+
+| Event | Effect |
+|---|---|
+| ⛈ Storm Front | Aircraft are grounded |
+| 🌊 Rough Seas | Ships stay in port |
+| ❄ Blizzard | Every unit has 1 less move (minimum 1) |
+| 💰 Gold Rush | Resources, oil rigs and fishing grounds pay double |
+| 🛒 Arms Fair | Units cost $1 less |
+| 📦 Supply Shortage | Buildings cost $2 more |
+| 🔥 War Fervour | Every attack gets +1 mult |
+| ☀ Clear Skies | Everyone sees 2 hexes further (fog of war games only) |
+
+- **Alliances.** On your turn, press **ALLY** under a rival's name to propose one. Allies can't attack or enter each other's land, share vision in the fog, and if only allies are left standing they **win together**. Either side can press **BREAK** to end it. The break takes effect at the start of the breaker's next turn, so the other side gets a warning.
 
 ## Win conditions
 
@@ -106,14 +124,15 @@ Maps have climate. It's colder toward the top and bottom edges and hotter in the
 | Highlands | +2 defender mult, costs 2 move |
 | Tundra | Costs 2 move |
 | Swamp | Costs 2 move. Attackers get −1 mult (air units excepted) |
+| Red Canyons | +1 defender mult, costs 2 move |
 | Mountains | Impassable except to air |
 
 **Points of interest** are scattered across the map:
 
 - **Ruins.** The first unit to pass through loots $4–10.
 - **Supply cache.** The first unit to pass through finds a tactic card.
-- **Village.** Neutral town with a militia (6 chips, +1 mult). Conquer it for **+$2 every turn**.
-- **Old fort.** Garrisoned ruin with a ★★ Bunker. Take it and the bunker is yours.
+- **Village.** Neutral town with a militia of 3–9 chips (+1 mult, +2 from 7 chips). Conquer it for **+$2 every turn**. The pips under its marker show how strong it is.
+- **Old fort.** Garrisoned ruin (3–8 chips) with a ★ to ★★★ Bunker. Take it and the bunker is yours.
 - **Ancient relic.** **+$3 every turn** while you hold it. Relics sit as far from every HQ as possible.
 
 ## Moving
@@ -225,6 +244,11 @@ On your turn, click **TRADE** under a rival's name. You can offer cash and tacti
 
 While others play, queue moves, deploys and builds. The preview shows exactly what your turn will look like, including income, Depot move bonuses and newly online bases. When your turn starts, income is collected automatically and the queue runs. Untick *auto-collect income* if you'd rather choose from the resupply first; the queue then runs right after your pick. You can queue a move from the spot an earlier queued move left your units. Attacks and tactics are live-only, and any order the board no longer allows is skipped with a note.
 
+## Turn timer and undo
+
+- With a **turn timer** set, a bar under the top bar drains in the current player's colour, turning red for the last 10 seconds. The clock **pauses while your fights and crates play out**, and your resupply pick gets 20 seconds of its own. If time runs out, income is collected and your turn ends.
+- **Undo** (↶ button or `Ctrl+Z`) takes back moves, deploys and builds that didn't reveal anything: no fights, loot or cards. You can undo several steps back to the last such reveal.
+
 ## Controls
 
 | Input | Action |
@@ -239,6 +263,7 @@ While others play, queue moves, deploys and builds. The preview shows exactly wh
 | `Space` | Flip the next card · throw your die (never ends your turn) |
 | Crate (Supply Drop) | Click or `Space` to burst it open |
 | `F` | Jump to your HQ |
-| `Enter` | **End your turn** (opens chat when it isn't your turn) |
+| `Ctrl+Z` | Undo the last move, deploy or build |
+| `Enter` ×2 | **End your turn** (press twice; opens chat when it isn't your turn) |
 | `T` | Chat |
 | Hover a card | Enlarge it |

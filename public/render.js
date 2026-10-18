@@ -4,9 +4,9 @@ const Render = (() => {
   const S = 34, TILT = 0.68, SQ3 = Math.sqrt(3);
   const VERT = [-90, -30, 30, 90, 150, 210].map(a => [Math.cos(a * Math.PI / 180), Math.sin(a * Math.PI / 180)]);
   const EDGE_DIR = [1, 0, 5, 4, 3, 2];
-  const HEIGHT = { water: 2, plains: 8, forest: 8, hills: 10, mountain: 10, desert: 7, jungle: 8, tundra: 9, swamp: 5 };
+  const HEIGHT = { water: 2, plains: 8, forest: 8, hills: 10, mountain: 10, desert: 7, jungle: 8, tundra: 9, swamp: 5, canyon: 12 };
   // neutral land is deliberately muted so player territory pops
-  const COL = { shallow: '#2a6688', water: '#173d58', plains: '#55644a', forest: '#3f5640', hills: '#6b6150', mountain: '#4a4752', fallout: '#6f7a25', desert: '#9c8a5c', jungle: '#2f5a37', tundra: '#9aa7ae', swamp: '#4b5a46' };
+  const COL = { shallow: '#2a6688', water: '#173d58', plains: '#55644a', forest: '#3f5640', hills: '#6b6150', mountain: '#4a4752', fallout: '#6f7a25', desert: '#9c8a5c', jungle: '#2f5a37', tundra: '#9aa7ae', swamp: '#4b5a46', canyon: '#a8532c' };
   const POI_COL = { ruins: '#d9b77a', cache: '#ffcf4a', village: '#f1efe6', fort: '#c9cfd6', relic: '#c27bff' };
 
   let cv, ctx, W = 0, H = 0, DPR = 1;
@@ -70,7 +70,7 @@ const Render = (() => {
       if (t.owner && pc[t.owner] && t.t === 'water') base = mix(base, pc[t.owner], t.bridge ? 0.5 : 0.32);
       if (owned) {
         // flat, saturated team colour; terrain only nudges the brightness
-        const tb = { plains: 0, forest: -0.12, hills: 0.08, desert: 0.1, jungle: -0.16, tundra: 0.14, swamp: -0.1 }[t.t] || 0;
+        const tb = { plains: 0, forest: -0.12, hills: 0.08, desert: 0.1, jungle: -0.16, tundra: 0.14, swamp: -0.1, canyon: -0.04 }[t.t] || 0;
         base = mix(shade(pc[t.owner], -0.18), hx(COL[t.t]), 0.18);
         base = shade(base, tb);
       }
@@ -116,6 +116,53 @@ const Render = (() => {
   function screenOf(k) { const [x, y] = topOf(k); return toScreen(x, y); }
 
   // ── fx api ──
+  // ── aircraft: jets cross the map in world space, drop bombs on targets, then fly off ──
+  const planes = [], bombs = [];
+  function flyover(targets, opts = {}) {
+    const pts = targets.map(k => topOf(k)); if (!pts.length) return;
+    const cx = pts.reduce((a, p) => a + p[0], 0) / pts.length, cy = pts.reduce((a, p) => a + p[1], 0) / pts.length;
+    const ang = opts.angle ?? (Math.random() * 0.6 - 0.3), dx = Math.cos(ang), dy = Math.sin(ang) * 0.5, L = 900, alt = 150;
+    const n = opts.count || 1, dur = opts.dur || 1.7, t0 = t;
+    for (let i = 0; i < n; i++) {
+      const side = (i - (n - 1) / 2) * 46;     // formation spacing, perpendicular to the flight path
+      planes.push({ x0: cx - dx * L - dy * side, y0: cy - dy * L + dx * side * 0.5, x1: cx + dx * L - dy * side, y1: cy + dy * L + dx * side * 0.5, alt, t0: t0 + i * 0.12, dur, color: opts.color || '#e9edf2', ang });
+    }
+    // bombs leave the lead plane as it passes over each target, in flight order
+    pts.slice().sort((a, b) => (a[0] - cx) * dx + (a[1] - cy) * dy - ((b[0] - cx) * dx + (b[1] - cy) * dy)).forEach((p, i) => {
+      const along = ((p[0] - cx) * dx + (p[1] - cy) * dy + L) / (2 * L);   // 0..1 along the path
+      bombs.push({ tx: p[0], ty: p[1], tDrop: t0 + along * dur - 0.32 + i * 0.03, fall: 0.42, alt, cb: opts.onBomb, colors: opts.colors });
+    });
+  }
+  function drawAir() {
+    for (let i = bombs.length - 1; i >= 0; i--) {
+      const b = bombs[i], p = (t - b.tDrop) / b.fall;
+      if (p < 0) continue;
+      if (p >= 1) { burst([b.tx, b.ty], b.colors || ['#ffb03a', '#ff5a2a', '#fff2a8', '#555'], 22, { speed: 1.4, size: 3.2 }); ring([b.tx, b.ty], '#ffb03a', 55, 0.45, 4); if (b.cb) b.cb(); bombs.splice(i, 1); continue; }
+      const [sx, sy] = toScreen(b.tx, b.ty - b.alt * (1 - p * p)), z = cam.z;
+      ctx.fillStyle = 'rgba(0,0,0,.25)'; const [gx, gy] = toScreen(b.tx, b.ty); ctx.beginPath(); ctx.ellipse(gx, gy, 5 * z * p, 2 * z * p, 0, 0, Math.PI * 2); ctx.fill();
+      ctx.save(); ctx.translate(sx, sy); ctx.fillStyle = '#20262c'; ctx.beginPath(); ctx.ellipse(0, 0, 2.6 * z, 5 * z, 0, 0, Math.PI * 2); ctx.fill();
+      ctx.fillStyle = '#ffb03a'; ctx.fillRect(-2.5 * z, -6.5 * z, 5 * z, 2 * z); ctx.restore();
+    }
+    for (let i = planes.length - 1; i >= 0; i--) {
+      const pl = planes[i], p = (t - pl.t0) / pl.dur;
+      if (p > 1) { planes.splice(i, 1); continue; }
+      if (p < 0) continue;
+      const wx = pl.x0 + (pl.x1 - pl.x0) * p, wy = pl.y0 + (pl.y1 - pl.y0) * p, z = cam.z;
+      const [gx, gy] = toScreen(wx, wy), [sx, sy] = toScreen(wx, wy - pl.alt);
+      // ground shadow
+      ctx.save(); ctx.translate(gx, gy); ctx.rotate(pl.ang + Math.PI / 2); ctx.scale(1, 0.5); ctx.globalAlpha = 0.3; Art.drawIcon(ctx, 'unit', 'seraph', 0, 0, 22 * z, '#000'); ctx.restore();
+      // contrail
+      const [tx0, ty0] = toScreen(wx - (pl.x1 - pl.x0) * 0.08, wy - pl.alt - (pl.y1 - pl.y0) * 0.08);
+      const g = ctx.createLinearGradient(tx0, ty0, sx, sy); g.addColorStop(0, 'rgba(255,255,255,0)'); g.addColorStop(1, 'rgba(255,255,255,.55)');
+      ctx.strokeStyle = g; ctx.lineWidth = 3 * z; ctx.lineCap = 'round'; ctx.beginPath(); ctx.moveTo(tx0, ty0); ctx.lineTo(sx, sy); ctx.stroke();
+      // jet: ink outline, team-tinted body
+      ctx.save(); ctx.translate(sx, sy); ctx.rotate(pl.ang + Math.PI / 2);
+      for (let a = 0; a < 8; a++) Art.drawIcon(ctx, 'unit', 'seraph', Math.cos(a / 8 * Math.PI * 2) * 2 * z, Math.sin(a / 8 * Math.PI * 2) * 2 * z, 22 * z, '#0b0f13');
+      Art.drawIcon(ctx, 'unit', 'seraph', 0, 0, 22 * z, pl.color);
+      ctx.globalAlpha = 0.35; Art.drawIcon(ctx, 'unit', 'seraph', 0, -1.5 * z, 22 * z, '#ffffff');
+      ctx.restore();
+    }
+  }
   function burst(k, color, n = 16, opts = {}) {
     const [x, y] = Array.isArray(k) ? k : topOf(k);
     for (let i = 0; i < n; i++) {
@@ -159,6 +206,14 @@ const Render = (() => {
     for (let y = -step + off - (cam.y * cam.z) % step; y < H + step; y += step) { ctx.beginPath(); for (let x = 0; x <= W; x += 24) ctx.lineTo(x, y + Math.sin(x * 0.012 + t * 0.6 + y) * 4); ctx.stroke(); }
   }
 
+  function drawFog(k) {
+    const c = tc[k], z = cam.z, sc = S / 34;
+    const [cx, gy] = toScreen(c.wx, c.wy); const cy = gy - c.h * sc * z, s = S * 0.99 * z;
+    if (cx < -80 || cx > W + 80 || cy < -120 || gy > H + 120) return;
+    const drift = 0.5 + 0.5 * Math.sin(t * 0.35 + c.q * 0.6 + c.r * 0.4);
+    hexPath(cx, cy, s); ctx.fillStyle = `rgba(14,20,28,${0.5 + drift * 0.12})`; ctx.fill();
+    ctx.fillStyle = `rgba(160,175,190,${0.05 + drift * 0.05})`; ctx.beginPath(); ctx.ellipse(cx + (drift - 0.5) * 8 * z, cy - 2 * z, s * 0.55, s * 0.22, 0, 0, Math.PI * 2); ctx.fill();
+  }
   function drawTile(k) {
     const c = tc[k], tile = S_.map.tiles[k], z = cam.z, sc = S / 34;
     if (c.fadeFrom) { if (t - c.fadeT0 >= FADE) { c.fadeFrom = null; setCols(c, c.base, c.owned); } else setCols(c, fadeNow(c, t), c.owned); }
@@ -334,9 +389,26 @@ const Render = (() => {
       }
       ctx.restore();
     } else if (tile.t === 'hills') {
-      // one gentle step
-      const off = (c.v - 0.5) * s * 0.2;
-      prism(cx + off, cy + 2 * z, s * 0.56, 6 * z, c.light, c.side1, c.side2);
+      // rolling highland mounds with a lit crest, a shadowed flank and a few rocks
+      const mounds = c.v > 0.5 ? [[-0.24, 0.08, 0.42, 0.95], [0.22, -0.02, 0.36, 0.8]] : [[0.18, 0.06, 0.44, 1], [-0.26, -0.04, 0.32, 0.75]];
+      for (const [ox, oy, rw, hgt] of mounds) {
+        const x = cx + ox * s, y = cy + oy * s * TILT + 4 * z, w = rw * s, hh = 13 * z * hgt;
+        ctx.fillStyle = 'rgba(0,0,0,.2)'; ctx.beginPath(); ctx.ellipse(x + 2 * z, y + 1 * z, w, w * 0.32, 0, 0, Math.PI * 2); ctx.fill();
+        ctx.fillStyle = c.side1; ctx.beginPath(); ctx.moveTo(x - w, y); ctx.quadraticCurveTo(x - w * 0.15, y - hh * 2, x + w, y); ctx.closePath(); ctx.fill();
+        ctx.fillStyle = c.light; ctx.beginPath(); ctx.moveTo(x - w, y); ctx.quadraticCurveTo(x - w * 0.35, y - hh * 2.05, x + w * 0.2, y - hh * 0.55); ctx.quadraticCurveTo(x - w * 0.3, y - hh * 0.2, x - w, y); ctx.fill();
+      }
+      if (!c.owned) { ctx.fillStyle = 'rgba(40,36,30,.55)'; for (let i = 0; i < 3; i++) { const rx = cx + (hash(c.q + i * 3, c.r) - 0.5) * s * 0.8, ry = cy + (hash(c.q, c.r + i * 5) - 0.3) * s * 0.3 + 6 * z; ctx.beginPath(); ctx.ellipse(rx, ry, 2.4 * z, 1.5 * z, 0, 0, Math.PI * 2); ctx.fill(); } }
+    } else if (tile.t === 'canyon') {
+      // red mesas: stacked flat-topped buttes with sediment stripes
+      const butte = (ox, oy, w, h, col) => {
+        const x = cx + ox * s, y = cy + oy * s * TILT;
+        prism(x, y, w * s, h * z, col[0], col[1], col[2]);
+      };
+      const top = c.light, sideA = c.side1, sideB = c.side2;
+      butte(-0.2, 0.05, 0.34, 9, [top, sideA, sideB]);
+      butte(0.24, -0.06, 0.26, 6, [top, sideA, sideB]);
+      ctx.strokeStyle = 'rgba(255,220,180,.18)'; ctx.lineWidth = 1.2 * z;
+      for (let i = 0; i < 3; i++) { const y = cy + (2 + i * 4) * z; ctx.beginPath(); ctx.moveTo(cx - s * 0.48, y + (i % 2) * 2 * z); ctx.lineTo(cx + s * 0.48, y - (i % 2) * 2 * z); ctx.stroke(); }
     } else if (tile.t === 'mountain') {
       drawMountain(c, cx, cy, s, z);
     } else if (tile.t === 'desert') {
@@ -394,6 +466,10 @@ const Render = (() => {
       ctx.fillStyle = '#121820'; ctx.beginPath(); ctx.arc(x, y, 9.5 * z, 0, Math.PI * 2); ctx.fill(); ctx.restore();
       ctx.strokeStyle = col; ctx.lineWidth = 2 * z; ctx.beginPath(); ctx.arc(x, y, 9.5 * z, 0, Math.PI * 2); ctx.stroke();
       Art.drawIcon(ctx, 'poi', tile.poi, x, y, 6 * z, col);
+      if (tile.gar && !tile.owner) {
+        const lvl = tile.gar <= 4 ? 1 : tile.gar <= 7 ? 2 : 3;
+        for (let i = 0; i < 3; i++) { const px = x + (i - 1) * 5 * z, py = y + 13 * z; ctx.fillStyle = i < lvl ? '#ff6a4a' : 'rgba(0,0,0,.55)'; ctx.strokeStyle = '#0b0f13'; ctx.lineWidth = 1.2 * z; ctx.beginPath(); ctx.arc(px, py, 2.1 * z, 0, Math.PI * 2); ctx.fill(); ctx.stroke(); }
+      }
     }
     if (tile.contam) {
       const a = 0.4 + 0.3 * Math.sin(t * 3 + v * 9);
@@ -633,9 +709,11 @@ const Render = (() => {
     if (!S_ || !S_.map) return;
     ctx.translate(sx, sy);
     for (const k of order) drawTile(k);
+    if (S_.fogOn) for (const k of order) if (S_.map.tiles[k].fog) drawFog(k);
     for (const pa of ov.planArrows) drawPath(pa.path, pa.color, true, 0.85);
     if (ov.path) drawPath(ov.path, ov.pathColor || '#fff', false);
     drawUnits();
+    drawAir();
     if (ov.planGhost) for (const g of ov.planGhost) { const [x, y] = screenOf(g.hex); if (g.units) drawToken(x, y, g.units, g.owner, cam.z, { ghost: true }); if (g.struct) { ctx.save(); ctx.globalAlpha = 0.5; Art.drawIcon(ctx, 'struct', g.struct, x, y - 12 * cam.z, 10 * cam.z, '#fff'); ctx.restore(); } }
     drawProbs();
     drawFx(dt);
@@ -643,5 +721,5 @@ const Render = (() => {
     if (fx.flash > 0.01) { ctx.fillStyle = fx.flashCol; ctx.globalAlpha = Math.min(1, fx.flash); ctx.fillRect(0, 0, W, H); ctx.globalAlpha = 1; fx.flash *= Math.pow(0.04, dt); }
   }
 
-  return { init, setState, recolor, focus, fitMap, pan, zoomAt, hexAt, screenOf, topOf, world, ov, unitPos, unitHidden, extraUnits, burst, smoke, float, ring, beam, shake, flash, pop, cam, get time() { return t; } };
+  return { flyover, init, setState, recolor, focus, fitMap, pan, zoomAt, hexAt, screenOf, topOf, world, ov, unitPos, unitHidden, extraUnits, burst, smoke, float, ring, beam, shake, flash, pop, cam, get time() { return t; } };
 })();

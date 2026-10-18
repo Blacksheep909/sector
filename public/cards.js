@@ -58,6 +58,12 @@ const Cards = (() => {
         { duration: 700 + Math.random() * 700, easing: 'cubic-bezier(.1,.8,.3,1)' }).onfinish = () => p.remove();
     }
   }
+  // rays anchored to an element: they follow the card wherever its animation takes it
+  function raysOn(elm, color, dur = 1200, big = false) {
+    const host = (elm.closest && elm.closest('.flip')) || elm;
+    const r = el('div', 'rays local' + (big ? ' big' : '')); r.style.setProperty('--rc', color);
+    host.insertBefore(r, host.firstChild); setTimeout(() => r.remove(), dur);
+  }
   function rays(x, y, color, dur = 1200, big = false) {
     const r = el('div', 'rays' + (big ? ' big' : '')); r.style.left = x + 'px'; r.style.top = y + 'px'; r.style.setProperty('--rc', color);
     $('#flyLayer').appendChild(r); setTimeout(() => r.remove(), dur);
@@ -73,10 +79,10 @@ const Cards = (() => {
     card.classList.add('pop');
     if (rk === 0) { SFX.card(); return; }
     if (rk === 1) { SFX.select(); burstAt(x, y, [col, '#fff'], 16, 160); return; }
-    if (rk === 2) { SFX.rare(); rays(x, y, col); burstAt(x, y, [col, '#fff'], 30, 240); Render.shake(5); return; }
-    if (rk === 3) { SFX.rare(); setTimeout(() => SFX.legendary(), 120); rays(x, y, col, 1600, true); burstAt(x, y, [col, '#ff8af6', '#fff'], 60, 320, 10); Render.shake(10); bigText('EPIC!', col, 'epic'); return; }
+    if (rk === 2) { SFX.rare(); raysOn(card, col); burstAt(x, y, [col, '#fff'], 30, 240); Render.shake(5); return; }
+    if (rk === 3) { SFX.rare(); setTimeout(() => SFX.legendary(), 120); raysOn(card, col, 1600, true); burstAt(x, y, [col, '#ff8af6', '#fff'], 60, 320, 10); Render.shake(10); bigText('EPIC!', col, 'epic'); return; }
     SFX.legendary(); Render.flash(0.45, '#ffb52e'); Render.shake(18);
-    rays(x, y, col, 2400, true); burstAt(x, y, ['#ffb52e', '#fff3a8', '#ff6a3d', '#fff'], 120, 480, 11);
+    raysOn(card, col, 2400, true); burstAt(x, y, ['#ffb52e', '#fff3a8', '#ff6a3d', '#fff'], 120, 480, 11);
     bigText('LEGENDARY', col, 'legend');
     setTimeout(() => burstAt(x, y, ['#ffb52e', '#fff'], 60, 380, 8), 400);
   }
