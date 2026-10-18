@@ -164,7 +164,7 @@
     depot: { name: 'Depot', cost: 4, desc: 'Logistics hub: your units starting their turn nearby get +1 move. Range = level.' },
     port: { name: 'Port', cost: 5, desc: 'Coast only. Launch ships into the adjacent sea. Supply source for sea lanes.' },
     bridge: { name: 'Bridge', cost: 6, desc: 'Span a 1-hex sea gap between two shores. Land units cross; ships cannot pass.' },
-    bunker: { name: 'Bunker', cost: 4, desc: 'Strongpoint with its own garrison: +3 Chips per level even when empty, so enemies must attack it. +2 Mult defence (+1 per extra level). ★★+ also gives your neighbouring hexes +1 Mult.' },
+    bunker: { name: 'Bunker', cost: 4, desc: 'Strongpoint with its own garrison: +3 Chips per level even when empty, so enemies must attack it. +2 Mult defence (+1 per extra level). ★★+ also gives your neighbouring hexes +1 Mult. Destroyed if an enemy captures it.' },
     flak: { name: 'Flak', cost: 5, desc: 'Blocks enemy air tactics nearby (range = level). +2 Mult vs air.' },
   };
   const BUILD_ORDER = ['hq', 'fob', 'market', 'refinery', 'depot', 'port', 'bridge', 'bunker', 'flak'];
@@ -946,6 +946,13 @@
     if (cp && cp.faction === 'ashen' && t.owner && t.owner !== pid) { cp.cash += 2; cp.loot = (cp.loot || 0) + 2; }
     t.owner = pid;
     t.smoke = null;
+    // an enemy commander's bunker is blown up when its hex falls (neutral forts still hand theirs over)
+    const razed = structsOf(t).filter(st => st.type === 'bunker' && st.owner && st.owner !== pid);
+    if (razed.length) {
+      t.structs = structsOf(t).filter(st => !razed.includes(st));
+      (s._razed = s._razed || []).push(k);
+      pushLog(s, '💥 ' + (cp ? cp.name : '?') + ' destroyed a Bunker.');
+    }
     for (const st of structsOf(t)) {
       if (st.type === 'hq') { if (st.owner === pid) delete st.siege; else st.siege = { by: pid }; continue; }
       if (st.owner !== pid && (st.type === 'fob' || st.type === 'port')) st.lock = 1;
@@ -1258,7 +1265,9 @@
   // ───────────────────────── actions ─────────────────────────
   function applyAction(s, pid, a, rng) {
     rng = rng || Math.random;
+    s._razed = null;
     const r = applyActionInner(s, pid, a, rng);
+    if (s._razed) { if (r.ok) for (const k of s._razed) r.events.push({ e: 'razed', pid, hex: k }); s._razed = null; }
     if (r.ok && s.phase === 'play') {
       drown(s, r.events);
       if (['move', 'assault', 'fire', 'tactic', 'deploy', 'build'].includes(a.a)) annex(s, pid, r.events);

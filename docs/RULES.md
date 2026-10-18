@@ -212,7 +212,7 @@ Build from the build bar (`Z` and onward, nine slots). To **upgrade** a structur
 | **Market** | +$3, and each level counts toward the trade network |
 | **Refinery** | +$2 (+$4 on a resource node or oil rig) |
 | **Depot** | +1 to its range for the move bonus |
-| **Bunker** | +3 garrison chips (even when empty, so it must be attacked) and +1 defence mult (★ gives +2). From ★★, your neighbouring hexes get +1 mult (Bunker Line) |
+| **Bunker** | +3 garrison chips (even when empty, so it must be attacked) and +1 defence mult (★ gives +2). From ★★, your neighbouring hexes get +1 mult (Bunker Line). **Destroyed** when an enemy captures its hex |
 | **Flak** | +1 hex of anti-air coverage |
 
 Ports and bridges don't upgrade. **Sabotage** knocks a level off a structure, and destroys it only at ★.

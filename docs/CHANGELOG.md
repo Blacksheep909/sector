@@ -2,6 +2,10 @@
 
 Every release, newest first. Each version also has its own post on the [Releases page](https://github.com/Blacksheep909/sector/releases).
 
+## v0.6.1
+
+- **Captured Bunkers are destroyed.** Take an enemy commander's bunkered hex and the Bunker is blown up on the spot (with a demolition blast), so you can't turn their own defences against them. Other buildings on the hex still change hands. Neutral Old Forts still give you their Bunker.
+
 ## v0.6.0
 
 **The big one.** Fog of war, alliances, world events, undo, a Balance of Power chart, up to 8 commanders, menu music, and a pile of fixes.
