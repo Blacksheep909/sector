@@ -591,6 +591,72 @@ const Art = (() => {
     c.save(); c.translate(cx, H); c.rotate(P); c.translate(0, 0); word(104); c.restore();
     return cache.back = cv.toDataURL('image/png');
   }
+  // ── Supply Drop chests: painted per tier. Body and lid share one 240×200 frame so they stack exactly. ──
+  const CHEST = {
+    standard: { wood: ['#9a6533', '#86562a'], woodDark: '#5e3a18', metal: '#7f8d99', metalHi: '#c7d2db', metalDark: '#46525d', gem: '#7fd3ff', glow: '#bfe6ff' },
+    gilded: { wood: ['#a3222f', '#8c1b27'], woodDark: '#5a0f17', metal: '#ffc53d', metalHi: '#fff1b0', metalDark: '#a8730f', gem: '#ff4f5e', glow: '#ffd76a' },
+    mythic: { wood: ['#3d1670', '#30105c'], woodDark: '#1c0838', metal: '#5ee7ff', metalHi: '#e6fbff', metalDark: '#1f7f9c', gem: '#ff7ae6', glow: '#e3a2ff' },
+  };
+  function chest(tier, part) {
+    const k = 'chest' + tier + part; if (cache[k]) return cache[k];
+    const C = CHEST[tier] || CHEST.standard, S = 2, W = 240, H = 200;
+    const cv = document.createElement('canvas'); cv.width = W * S; cv.height = H * S;
+    const c = cv.getContext('2d'); c.scale(S, S); c.lineJoin = 'round';
+    const ink = '#0b0f13';
+    const plank = (x, y, w, h) => {
+      const n = Math.max(1, Math.round(h / 20));
+      for (let i = 0; i < n; i++) { c.fillStyle = C.wood[i % 2]; c.fillRect(x, y + i * h / n, w, h / n + 0.5); }
+      c.fillStyle = 'rgba(0,0,0,.18)'; for (let i = 1; i < n; i++) c.fillRect(x, y + i * h / n - 1, w, 2);
+      c.fillStyle = 'rgba(255,255,255,.08)'; for (let i = 0; i < n; i++) c.fillRect(x, y + i * h / n + 2, w, 2);
+    };
+    const band = (x, y, w, h) => {
+      c.fillStyle = C.metalDark; rr(c, x - 1, y, w + 2, h, 3); c.fill();
+      c.fillStyle = C.metal; rr(c, x, y, w, h - 3, 3); c.fill();
+      c.fillStyle = C.metalHi; c.fillRect(x + 2, y + 2, 3, h - 8);
+      for (const ry of [y + 9, y + h - 12]) { c.fillStyle = C.metalDark; circ(c, x + w / 2, ry, 3.6); c.fill(); c.fillStyle = C.metalHi; circ(c, x + w / 2 - 1, ry - 1, 1.4); c.fill(); }
+    };
+    if (part === 'body') {
+      // box
+      c.fillStyle = ink; rr(c, 14, 84, 212, 108, 12); c.fill();
+      c.save(); rr(c, 19, 88, 202, 99, 9); c.clip();
+      plank(19, 88, 202, 99);
+      if (tier === 'mythic') { const g = c.createLinearGradient(0, 88, 0, 187); g.addColorStop(0, 'rgba(94,231,255,.0)'); g.addColorStop(1, 'rgba(94,231,255,.25)'); c.fillStyle = g; c.fillRect(19, 88, 202, 99); }
+      c.fillStyle = 'rgba(0,0,0,.28)'; c.fillRect(19, 88, 202, 12);           // shadow under the lid
+      c.restore();
+      band(36, 86, 26, 104); band(178, 86, 26, 104);
+      // base trim
+      c.fillStyle = ink; rr(c, 10, 176, 220, 20, 7); c.fill();
+      c.fillStyle = C.metalDark; rr(c, 14, 179, 212, 13, 5); c.fill(); c.fillStyle = C.metal; rr(c, 14, 179, 212, 8, 4); c.fill();
+      for (const x of [26, 214]) { c.fillStyle = C.metalHi; circ(c, x, 185, 2.4); c.fill(); }
+      // lock plate
+      c.fillStyle = ink; c.beginPath(); c.moveTo(96, 82); c.lineTo(144, 82); c.lineTo(144, 120); c.quadraticCurveTo(120, 146, 96, 120); c.closePath(); c.fill();
+      c.fillStyle = C.metal; c.beginPath(); c.moveTo(100, 84); c.lineTo(140, 84); c.lineTo(140, 118); c.quadraticCurveTo(120, 140, 100, 118); c.closePath(); c.fill();
+      c.fillStyle = C.metalHi; c.fillRect(103, 87, 4, 26);
+      // gem
+      c.fillStyle = ink; c.beginPath(); c.moveTo(120, 94); c.lineTo(132, 106); c.lineTo(120, 122); c.lineTo(108, 106); c.closePath(); c.fill();
+      c.fillStyle = C.gem; c.beginPath(); c.moveTo(120, 97); c.lineTo(129, 106); c.lineTo(120, 118); c.lineTo(111, 106); c.closePath(); c.fill();
+      c.fillStyle = 'rgba(255,255,255,.7)'; c.beginPath(); c.moveTo(120, 97); c.lineTo(124, 102); c.lineTo(116, 104); c.closePath(); c.fill();
+    } else {
+      // domed lid
+      c.fillStyle = ink; c.beginPath(); c.moveTo(8, 92); c.lineTo(8, 62); c.bezierCurveTo(10, 8, 230, 8, 232, 62); c.lineTo(232, 92); c.closePath(); c.fill();
+      c.save(); c.beginPath(); c.moveTo(13, 87); c.lineTo(13, 63); c.bezierCurveTo(16, 14, 224, 14, 227, 63); c.lineTo(227, 87); c.closePath(); c.clip();
+      plank(13, 18, 214, 70);
+      const hl = c.createLinearGradient(0, 18, 0, 88); hl.addColorStop(0, 'rgba(255,255,255,.22)'); hl.addColorStop(0.5, 'rgba(255,255,255,0)'); c.fillStyle = hl; c.fillRect(13, 18, 214, 70);
+      if (tier === 'mythic') { c.fillStyle = 'rgba(255,122,230,.18)'; for (let i = 0; i < 5; i++) { c.beginPath(); c.moveTo(40 + i * 40, 20); c.lineTo(60 + i * 40, 20); c.lineTo(48 + i * 40, 88); c.closePath(); c.fill(); } }
+      c.restore();
+      // lid bands follow the dome
+      for (const x of [36, 178]) { c.save(); c.beginPath(); c.moveTo(13, 87); c.lineTo(13, 63); c.bezierCurveTo(16, 14, 224, 14, 227, 63); c.lineTo(227, 87); c.closePath(); c.clip(); band(x, 10, 26, 80); c.restore(); }
+      // front rim
+      c.fillStyle = ink; rr(c, 4, 80, 232, 18, 7); c.fill();
+      c.fillStyle = C.metalDark; rr(c, 8, 83, 224, 12, 5); c.fill(); c.fillStyle = C.metal; rr(c, 8, 83, 224, 7, 4); c.fill();
+      c.fillStyle = C.metalHi; c.fillRect(12, 84, 216, 2);
+      // tier emblem on the dome
+      c.fillStyle = ink; c.beginPath(); for (let i = 0; i < 6; i++) { const a = Math.PI / 3 * i - Math.PI / 2; c.lineTo(120 + 20 * Math.cos(a), 46 + 20 * Math.sin(a)); } c.closePath(); c.fill();
+      c.fillStyle = C.metal; c.beginPath(); for (let i = 0; i < 6; i++) { const a = Math.PI / 3 * i - Math.PI / 2; c.lineTo(120 + 16 * Math.cos(a), 46 + 16 * Math.sin(a)); } c.closePath(); c.fill();
+      c.fillStyle = C.metalDark; c.font = '900 17px "Black Ops One", Impact, sans-serif'; c.textAlign = 'center'; c.textBaseline = 'middle'; c.fillText('S', 120, 47);
+    }
+    return cache[k] = cv.toDataURL('image/png');
+  }
   function cardArt(id) {
     const k = 'card' + id; if (cache[k]) return cache[k];
     const E = SectorEngine, d = E.cardDef(id), pal = PAL[d.rarity] || PAL.common;
@@ -625,5 +691,5 @@ const Art = (() => {
     return cache[k] = cv.toDataURL('image/webp', 0.9);
   }
 
-  return { cardBack, drawIcon, iconURL, cardArt, UNIT, TACTIC, STRUCT, GLYPH };
+  return { chest, cardBack, drawIcon, iconURL, cardArt, UNIT, TACTIC, STRUCT, GLYPH };
 })();

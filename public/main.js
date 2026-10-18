@@ -111,7 +111,7 @@
       if (p.spectator) { r.classList.add('spec'); const fx = r.querySelector('.fx'); if (fx) fx.textContent = '👁 Spectating'; }
       if (p.bot) {
         const dsel = el('select', 'diffsel ' + (p.diff || 'medium'));
-        dsel.innerHTML = Object.keys(E.DIFFICULTY).map(d => `<option value="${d}"${p.diff === d ? ' selected' : ''}>${E.DIFFICULTY[d].name}</option>`).join('');
+        dsel.innerHTML = Object.keys(E.DIFFICULTY).map(d => `<option value="${d}"${p.diff === d ? ' selected' : ''}>${E.DIFFICULTY[d].name}</option>`).join('') + `<option value="random"${p.diff === 'random' ? ' selected' : ''}>🎲 Random</option>`;
         dsel.disabled = !host; dsel.onchange = () => send({ t: 'botCfg', id: p.id, diff: dsel.value });
         r.insertBefore(dsel, r.querySelector('.tag'));
       }
@@ -1145,7 +1145,7 @@
       if (ev.ranged) txt = attWin ? (ev.killed.length > 1 ? 'DOUBLE HIT!' : 'DIRECT HIT!') : 'MISSED!';
       else txt = attWin ? 'BREAKTHROUGH!' : 'REPELLED!';
       const res = el('div', 'cb-result', txt + (ev.pyrrhic.length ? '<small>pyrrhic — winner lost a unit</small>' : ''));
-      wrap.appendChild(res);
+      wrap.classList.add('resolved'); wrap.appendChild(res);
       SFX.victoryHit(); Render.shake(12);
       if ((attWin && ev.att.pid === you) || (!attWin && ev.def.pid === you)) SFX.win();
       await sleep(1000);
@@ -1636,6 +1636,6 @@
   $('#rulesBtn').onclick = showRules; $('#rulesBtn2').onclick = showRules;
   for (const b of ['#indexBtn', '#indexBtn2', '#indexBtn3']) $(b).onclick = () => { SFX.select(); Cards.showIndex(); };
 
-  window.SECTOR_DEBUG = { resume: () => pump(), crushFx: ev => obliterate(ev), send, state: () => S, you: () => you, plan: () => plan, planState: () => planState, act: doAction, click: onHexClick };
+  window.SECTOR_DEBUG = { resume: () => pump(), crushFx: ev => obliterate(ev), combatFx: ev => showCombat(ev), send, state: () => S, you: () => you, plan: () => plan, planState: () => planState, act: doAction, click: onHexClick };
   connect();
 })();
