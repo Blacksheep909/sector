@@ -54,7 +54,10 @@
       case 'skipFx': if (curFight && curFight.att === m.att && curFight.to === m.to) fastForward = true; break;
       case 'chat': addLog(`<b style="--c:${m.color}">${esc(m.from)}:</b> ${esc(m.text)}`, 'chat'); SFX.click(); break;
       case 'left': leftGame = true; token = null; try { localStorage.removeItem('sector.token'); } catch (e) {} you = null; realId = null; joinedOnce = false; backToMenu(); toast('You left the game'); break;
-      case 'kicked': token = null; try { localStorage.removeItem('sector.token'); } catch (e) {} you = null; toast('You were removed from the lobby', 'err'); showJoin(); break;
+      case 'kicked': token = null; try { localStorage.removeItem('sector.token'); } catch (e) {}
+        if (S) { leftGame = true; you = null; realId = null; joinedOnce = false; backToMenu(); toast('The host removed you from the game', 'err'); }
+        else { you = null; toast('You were removed from the lobby', 'err'); showJoin(); }
+        break;
     }
   }
 
@@ -780,7 +783,14 @@
       c.onclick = () => Render.focus(p.hq);
       const allied = E.isAlly(S, you, p.id), pact = allied && (S.allies || []).find(x => (x.a === p.id || x.b === p.id) && (x.a === you || x.b === you));
       if (allied) { c.classList.add('allied'); c.appendChild(el('span', 'allybadge' + (pact && pact.ending ? ' ending' : ''), pact && pact.ending ? '💔' : '🤝')); }
-      if (!myP() && p.bot && p.alive && S.phase !== 'over') {
+      const lp = lobby && lobby.players.find(x => x.id === p.id);
+      if (p.away) c.querySelector('.pn').insertAdjacentHTML('beforeend', ' <span class="out" title="Disconnected: a bot is covering until they return">📡 AWAY</span>');
+      if (lobby && lobby.hostId === realId && p.id !== you && !p.bot && lp && !(lp.local && lp.controller === realId) && S.phase !== 'over') {
+        const kb = el('button', 'kickbtn', '✕'); kb.title = 'Kick ' + p.name + ' (a bot takes over their empire)';
+        kb.onclick = e => { e.stopPropagation(); if (kb.dataset.armed !== '1') { kb.dataset.armed = '1'; kb.textContent = 'KICK?'; setTimeout(() => { kb.dataset.armed = ''; kb.textContent = '✕'; }, 2500); return; } SFX.click(); send({ t: 'kick', id: p.id }); };
+        c.appendChild(kb);
+      }
+      if (!myP() && p.bot && !p.away && p.alive && S.phase !== 'over') {
         const box = el('div', 'chipbtns'), tb = el('button', 'tradebtn ally', 'TAKE OVER');
         tb.title = 'Take command of this bot: its land, army and cards become yours';
         tb.onclick = e => { e.stopPropagation(); SFX.select(); send({ t: 'takeover', id: p.id, name: savedName() || 'Commander' }); };

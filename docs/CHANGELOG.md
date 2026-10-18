@@ -2,6 +2,17 @@
 
 Every release, newest first. Each version also has its own post on the [Releases page](https://github.com/Blacksheep909/sector/releases).
 
+## v0.7.2
+
+**Drop-outs no longer strand the game, the host can kick, sneakier bots, and a drone nerf.**
+
+- **📡 No more stranded games:** if a player disconnects, a bot covers their empire after 30 seconds and hands it straight back when they reconnect.
+- **👢 Host kick:** the host can remove a player mid-game with the ✕ on their name; a bot takes over that empire.
+- **🗡 Bots betray strategically:** once the common enemy is beaten, or a weak ally sits next door while they lead, harder bots will break a pact (never one younger than 3 rounds).
+- **🕵 Spy Ring** steals any card the rival has earned: a tactic or a unit from their deck, never their starting Grunts, faction unit or Ark.
+- **✈ Aircraft nerf (hits Volt Syndicate hardest):** aircraft only take the hex they land on, instead of every unclaimed hex they fly over. Drone swarms can no longer grab huge areas, and their income, in a turn. Gunships (Valkyrie, Seraph) still seize enemy hexes on their flight path.
+- **Privacy:** the repository history no longer contains network addresses or a personal email.
+
 ## v0.7.1
 
 **Ready up, rivers, sea mines, and a lot faster.**

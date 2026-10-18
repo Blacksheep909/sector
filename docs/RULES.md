@@ -29,7 +29,7 @@ Grab land, build an economy, crush your rivals. **Every hex you hold pays you**,
 - **Alliances.** On your turn, press **ALLY** under a rival's name to propose one. Allies can't attack or enter each other's land, share vision in the fog, and if only allies are left standing they **win together**. Either side can press **BREAK** to end it. The break takes effect at the start of the breaker's next turn, so the other side gets a warning.
   - **Holding a pact pays.** After 2 rounds, each alliance earns both sides an **alliance dividend** of +$2 per turn, rising by $1 every 3 rounds (max +$4). A hex next to an ally's land also gets **+1 defence mult (Allied Support)**.
   - **Betrayal costs.** Whoever breaks a pact is branded a **🗡 TRAITOR** for 3 of their turns: **-40% income** and nobody will ally with them. The betrayed side gets **+2 mult (Vengeance)** on every attack against the traitor for 3 turns.
-- **Bot moods.** Every bot keeps a mood towards every commander (the face next to its name shows how it feels about you). Attacks, sieges, land grabs and betrayals sour it; trades and long alliances warm it up, and grudges fade slowly. Bots read the board too: they team up against whoever is most dangerous, turn down pacts with the runaway leader, and knife an ally who gets too big.
+- **Bot moods.** Every bot keeps a mood towards every commander (the face next to its name shows how it feels about you). Attacks, sieges, land grabs and betrayals sour it; trades and long alliances warm it up, and grudges fade slowly. Bots read the board too: they team up against whoever is most dangerous, turn down pacts with the runaway leader, and knife an ally who gets too big. Harder bots are more ruthless: once a pact is 3 rounds old they may also break it when the common enemy is beaten, or when a weak ally is sitting on land next to theirs and they're the strongest on the board.
 
 ## Win conditions
 
@@ -154,7 +154,7 @@ Maps have climate. It's colder toward the top and bottom edges and hotter in the
 
 ## Moving
 
-- Units **seize every unclaimed hex they pass through**.
+- Ground units and ships **seize every unclaimed hex they pass through**. Aircraft can't hold ground they fly over: they only take the hex they land on (Valkyrie and Seraph gunships still seize enemy hexes on their flight path).
 - Highlands, jungle, tundra, swamp and canyons cost 2 move, and so does fording into a **river** hex. Rangers ignore this. **A unit can always move at least one hex**, so slow units like the Goliath never get stuck in rough ground (and a Blizzard never takes a unit below 1 move).
 - Mountains block movement except for air units. Open water blocks land units unless they're aboard an Ark; air units and hover tanks fly or glide across it.
 - A hex holds at most 5 units, and mixed types share a stack freely. A hex of nothing but Grunts can hold 10.
@@ -252,6 +252,8 @@ Taking an enemy HQ doesn't knock them out straight away: it puts their HQ **unde
 ## Menus and joining
 
 - **Ready up.** In the lobby every guest presses **READY UP**; the host's **DEPLOY** stays locked until everyone is ready. Changing a setting un-readies everyone, so nobody gets surprised.
+- **Dropping out.** If a player disconnects mid-game, a bot covers their empire after 30 seconds (marked 📡 AWAY), and hands it back the moment they reconnect.
+- **Kicking.** The host can kick a player mid-game with the ✕ on their name (click twice). A bot takes over their empire and they can't rejoin that seat.
 - **Esc** opens the pause menu: resume, rules, card index, sound, and **Leave game**. When you leave, a bot takes over your empire so everyone else can keep playing. The host can also **End game for everyone**.
 - On the main menu, **Join a game** scans your Wi-Fi for SECTOR servers (it starts scanning as soon as you open it). Games in progress show their round and how many bots are playing; press **WATCH** to spectate. You can also type an address, or pick a recent server.
 - **Take over a bot.** While you're spectating a game in progress, every bot has a **TAKE OVER** button under its name. Press it to take command of that bot's empire: its land, army, cards and cash become yours.

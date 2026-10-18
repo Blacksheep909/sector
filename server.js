@@ -160,7 +160,7 @@ const autoPids = new Set(); // dev: humans driven by the bot AI (SECTOR_DEV=1)
 
 function lobbyView() {
   return {
-    players: lobby.players.map(p => ({ id: p.id, name: p.name, color: p.color, faction: p.faction, bot: p.bot, diff: p.diff, local: !!p.local, controller: p.controller || null, spectator: !!p.spectator, team: p.team || 0, ready: isReady(p), connected: p.bot || isConnected(p.id) })),
+    players: lobby.players.map(p => ({ id: p.id, name: p.name, color: p.color, faction: p.faction, bot: p.bot, diff: p.diff, local: !!p.local, controller: p.controller || null, spectator: !!p.spectator, team: p.team || 0, ready: isReady(p), away: !!p.away, connected: p.bot || isConnected(p.id) })),
     hostId: lobby.hostId, settings: lobby.settings, inGame: !!game, version: VERSION, lan: lanAddresses().map(a => 'http://' + a + ':' + PORT), port: PORT,
   };
 }
@@ -226,6 +226,14 @@ function onMessage(c, m) {
         lobby.players.push(p);
         note(p.name + ' joined from ' + addrOf(c));
       } else if (!isConnected(p.id)) note(p.name + ' reconnected');
+      if (p.away && game) {
+        for (const lp of lobby.players.filter(x => x.id === p.id || (x.local && x.controller === p.id))) {
+          lp.away = false; const gp = game.players.find(g => g.id === lp.id);
+          if (gp && gp.away) { gp.bot = false; gp.away = false; }
+        }
+        game.log.push('📡 ' + p.name + ' is back in command.'); game.v++;
+        c.pid = p.id; broadcastState([], null);   // everyone sees the seat handed back
+      }
       c.pid = p.id;
       if (!lobby.hostId || !lobby.players.some(x => x.id === lobby.hostId && !x.bot)) lobby.hostId = p.id;
       send(c, { t: 'welcome', you: p.id, token: p.token });
@@ -328,9 +336,18 @@ function onMessage(c, m) {
       return broadcastLobby();
     }
     case 'kick': {
-      if (game || m.id === c.pid) return;
+      if (m.id === c.pid) return;
       const target = lobby.players.find(p => p.id === m.id);
       if (!target || !(c.pid === lobby.hostId || (target.local && target.controller === c.pid))) return;
+      if (game) {
+        if (target.bot) return;
+        const seats = [target.id, ...lobby.players.filter(p => p.local && p.controller === target.id).map(p => p.id)];
+        game.log.push('👢 ' + target.name + ' was removed by the host — a bot took over.');
+        botifySeats(seats, true);
+        for (const cl of clients) if (seats.includes(cl.pid)) { send(cl, { t: 'kicked' }); cl.pid = null; cl.left = true; }
+        note(target.name.replace(/ \(bot\)$/, '') + ' was kicked by the host');
+        game.v++; broadcastLobby(); broadcastState([], null); return afterChange();
+      }
       lobby.players = lobby.players.filter(p => p.id !== m.id && p.controller !== m.id);
       for (const cl of clients) if (cl.pid === m.id) { send(cl, { t: 'kicked' }); cl.pid = null; }
       return broadcastLobby();
@@ -392,15 +409,7 @@ function onMessage(c, m) {
     case 'leave': {
       // leaving: in a running game your seats become bots so the match carries on
       const seats = seatsOf(c);
-      if (game) {
-        for (const id of seats) {
-          const lp = lobby.players.find(p => p.id === id), gp = game.players.find(p => p.id === id);
-          if (lp) { lp.bot = true; lp.diff = lp.diff || 'medium'; lp.local = false; lp.controller = null; lp.token = null; lp.name = lp.name.replace(/ \(bot\)$/, '') + ' (bot)'; }
-          if (gp && gp.alive) { gp.bot = true; gp.diff = gp.diff || 'medium'; gp.name = lp ? lp.name : gp.name; }
-          if (game.trade && game.trade.to === id) game.trade = null;
-        }
-        pushLeave(seats);
-      } else lobby.players = lobby.players.filter(p => !seats.includes(p.id));
+      if (game) { pushLeave(seats); botifySeats(seats, true); } else lobby.players = lobby.players.filter(p => !seats.includes(p.id));
       if (seats.includes(lobby.hostId)) { const h = lobby.players.find(p => !p.bot && !p.local && isConnected(p.id) && !seats.includes(p.id)); lobby.hostId = h ? h.id : null; }
       { const p = lobby.players.find(x => x.id === seats[0]); if (p) note(p.name.replace(/ \(bot\)$/, '') + (game ? ' left — a bot took over' : ' left the lobby')); }
       c.pid = null; c.left = true;
@@ -429,8 +438,32 @@ function endGame() {
 }
 
 const addrOf = c => { const a = (c.socket.remoteAddress || '').replace('::ffff:', ''); return a === '127.0.0.1' || a === '::1' ? 'this PC' : a; };
+const AWAY_GRACE = +process.env.SECTOR_AWAY_MS || 30000;
+// seats of a commander who dropped out: a bot plays them until they reconnect (temporary) or for good (left / kicked)
+function botifySeats(seats, forGood) {
+  for (const id of seats) {
+    const lp = lobby.players.find(p => p.id === id), gp = game && game.players.find(p => p.id === id);
+    if (!lp || lp.bot) continue;
+    if (forGood) { lp.bot = true; lp.diff = lp.diff || 'medium'; lp.local = false; lp.controller = null; lp.token = null; lp.away = false; lp.name = lp.name.replace(/ \(bot\)$/, '') + ' (bot)'; }
+    else lp.away = true;
+    if (gp && gp.alive) { gp.bot = true; gp.diff = gp.diff || 'medium'; gp.away = !forGood; if (forGood) gp.name = lp.name; }
+    if (game && game.trade && game.trade.to === id) game.trade = null;
+    if (game && game.allyOffer && game.allyOffer.to === id) game.allyOffer = null;
+  }
+  if (seats.includes(lobby.hostId)) { const h = lobby.players.find(p => !p.bot && !p.local && !p.away && isConnected(p.id) && !seats.includes(p.id)); lobby.hostId = h ? h.id : lobby.hostId; }
+}
 function onDisconnect(c) {
   { const p = c.pid && lobby.players.find(x => x.id === c.pid); if (p && !c.left) note(p.name + ' disconnected'); }
+  if (game && c.pid && !c.left) {
+    const seats = seatsOf(c), pid = c.pid;
+    setTimeout(() => {
+      if (!game || isConnected(pid)) return;
+      botifySeats(seats, false);
+      const p = lobby.players.find(x => x.id === pid);
+      if (p) { game.log.push('📡 ' + p.name + ' lost connection — a bot is covering until they return.'); note(p.name + ' is away: a bot took over'); }
+      game.v++; broadcastLobby(); broadcastState([], null); afterChange();
+    }, AWAY_GRACE);
+  }
   if (!game && c.pid) {
     // leaving the lobby before a game removes you
     setTimeout(() => {
