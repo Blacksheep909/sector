@@ -340,9 +340,18 @@
     const shallow = Object.keys(tiles).filter(k => tiles[k].t === 'water' && !tiles[k].deep).sort(() => rng() - 0.5);
     let rigs = 0;
     for (const k of shallow) {
-      if (rigs >= Math.max(2, Math.round(shallow.length * 0.05))) break;
+      if (rigs >= Math.max(3, Math.round(shallow.length * 0.09))) break;
       if (spawns.some(s => dist(s, k) < 3) || neighbors(k).some(n => tiles[n] && tiles[n].res)) continue;
       tiles[k].res = true; rigs++;
+    }
+    // fishing grounds: shoals in shallow water (+$1 each while you hold them)
+    const anyWater = Object.keys(tiles).filter(k => tiles[k].t === 'water' && !tiles[k].res).sort(() => rng() - 0.5);
+    let fish = 0;
+    for (const k of anyWater) {
+      if (fish >= Math.max(4, Math.round(anyWater.length * 0.07))) break;
+      if (tiles[k].deep && rng() < 0.6) continue;
+      if (neighbors(k).some(n => tiles[n] && (tiles[n].fish || (tiles[n].res && tiles[n].t === 'water')))) continue;
+      tiles[k].fish = true; fish++;
     }
     // points of interest: loot to grab, neutral strongholds to conquer, relics to hold
     const free = landNow.filter(k => !tiles[k].res && spawns.every(sp => dist(sp, k) >= 3)).sort(() => rng() - 0.5);
@@ -357,8 +366,24 @@
         if (poi === 'fort') { tiles[k].structs = [{ type: 'bunker', owner: null, lvl: 2 }]; tiles[k].struct = tiles[k].structs[0]; }
       }
     }
-    // relics sit far from everyone's HQ
-    const relics = Math.max(1, Math.round(nP / 2));
+    // treasure islands: small landmasses away from the HQs hold loot and relics, so it pays to sail
+    const isles = [], seen = new Set(), landSet = new Set(landNow);
+    for (const k of landNow) {
+      if (seen.has(k)) continue;
+      const comp = [k]; seen.add(k);
+      for (let i = 0; i < comp.length; i++) for (const n of neighbors(comp[i])) if (landSet.has(n) && !seen.has(n)) { seen.add(n); comp.push(n); }
+      if (comp.length <= Math.max(10, Math.floor(landNow.length / 18)) && !spawns.some(sp => comp.includes(sp))) isles.push(comp);
+    }
+    let relicIsles = 0;
+    isles.sort(() => rng() - 0.5).forEach((comp, i) => {
+      const spots = comp.filter(k => tiles[k].t !== 'mountain' && !tiles[k].res).sort(() => rng() - 0.5);
+      for (const k of spots) delete tiles[k].poi;
+      const loot = i % 3 === 0 ? ['relic', 'cache'] : i % 3 === 1 ? ['ruins', 'cache'] : ['ruins', 'village'];
+      if (comp.length < 5) loot.length = 1;
+      loot.forEach((poi, j) => { const k = spots[j * 2] || spots[j]; if (k && !tiles[k].poi) { tiles[k].poi = poi; if (poi === 'relic') relicIsles++; } });
+    });
+    // relics sit far from everyone's HQ (fewer on the mainland when islands already carry some)
+    const relics = Math.max(relicIsles ? 0 : 1, Math.round(nP / 2) - relicIsles);
     const farthest = landNow.filter(k => !tiles[k].poi && !tiles[k].res).map(k => [k, Math.min(...spawns.map(sp => dist(sp, k)))]).sort((a, b) => b[1] - a[1]);
     for (let i = 0, placedR = 0; i < farthest.length && placedR < relics; i++) { const k = farthest[i][0]; if (neighbors(k).some(nb => tiles[nb] && tiles[nb].poi === 'relic')) continue; tiles[k].poi = 'relic'; placedR++; }
     let cx = 0, cy = 0; for (const k of landNow) { cx += tiles[k].q; cy += tiles[k].r; }
@@ -576,26 +601,35 @@
   }
   function computeIncome(s, pid) {
     const sup = supplySet(s, pid);
-    let hexes = 0, sea = 0, cut = 0, res = 0, ref = 0, markets = 0, ports = 0, poi = 0;
+    let hexes = 0, sea = 0, cut = 0, res = 0, ref = 0, markets = 0, ports = 0, poi = 0, fish = 0; const portHexes = [];
     for (const k in s.map.tiles) {
       const t = s.map.tiles[k]; if (t.owner !== pid) continue;
       if (!sup.has(k)) { cut++; continue; }
       if (isWater(t)) sea++; else hexes++;
       if (t.res) res++;
+      if (t.fish) fish++;
       if (t.poi === 'village') poi += 2; else if (t.poi === 'relic') poi += 3;
       for (const st of structsOf(t)) {
         if (st.type === 'refinery') ref += (t.res ? 4 : 2) * slvlOf(st);
         if (st.type === 'market') markets += slvlOf(st);
-        if (st.type === 'port') ports++;
+        if (st.type === 'port' && st.owner === pid) { ports++; portHexes.push(k); }
       }
     }
     const trade = markets ? markets * 3 + markets * (markets - 1 + ports) : 0;
+    // shipping lanes: each Port earns $1 per 4 of your sea hexes connected to it (up to $5)
+    let lanes = 0;
+    for (const ph of portHexes) {
+      const seenW = new Set(), q = neighbors(ph).filter(n => { const w = s.map.tiles[n]; return w && isWater(w) && w.owner === pid; });
+      q.forEach(n => seenW.add(n));
+      for (let i = 0; i < q.length && seenW.size < 40; i++) for (const n of neighbors(q[i])) { const w = s.map.tiles[n]; if (w && isWater(w) && w.owner === pid && !seenW.has(n)) { seenW.add(n); q.push(n); } }
+      lanes += Math.min(5, Math.floor(seenW.size / 4));
+    }
     const base = 3, fromHex = Math.floor(hexes / 3), fromSea = Math.floor(sea / 4), fromRes = res * 2;
-    let total = base + fromHex + fromSea + fromRes + ref + trade + poi;
+    let total = base + fromHex + fromSea + fromRes + ref + trade + poi + fish + lanes;
     const p = player(s, pid), d = p && p.bot && DIFFICULTY[p.diff];
     const bonus = d ? Math.round(total * d.income) - total : 0;
     total += bonus;
-    return { total, base, fromHex, fromSea, fromRes, ref, trade, poi, bonus, hexes, sea, cut, res };
+    return { total, base, fromHex, fromSea, fromRes, ref, trade, poi, fish, lanes, bonus, hexes, sea, cut, res };
   }
   function nearOwned(s, pid, k, r) {
     for (const a of area(k, r)) { const t = s.map.tiles[a]; if (t && t.owner === pid) return true; }
@@ -713,6 +747,12 @@
     if (hunters && has(defenders, 'veh')) { att.chips += 3 * hunters; att.bonuses.push({ label: 'Tank Hunter', chips: 3 * hunters }); }
     const torps = units.filter(u => UNITS[u.type].ability === 'torpedo').length;
     if (torps && has(defenders, 'sea')) { att.chips += 4 * torps; att.bonuses.push({ label: 'Torpedoes', chips: 4 * torps }); }
+    if (!ranged && isLandTile(t)) {
+      const inFight = new Set(units.map(u => u.id));
+      const guns = side => { let n = 0; for (const nb of neighbors(target)) { const w = s.map.tiles[nb]; if (!w || !isWater(w)) continue; for (const u of idx[nb] || []) if (u.owner === side && isSea(u.type) && UNITS[u.type].atk > 0 && UNITS[u.type].ability !== 'transport' && !inFight.has(u.id) && !u.stun) n++; } return Math.min(3, n); };
+      const ga = guns(pid); if (ga) { att.chips += 2 * ga; att.bonuses.push({ label: 'Naval Gunfire', chips: 2 * ga }); }
+      if (defPid) { const gd = guns(defPid); if (gd) { def.chips += 2 * gd; def.bonuses.push({ label: 'Coastal Fleet', chips: 2 * gd }); } }
+    }
     const aaA = units.filter(u => UNITS[u.type].ability === 'aa').length;
     if (aaA && has(defenders, 'air')) { att.chips += 4 * aaA; att.bonuses.push({ label: 'Anti-Air', chips: 4 * aaA }); }
     const sap = units.filter(u => UNITS[u.type].ability === 'sapper').length;
@@ -728,7 +768,7 @@
       let flank = 0;
       for (const n of neighbors(target)) {
         if (stages.includes(n)) continue;
-        const occ = idx[n]; if (occ && occ.some(u => u.owner === pid && !ids.has(u.id))) flank++;
+        const occ = idx[n]; if (occ && occ.some(u => u.owner === pid && !ids.has(u.id) && !isSea(u.type))) flank++;
       }
       flank = Math.min(2, flank);
       if (flank) { att.mult += flank; att.bonuses.push({ label: 'Flanking', mult: flank }); }

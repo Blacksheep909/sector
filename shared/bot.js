@@ -239,7 +239,8 @@ function botStep(s, pid, mem) {
         v += c.winProb * (8 + stackValue(c.defenders) + (isHQ ? 80 : 0) + (t.struct ? 5 : 0) + (neutralSite ? 10 : 0)) - (1 - c.winProb) * stackValue(movers);
       } else if (fleet) {
         // transports with cargo sail for un-owned coast; warships hunt enemies
-        for (const pk of path.slice(1)) if (tiles[pk].owner !== pid && E.isWater(tiles[pk])) v += tiles[pk].res ? 5 : 1.2;
+        for (const pk of path.slice(1)) if (tiles[pk].owner !== pid && E.isWater(tiles[pk])) v += tiles[pk].res ? 5 : tiles[pk].fish ? 4 : 1.2;
+        { const tt = tiles[dest]; if (tt && !E.isWater(tt) && (tt.poi === 'relic' || tt.poi === 'cache' || tt.poi === 'ruins')) v += 6; }
         if (carrying) v += (nearest(k, targets) - nearest(dest, targets)) * 2.5 + (nearest(dest, targets) <= 1 ? 4 : 0);
         else if (enemyTiles.length) v += (nearest(k, enemyTiles) - nearest(dest, enemyTiles)) * 0.6;
       } else {
@@ -270,7 +271,9 @@ function botStep(s, pid, mem) {
     if (spots.length) return { a: 'build', struct: 'bridge', hex: spots.sort((a, b) => nearest(a, targets) - nearest(b, targets))[0] };
   }
   const myPorts = Object.keys(tiles).filter(k => tiles[k].owner === pid && tiles[k].struct && tiles[k].struct.type === 'port');
-  const wantsNavy = stuck || p.arsenal.some(t => E.isSea(t) && t !== 'ark');
+  // sea prizes (rigs, fishing grounds, treasure islands) near our coast make a port worth it too
+  const seaPrize = supLand.some(k => E.isCoastal(s, k) && E.area(k, 4).some(n => { const w = tiles[n]; return w && w.owner !== pid && ((E.isWater(w) && (w.res || w.fish)) || (!E.isWater(w) && w.poi && !w.owner && ['relic', 'cache', 'ruins'].includes(w.poi))); }));
+  const wantsNavy = stuck || p.arsenal.some(t => E.isSea(t) && t !== 'ark') || (seaPrize && s.turn.round >= 3);
   if (wantsNavy && !myPorts.length && p.cash >= E.structCost(p, 'port') && !mem.portTried) {
     mem.portTried = true;
     let best = null, bv = 99;
