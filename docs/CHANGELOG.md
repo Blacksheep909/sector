@@ -2,6 +2,11 @@
 
 Every release, newest first. Each version also has its own post on the [Releases page](https://github.com/Blacksheep909/sector/releases).
 
+## v0.5.5
+
+- **Emergency muster.** If someone sits on your HQ, every hex you own next to it becomes a deploy point, and troops placed there can attack immediately. Rush in defenders and take your HQ back on the same turn. The siege warning tells you how, and bots use it too: in testing, about a third of besieged HQs were won back.
+- **Fixed: land flashing between two colours during a siege.** While you sat on someone's HQ, your blueprint preview acted out their elimination, so their territory flickered between your colour and theirs. The preview no longer resolves sieges; they resolve for real at the start of your turn.
+
 ## v0.5.4
 
 - **Fixed: menus overlapping each other.** The hover-to-enlarge card and the build-bar tips used to get stuck on screen and float over the Card Index, the Supply Drop and other menus. They now close the moment you stop hovering, and every menu clears them when it opens.
