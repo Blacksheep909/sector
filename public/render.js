@@ -66,8 +66,8 @@ const Render = (() => {
     const now = t;
     for (const k of order) {
       const t = S_.map.tiles[k], c = tc[k];
-      c.h = HEIGHT[t.t];
-      let base = hx(t.contam ? COL.fallout : t.t === 'water' ? (t.deep ? COL.water : COL.shallow) : COL[t.t]);
+      c.h = t.fog === 2 ? 4 : HEIGHT[t.t];
+      let base = hx(t.fog === 2 ? '#141c24' : t.contam ? COL.fallout : t.t === 'water' ? (t.deep ? COL.water : COL.shallow) : COL[t.t]);
       base = shade(base, (c.v - 0.5) * 0.06);
       const owned = t.owner && pc[t.owner] && t.t !== 'water';
       if (t.owner && pc[t.owner] && t.t === 'water') base = mix(base, pc[t.owner], t.bridge ? 0.5 : 0.32);
@@ -82,7 +82,7 @@ const Render = (() => {
       c.base = base;
       setCols(c, base, owned);
       c.owned = !!owned;
-      c.owner = t.owner; c.oc = t.owner && pc[t.owner] ? rgb(shade(pc[t.owner], 0.45)) : null;
+      c.owner = t.owner; c.oc = t.owner && pc[t.owner] && t.fog !== 2 ? rgb(shade(pc[t.owner], 0.45)) : null;
     }
     if (S_._sup) delete S_._sup;
     stateVer++;
@@ -215,7 +215,7 @@ const Render = (() => {
     const [cx, gy] = toScreen(c.wx, c.wy); const cy = gy - c.h * sc * z, s = S * 0.99 * z;
     if (cx < -80 || cx > W + 80 || cy < -120 || gy > H + 120) return;
     const drift = 0.5 + 0.5 * Math.sin(t * 0.35 + c.q * 0.6 + c.r * 0.4);
-    hexPath(cx, cy, s); ctx.fillStyle = `rgba(14,20,28,${0.5 + drift * 0.12})`; ctx.fill();
+    hexPath(cx, cy, s); ctx.fillStyle = `rgba(12,18,26,${0.48 + drift * 0.08})`; ctx.fill();
     ctx.fillStyle = `rgba(160,175,190,${0.05 + drift * 0.05})`; ctx.beginPath(); ctx.ellipse(cx + (drift - 0.5) * 8 * z, cy - 2 * z, s * 0.55, s * 0.22, 0, 0, Math.PI * 2); ctx.fill();
   }
   function hasOverlay(k) {
@@ -249,7 +249,7 @@ const Render = (() => {
     let h = c.h * sc;
     const popT = fx.pops[k]; let popS = 1;
     if (popT !== undefined) { const p = (t - popT) / 0.35; if (p < 1) { h += Math.sin(p * Math.PI) * 10; popS = 1 + Math.sin(p * Math.PI) * 0.08; } else if (pass !== 'overlay') delete fx.pops[k]; }
-    if (tile.t === 'water') h += Math.sin(t * 1.4 + c.q * 0.7 + c.r * 0.5) * 1.2;
+    if (tile.t === 'water' && tile.fog !== 2) h += Math.sin(t * 1.4 + c.q * 0.7 + c.r * 0.5) * 1.2;
     const [cx, gy] = toScreen(c.wx, c.wy);
     const cy = gy - h * z, s = S * 0.965 * z * popS;
     if (cx < -80 || cx > W + 80 || cy < -120 || gy > H + 120) return;
@@ -265,7 +265,7 @@ const Render = (() => {
     }
     // left vertical-ish face (pointy hex has a visible lower-left/right sliver)
     hexPath(cx, cy, s);
-    if (tile.t === 'water') {
+    if (tile.t === 'water' && tile.fog !== 2) {
       const sh = 0.5 + 0.5 * Math.sin(t * 1.1 + c.q * 0.9 - c.r * 0.6);
       ctx.fillStyle = sh > 0.88 ? (tile.deep ? '#21506f' : '#3a82a6') : c.top;
     } else ctx.fillStyle = c.top;
@@ -279,6 +279,14 @@ const Render = (() => {
       ctx.save(); hexPath(cx, cy, s); ctx.clip(); ctx.strokeStyle = 'rgba(0,0,0,.28)'; ctx.lineWidth = 3 * z;
       for (let x = -s * 2; x < s * 2; x += 9 * z) { ctx.beginPath(); ctx.moveTo(cx + x, cy - s); ctx.lineTo(cx + x + s, cy + s); ctx.stroke(); }
       ctx.restore();
+    }
+    if (tile.fog === 2) {
+      // unexplored: drifting cloud wisps, nothing else (except a known HQ)
+      const d = 0.5 + 0.5 * Math.sin(t * 0.3 + c.q * 0.7 + c.r * 0.5);
+      ctx.fillStyle = `rgba(120,135,150,${0.06 + d * 0.05})`;
+      ctx.beginPath(); ctx.ellipse(cx + (c.v - 0.5) * 10 * z, cy - 1 * z, s * 0.6, s * 0.2, 0, 0, Math.PI * 2); ctx.fill();
+      if (tile.struct && tile.struct.type === 'hq') drawStruct(tile, cx, cy, z, k);
+      return;
     }
     decorate(tile, c, cx, cy, s, z);
     // territory borders
@@ -730,7 +738,7 @@ const Render = (() => {
       ctx.setTransform(DPR, 0, 0, DPR, 0, 0);
       bg();
       for (const k of order) drawTile(k, 'base');
-      if (S_.fogOn) for (const k of order) if (S_.map.tiles[k].fog) drawFog(k);
+      if (S_.fogOn) for (const k of order) if (S_.map.tiles[k].fog === 1) drawFog(k);
       ctx = main; layerKey = key; layerT = t;
     }
     ctx.drawImage(lc, sx, sy, W, H);

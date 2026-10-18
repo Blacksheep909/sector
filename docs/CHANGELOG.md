@@ -2,6 +2,15 @@
 
 Every release, newest first. Each version also has its own post on the [Releases page](https://github.com/Blacksheep909/sector/releases).
 
+## v0.6.3
+
+- **Real fog of war.** Turn it on in the lobby and the map starts dark.
+  - **Unexplored land is hidden completely:** no terrain, owners, buildings or loot, just drifting cloud. Only HQ locations are known.
+  - **Places you've explored but can't currently see** show the terrain and what you **last saw** there, dimmed, with no units.
+  - **What your units, borders and allies can see** is fully live.
+  - The game remembers what each commander has explored, so scouting finally matters.
+- Garrison strengths on villages and forts are confirmed random per village and per game (villages 3–9, forts 3–8 with a ★–★★★ Bunker).
+
 ## v0.6.2
 
 - **⚡ Much smoother on big maps.** The board is now drawn into a cached layer that only redraws when the view or board changes. Per-frame drawing time on a Huge map dropped about 6× (8.4ms → 1.3ms zoomed out), and the expensive glow blurs on borders and markers were replaced with cheap look-alikes. Laptops should feel the difference most.

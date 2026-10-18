@@ -1703,17 +1703,27 @@
     return vis;
   }
   // what a client may see
-  function view(s, pid) {
+  function view(s, pid, mem) {
     const c = JSON.parse(JSON.stringify(s));
     const pl = pid && c.players.find(p => p.id === pid);
     if (s.settings.fog === 'on' && pl && pl.alive && c.phase === 'play') {
+      // real fog of war: unexplored hexes are unknown; explored-but-unseen hexes show what you last saw
+      mem = mem || { explored: new Set(), seen: {} };
       const vis = visionOf(s, pid);
+      for (const k of vis) { const t0 = s.map.tiles[k]; if (!t0) continue; mem.explored.add(k); mem.seen[k] = { owner: t0.owner, structs: JSON.parse(JSON.stringify(structsOf(t0))), poi: t0.poi, gar: t0.gar }; }
       for (const id in c.units) { const u = c.units[id]; if (u.owner !== pid && !isAlly(s, pid, u.owner) && !vis.has(u.hex)) delete c.units[id]; }
       for (const k in c.map.tiles) {
         if (vis.has(k)) continue;
-        const t = c.map.tiles[k]; t.fog = true;
-        // enemy buildings in the fog stay hidden (HQs are common knowledge)
-        if (t.structs && t.owner !== pid && !isAlly(s, pid, t.owner)) { t.structs = t.structs.filter(x => x.type === 'hq'); t.struct = t.structs[0] || null; }
+        const t = c.map.tiles[k], real = s.map.tiles[k], hq = getS(real, 'hq');
+        if (mem.explored.has(k)) {
+          t.fog = 1;
+          const m = mem.seen[k]; if (m) { t.owner = m.owner; t.structs = m.structs; t.poi = m.poi; t.gar = m.gar; if (!m.poi) delete t.poi; }
+        } else {
+          t.fog = 2;
+          t.owner = hq ? real.owner : null; t.structs = hq ? [JSON.parse(JSON.stringify(hq))] : [];
+          delete t.poi; delete t.gar; delete t.fish; t.res = false; t.contam = 0; t.smoke = null; t.bridge = false;
+        }
+        t.struct = (t.structs || []).find(x => x.type === 'hq') || (t.structs || [])[0] || null;
       }
       c.fogOn = true;
     }
