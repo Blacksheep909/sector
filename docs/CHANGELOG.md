@@ -2,6 +2,13 @@
 
 Every release, newest first. Each version also has its own post on the [Releases page](https://github.com/Blacksheep909/sector/releases).
 
+## v0.5.6
+
+- **Bunkers are real strongpoints now** (no dice changes):
+  - **Built-in garrison:** +3 chips per level, even with no troops inside. Enemies can't stroll into an empty bunkered hex any more. They have to attack it, and annexing, flyover captures and Heli Drop can't take it for free.
+  - **Bunker Line:** a ★★ or ★★★ Bunker gives your neighbouring hexes +1 defence mult, so a few Bunkers hold a whole front.
+  - The +2 / +3 / +4 defence mult stays as before. A lone tank has about a 6% chance against an empty ★★ Bunker. Bring a combined assault or a Siege Breaker.
+
 ## v0.5.5
 
 - **Emergency muster.** If someone sits on your HQ, every hex you own next to it becomes a deploy point, and troops placed there can attack immediately. Rush in defenders and take your HQ back on the same turn. The siege warning tells you how, and bots use it too: in testing, about a third of besieged HQs were won back.
