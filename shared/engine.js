@@ -164,7 +164,7 @@
     depot: { name: 'Depot', cost: 4, desc: 'Logistics hub: your units starting their turn nearby get +1 move. Range = level.' },
     port: { name: 'Port', cost: 5, desc: 'Coast only. Launch ships into the adjacent sea. Supply source for sea lanes.' },
     bridge: { name: 'Bridge', cost: 6, desc: 'Span a 1-hex sea gap between two shores. Land units cross; ships cannot pass.' },
-    bunker: { name: 'Bunker', cost: 4, desc: 'Strongpoint with its own garrison: +3 Chips per level even when empty, so enemies must attack it. +2 Mult defence (+1 per extra level). ★★+ also gives your neighbouring hexes +1 Mult. Destroyed if an enemy captures it.' },
+    bunker: { name: 'Bunker', cost: 4, desc: 'Strongpoint with its own garrison: +3 Chips per level even when empty, so enemies must attack it. +2 Mult defence (+1 per extra level). ★★+ also gives your neighbouring hexes +1 Mult. Digs in against big attacks: +40% of the attacker chip lead (up to 4 per level). Destroyed if an enemy captures it.' },
     flak: { name: 'Flak', cost: 5, desc: 'Blocks enemy air tactics nearby (range = level). +2 Mult vs air.' },
   };
   const BUILD_ORDER = ['hq', 'fob', 'market', 'refinery', 'depot', 'port', 'bridge', 'bunker', 'flak'];
@@ -840,6 +840,11 @@
     const aegis = Math.min(2, defenders.filter(u => UNITS[u.type].ability === 'aegis').length);
     if (aegis) { def.mult += aegis; def.bonuses.push({ label: 'Aegis', mult: aegis }); }
     if (has(units, 'air') && getS(t, 'flak') && getS(t, 'flak').owner === defPid) { def.mult += 2; def.bonuses.push({ label: 'Flak Battery', mult: 2 }); }
+    { const bk2 = !ranged && getS(t, 'bunker');
+      if (bk2 && bk2.owner === defPid && defPid && att.chips > def.chips) {
+        const hold = Math.min(4 * slvlOf(bk2), Math.round((att.chips - def.chips) * 0.4));
+        if (hold > 0) { def.chips += hold; def.bonuses.push({ label: 'Hold the Line', chips: hold }); }
+      } }
     const aNull = ap && ap.faction === 'null', dNull = dp && dp.faction === 'null';
     let wins = 0;
     for (let a = 1; a <= 6; a++) for (let d = 1; d <= 6; d++) {
@@ -970,15 +975,25 @@
     for (const k in s.map.tiles) {
       const t = s.map.tiles[k];
       for (const st of structsOf(t).slice()) if (st.type === 'hq' && st.owner === loser) removeStruct(t, st);
-      if (t.owner === loser) { t.owner = by || null; for (const st of structsOf(t)) st.owner = by || null; syncStructs(t); hexes.push(k); }
+      if (t.owner === loser) {
+        const heart = by && dist(k, lp.hq) <= 2;
+        if (heart) { t.owner = by; for (const st of structsOf(t)) st.owner = by; }
+        else {
+          // outside the heartland the empire collapses: land goes neutral, buildings are wrecked (bridges stay, unowned)
+          t.owner = null; t.structs = structsOf(t).filter(st => st.type === 'bridge'); for (const st of t.structs) st.owner = null;
+          if (t.bridge) t.owner = null;
+        }
+        syncStructs(t); hexes.push(k);
+      }
     }
     const dead = [];
     for (const id in s.units) if (s.units[id].owner === loser) { dead.push(+id); delete s.units[id]; }
     const bp = player(s, by);
     if (bp) bp.cash += 10;
     if (s.trade && (s.trade.from === loser || s.trade.to === loser)) s.trade = null;
-    ev.push({ e: 'eliminate', pid: loser, by, hexes, units: dead, hq: lp.hq });
-    pushLog(s, '☠ ' + lp.name + ' has fallen' + (bp ? ' to ' + bp.name + ' (+$10 plunder)' : '') + '.');
+    const taken = hexes.filter(k => s.map.tiles[k].owner === by);
+    ev.push({ e: 'eliminate', pid: loser, by, hexes, taken, units: dead, hq: lp.hq });
+    pushLog(s, '☠ ' + lp.name + ' has fallen' + (bp ? ' to ' + bp.name + ' (+$10 plunder, ' + taken.length + ' heartland hexes)' : '') + '. The rest of their empire collapses into neutral land.');
   }
 
   // ───────────────────────── cards, crates & the draft ─────────────────────────

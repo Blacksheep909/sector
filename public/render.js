@@ -10,6 +10,7 @@ const Render = (() => {
   const POI_COL = { ruins: '#d9b77a', cache: '#ffcf4a', village: '#f1efe6', fort: '#c9cfd6', relic: '#c27bff' };
 
   let cv, ctx, W = 0, H = 0, DPR = 1;
+  let lc = null, lctx = null, layerKey = '', layerT = -1, stateVer = 0, fadeUntil = 0;   // cached terrain layer
   let S_ = null;                 // display state
   let order = [];                // tile keys sorted for drawing
   const tc = {};                 // tile cache
@@ -35,11 +36,13 @@ const Render = (() => {
 
   function init(canvas) {
     cv = canvas; ctx = cv.getContext('2d');
-    const resize = () => { DPR = Math.min(2, window.devicePixelRatio || 1); W = innerWidth; H = innerHeight; cv.width = W * DPR; cv.height = H * DPR; cv.style.width = W + 'px'; cv.style.height = H + 'px'; };
+    lc = document.createElement('canvas'); lctx = lc.getContext('2d');
+    const resize = () => { DPR = Math.min(2, window.devicePixelRatio || 1); W = innerWidth; H = innerHeight; cv.width = W * DPR; cv.height = H * DPR; cv.style.width = W + 'px'; cv.style.height = H + 'px'; lc.width = W * DPR; lc.height = H * DPR; layerKey = ''; };
     addEventListener('resize', resize); resize();
     requestAnimationFrame(loop);
   }
 
+  function invalidate() { stateVer++; }
   function setState(s) {
     const fresh = !S_ || !s || !S_.map || S_.seed !== s.seed;
     S_ = s;
@@ -75,13 +78,14 @@ const Render = (() => {
         base = shade(base, tb);
       }
       // sea hexes changing hands cross-fade to their new colour instead of snapping
-      if (t.t === 'water' && c.base && (c.base[0] !== base[0] || c.base[1] !== base[1] || c.base[2] !== base[2])) { c.fadeFrom = c.fadeFrom ? fadeNow(c, now) : c.base; c.fadeT0 = now; }
+      if (t.t === 'water' && c.base && (c.base[0] !== base[0] || c.base[1] !== base[1] || c.base[2] !== base[2])) { c.fadeFrom = c.fadeFrom ? fadeNow(c, now) : c.base; c.fadeT0 = now; fadeUntil = now + FADE; }
       c.base = base;
       setCols(c, base, owned);
       c.owned = !!owned;
       c.owner = t.owner; c.oc = t.owner && pc[t.owner] ? rgb(shade(pc[t.owner], 0.45)) : null;
     }
     if (S_._sup) delete S_._sup;
+    stateVer++;
   }
 
   // ── camera ──
@@ -214,16 +218,42 @@ const Render = (() => {
     hexPath(cx, cy, s); ctx.fillStyle = `rgba(14,20,28,${0.5 + drift * 0.12})`; ctx.fill();
     ctx.fillStyle = `rgba(160,175,190,${0.05 + drift * 0.05})`; ctx.beginPath(); ctx.ellipse(cx + (drift - 0.5) * 8 * z, cy - 2 * z, s * 0.55, s * 0.22, 0, 0, Math.PI * 2); ctx.fill();
   }
-  function drawTile(k) {
+  function hasOverlay(k) {
+    if (ov.hover === k || ov.selected === k) return true;
+    if (ov.spawn && ov.spawn.has(k)) return true;
+    if (ov.targets && ov.targets.has(k)) return true;
+    if (ov.fire && ov.fire.has(k)) return true;
+    if (ov.selectedExtra && ov.selectedExtra.includes(k)) return true;
+    const r = ov.reach && ov.reach[k]; return !!(r && r.kind !== 'start' && r.kind !== 'pass');
+  }
+  function drawOverlays(k, cx, cy, s, z) {
+    const pulse = 0.5 + 0.5 * Math.sin(t * 5);
+    if (ov.spawn && ov.spawn.has(k)) { hexPath(cx, cy, s * 0.86); ctx.fillStyle = `rgba(120,255,170,${0.18 + pulse * 0.2})`; ctx.fill(); ctx.strokeStyle = '#8affb8'; ctx.lineWidth = 2 * z; ctx.setLineDash([5 * z, 4 * z]); ctx.lineDashOffset = -t * 20; ctx.stroke(); ctx.setLineDash([]); }
+    if (ov.targets && ov.targets.has(k)) { hexPath(cx, cy, s * 0.86); ctx.fillStyle = `rgba(255,190,60,${0.16 + pulse * 0.2})`; ctx.fill(); ctx.strokeStyle = '#ffcf5a'; ctx.lineWidth = 2 * z; ctx.setLineDash([5 * z, 4 * z]); ctx.lineDashOffset = -t * 20; ctx.stroke(); ctx.setLineDash([]); }
+    if (ov.reach) {
+      const r = ov.reach[k];
+      if (r && r.kind !== 'start' && r.kind !== 'pass') {
+        const col = r.kind === 'attack' ? [255, 70, 80] : r.kind === 'capture' ? [255, 190, 60] : r.kind === 'board' ? [90, 220, 255] : [255, 255, 255];
+        hexPath(cx, cy, s * 0.82); ctx.fillStyle = `rgba(${col},${r.kind === 'move' ? 0.13 + pulse * 0.07 : 0.22 + pulse * 0.15})`; ctx.fill();
+        ctx.strokeStyle = `rgba(${col},.85)`; ctx.lineWidth = 1.6 * z; ctx.stroke();
+      }
+    }
+    if (ov.fire && ov.fire.has(k)) { crosshair(cx, cy, s, z, pulse); }
+    if (ov.hover === k) { hexPath(cx, cy, s); ctx.strokeStyle = 'rgba(255,255,255,.9)'; ctx.lineWidth = 2.2 * z; ctx.stroke(); }
+    if (ov.selectedExtra && ov.selectedExtra.includes(k)) { hexPath(cx, cy, s * (1.02 + pulse * 0.04)); ctx.strokeStyle = '#ffc53d'; ctx.lineWidth = 3 * z; ctx.setLineDash([8 * z, 5 * z]); ctx.lineDashOffset = t * 30; ctx.stroke(); ctx.setLineDash([]); }
+    if (ov.selected === k) { hexPath(cx, cy, s * (1.02 + pulse * 0.04)); ctx.strokeStyle = '#fff'; ctx.lineWidth = 3 * z; ctx.setLineDash([8 * z, 5 * z]); ctx.lineDashOffset = t * 30; ctx.stroke(); ctx.setLineDash([]); }
+  }
+  function drawTile(k, pass) {
     const c = tc[k], tile = S_.map.tiles[k], z = cam.z, sc = S / 34;
-    if (c.fadeFrom) { if (t - c.fadeT0 >= FADE) { c.fadeFrom = null; setCols(c, c.base, c.owned); } else setCols(c, fadeNow(c, t), c.owned); }
+    if (pass !== 'overlay' && c.fadeFrom) { if (t - c.fadeT0 >= FADE) { c.fadeFrom = null; setCols(c, c.base, c.owned); } else setCols(c, fadeNow(c, t), c.owned); }
     let h = c.h * sc;
     const popT = fx.pops[k]; let popS = 1;
-    if (popT !== undefined) { const p = (t - popT) / 0.35; if (p < 1) { h += Math.sin(p * Math.PI) * 10; popS = 1 + Math.sin(p * Math.PI) * 0.08; } else delete fx.pops[k]; }
+    if (popT !== undefined) { const p = (t - popT) / 0.35; if (p < 1) { h += Math.sin(p * Math.PI) * 10; popS = 1 + Math.sin(p * Math.PI) * 0.08; } else if (pass !== 'overlay') delete fx.pops[k]; }
     if (tile.t === 'water') h += Math.sin(t * 1.4 + c.q * 0.7 + c.r * 0.5) * 1.2;
     const [cx, gy] = toScreen(c.wx, c.wy);
     const cy = gy - h * z, s = S * 0.965 * z * popS;
     if (cx < -80 || cx > W + 80 || cy < -120 || gy > H + 120) return;
+    if (pass === 'overlay') return drawOverlays(k, cx, cy, s, z);
     const base = tile.t === 'water' ? 2 * z : 10 * z;
     // side faces
     for (const [i, col] of [[2, c.side1], [3, c.side2]]) {
@@ -254,8 +284,7 @@ const Render = (() => {
     // territory borders
     if (tile.owner && c.oc) {
       const nb = E.neighbors(k);
-      ctx.strokeStyle = c.oc; ctx.lineWidth = 4.5 * z; ctx.lineCap = 'round';
-      ctx.shadowColor = c.oc; ctx.shadowBlur = 8 * z;
+      ctx.lineCap = 'round';
       ctx.beginPath();
       for (let i = 0; i < 6; i++) {
         const n = S_.map.tiles[nb[EDGE_DIR[i]]];
@@ -263,24 +292,9 @@ const Render = (() => {
         const a = VERT[i], b = VERT[(i + 1) % 6], ss = s * 0.97;
         ctx.moveTo(cx + a[0] * ss, cy + a[1] * ss * TILT); ctx.lineTo(cx + b[0] * ss, cy + b[1] * ss * TILT);
       }
-      ctx.stroke(); ctx.shadowBlur = 0;
+      ctx.strokeStyle = c.oc; ctx.globalAlpha = 0.28; ctx.lineWidth = 10 * z; ctx.stroke();
+      ctx.globalAlpha = 1; ctx.lineWidth = 4.5 * z; ctx.stroke();
     }
-    // overlays
-    const pulse = 0.5 + 0.5 * Math.sin(t * 5);
-    if (ov.spawn && ov.spawn.has(k)) { hexPath(cx, cy, s * 0.86); ctx.fillStyle = `rgba(120,255,170,${0.18 + pulse * 0.2})`; ctx.fill(); ctx.strokeStyle = '#8affb8'; ctx.lineWidth = 2 * z; ctx.setLineDash([5 * z, 4 * z]); ctx.lineDashOffset = -t * 20; ctx.stroke(); ctx.setLineDash([]); }
-    if (ov.targets && ov.targets.has(k)) { hexPath(cx, cy, s * 0.86); ctx.fillStyle = `rgba(255,190,60,${0.16 + pulse * 0.2})`; ctx.fill(); ctx.strokeStyle = '#ffcf5a'; ctx.lineWidth = 2 * z; ctx.setLineDash([5 * z, 4 * z]); ctx.lineDashOffset = -t * 20; ctx.stroke(); ctx.setLineDash([]); }
-    if (ov.reach) {
-      const r = ov.reach[k];
-      if (r && r.kind !== 'start' && r.kind !== 'pass') {
-        const col = r.kind === 'attack' ? [255, 70, 80] : r.kind === 'capture' ? [255, 190, 60] : r.kind === 'board' ? [90, 220, 255] : [255, 255, 255];
-        hexPath(cx, cy, s * 0.82); ctx.fillStyle = `rgba(${col},${r.kind === 'move' ? 0.13 + pulse * 0.07 : 0.22 + pulse * 0.15})`; ctx.fill();
-        ctx.strokeStyle = `rgba(${col},.85)`; ctx.lineWidth = 1.6 * z; ctx.stroke();
-      }
-    }
-    if (ov.fire && ov.fire.has(k)) { crosshair(cx, cy, s, z, pulse); }
-    if (ov.hover === k) { hexPath(cx, cy, s); ctx.strokeStyle = 'rgba(255,255,255,.9)'; ctx.lineWidth = 2.2 * z; ctx.stroke(); }
-    if (ov.selectedExtra && ov.selectedExtra.includes(k)) { hexPath(cx, cy, s * (1.02 + pulse * 0.04)); ctx.strokeStyle = '#ffc53d'; ctx.lineWidth = 3 * z; ctx.setLineDash([8 * z, 5 * z]); ctx.lineDashOffset = t * 30; ctx.stroke(); ctx.setLineDash([]); }
-    if (ov.selected === k) { hexPath(cx, cy, s * (1.02 + pulse * 0.04)); ctx.strokeStyle = '#fff'; ctx.lineWidth = 3 * z; ctx.setLineDash([8 * z, 5 * z]); ctx.lineDashOffset = t * 30; ctx.stroke(); ctx.setLineDash([]); }
     if (tile.struct && tile.struct.type !== 'bridge') {
       drawStruct(tile, cx, cy, z, k);
       const extra = (tile.structs || []).filter(st => st !== tile.struct && st.type !== tile.struct.type);
@@ -462,8 +476,8 @@ const Render = (() => {
       const bob = Math.sin(t * 2 + v * 6) * 1.6 * z, x = cx, y = cy - 14 * z + bob, col = POI_COL[tile.poi];
       const pulse = (tile.poi === 'relic' || tile.poi === 'cache' || tile.poi === 'ruins') ? 0.5 + 0.5 * Math.sin(t * 3 + v * 5) : 0.3;
       ctx.fillStyle = 'rgba(0,0,0,.35)'; ctx.beginPath(); ctx.ellipse(x, cy + 2 * z, 8 * z, 3 * z, 0, 0, Math.PI * 2); ctx.fill();
-      ctx.save(); ctx.shadowColor = col; ctx.shadowBlur = (6 + 10 * pulse) * z;
-      ctx.fillStyle = '#121820'; ctx.beginPath(); ctx.arc(x, y, 9.5 * z, 0, Math.PI * 2); ctx.fill(); ctx.restore();
+      ctx.globalAlpha = 0.18 + pulse * 0.22; ctx.fillStyle = col; ctx.beginPath(); ctx.arc(x, y, (12.5 + pulse * 2.5) * z, 0, Math.PI * 2); ctx.fill(); ctx.globalAlpha = 1;
+      ctx.fillStyle = '#121820'; ctx.beginPath(); ctx.arc(x, y, 9.5 * z, 0, Math.PI * 2); ctx.fill();
       ctx.strokeStyle = col; ctx.lineWidth = 2 * z; ctx.beginPath(); ctx.arc(x, y, 9.5 * z, 0, Math.PI * 2); ctx.stroke();
       Art.drawIcon(ctx, 'poi', tile.poi, x, y, 6 * z, col);
       if (tile.gar && !tile.owner) {
@@ -678,7 +692,7 @@ const Render = (() => {
       const b = fx.beams[i], p = Math.min(1, (t - b.t0) / b.dur);
       const xw = b.a[0] + (b.b[0] - b.a[0]) * p, yw = b.a[1] + (b.b[1] - b.a[1]) * p - Math.sin(p * Math.PI) * b.arc;
       const [x, y] = toScreen(xw, yw - 10);
-      ctx.fillStyle = b.color; ctx.shadowColor = b.color; ctx.shadowBlur = 12; ctx.beginPath(); ctx.arc(x, y, 4 * z, 0, Math.PI * 2); ctx.fill(); ctx.shadowBlur = 0;
+      ctx.fillStyle = b.color; ctx.globalAlpha = 0.35; ctx.beginPath(); ctx.arc(x, y, 8 * z, 0, Math.PI * 2); ctx.fill(); ctx.globalAlpha = 1; ctx.beginPath(); ctx.arc(x, y, 4 * z, 0, Math.PI * 2); ctx.fill();
       if (Math.random() < 0.6) fx.parts.push({ x: xw, y: yw - 10, vx: 0, vy: 0, life: 0, max: 0.35, col: b.color, sz: 2.5, g: 0 });
       if (p >= 1) { fx.beams.splice(i, 1); if (b.cb) b.cb(); }
     }
@@ -705,21 +719,39 @@ const Render = (() => {
     ctx.setTransform(DPR, 0, 0, DPR, 0, 0);
     let sx = 0, sy = 0;
     if (fx.shake > 0.1) { sx = (Math.random() - 0.5) * fx.shake; sy = (Math.random() - 0.5) * fx.shake; fx.shake *= Math.pow(0.02, dt); } else fx.shake = 0;
-    bg();
-    if (!S_ || !S_.map) return;
+    const p0 = performance.now();
+    if (!S_ || !S_.map) { bg(); return; }
+    if (Math.abs(cam.tx - cam.x) < 0.02) cam.x = cam.tx; if (Math.abs(cam.ty - cam.y) < 0.02) cam.y = cam.ty; if (Math.abs(cam.tz - cam.z) < 0.0005) cam.z = cam.tz;
+    // terrain, background and fog live in an offscreen layer: redrawn only when the view or board changes,
+    // while a fade/pop plays, or ~10x a second for ambient motion (water, sway, markers)
+    const key = Math.round(cam.x * 4) + '|' + Math.round(cam.y * 4) + '|' + Math.round(cam.z * 2000) + '|' + W + '|' + H + '|' + DPR + '|' + stateVer + '|' + (ov.unsupplied ? ov.unsupplied.size : 0);
+    if (key !== layerKey || t < fadeUntil || Object.keys(fx.pops).length || t - layerT > 0.1) {
+      const main = ctx; ctx = lctx;
+      ctx.setTransform(DPR, 0, 0, DPR, 0, 0);
+      bg();
+      for (const k of order) drawTile(k, 'base');
+      if (S_.fogOn) for (const k of order) if (S_.map.tiles[k].fog) drawFog(k);
+      ctx = main; layerKey = key; layerT = t;
+    }
+    ctx.drawImage(lc, sx, sy, W, H);
     ctx.translate(sx, sy);
-    for (const k of order) drawTile(k);
-    if (S_.fogOn) for (const k of order) if (S_.map.tiles[k].fog) drawFog(k);
+    const p1 = performance.now();
+    for (const k of order) if (hasOverlay(k)) drawTile(k, 'overlay');
     for (const pa of ov.planArrows) drawPath(pa.path, pa.color, true, 0.85);
     if (ov.path) drawPath(ov.path, ov.pathColor || '#fff', false);
+    const p2 = performance.now();
     drawUnits();
+    const p3 = performance.now();
     drawAir();
     if (ov.planGhost) for (const g of ov.planGhost) { const [x, y] = screenOf(g.hex); if (g.units) drawToken(x, y, g.units, g.owner, cam.z, { ghost: true }); if (g.struct) { ctx.save(); ctx.globalAlpha = 0.5; Art.drawIcon(ctx, 'struct', g.struct, x, y - 12 * cam.z, 10 * cam.z, '#fff'); ctx.restore(); } }
     drawProbs();
     drawFx(dt);
     ctx.setTransform(DPR, 0, 0, DPR, 0, 0);
     if (fx.flash > 0.01) { ctx.fillStyle = fx.flashCol; ctx.globalAlpha = Math.min(1, fx.flash); ctx.fillRect(0, 0, W, H); ctx.globalAlpha = 1; fx.flash *= Math.pow(0.04, dt); }
+    const p4 = performance.now(), a = 0.08;
+    perf.tiles += ((p1 - p0) - perf.tiles) * a; perf.fog += ((p2 - p1) - perf.fog) * a; perf.units += ((p3 - p2) - perf.units) * a; perf.rest += ((p4 - p3) - perf.rest) * a; perf.total += ((p4 - p0) - perf.total) * a;
   }
+  const perf = { tiles: 0, fog: 0, units: 0, rest: 0, total: 0 };
 
-  return { flyover, init, setState, recolor, focus, fitMap, pan, zoomAt, hexAt, screenOf, topOf, world, ov, unitPos, unitHidden, extraUnits, burst, smoke, float, ring, beam, shake, flash, pop, cam, get time() { return t; } };
+  return { invalidate, perf, flyover, init, setState, recolor, focus, fitMap, pan, zoomAt, hexAt, screenOf, topOf, world, ov, unitPos, unitHidden, extraUnits, burst, smoke, float, ring, beam, shake, flash, pop, cam, get time() { return t; } };
 })();

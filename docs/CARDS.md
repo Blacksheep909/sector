@@ -70,7 +70,7 @@ Built from the hotbar (keys Z–M) on hexes you own that are connected to supply
 | **Depot** | $4 | Logistics hub: your units starting their turn nearby get +1 move. Range = level. |
 | **Port** | $5 | Coast only. Launch ships into the adjacent sea. Supply source for sea lanes. |
 | **Bridge** | $6 | Span a 1-hex sea gap between two shores. Land units cross; ships cannot pass. |
-| **Bunker** | $4 | Strongpoint with its own garrison: +3 Chips per level even when empty, so enemies must attack it. +2 Mult defence (+1 per extra level). ★★+ also gives your neighbouring hexes +1 Mult. Destroyed if an enemy captures it. |
+| **Bunker** | $4 | Strongpoint with its own garrison: +3 Chips per level even when empty, so enemies must attack it. +2 Mult defence (+1 per extra level). ★★+ also gives your neighbouring hexes +1 Mult. Digs in against big attacks: +40% of the attacker chip lead (up to 4 per level). Destroyed if an enemy captures it. |
 | **Flak** | $5 | Blocks enemy air tactics nearby (range = level). +2 Mult vs air. |
 
 ## Factions
