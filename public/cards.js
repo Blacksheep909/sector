@@ -285,27 +285,45 @@ const Cards = (() => {
     if (crate.tier !== 'standard') { const [x, y] = center(strip.children[landAt]); rays(x, y, TIER_COL[crate.tier], 1400, crate.tier === 'mythic'); burstAt(x, y, [TIER_COL[crate.tier], '#fff'], crate.tier === 'mythic' ? 70 : 30, 260); }
     await sleep(650);
     reel.classList.add('gone'); luckBar.classList.add('gone');
-    // 2. crate drops, shakes, bursts open
-    const cr = el('div', 'crate3d', '<div class="cr-lid"></div><div class="cr-body"><div class="cr-band"></div><div class="cr-glyph">S</div></div><div class="cr-glow"></div>');
-    box.appendChild(cr);
-    const hint = el('div', 'cr-hint', 'CLICK OR PRESS SPACE TO OPEN'); box.appendChild(hint);
-    SFX.deploy(); Render.shake(6);
-    await sleep(420);
-    cr.classList.add('rumble');
+    reel.remove(); luckBar.remove();
+    // 2. the chest slams down, breathes, hops on tap, then bursts open (sunburst lives inside the stage, so it's always centred)
+    const T = crate.tier, glowCol = { standard: '#bfe6ff', gilded: '#ffd76a', mythic: '#e3a2ff' }[T] || '#fff';
+    const stage = el('div', 'chest-stage tier-' + T, `<div class="chest-rays"></div><div class="chest-glow"></div><div class="chest-shadow"></div>
+      <div class="chest"><img class="chest-body" src="${Art.chest(T, 'body')}" alt=""><div class="chest-leak"></div><div class="chest-beam"></div><img class="chest-lid" src="${Art.chest(T, 'lid')}" alt=""><div class="chest-count">${crate.cards.length}</div></div>
+      <div class="chest-hint">TAP TO OPEN</div>`);
+    stage.style.setProperty('--tc', glowCol);
+    box.appendChild(stage);
+    const chestEl = stage.querySelector('.chest'), countEl = stage.querySelector('.chest-count');
+    SFX.whoosh();
+    await sleep(Cards.fast ? 120 : 430);
+    { const r = chestEl.getBoundingClientRect(); burstAt(r.left + r.width / 2, r.bottom - 8, ['#b8a68a', '#8c7b62', '#d9cbb2'], 26, 150, 9); }
+    SFX.boom(0.55); SFX.deploy(); Render.shake(T === 'mythic' ? 14 : T === 'gilded' ? 10 : 7);
+    await sleep(Cards.fast ? 60 : 380);
+    chestEl.classList.add('idle'); stage.classList.add('ready');
     await new Promise(res => {
       let done = false;
       const go = () => { if (done) return; done = true; removeEventListener('keydown', key); res(); };
       const key = e => { if (e.key === ' ') { e.preventDefault(); go(); } };
-      addEventListener('keydown', key); cr.onclick = go; setTimeout(go, Cards.fast ? 50 : 1600);
+      addEventListener('keydown', key); stage.onclick = go; setTimeout(go, Cards.fast ? 50 : 2600);
     });
-    hint.remove();
-    cr.classList.remove('rumble'); cr.classList.add('burst');
-    const [cx, cy] = center(cr);
-    SFX.boom(0.6); SFX.whoosh(); Render.shake(10);
-    rays(cx, cy, TIER_COL[crate.tier], 1300, true); burstAt(cx, cy, [TIER_COL[crate.tier], '#fff', '#8a6b3a'], 50, 300, 10);
-    await sleep(260);
-    // 3. three face-down cards fan out, then flip
-    const row = el('div', 'cr-cards'); box.appendChild(row);
+    stage.classList.remove('ready'); chestEl.classList.remove('idle');
+    // anticipation: three hops, light leaking from the seam a little more each time
+    for (let i = 0; i < 3; i++) {
+      chestEl.style.setProperty('--hr', (i % 2 ? 5 : -5) + 'deg');
+      chestEl.classList.remove('hop'); void chestEl.offsetWidth; chestEl.classList.add('hop');
+      stage.style.setProperty('--leak', String((i + 1) / 3));
+      SFX.chip(5 + i * 3); Render.shake(3 + i * 3);
+      await sleep(Cards.fast ? 50 : 250);
+    }
+    // burst
+    chestEl.classList.add('open'); stage.classList.add('open');
+    const seam = stage.querySelector('.chest-leak').getBoundingClientRect(), mx = seam.left + seam.width / 2, my = seam.top + seam.height / 2;
+    SFX.boom(1.1); SFX.victoryHit(); Render.shake(T === 'mythic' ? 22 : 14);
+    burstAt(mx, my, [glowCol, '#ffffff', glowCol], T === 'mythic' ? 80 : 50, 320, 9);
+    const flash = el('div', 'chest-flash'); flash.style.setProperty('--tc', glowCol); box.appendChild(flash); setTimeout(() => flash.remove(), 700);
+    await sleep(Cards.fast ? 80 : 380);
+    // 3. the cards shoot out of the chest into a row, then flip
+    const row = el('div', 'cr-cards emerging'); box.appendChild(row);
     const slots = crate.cards.map((id, i) => {
       const d = E.cardDef(id);
       const owned = d.kind === 'unit' && me.arsenal.includes(id);
@@ -319,9 +337,23 @@ const Cards = (() => {
       row.appendChild(flip);
       return { flip, front, d, id };
     });
-    cr.remove(); reel.remove(); luckBar.remove();
-    await sleep(60);
-    await dealIn(slots);
+    await sleep(30);
+    let left = slots.length;
+    for (const [i, s] of slots.entries()) {
+      const r = s.flip.getBoundingClientRect(), dx = mx - (r.left + r.width / 2), dy = my - (r.top + r.height / 2);
+      s.flip.classList.add('dealt', 'out');
+      s.flip.animate([
+        { transform: `translate(${dx}px, ${dy}px) scale(.12) rotateY(180deg) rotate(${(i - 1) * 25}deg)`, opacity: 0.2 },
+        { transform: `translate(${dx * 0.45}px, ${dy * 0.45 - 170}px) scale(.85) rotateY(180deg) rotate(${(i - 1) * -10}deg)`, opacity: 1, offset: 0.55 },
+        { transform: 'rotateY(180deg)', opacity: 1 },
+      ], { duration: Cards.fast ? 160 : 560, easing: 'cubic-bezier(.2,.9,.3,1.05)' });
+      countEl.textContent = String(--left); countEl.classList.remove('pop'); void countEl.offsetWidth; countEl.classList.add('pop');
+      SFX.card(); SFX.chip(8 + i * 2);
+      await sleep(Cards.fast ? 60 : 300);
+    }
+    await sleep(Cards.fast ? 60 : 420);
+    stage.classList.add('done');
+    setTimeout(() => stage.remove(), 700);
     if (!document.contains(row)) return;
     await revealRow(box, slots);
     // 4. choose

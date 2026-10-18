@@ -782,3 +782,64 @@ body.host-page { overflow: auto; background: radial-gradient(ellipse at top, #16
   75% { transform: translate(-50%, -70%) scale(1) rotate(-6deg); opacity: 1; }
   100% { transform: translate(-50%, -95%) scale(.92) rotate(-6deg); opacity: 0; }
 }
+
+/* ── Supply Drop chest (Clash-style) ── */
+.chest-stage { position: absolute; left: 50%; top: 54%; width: 320px; height: 320px; transform: translate(-50%, -50%); display: grid; place-items: center; z-index: 2; cursor: pointer; }
+.chest-stage.done { animation: chestAway .6s ease-in forwards; pointer-events: none; }
+@keyframes chestAway { to { transform: translate(-50%, 30%) scale(.7); opacity: 0; } }
+.chest { position: relative; width: 240px; height: 200px; animation: chestDrop .75s cubic-bezier(.3,1.3,.5,1) both; z-index: 2; }
+.chest img { position: absolute; inset: 0; width: 100%; height: 100%; display: block; pointer-events: none; }
+@keyframes chestDrop {
+  0% { transform: translateY(-110vh) scale(.92, 1.1); }
+  55% { transform: translateY(0) scale(1.2, .76); }
+  70% { transform: translateY(-22px) scale(.94, 1.07); }
+  84% { transform: translateY(0) scale(1.05, .96); }
+  100% { transform: none; }
+}
+.chest.idle { animation: chestIdle 1.5s ease-in-out infinite; }
+@keyframes chestIdle { 50% { transform: translateY(-7px) scale(1.01, .99); } }
+.chest.hop { animation: chestHop .24s cubic-bezier(.3,1.6,.5,1); }
+@keyframes chestHop { 0% { transform: none; } 45% { transform: translateY(-30px) scale(.93, 1.09) rotate(var(--hr, 0deg)); } 100% { transform: none; } }
+.chest-lid { transform-origin: 50% 46%; transition: transform .55s cubic-bezier(.2,1.7,.4,1); z-index: 3; }
+.chest.open .chest-lid { transform: translateY(-88px) rotate(-16deg); }
+.chest-count { position: absolute; right: -6px; top: 70px; z-index: 4; min-width: 34px; height: 34px; border-radius: 17px; background: #ff4f5e; color: #fff; font-family: var(--title); font-size: 20px; display: grid; place-items: center; border: 3px solid #0b0f13; box-shadow: 0 3px 0 #000; }
+.chest-count.pop { animation: countPop .3s cubic-bezier(.3,1.8,.5,1); }
+@keyframes countPop { 40% { transform: scale(1.5); } }
+/* light leaking from the seam, then pouring out once open */
+.chest-leak { position: absolute; left: 30px; right: 30px; top: 80px; height: 18px; border-radius: 50%; z-index: 2; background: radial-gradient(ellipse, #fff 0, var(--tc) 40%, transparent 72%); opacity: calc(var(--leak, 0) * .9); transform: scaleY(calc(.4 + var(--leak, 0))); filter: blur(1px); transition: opacity .2s, transform .2s; }
+.chest.open .chest-leak { opacity: 1; transform: scale(1.15, 1.6); }
+.chest-beam { position: absolute; left: 50%; bottom: 112px; width: 230px; height: 420px; transform: translateX(-50%) scaleY(0); transform-origin: 50% 100%; z-index: 1; opacity: 0;
+  background: linear-gradient(to top, #fff 0, var(--tc) 18%, rgba(255,255,255,0) 100%); clip-path: polygon(30% 100%, 70% 100%, 100% 0, 0 0); mix-blend-mode: screen; }
+.chest.open .chest-beam { animation: beamUp 1.6s cubic-bezier(.2,.9,.3,1) forwards; }
+@keyframes beamUp { 0% { transform: translateX(-50%) scaleY(0); opacity: 0; } 15% { transform: translateX(-50%) scaleY(1); opacity: .95; } 100% { transform: translateX(-50%) scaleY(1); opacity: .35; } }
+.chest-glow { position: absolute; left: 50%; top: 52%; width: 300px; height: 300px; transform: translate(-50%, -50%); border-radius: 50%; background: radial-gradient(circle, var(--tc), transparent 65%); opacity: .35; animation: pulseGlow 1.2s ease-in-out infinite; z-index: 0; }
+.chest-stage.open .chest-glow { opacity: .8; width: 420px; height: 420px; transition: all .3s; }
+.chest-shadow { position: absolute; left: 50%; top: 82%; width: 220px; height: 30px; transform: translate(-50%, -50%); border-radius: 50%; background: radial-gradient(ellipse, rgba(0,0,0,.6), transparent 70%); z-index: 1; animation: shadowLand .75s cubic-bezier(.3,1.3,.5,1) both; }
+@keyframes shadowLand { 0% { transform: translate(-50%, -50%) scale(.2); opacity: 0; } 55% { transform: translate(-50%, -50%) scale(1.15); opacity: 1; } 100% { transform: translate(-50%, -50%) scale(1); } }
+/* sunburst: centred on the chest by layout, not by measuring the screen */
+.chest-rays { position: absolute; left: 50%; top: 46%; width: 1500px; height: 1500px; transform: translate(-50%, -50%) scale(.2); border-radius: 50%; opacity: 0; z-index: 0; pointer-events: none;
+  background: repeating-conic-gradient(from 0deg, var(--tc) 0 7deg, transparent 7deg 20deg);
+  -webkit-mask: radial-gradient(circle, #000 0, rgba(0,0,0,.6) 25%, transparent 62%); mask: radial-gradient(circle, #000 0, rgba(0,0,0,.6) 25%, transparent 62%); }
+.chest-stage.open .chest-rays { animation: chestRaysIn .5s cubic-bezier(.2,1.4,.4,1) forwards, chestRaysSpin 14s linear infinite; }
+@keyframes chestRaysIn { to { transform: translate(-50%, -50%) scale(1); opacity: .55; } }
+@keyframes chestRaysSpin { from { rotate: 0deg; } to { rotate: 360deg; } }
+.chest-hint { position: absolute; top: 100%; left: 50%; transform: translateX(-50%); margin-top: -8px; font-family: var(--title); letter-spacing: 3px; color: #fff; font-size: 18px; text-shadow: 0 3px 0 #000; opacity: 0; white-space: nowrap; }
+.chest-stage.ready .chest-hint { animation: hintIn .3s forwards, blink 1s .3s ease-in-out infinite; }
+@keyframes hintIn { to { opacity: 1; } }
+.chest-flash { position: fixed; inset: 0; background: radial-gradient(circle at 50% 50%, #fff, var(--tc) 35%, transparent 70%); z-index: 3; pointer-events: none; animation: chestFlash .6s ease-out forwards; mix-blend-mode: screen; }
+@keyframes chestFlash { from { opacity: .95; } to { opacity: 0; } }
+.cr-cards.emerging { z-index: 4; }
+.cr-cards.emerging .flip { animation: none !important; }
+#crate.tier-gilded .chest-stage, #crate.tier-mythic .chest-stage { filter: drop-shadow(0 0 18px var(--tc)); }
+
+/* keep the title clear of the chest */
+#crate .cr-title { position: absolute; top: 7%; left: 50%; transform: translateX(-50%); margin: 0; z-index: 5; white-space: nowrap; }
+
+/* combat result lands over the finished dice tray, never on the scores */
+.cb { position: relative; }
+.cb .cb-result { top: auto; bottom: 100px; transform: translate(-50%, 50%) rotate(-6deg); animation: slamLow .35s cubic-bezier(.2,1.6,.4,1); }
+@keyframes slamLow { from { transform: translate(-50%, 50%) rotate(-6deg) scale(2.4); opacity: 0; } }
+.cb.resolved .cb-tray { opacity: .3; filter: blur(1px); transition: opacity .25s, filter .25s; }
+/* the glow pulses with `scale`, so it never fights the centring transform */
+.chest-glow { animation: chestGlow 1.2s ease-in-out infinite; }
+@keyframes chestGlow { 50% { scale: 1.12; opacity: .55; } }

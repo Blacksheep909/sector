@@ -239,7 +239,7 @@ function onMessage(c, m) {
     case 'botCfg': {
       if (c.pid !== lobby.hostId || game) return;
       const b = lobby.players.find(p => p.id === m.id && p.bot); if (!b) return;
-      if (m.diff && E.DIFFICULTY[m.diff]) b.diff = m.diff;
+      if (m.diff && (E.DIFFICULTY[m.diff] || m.diff === 'random')) b.diff = m.diff;
       if (m.faction && E.FACTIONS[m.faction]) b.faction = m.faction;
       return broadcastLobby();
     }
@@ -262,7 +262,8 @@ function onMessage(c, m) {
     }
     case 'start': {
       if (c.pid !== lobby.hostId || game) return;
-      const roster = lobby.players.filter(p => !p.spectator);
+      const diffs = Object.keys(E.DIFFICULTY);
+      const roster = lobby.players.filter(p => !p.spectator).map(p => p.bot && p.diff === 'random' ? { ...p, diff: diffs[Math.floor(Math.random() * diffs.length)] } : p);
       if (roster.length < 2) return send(c, { t: 'err', msg: lobby.players.length < 2 ? 'Need at least 2 commanders (add a bot)' : 'Need at least 2 commanders who are playing, not spectating' });
       const s = { ...lobby.settings, timer: +lobby.settings.timer || 0, maxRounds: +lobby.settings.maxRounds || 0, conquestPct: +lobby.settings.conquestPct || 60 };
       const r = E.createGame(s, roster);

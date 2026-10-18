@@ -2,6 +2,17 @@
 
 Every release, newest first. Each version also has its own post on the [Releases page](https://github.com/Blacksheep909/sector/releases).
 
+## v0.5.3
+
+- **Supply Drops open like a real loot chest:**
+  - Each tier has its own painted chest: oak and iron, red and gold, or violet crystal.
+  - It slams down with a squash-and-bounce and a dust puff, then sits breathing and glowing until you tap it.
+  - On the tap it hops three times while light leaks from the seam. Then the lid bursts open, a beam of light shoots up, and the sunburst spins behind it.
+  - The three cards shoot out of the chest one by one while a counter ticks down.
+- **Fixed:** the sunburst is now always centred on the chest. It used to fan in from the top of the screen.
+- **Fixed:** the BREAKTHROUGH! / REPELLED! banner now lands over the finished dice tray instead of on top of the scores.
+- **🎲 Random bot difficulty.** Set a bot to Random in the lobby, and it rolls Easy, Medium, Hard or Impossible when the game starts.
+
 ## v0.5.2
 
 - **No contest, no dice.** If an attack can't lose (100% win chance), there's no dice roll. Your troops crush the defenders with an **OBLITERATED!** slam: a flash, a shockwave and debris. Crushing wins never cost you a unit to pyrrhic losses. Certain-hit bombardments land as **DIRECT HIT!** the same way.
