@@ -36,10 +36,12 @@ async function main() {
   await cmd('Page.navigate', { url: URL });
   await sleep(2500);
   await shot('title');
-  await evalJS(`document.querySelector('#nameIn').value='Charlie'; document.querySelector('#joinBtn').click(); true`);
+  await evalJS(`document.querySelector('#nameIn').value='Commander'; document.querySelector('#joinBtn').click(); true`);
   await sleep(800);
   await evalJS(`(async()=>{ for (const d of ['hard','medium','impossible']) { SECTOR_DEBUG.send({t:'addBot',diff:d}); await new Promise(r=>setTimeout(r,200)); } SECTOR_DEBUG.send({t:'settings',settings:{mapType:'archipelago',mapSize:'medium'}}); return true })()`);
   await sleep(900);
+  // never publish real network addresses: swap in documentation examples
+  await evalJS(`document.querySelector('#lanBox').innerHTML='Friends on your network join at:<br><b>http://192.168.1.20:3000</b>'; true`);
   await shot('lobby');
   await evalJS(`document.querySelector('#startBtn').click(); true`);
   await waitFor(`document.querySelectorAll('#draft .flip.dealt').length===3`);

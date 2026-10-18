@@ -1,4 +1,0 @@
-{ "version": "0.0.1", "configurations": [
-  { "name": "sector", "runtimeExecutable": "node", "runtimeArgs": ["server.js"], "port": 3000 },
-  { "name": "sector-dev", "runtimeExecutable": "node", "runtimeArgs": ["server.js"], "port": 3000, "env": { "SECTOR_DEV": "1" } }
-] }
