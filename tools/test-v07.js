@@ -49,7 +49,9 @@ const play = (s, a) => E.applyAction(s, me(s).id, a);
 }
 { // carrier: deploy air onto it, sail, fly off
   const s = game('ocean'); const p = me(s); p.cash = 99;
-  const w = Object.keys(s.map.tiles).find(k => E.isWater(s.map.tiles[k]) && !s.map.tiles[k].owner && E.neighbors(k).some(n => s.map.tiles[n] && s.map.tiles[n].owner === p.id) && !Object.values(s.units).some(u => u.hex === k));
+  // a free sea hex beside our land with open water to sail into
+  const free = k => s.map.tiles[k] && E.isWater(s.map.tiles[k]) && !Object.values(s.units).some(u => u.hex === k);
+  const w = Object.keys(s.map.tiles).find(k => free(k) && !s.map.tiles[k].owner && E.neighbors(k).some(n => s.map.tiles[n] && s.map.tiles[n].owner === p.id) && E.neighbors(k).filter(free).length >= 2);
   s.units.c1 = { id: 'c1', type: 'carrier', owner: p.id, hex: w, moved: false, fresh: false };
   p.arsenal.push('hornet');
   ok(E.deployHexes(s, p.id, 'hornet').includes(w), 'aircraft can deploy onto a carrier');
