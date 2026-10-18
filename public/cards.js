@@ -27,7 +27,7 @@ const Cards = (() => {
       <div class="c-top"><div class="c-cost">$${cost}</div><div class="c-gem" title="${E.RARITY[d.rarity].name}"></div></div>
       <div class="c-art"><img src="${Art.cardArt(id)}" alt=""></div>
       ${stars}
-      <div class="c-name">${d.name}</div>
+      <div class="c-name${d.name.length > 12 ? ' long' : ''}">${d.name}</div>
       <div class="c-type">${type} · ${E.RARITY[d.rarity].name}</div>
       ${stats}
       <div class="c-desc">${d.desc}</div>
@@ -492,6 +492,14 @@ const Cards = (() => {
         const src = tab === 'unit' ? E.UNITS : E.TACTICS;
         Object.keys(src).filter(id => rar === 'all' || src[id].rarity === rar).sort((a, b) => RANK(src[a].rarity) - RANK(src[b].rarity) || src[a].cost - src[b].cost)
           .forEach((id, i) => { const c = make(id); c.style.animationDelay = (i * 0.025) + 's'; c.classList.add('ix-in'); grid.appendChild(c); });
+        // an empty filter points you at the tab that has those cards (Mythics are all tactics)
+        if (!grid.children.length) {
+          const other = tab === 'unit' ? 'tactic' : 'unit', osrc = other === 'unit' ? E.UNITS : E.TACTICS;
+          const n = Object.keys(osrc).filter(id => osrc[id].rarity === rar).length;
+          const hint = el('div', 'ix-empty', `No ${E.RARITY[rar].name} ${tab === 'unit' ? 'units' : 'tactics'}.` + (n ? ` <button class="btn">SHOW ${n} ${E.RARITY[rar].name.toUpperCase()} ${other === 'unit' ? 'UNITS' : 'TACTICS'}</button>` : ''));
+          const go = hint.querySelector('button'); if (go) go.onclick = () => { tab = other; SFX.click(); draw(); };
+          grid.appendChild(hint);
+        }
       } else if (tab === 'struct') {
         for (const id of E.BUILD_ORDER) { const s = E.STRUCTS[id]; grid.appendChild(el('div', 'ix-struct', `<img src="${Art.iconURL('struct', id, '#fff', 96)}"><div><b>${s.name}</b><span class="gold">$${s.cost}</span><p>${s.desc}</p></div>`)); }
       } else {

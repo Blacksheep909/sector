@@ -128,7 +128,7 @@
     leviathan: { name: 'Leviathan', cls: 'veh', cost: 14, atk: 12, def: 10, mv: 1, rarity: 'legendary', ability: 'juggernaut', desc: 'Land dreadnought. Never suffers pyrrhic losses.' },
     titan: { name: 'Titan', cls: 'veh', cost: 16, atk: 13, def: 12, mv: 1, rarity: 'legendary', ability: 'titan', desc: 'Colossus. Siege Breaker and never suffers pyrrhic losses.' },
     seraph: { name: 'Seraph', cls: 'air', cost: 12, atk: 9, def: 4, mv: 5, rarity: 'legendary', ability: 'strafe', desc: 'Gunship. Seizes enemy hexes it flies over.' },
-    carrier: { name: 'Carrier', cls: 'sea', cost: 13, atk: 3, def: 9, mv: 3, rarity: 'legendary', ability: 'carrier', desc: 'Floating airbase. Deploy aircraft straight onto it, fly them off it, land them back. Carries up to 4 aircraft.' },
+    carrier: { name: 'Carrier', cls: 'sea', cost: 13, atk: 3, def: 9, mv: 3, rarity: 'legendary', ability: 'carrier', desc: 'Floating airbase: deploy aircraft onto it and fly them off it. Holds 4.' },
     oracle: { name: 'Oracle', cls: 'art', cost: 11, atk: 8, def: 3, mv: 2, range: 4, rarity: 'legendary', ability: 'orbital', desc: 'Orbital uplink. Range 4, ignores mountains.' },
     abyssal: { name: 'Abyssal', cls: 'sea', cost: 15, atk: 12, def: 10, mv: 3, range: 4, rarity: 'legendary', ability: 'juggernaut', desc: 'Sea dreadnought. Range 4. Never suffers pyrrhic losses.' },
   };
@@ -138,7 +138,7 @@
     smoke: { name: 'Smoke Screen', rarity: 'common', cost: 1, target: 'ownHex', desc: 'A hex you own gets +2 Mult on defence until your next turn.' },
     march: { name: 'Forced March', rarity: 'common', cost: 1, target: 'ownStack', desc: 'Units on one hex may act again, with +2 move.' },
     rally: { name: 'Rally', rarity: 'common', cost: 1, target: 'none', desc: 'Your next attack this turn gets +2 Mult.' },
-    fortify: { name: 'Fortify', rarity: 'common', cost: 2, target: 'ownHex', desc: 'Build or upgrade a Bunker on one of your hexes for free.' },
+    fortify: { name: 'Fortify', rarity: 'common', cost: 2, target: 'ownHex', desc: 'Build or upgrade a Bunker on one of your hexes for free (on your HQ hex it fortifies the HQ instead).' },
     conscript: { name: 'Conscription', rarity: 'common', cost: 1, target: 'spawn', desc: 'Deploy 2 free Grunts at a deploy point.' },
     airstrike: { name: 'Airstrike', rarity: 'uncommon', cost: 4, target: 'enemyUnits', range: 4, desc: 'Bomb enemy units within 4 of your land. Roll: kills 1–3.' },
     heli: { name: 'Heli Drop', rarity: 'uncommon', cost: 3, target: 'heli', range: 5, desc: 'Fly a stack up to 5 hexes onto any empty land and seize it.' },
@@ -157,9 +157,9 @@
     nuke: { name: 'Tactical Nuke', rarity: 'legendary', cost: 10, target: 'nuke', range: 6, desc: 'Erase everything in a 1-hex radius. Leaves a fallout zone for 4 rounds.' },
     drop_legendary: { name: 'Supply Drop', rarity: 'legendary', cost: 0, target: 'none', desc: 'Spin the reel for a crate (35% Gilded · 65% Mythic), then keep 1 of 3 cards.' },
     mutiny: { name: 'Mutiny', rarity: 'legendary', cost: 6, target: 'mutiny', desc: 'An enemy stack (≤3) bordering your land defects to you.' },
-    tsar: { name: 'Tsar Bomba', rarity: 'mythic', cost: 14, target: 'tsar', range: 7, desc: 'Erase everything in a 9-hex blast: a hex, its ring, and one more hex east and west. Fallout for 5 rounds. HQs ride it out, but their garrison does not.' },
-    regime: { name: 'Regime Change', rarity: 'mythic', cost: 10, target: 'regime', range: 4, desc: 'An enemy hex within 4 of your land and every hex around it that commander owns flips to you (HQs excepted). Their troops there switch sides.' },
-    aegis: { name: 'Aegis Protocol', rarity: 'mythic', cost: 8, target: 'none', desc: 'Until your next turn: every hex you own gets +3 Mult on defence, and enemy tactics cannot touch your land or units.' },
+    tsar: { name: 'Tsar Bomba', rarity: 'mythic', cost: 14, target: 'tsar', range: 7, desc: 'Erase everything in a 9-hex blast. Fallout for 5 rounds. HQs survive; their troops do not.' },
+    regime: { name: 'Regime Change', rarity: 'mythic', cost: 10, target: 'regime', range: 4, desc: 'An enemy hex within 4 and their land around it flip to you (not HQs). Their troops there join you.' },
+    aegis: { name: 'Aegis Protocol', rarity: 'mythic', cost: 8, target: 'none', desc: 'Until your next turn: your land gets +3 Mult on defence and is immune to enemy tactics.' },
   };
 
   // structures are the economy/base layer, separate from the unit deck
@@ -172,14 +172,15 @@
     port: { name: 'Port', cost: 5, desc: 'Coast only. Launch ships into the adjacent sea. Supply source for sea lanes.' },
     bridge: { name: 'Bridge', cost: 6, desc: 'Span a 1-hex sea gap between two shores. Land units cross; ships cannot pass.' },
     bunker: { name: 'Bunker', cost: 4, desc: 'Strongpoint with its own garrison: +3 Chips per level even when empty, so enemies must attack it. +2 Mult defence (+1 per extra level). ★★+ also gives your neighbouring hexes +1 Mult. Digs in against big attacks: +40% of the attacker chip lead (up to 4 per level). ★★★ Citadel: 14 garrison Chips, +5 Mult, +2 Mult to neighbours, and holds 60% of the lead (up to 20). Destroyed if an enemy captures it.' },
+    mine: { name: 'Sea Mine', cost: 4, desc: 'A minefield on one of your sea hexes: the naval Bunker. +3 Chips per level even when empty, so enemy ships must fight their way through instead of sailing past. +2 Mult defence (+1 per extra level). Cleared if an enemy captures the hex.' },
     flak: { name: 'Flak', cost: 5, desc: 'Blocks enemy air tactics nearby (range = level). +2 Mult vs air.' },
   };
-  const BUILD_ORDER = ['hq', 'fob', 'market', 'refinery', 'depot', 'port', 'bridge', 'bunker', 'flak'];
+  const BUILD_ORDER = ['hq', 'fob', 'market', 'refinery', 'depot', 'port', 'bridge', 'bunker', 'mine', 'flak'];
   // structures can be stacked up to level 3 by building the same thing on the same hex
-  const UPGRADABLE = ['hq', 'fob', 'market', 'refinery', 'depot', 'bunker', 'flak'];
+  const UPGRADABLE = ['hq', 'fob', 'market', 'refinery', 'depot', 'bunker', 'mine', 'flak'];
   const MAX_SLVL = 3;
   const MAX_STRUCTS = 3; // different buildings per hex
-  const STRUCT_PRIORITY = ['hq', 'fob', 'port', 'bridge', 'market', 'refinery', 'depot', 'bunker', 'flak'];
+  const STRUCT_PRIORITY = ['hq', 'fob', 'port', 'bridge', 'market', 'refinery', 'depot', 'bunker', 'mine', 'flak'];
   const structsOf = t => (t && t.structs) || (t && t.struct ? [t.struct] : []);
   const getS = (t, type) => structsOf(t).find(x => x.type === type) || null;
   const slvlOf = st => (st && st.lvl) || 1;
@@ -308,6 +309,7 @@
     // biomes: temperature runs warm at the equator (middle rows) and cold toward the edges
     const maxPy = Math.max(...landCells.map(c => Math.abs(c.py))) || 1;
     const lowE = le[Math.floor(le.length * 0.85)];
+    const elev = {};
     for (const c of landCells) {
       const ridge = 1 - Math.abs(noise2(c.px * 0.11 + oy, c.py * 0.11 + ox, 2) * 2 - 1);
       const moist = noise2(c.px * 0.1 + 40, c.py * 0.1 + 40, 2);
@@ -322,6 +324,7 @@
       else if (temp > 0.62 && moist > 0.58) t = 'jungle';
       else if (moist > 0.56) t = 'forest';
       tiles[key(c.q, c.r)] = { q: c.q, r: c.r, t, owner: null, struct: null, res: false, contam: 0, smoke: null };
+      elev[key(c.q, c.r)] = c.e;
     }
     // sea: everything within 2 hexes of land
     for (const k of Object.keys(tiles)) for (const a of area(k, 2)) {
@@ -355,6 +358,32 @@
     for (const s of spawns) {
       tiles[s].t = 'plains';
       for (const n of neighbors(s)) if (tiles[n] && ['mountain', 'swamp'].includes(tiles[n].t)) tiles[n].t = tiles[n].t === 'mountain' ? 'hills' : 'plains';
+    }
+    // rivers: spring up in the highlands and wind downhill to the sea (merging where they meet)
+    {
+      const landK = Object.keys(tiles).filter(isLand);
+      const want = Math.max(1, Math.round(landK.length / 75));
+      const springs = landK.filter(k => tiles[k].t !== 'mountain' && (tiles[k].t === 'hills' || neighbors(k).some(n => tiles[n] && tiles[n].t === 'mountain')))
+        .sort((a, b) => (elev[b] || 0) - (elev[a] || 0) + (rng() - 0.5) * 0.08);
+      const heads = [];
+      for (const src of springs) {
+        if (heads.length >= want) break;
+        if (tiles[src].river || heads.some(h => dist(h, src) < 5)) continue;
+        const path = [src], seen = new Set([src]); let cur = src, mouth = null;
+        for (let step = 0; step < 45 && !mouth; step++) {
+          const nb = neighbors(cur).filter(n => tiles[n] && !seen.has(n) && tiles[n].t !== 'mountain');
+          const sea = nb.find(n => tiles[n].t === 'water'); if (sea) { mouth = sea; break; }
+          const join = nb.find(n => tiles[n].river); if (join && path.length >= 2) { mouth = join; break; }
+          if (!nb.length) break;
+          nb.sort((a, b) => (elev[a] || 0) - (elev[b] || 0));
+          const next = nb[rng() < 0.2 && nb[1] ? 1 : 0];
+          if ((elev[next] || 0) > (elev[cur] || 0) + 0.06) break;   // no way downhill: the spring dries up
+          path.push(next); seen.add(next); cur = next;
+        }
+        if (!mouth || path.length < 3) continue;
+        heads.push(src);
+        path.forEach((k, i) => { tiles[k].river = true; tiles[k].flow = path[i + 1] || mouth; });
+      }
     }
     const landNow = Object.keys(tiles).filter(isLand);
     const want = Math.round(landNow.length * 0.06);
@@ -532,7 +561,7 @@
     }
     // ocean maps: every commander starts with a Port so the navy matters from turn one
     if (state.map.arch === 'ocean') {
-      const spot = [hq].concat(neighbors(hq)).find(k => state.map.tiles[k] && state.map.tiles[k].owner === pl.id && isLandTile(state.map.tiles[k]) && isCoastal(state, k) && structsOf(state.map.tiles[k]).length < MAX_STRUCTS);
+      const spot = neighbors(hq).find(k => state.map.tiles[k] && state.map.tiles[k].owner === pl.id && isLandTile(state.map.tiles[k]) && isCoastal(state, k) && structsOf(state.map.tiles[k]).length < MAX_STRUCTS);
       // an inland HQ gets its Port on the nearest free coast instead (and that hex)
       const far = spot || area(hq, 3).filter(k => { const t = state.map.tiles[k]; return t && isLandTile(t) && t.t !== 'mountain' && (!t.owner || t.owner === pl.id) && !t.poi && !structsOf(t).length && isCoastal(state, k); }).sort((a, b) => dist(a, hq) - dist(b, hq))[0];
       if (far) { state.map.tiles[far].owner = pl.id; addStruct(state.map.tiles[far], { type: 'port', owner: pl.id, lvl: 1 }); }
@@ -662,6 +691,7 @@
     }
     if (t.owner !== pid) return 'Build on your own territory';
     if (struct === 'hq') { const h = getS(t, 'hq'); return h && h.owner === pid && !h.siege ? (slvlOf(h) >= MAX_SLVL ? 'HQ is fully fortified' : null) : 'Fortify your HQ hex'; }
+    if (getS(t, 'hq')) return 'The HQ hex holds only the HQ (fortify it instead)';
     const ex = getS(t, struct);
     if (ex) {
       if (!UPGRADABLE.includes(struct)) return 'Already built here';
@@ -672,6 +702,7 @@
     if (structsOf(t).length >= MAX_STRUCTS) return 'Hex is full (max ' + MAX_STRUCTS + ' buildings)';
     if (t.contam) return 'Fallout zone';
     if (!sup.has(k)) return 'Hex is cut off from supply';
+    if (struct === 'mine') return isWater(t) && !t.bridge ? null : 'Mines go in your own sea';
     if (isWater(t)) return struct === 'refinery' && t.res ? null : 'That goes on land';
     if (struct === 'port' && !isCoastal(s, k)) return 'Ports must touch the sea';
     if (struct === 'fob' && area(k, 2).some(a => tiles[a] && structsOf(tiles[a]).some(x => ['hq', 'fob'].includes(x.type)))) return 'Too close to another base';
@@ -709,11 +740,11 @@
   }
   function computeIncome(s, pid) {
     const sup = supplySet(s, pid);
-    let hexes = 0, sea = 0, cut = 0, res = 0, ref = 0, markets = 0, ports = 0, poi = 0, fish = 0; const portHexes = [];
+    let hexes = 0, sea = 0, cut = 0, res = 0, ref = 0, markets = 0, ports = 0, poi = 0, fish = 0, river = 0; const portHexes = [];
     for (const k in s.map.tiles) {
       const t = s.map.tiles[k]; if (t.owner !== pid) continue;
       if (!sup.has(k)) { cut++; continue; }
-      if (isWater(t)) sea++; else hexes++;
+      if (isWater(t)) sea++; else { hexes++; if (t.river) river++; }
       if (t.res) res++;
       if (t.fish) fish++;
       if (t.poi === 'village') poi += 2; else if (t.poi === 'relic') poi += 3;
@@ -735,7 +766,8 @@
     const rush = s.weather && s.weather.id === 'goldrush' ? 2 : 1;
     const base = 3, fromHex = Math.floor(hexes / 3), fromSea = Math.floor(sea / 4), fromRes = res * 2 * rush;
     fish *= rush;
-    let total = base + fromHex + fromSea + fromRes + ref + trade + poi + fish + lanes;
+    const fromRiver = Math.floor(river / 3);
+    let total = base + fromHex + fromSea + fromRes + ref + trade + poi + fish + lanes + fromRiver;
     const p = player(s, pid), d = p && p.bot && DIFFICULTY[p.diff];
     // alliances that have held for 2+ rounds pay a dividend; a traitor's economy takes a 40% hit
     let pact = 0;
@@ -746,7 +778,7 @@
     total += traitor;
     const bonus = d ? Math.round(total * d.income) - total : 0;
     total += bonus;
-    return { total, base, fromHex, fromSea, fromRes, ref, trade, poi, fish, lanes, pact, traitor, bonus, hexes, sea, cut, res };
+    return { total, base, fromHex, fromSea, fromRes, ref, trade, poi, fish, lanes, fromRiver, river, pact, traitor, bonus, hexes, sea, cut, res };
   }
   function nearOwned(s, pid, k, r) {
     for (const a of area(k, r)) { const t = s.map.tiles[a]; if (t && t.owner === pid) return true; }
@@ -801,7 +833,8 @@
           // ships: sail open water; strike enemies on adjacent coasts
           if (!isWater(t)) { if (enemy && canFight && c <= mv && isLandTile(t)) set(n, c, cur, 'attack'); continue; }
           if (c > mv) continue;
-          if (enemy) { if (canFight) set(n, c, cur, 'attack'); continue; }
+          const mined = getS(t, 'mine'); const enemyMine = mined && mined.owner && mined.owner !== pid && t.owner === mined.owner && !isAlly(s, pid, mined.owner);
+          if (enemy || enemyMine) { if (canFight) set(n, c, cur, 'attack'); continue; }
           const room = stackFits(occ, all);
           set(n, c, cur, t.owner !== pid ? (room ? 'capture' : 'pass') : (room ? 'move' : 'pass'));
           continue;
@@ -818,7 +851,7 @@
         if (t.t === 'mountain' && !allAir) continue;
         // aircraft can land on one of your carriers
         if (allAir && isWater(t) && occ.length && occ[0].owner === pid && airCap(occ) >= occ.filter(isAirU).length + units.length && stackFits(occ, units)) { if (cn.c + 1 <= mv) set(n, cn.c + 1, cur, 'board'); continue; }
-        const step = (!allAir && !pathfind && TERRAIN[t.t].moveCost) || 1;
+        const step = (!allAir && !pathfind && (TERRAIN[t.t].moveCost || (t.river ? 2 : 0))) || 1;   // rivers must be forded
         const cc = cn.c + step;
         if (cc > mv && !(cn.c === 0 && mv > 0)) continue;   // slow units can always crawl one hex
         const land = isLandTile(t);
@@ -924,6 +957,7 @@
     if (dHunt && has(units, 'veh')) { def.chips += 3 * dHunt; def.bonuses.push({ label: 'Tank Hunter', chips: 3 * dHunt }); }
     const hq = getS(t, 'hq');
     if (hq && hq.owner === defPid && !hq.siege) { const L = slvlOf(hq); def.chips += 3 * L; def.bonuses.push({ label: 'HQ Garrison' + (L > 1 ? ' ' + '★'.repeat(L) : ''), chips: 3 * L }); def.mult += 1 + L; def.bonuses.push({ label: 'Fortified HQ', mult: 1 + L }); }
+    if (t.river && isLandTile(t) && !units.every(u => UNITS[u.type].cls === 'air')) { def.mult += 1; def.bonuses.push({ label: 'River Crossing', mult: 1 }); }
     const tm = isWater(t) || t.bridge ? 0 : (TERRAIN[t.t].defMult || 0);
     if (tm) { def.mult += tm; def.bonuses.push({ label: TERRAIN[t.t].name, mult: tm }); }
     const bk = getS(t, 'bunker'), fb = getS(t, 'fob');
@@ -936,6 +970,12 @@
       let line = 0;
       for (const n of neighbors(target)) { const nb = s.map.tiles[n], b2 = nb && getS(nb, 'bunker'); if (b2 && b2.owner === defPid && nb.owner === defPid && slvlOf(b2) >= 2) line = Math.max(line, slvlOf(b2) >= 3 ? 2 : 1); }
       if (line) { def.mult += line; def.bonuses.push({ label: 'Bunker Line', mult: line }); }
+    }
+    const mn = getS(t, 'mine');
+    if (mn && mn.owner === defPid && defPid && isWater(t) && !units.every(u => UNITS[u.type].cls === 'air')) {
+      const L = slvlOf(mn), m = 1 + L;
+      def.chips += 3 * L; def.bonuses.push({ label: 'Minefield' + (L > 1 ? ' ' + '★'.repeat(L) : ''), chips: 3 * L });
+      def.mult += m; def.bonuses.push({ label: 'Mines' + (L > 1 ? ' ' + '★'.repeat(L) : ''), mult: m });
     }
     if (fb && fb.owner === defPid) { const m = slvlOf(fb); def.mult += m; def.bonuses.push({ label: 'FOB Walls' + (m > 1 ? ' ' + '★'.repeat(m) : ''), mult: m }); }
     if (t.smoke && t.smoke === defPid) { def.mult += 2; def.bonuses.push({ label: 'Smoke Screen', mult: 2 }); }
@@ -1073,7 +1113,7 @@
     t.owner = pid;
     t.smoke = null;
     // an enemy commander's bunker is blown up when its hex falls (neutral forts still hand theirs over)
-    const razed = structsOf(t).filter(st => st.type === 'bunker' && st.owner && st.owner !== pid);
+    const razed = structsOf(t).filter(st => (st.type === 'bunker' || st.type === 'mine') && st.owner && st.owner !== pid);
     if (razed.length) {
       t.structs = structsOf(t).filter(st => !razed.includes(st));
       (s._razed = s._razed || []).push(k);
@@ -1459,7 +1499,7 @@
         }
         return out;
       case 'mountain': for (const k in tiles) if (tiles[k].t === 'mountain' && nearOwned(s, pid, k, def.range)) out.push(k); return out;
-      case 'enemyHand': { for (const k in tiles) { const o = tiles[k].owner; if (o && o !== pid && isLandTile(tiles[k])) { const op = player(s, o); if (op && op.alive && op.tactics.length) out.push(k); } } return out; }
+      case 'enemyHand': { for (const k in tiles) { const o = tiles[k].owner; if (o && o !== pid && isLandTile(tiles[k])) { const op = player(s, o); if (op && op.alive && (op.tacticCount ?? op.tactics.length)) out.push(k); } } return out; }   // players only see a rival's hand size
       case 'tsar': for (const k in tiles) if (nearOwned(s, pid, k, def.range) && !flakCovered(s, pid, k)) out.push(k); return out;
       case 'regime':
         for (const k in tiles) {
@@ -1769,7 +1809,9 @@
       case 'rally': p.rally = (p.rally || 0) + 2; ev.push(base); break;
       case 'bounty': p.bounty = bountyValue(s, p); ev.push({ ...base, amount: p.bounty }); break;
       case 'fortify': {
-        const t = tiles[a.target], bk = getS(t, 'bunker');
+        const t = tiles[a.target], bk = getS(t, 'bunker'), hq = getS(t, 'hq');
+        // on the HQ hex the card fortifies the HQ itself (nothing else is built there)
+        if (hq && hq.owner === pid) { if (slvlOf(hq) >= MAX_SLVL) return 'Your HQ is already fully fortified'; hq.lvl = slvlOf(hq) + 1; ev.push({ ...base, lvl: hq.lvl }); break; }
         if (bk) { if (slvlOf(bk) >= MAX_SLVL) return 'That Bunker is already ★★★'; bk.lvl = slvlOf(bk) + 1; }
         else { if (structsOf(t).length >= MAX_STRUCTS || getS(t, 'bridge') || !isLandTile(t)) return 'No room for a Bunker there'; addStruct(t, { type: 'bunker', owner: pid, lvl: 1 }); }
         ev.push({ ...base, lvl: slvlOf(getS(t, 'bunker')) }); break;
@@ -1966,7 +2008,7 @@
         } else {
           t.fog = 2;
           t.owner = hq ? real.owner : null; t.structs = hq ? [JSON.parse(JSON.stringify(hq))] : [];
-          delete t.poi; delete t.gar; delete t.fish; t.res = false; t.contam = 0; t.smoke = null; t.bridge = false;
+          delete t.poi; delete t.gar; delete t.fish; delete t.river; delete t.flow; t.res = false; t.contam = 0; t.smoke = null; t.bridge = false;
         }
         t.struct = (t.structs || []).find(x => x.type === 'hq') || (t.structs || [])[0] || null;
       }

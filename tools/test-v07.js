@@ -68,6 +68,8 @@ const play = (s, a) => E.applyAction(s, me(s).id, a);
   // give us a foothold next to the enemy so ranged tactics can reach
   for (const k of E.area(o.hq, 3)) { const t = s.map.tiles[k]; if (t && E.isLandTile(t) && E.dist(k, o.hq) === 3 && !t.owner) t.owner = p.id; }
   for (const k of E.area(o.hq, 2)) { const t = s.map.tiles[k]; if (t && E.isLandTile(t) && !t.owner) t.owner = o.id; }
+  // the client only sees a rival's hand size: Spy Ring must still find targets in that view
+  { const v = E.view(s, p.id); ok(E.tacticTargets(v, p.id, 'spy').some(k => v.map.tiles[k].owner === o.id), 'spy ring has targets in the client view'); }
   const spy = give(s, 'spy'); const tk = E.tacticTargets(s, p.id, 'spy').find(k => s.map.tiles[k].owner === o.id);
   const r = play(s, { a: 'tactic', uid: spy.uid, target: tk }); ok(r.ok && p.tactics.some(c => c.uid === 9001), 'spy ring steals a card ' + (r.err || '') + ' target=' + tk);
   const m = Object.keys(s.map.tiles).find(k => s.map.tiles[k].t === 'mountain');
@@ -81,6 +83,19 @@ const play = (s, a) => E.applyAction(s, me(s).id, a);
 { // shield blocks enemy tactics
   const s = game('continent', 2); const p = me(s), o = s.players.find(q => q.id !== p.id); o.shield = true; p.cash = 99;
   ok(!E.tacticTargets(s, p.id, 'embargo').some(k => s.map.tiles[k].owner === o.id), 'aegis blocks enemy tactics');
+}
+{ // sea mines: build on your own sea, block enemy ships, defend like a bunker
+  const s = game('ocean'); const p = me(s), o = s.players.find(q => q.id !== p.id); p.cash = 99;
+  const sup = E.supplySet(s, p.id);
+  const w = Object.keys(s.map.tiles).find(k => E.isWater(s.map.tiles[k]) && sup.has(k) && !(s.map.tiles[k].structs || []).length && !Object.values(s.units).some(u => u.hex === k))
+    || (() => { const k = Object.keys(s.map.tiles).find(k => E.isWater(s.map.tiles[k]) && E.neighbors(k).some(n => sup.has(n)) && !Object.values(s.units).some(u => u.hex === k)); s.map.tiles[k].owner = p.id; return k; })();
+  const land = [...sup].find(k => E.isLandTile(s.map.tiles[k]) && !(s.map.tiles[k].structs || []).length);
+  ok(E.buildError(s, p.id, 'mine', land) !== null, 'mines cannot go on land');
+  const r = play(s, { a: 'build', struct: 'mine', hex: w }); ok(r.ok, 'build a sea mine ' + (r.err || ''));
+  const n = E.neighbors(w).find(k => s.map.tiles[k] && E.isWater(s.map.tiles[k]) && !Object.values(s.units).some(u => u.hex === k));
+  s.units.e1 = { id: 'e1', type: 'marlin', owner: o.id, hex: n, moved: false, fresh: false };
+  const reach = E.reachable(s, o.id, ['e1'], n); ok(reach[w] && reach[w].kind === 'attack', 'enemy ships must attack a mined hex');
+  const calc = E.combatCalc(s, o.id, [s.units.e1], n, w, false); ok(calc.def.bonuses.some(b => b.label.startsWith('Minefield')), 'minefield adds garrison chips');
 }
 { // reroll scales with income
   const s = game(); s.turn.income = 20; s.turn.rerolls = 0; const a = E.rerollCost(s); s.turn.rerolls = 1; ok(a === 5 && E.rerollCost(s) === 10, 'reroll cost ' + a + ' then ' + E.rerollCost(s));

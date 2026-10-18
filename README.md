@@ -127,7 +127,7 @@ tools/               sim.js (headless bot games), maps.js (map previews), build-
 docs/                rules, card reference, development notes, screenshots
 ```
 
-See **[docs/DEVELOPMENT.md](docs/DEVELOPMENT.md)** for the architecture and the testing tools.
+See **[docs/DEVELOPMENT.md](docs/DEVELOPMENT.md)** for the architecture and the testing tools, and **[docs/HOSTING.md](docs/HOSTING.md)** to put a server online.
 
 ---
 

@@ -125,6 +125,8 @@ $3 base
 + refineries and markets
 ```
 
+**Rivers** wind from the highlands down to the sea. A river hex defends at **+1 mult (River Crossing)**, and every 3 river hexes you hold pay **+$1** (fertile valleys).
+
 **Supply:** a hex pays only if it connects through your own territory to your HQ or a Port. A **FOB only works while it's connected** that way too: a cut-off FOB is no deploy point and supplies nothing, and you can only build a FOB on supplied land. Owned sea counts as territory, so sea lanes carry supply to your islands. Cut-off hexes are hatched on the map and pay nothing.
 
 ## The land
@@ -153,7 +155,7 @@ Maps have climate. It's colder toward the top and bottom edges and hotter in the
 ## Moving
 
 - Units **seize every unclaimed hex they pass through**.
-- Highlands, jungle, tundra, swamp and canyons cost 2 move. Rangers ignore this. **A unit can always move at least one hex**, so slow units like the Goliath never get stuck in rough ground (and a Blizzard never takes a unit below 1 move).
+- Highlands, jungle, tundra, swamp and canyons cost 2 move, and so does fording into a **river** hex. Rangers ignore this. **A unit can always move at least one hex**, so slow units like the Goliath never get stuck in rough ground (and a Blizzard never takes a unit below 1 move).
 - Mountains block movement except for air units. Open water blocks land units unless they're aboard an Ark; air units and hover tanks fly or glide across it.
 - A hex holds at most 5 units, and mixed types share a stack freely. A hex of nothing but Grunts can hold 10.
 - Entering an empty enemy hex captures it. Entering an occupied hex starts a fight.
@@ -230,11 +232,12 @@ Build from the build bar (`Z` and onward, nine slots). To **upgrade** a structur
 | **Refinery** | +$2 (+$4 on a resource node or oil rig) |
 | **Depot** | +1 to its range for the move bonus |
 | **Bunker** | +3 garrison chips (even when empty, so it must be attacked) and +1 defence mult (★ gives +2). From ★★, your neighbouring hexes get +1 mult (Bunker Line). **Hold the Line:** when defended against a stronger attack, +40% of the attacker's chip lead (max 4 per level). **★★★ Citadel:** 14 garrison chips, +5 mult, +2 mult to neighbours, and Hold the Line takes 60% of the lead (max 20). **Destroyed** when an enemy captures its hex |
+| **Sea Mine** | The naval Bunker, built on your own sea: +3 garrison chips per level (so enemy ships must fight through instead of sailing past) and +2 defence mult (+1 per extra level). Cleared when an enemy captures the hex |
 | **Flak** | +1 hex of anti-air coverage |
 
 Ports and bridges don't upgrade. **Sabotage** knocks a level off a structure, and destroys it only at ★.
 
-**Stacking.** A hex can hold up to **3 different buildings**, for example a Market★★, a Bunker and a Depot. Bridges take a hex to themselves.
+**Stacking.** A hex can hold up to **3 different buildings**, for example a Market★★, a Bunker and a Depot. Bridges take a hex to themselves, and so does your **HQ**: nothing else can be built on the HQ hex (fortify it instead; the Fortify card fortifies the HQ when played there).
 
 **New and captured bases.** A FOB you build, and a FOB or Port you capture, comes online at the start of your next turn. You can't build or capture one and deploy on it the same turn.
 
@@ -248,6 +251,7 @@ Taking an enemy HQ doesn't knock them out straight away: it puts their HQ **unde
 
 ## Menus and joining
 
+- **Ready up.** In the lobby every guest presses **READY UP**; the host's **DEPLOY** stays locked until everyone is ready. Changing a setting un-readies everyone, so nobody gets surprised.
 - **Esc** opens the pause menu: resume, rules, card index, sound, and **Leave game**. When you leave, a bot takes over your empire so everyone else can keep playing. The host can also **End game for everyone**.
 - On the main menu, **Join a game** scans your Wi-Fi for SECTOR servers (it starts scanning as soon as you open it). Games in progress show their round and how many bots are playing; press **WATCH** to spectate. You can also type an address, or pick a recent server.
 - **Take over a bot.** While you're spectating a game in progress, every bot has a **TAKE OVER** button under its name. Press it to take command of that bot's empire: its land, army, cards and cash become yours.
