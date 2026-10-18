@@ -490,12 +490,65 @@ const Art = (() => {
     },
     bounty(c) { c.lineWidth = 0.1; circ(c, 0, 0, 0.7); c.stroke(); circ(c, 0, 0, 0.38); c.stroke(); for (const [x, y, w, h] of [[-0.05, -1, 0.1, 0.5], [-0.05, 0.5, 0.1, 0.5], [-1, -0.05, 0.5, 0.1], [0.5, -0.05, 0.5, 0.1]]) c.fillRect(x, y, w, h); circ(c, 0, 0, 0.12); c.fill(); },
     orbital(c) { rr(c, -0.25, -0.95, 0.5, 0.32, 0.05); c.fill(); rr(c, -0.8, -0.88, 0.45, 0.18, 0.03); c.fill(); rr(c, 0.35, -0.88, 0.45, 0.18, 0.03); c.fill(); poly(c, [-0.12, -0.6, 0.12, -0.6, 0.3, 0.55, -0.3, 0.55]); c.fill(); c.beginPath(); c.ellipse(0, 0.65, 0.7, 0.2, 0, 0, P * 2); c.fill(); },
+    quarry(c) {
+      // a mountain split by a blast: two broken peaks and flying rocks
+      poly(c, [-1, 0.75, -0.55, -0.35, -0.3, 0.05, -0.12, -0.2, -0.05, 0.75]); c.fill();
+      poly(c, [0.1, 0.75, 0.22, -0.1, 0.45, -0.55, 1, 0.75]); c.fill();
+      c.save(); c.fillStyle = 'rgba(0,0,0,.35)'; poly(c, [-0.55, -0.35, -0.42, 0.75, -0.05, 0.75, -0.3, 0.05]); c.fill(); poly(c, [0.45, -0.55, 0.5, 0.75, 1, 0.75]); c.fill(); c.restore();
+      for (const [x, y, r] of [[0.02, -0.55, 0.11], [-0.25, -0.8, 0.08], [0.32, -0.88, 0.07], [0.05, -0.95, 0.05]]) { poly(c, [x - r, y, x, y - r, x + r, y + r * 0.3, x - r * 0.2, y + r]); c.fill(); }
+      c.save(); c.lineWidth = 0.07; c.strokeStyle = c.fillStyle; c.lineCap = 'round'; for (const a of [-2.2, -1.6, -0.95]) { c.beginPath(); c.moveTo(0.02 + Math.cos(a) * 0.18, -0.3 + Math.sin(a) * 0.18); c.lineTo(0.02 + Math.cos(a) * 0.34, -0.3 + Math.sin(a) * 0.34); c.stroke(); } c.restore();
+    },
+    spy(c) {
+      // a fedora and a card slipping out from under it
+      c.save(); c.translate(0.32, 0.22); c.rotate(0.35); rr(c, -0.3, -0.42, 0.6, 0.84, 0.07); c.fill(); c.fillStyle = 'rgba(0,0,0,.4)'; rr(c, -0.2, -0.3, 0.4, 0.6, 0.05); c.fill(); c.restore();
+      c.beginPath(); c.ellipse(-0.18, -0.08, 0.82, 0.2, -0.08, 0, P * 2); c.fill();
+      poly(c, [-0.62, -0.1, -0.5, -0.62, -0.18, -0.52, 0.12, -0.66, 0.26, -0.12]); c.fill();
+      c.save(); c.fillStyle = 'rgba(0,0,0,.45)'; poly(c, [-0.6, -0.2, 0.24, -0.24, 0.25, -0.12, -0.61, -0.1]); c.fill(); c.restore();
+      c.save(); c.fillStyle = 'rgba(0,0,0,.55)'; c.beginPath(); c.ellipse(-0.36, 0.28, 0.16, 0.07, 0, 0, P * 2); c.fill(); c.beginPath(); c.ellipse(0.0, 0.28, 0.16, 0.07, 0, 0, P * 2); c.fill(); c.restore();
+    },
+    tsar(c) {
+      // a towering mushroom cloud with a ring of shock
+      c.beginPath(); c.ellipse(0, -0.48, 0.7, 0.36, 0, 0, P * 2); c.fill();
+      for (const [x, y, r] of [[-0.45, -0.6, 0.3], [0.42, -0.62, 0.32], [0, -0.78, 0.34], [-0.2, -0.38, 0.26], [0.22, -0.36, 0.26]]) { circ(c, x, y, r); c.fill(); }
+      poly(c, [-0.16, -0.2, 0.16, -0.2, 0.24, 0.58, -0.24, 0.58]); c.fill();
+      c.beginPath(); c.ellipse(0, 0.66, 0.92, 0.2, 0, 0, P * 2); c.fill();
+      c.save(); c.fillStyle = 'rgba(0,0,0,.3)'; c.beginPath(); c.ellipse(0, -0.42, 0.58, 0.16, 0, 0, P); c.fill(); c.fillRect(-0.06, -0.15, 0.12, 0.7); c.restore();
+      c.save(); c.lineWidth = 0.06; c.strokeStyle = c.fillStyle; c.beginPath(); c.ellipse(0, 0.66, 1.0, 0.28, 0, P * 1.05, P * 1.95); c.stroke(); c.restore();
+    },
+    regime(c) {
+      // a capitol dome with a new flag planted on top
+      rr(c, -0.85, 0.55, 1.7, 0.22, 0.03); c.fill(); rr(c, -0.72, 0.4, 1.44, 0.17, 0.03); c.fill();
+      for (let i = 0; i < 5; i++) { rr(c, -0.6 + i * 0.29, -0.05, 0.12, 0.47, 0.02); c.fill(); }
+      poly(c, [-0.75, -0.05, 0, -0.32, 0.75, -0.05]); c.fill();
+      c.beginPath(); c.arc(0, -0.34, 0.3, P, 0); c.closePath(); c.fill();
+      rr(c, -0.03, -0.95, 0.06, 0.62, 0.02); c.fill(); poly(c, [0.03, -0.95, 0.55, -0.82, 0.03, -0.66]); c.fill();
+    },
+    aegis(c) {
+      // a hexagonal energy dome over a shield
+      c.save(); c.lineWidth = 0.08; c.strokeStyle = c.fillStyle; c.beginPath(); c.arc(0, 0.4, 0.95, P, 0); c.stroke();
+      for (const [x, y] of [[-0.55, -0.15], [0, -0.4], [0.55, -0.15]]) { c.beginPath(); for (let i = 0; i < 6; i++) { const a = i * P / 3; c.lineTo(x + Math.cos(a) * 0.17, y + Math.sin(a) * 0.17); } c.closePath(); c.stroke(); } c.restore();
+      c.beginPath(); c.moveTo(0, -0.12); c.lineTo(0.42, 0.02); c.lineTo(0.38, 0.42); c.quadraticCurveTo(0.25, 0.75, 0, 0.88); c.quadraticCurveTo(-0.25, 0.75, -0.38, 0.42); c.lineTo(-0.42, 0.02); c.closePath(); c.fill();
+      c.save(); c.fillStyle = 'rgba(0,0,0,.35)'; c.beginPath(); c.moveTo(0, -0.12); c.lineTo(0, 0.88); c.quadraticCurveTo(0.25, 0.75, 0.38, 0.42); c.lineTo(0.42, 0.02); c.closePath(); c.fill(); c.restore();
+      rr(c, -1, 0.38, 2, 0.08, 0.03); c.fill();
+    },
+  });
+  // Carrier: a flat-deck legendary airbase
+  Object.assign(UNIT, {
+    carrier(c) {
+      poly(c, [-1.08, -0.08, 1.08, -0.08, 0.86, 0.42, -0.92, 0.42]); c.fill();
+      poly(c, [-1.12, -0.22, 1.12, -0.22, 1.08, -0.08, -1.08, -0.08]); c.fill();
+      rr(c, 0.38, -0.6, 0.3, 0.4, 0.04); c.fill(); rr(c, 0.48, -0.86, 0.06, 0.28, 0.02); c.fill(); rr(c, 0.42, -0.8, 0.2, 0.05, 0.02); c.fill();
+      sh(c, () => { c.fillRect(-1.0, -0.17, 1.3, 0.03); for (let i = 0; i < 6; i++) c.fillRect(-0.95 + i * 0.22, -0.2, 0.1, 0.09); rr(c, 0.43, -0.52, 0.2, 0.08, 0.02); c.fill(); c.fillRect(-0.85, 0.16, 1.65, 0.06); });
+      // two parked jets on the deck
+      for (const x of [-0.65, -0.2]) { poly(c, [x - 0.14, -0.26, x + 0.14, -0.26, x + 0.02, -0.4, x - 0.02, -0.4]); c.fill(); rr(c, x - 0.03, -0.46, 0.06, 0.22, 0.02); c.fill(); }
+    },
   });
   const POI = {
     ruins(c) { for (const [x, h] of [[-0.6, 0.9], [-0.2, 0.55], [0.2, 1.1], [0.6, 0.7]]) { rr(c, x - 0.13, 0.6 - h, 0.26, h, 0.03); c.fill(); } rr(c, -0.85, 0.55, 1.7, 0.2, 0.04); c.fill(); rr(c, -0.75, -0.5, 0.75, 0.15, 0.03); c.fill(); },
     cache(c) { TACTIC.cache(c); },
     village(c) { for (const [x, s] of [[-0.45, 0.8], [0.4, 1]]) { c.save(); c.translate(x, 0.2); c.scale(s, s); poly(c, [-0.45, -0.1, 0, -0.55, 0.45, -0.1]); c.fill(); rr(c, -0.35, -0.12, 0.7, 0.6, 0.03); c.fill(); c.restore(); } },
     fort(c) { rr(c, -0.85, -0.2, 1.7, 0.95, 0.04); c.fill(); for (let i = 0; i < 4; i++) c.fillRect(-0.85 + i * 0.5, -0.45, 0.3, 0.3); c.save(); c.fillStyle = 'rgba(0,0,0,.5)'; c.beginPath(); c.arc(0, 0.75, 0.25, P, 0); c.fill(); c.restore(); },
+    silo(c) { rr(c, -0.42, -0.2, 0.84, 1.05, 0.06); c.fill(); poly(c, [-0.24, -0.2, 0, -0.95, 0.24, -0.2]); c.fill(); c.save(); c.fillStyle = 'rgba(0,0,0,.4)'; rr(c, -0.42, 0.3, 0.84, 0.12, 0.02); c.fill(); poly(c, [0, -0.95, 0.24, -0.2, 0, -0.2]); c.fill(); c.restore(); poly(c, [-0.24, 0.85, -0.5, 0.95, -0.24, 0.55]); c.fill(); poly(c, [0.24, 0.85, 0.5, 0.95, 0.24, 0.55]); c.fill(); },
     relic(c) { poly(c, [0, -0.95, 0.5, -0.1, 0, 0.95, -0.5, -0.1]); c.fill(); c.save(); c.fillStyle = 'rgba(0,0,0,.3)'; poly(c, [0, -0.95, 0.5, -0.1, 0, -0.1]); c.fill(); c.restore(); },
   };
   const STRUCT = {

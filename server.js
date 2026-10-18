@@ -77,7 +77,7 @@ const server = http.createServer((req, res) => {
     // discovery: other SECTOR clients on the LAN scan for this
     const host = lobby.players.find(p => p.id === lobby.hostId);
     res.writeHead(200, { 'Content-Type': 'application/json', 'Access-Control-Allow-Origin': '*', 'Cache-Control': 'no-cache' });
-    return res.end(JSON.stringify({ game: 'sector', version: VERSION, id: SERVER_ID, host: host ? host.name : null, players: lobby.players.length, humans: lobby.players.filter(p => !p.bot).length, inGame: !!game, round: game ? game.turn.round : 0, port: PORT, lan: lanAddresses() }));
+    return res.end(JSON.stringify({ game: 'sector', version: VERSION, id: SERVER_ID, host: host ? host.name : null, players: lobby.players.length, humans: lobby.players.filter(p => !p.bot).length, inGame: !!game, round: game ? game.turn.round : 0, bots: game ? game.players.filter(p => p.alive && p.bot).length : lobby.players.filter(p => p.bot).length, port: PORT, lan: lanAddresses() }));
   }
   if (url === '/host' || url.startsWith('/host/')) return hostApi(req, res, url);
   const name = url.replace(/^\/+/, '');
@@ -146,7 +146,7 @@ setInterval(() => {
 }, 6000);
 
 // ───────────────────────── lobby / game ─────────────────────────
-const lobby = { players: [], hostId: null, settings: { mode: 'domination', mapSize: 'medium', mapType: 'random', spawns: 'random', fog: 'off', events: 'on', timer: 0, maxRounds: 0, conquestPct: 60, seed: '' } };
+const lobby = { players: [], hostId: null, settings: { mode: 'domination', mapSize: 'medium', mapType: 'random', spawns: 'random', fog: 'off', events: 'on', timer: 0, maxRounds: 0, conquestPct: 60, seed: '', teams: 'off' } };
 let game = null;           // engine state
 let botMem = {}, botTimer = null, turnTimer = null, idleTimer = null;
 let nextPid = 1;
@@ -154,7 +154,7 @@ const autoPids = new Set(); // dev: humans driven by the bot AI (SECTOR_DEV=1)
 
 function lobbyView() {
   return {
-    players: lobby.players.map(p => ({ id: p.id, name: p.name, color: p.color, faction: p.faction, bot: p.bot, diff: p.diff, local: !!p.local, controller: p.controller || null, spectator: !!p.spectator, connected: p.bot || isConnected(p.id) })),
+    players: lobby.players.map(p => ({ id: p.id, name: p.name, color: p.color, faction: p.faction, bot: p.bot, diff: p.diff, local: !!p.local, controller: p.controller || null, spectator: !!p.spectator, team: p.team || 0, connected: p.bot || isConnected(p.id) })),
     hostId: lobby.hostId, settings: lobby.settings, inGame: !!game, version: VERSION, lan: lanAddresses().map(a => 'http://' + a + ':' + PORT), port: PORT,
   };
 }
@@ -224,6 +224,38 @@ function onMessage(c, m) {
       if (game) { const seat = seatFor(c); send(c, { t: 'state', state: E.view(game, seat, fogFor(seat)), events: [], seat }); afterChange(); }
       return;
     }
+    case 'skipFx': {
+      // relay a fight skip: only someone fighting in it may skip, unless nobody in it is human
+      if (!game) return;
+      const side = id => id && game.players.find(p => p.id === id);
+      const human = [m.att, m.def].map(side).filter(p => p && !p.bot);
+      const mine = seatsOf(c);
+      if (human.length && !human.some(p => mine.includes(p.id))) return;
+      for (const cl of clients) if (cl !== c) send(cl, { t: 'skipFx', att: m.att, def: m.def, to: m.to });
+      return;
+    }
+    case 'takeover': {
+      // a spectator steps into a bot's boots mid-game: same seat, colour, army and cards
+      if (!game) return;
+      if (c.pid) {
+        // lobby spectators (who sat this game out) may take over too; their spectator entry is replaced by the seat
+        const sp = lobby.players.find(p => p.id === c.pid);
+        if (!sp || !sp.spectator || game.players.some(g => g.id === c.pid)) return;
+        lobby.players = lobby.players.filter(p => p !== sp);
+      }
+      const lp = lobby.players.find(p => p.id === m.id && p.bot), gp = game.players.find(p => p.id === m.id);
+      if (!lp || !gp || !gp.alive || !gp.bot) return send(c, { t: 'err', msg: 'That seat is not a bot any more' });
+      const name = String(m.name || 'Commander').slice(0, 16), was = gp.name.replace(/ \(bot\)$/, '');
+      lp.bot = false; lp.diff = null; lp.spectator = false; lp.token = crypto.randomBytes(12).toString('hex'); lp.name = name;
+      gp.bot = false; gp.diff = null; gp.name = name;
+      c.pid = lp.id; botMem = {};
+      if (!lobby.hostId || !lobby.players.some(x => x.id === lobby.hostId && !x.bot)) lobby.hostId = lp.id;
+      game.log.push('🎮 ' + name + ' took over from ' + was + '.');
+      note(name + ' took over ' + was + ' from ' + addrOf(c));
+      send(c, { t: 'welcome', you: lp.id, token: lp.token });
+      game.v++; broadcastLobby(); broadcastState([], null);
+      return afterChange();
+    }
     case 'me': {
       const p = lobby.players.find(x => x.id === c.pid); if (!p || game) return;
       if (m.name) p.name = String(m.name).slice(0, 16);
@@ -236,7 +268,7 @@ function onMessage(c, m) {
       }
       return broadcastLobby();
     }
-    case 'settings': if (c.pid !== lobby.hostId || game) return; Object.assign(lobby.settings, pick(m.settings, ['mode', 'mapSize', 'mapType', 'spawns', 'fog', 'events', 'timer', 'maxRounds', 'conquestPct', 'seed'])); return broadcastLobby();
+    case 'settings': if (c.pid !== lobby.hostId || game) return; Object.assign(lobby.settings, pick(m.settings, ['mode', 'mapSize', 'mapType', 'spawns', 'fog', 'events', 'timer', 'maxRounds', 'conquestPct', 'seed', 'teams'])); return broadcastLobby();
     case 'addLocal': {
       if (game || !c.pid || lobby.players.length >= 8) return;
       const n = lobby.players.filter(p => p.local).length + 2;
@@ -256,6 +288,13 @@ function onMessage(c, m) {
       const used = new Set(lobby.players.map(p => p.name));
       const name = BOT_NAMES.find(n => !used.has(n)) || 'Bot';
       lobby.players.push({ id: 'p' + nextPid++, token: null, name, color: freeColor(), faction: Object.keys(E.FACTIONS)[Math.floor(Math.random() * 5)], bot: true, diff: E.DIFFICULTY[m.diff] ? m.diff : 'medium' });
+      return broadcastLobby();
+    }
+    case 'team': {
+      // teams mode: the host can move anyone; players can move themselves (and their local seats)
+      const tp = lobby.players.find(p => p.id === m.id); if (!tp || game) return;
+      if (!(c.pid === lobby.hostId || tp.id === c.pid || (tp.local && tp.controller === c.pid))) return;
+      tp.team = Math.max(1, Math.min(4, +m.team || 1));
       return broadcastLobby();
     }
     case 'botCfg': {
@@ -317,7 +356,9 @@ function onMessage(c, m) {
       if (!r.ok) return send(c, { t: 'err', msg: r.err, seq: m.seq });
       if (game.turn.deadline && !game.turn.pausedAt && r.events.some(e => e.e === 'combat' || e.e === 'crate')) game.turn.pausedAt = Date.now();
       // undo: only for moves/deploys/builds that revealed nothing random (no fights, loot or cards)
-      if (snap && r.events.every(e => ['move', 'deploy', 'build', 'annex'].includes(e.e))) {
+      // fog of war: a move that showed you anything new can't be taken back (no free scouting)
+      const scouted = snap && game.settings.fog === 'on' && (() => { const sees = E.visionOf(game, actor), mem = fogFor(actor); for (const k of sees) if (!mem.explored.has(k)) return true; return false; })();
+      if (snap && !scouted && r.events.every(e => ['move', 'deploy', 'build', 'annex'].includes(e.e))) {
         if (undoStack.owner !== actor) { undoStack.length = 0; undoStack.owner = actor; }
         undoStack.push(snap); if (undoStack.length > 30) undoStack.shift();
       } else if (isCur || (m.action || {}).a === 'end') undoStack.length = 0;

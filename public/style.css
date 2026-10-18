@@ -975,3 +975,44 @@ body.planning #hexPanel { max-height: calc(100vh - 34vh - 200px); }
 
 .tip-cost { font-family: var(--title); font-size: 20px; color: var(--gold); margin-top: 2px; text-shadow: 0 2px 0 #000; }
 .slot .sc.upg { background: #3fbf6a !important; color: #062010 !important; }
+.pchip .mood { font-size: 12px; margin-left: 2px; filter: saturate(.85); }
+
+/* ── mythic rarity: white-hot pearl with a fluorescent rainbow edge (transform-only animation, cheap on the GPU) ── */
+.r-mythic, .card.r-mythic, .slot.r-mythic, .flip.r-mythic, .intel .ic.r-mythic { --rc: #f4fbff; }
+.card.r-mythic .ci, .r-mythic .ci { position: relative; background: linear-gradient(160deg, #ffffff, #e9f3ff 40%, #f6ecff 70%, #eafff6); box-shadow: 0 6px 0 #000, inset 0 0 0 3px #fff, 0 0 26px rgba(255,255,255,.85), 0 0 46px rgba(170,220,255,.5); color: #142030; }
+.card.r-mythic .ci::before, .slot.r-mythic::before, .flip.open.r-mythic .cfront .ci::before { content: ''; position: absolute; inset: -3px; border-radius: inherit; padding: 3px; pointer-events: none; z-index: 2;
+  background: linear-gradient(90deg, #ff4fd8, #ffe14f, #4fffb0, #4fd2ff, #b04fff, #ff4fd8); background-size: 200% 100%;
+  -webkit-mask: linear-gradient(#000 0 0) content-box, linear-gradient(#000 0 0); -webkit-mask-composite: xor; mask-composite: exclude; filter: saturate(1.4) brightness(1.15); animation: mythEdge 2.4s linear infinite; }
+@keyframes mythEdge { to { background-position: 200% 0; } }
+.card.r-mythic .c-foil::before { content: ''; position: absolute; top: 0; bottom: 0; left: -100%; width: 300%; will-change: transform; animation: foilSlide 2s linear infinite; pointer-events: none;
+  background: linear-gradient(115deg, transparent 20%, rgba(255,120,220,.28) 32%, rgba(255,240,120,.3) 42%, rgba(120,255,200,.28) 52%, rgba(120,210,255,.3) 62%, rgba(190,140,255,.28) 72%, transparent 82%); }
+.card.r-mythic .c-name, .card.r-mythic .c-desc, .card.r-mythic .c-cost { color: #142030; text-shadow: none; }
+.card.r-mythic .c-art img { filter: drop-shadow(0 0 6px rgba(120,210,255,.9)); }
+.slot.r-mythic { position: relative; box-shadow: 0 0 18px rgba(255,255,255,.8); }
+.bigtext.mythic { color: #fff; text-shadow: 0 6px 0 #000, 0 0 30px #fff, 0 0 60px #7af7ff, 0 0 90px #ff7ad9; }
+.flip.r-mythic .cback { box-shadow: 0 6px 0 #000, 0 0 50px #fff !important; }
+.intel .ic.r-mythic { box-shadow: 0 0 10px #fff; }
+.teamchip { font: 800 10px var(--title, sans-serif); letter-spacing: 1px; padding: 2px 6px; border-radius: 6px; border: 0; color: #0b0f13; background: #9fb3c8; cursor: pointer; margin-right: 4px; }
+.teamchip:disabled { cursor: default; opacity: .9; }
+.teamchip.t1 { background: #ff6b6b; } .teamchip.t2 { background: #4fa8ff; } .teamchip.t3 { background: #ffd24f; } .teamchip.t4 { background: #6be38a; }
+.pn .teamchip { font-size: 9px; padding: 0 4px; }
+
+/* war report (victory screen) */
+.wr-tabs { display: flex; flex-wrap: wrap; align-items: center; gap: 6px; margin-bottom: 8px; }
+.wr-tabs h3 { margin: 0 10px 0 0; }
+.wr-tabs button { font: 700 12px var(--title, sans-serif); letter-spacing: 1px; background: #16212c; color: #9fb3c8; border: 1px solid #2a3a4a; border-radius: 6px; padding: 5px 10px; cursor: pointer; }
+.wr-tabs button.on { background: #ffc53d; color: #0b0f13; border-color: #ffc53d; }
+.wr-pane canvas { width: 100%; height: auto; border-radius: 8px; display: block; }
+.wr-cap { color: #7f8c98; font-size: 13px; margin-top: 6px; text-align: center; }
+.awards { display: grid; grid-template-columns: repeat(auto-fill, minmax(240px, 1fr)); gap: 10px; }
+.aw { display: flex; gap: 10px; align-items: center; background: #101820; border: 1px solid #22303d; border-left: 4px solid var(--pc); border-radius: 8px; padding: 10px 12px; }
+.aw.big { grid-column: 1 / -1; }
+.aw-i { font-size: 28px; }
+.aw-t { font: 800 14px var(--title, sans-serif); letter-spacing: 1px; color: #ffc53d; }
+.aw-n { color: #e6edf3; font-size: 14px; }
+.aw-d { color: #7f8c98; font-size: 12px; }
+/* mythic edge: a static rainbow border (the masked pseudo-element is clipped by the card) */
+.card.r-mythic .ci, .slot.r-mythic, .flip.open.r-mythic .cfront .ci { border: 3px solid transparent !important;
+  background: linear-gradient(160deg, #ffffff, #eef6ff 40%, #f7efff 70%, #effff8) padding-box, linear-gradient(120deg, #ff4fd8, #ffe14f, #4fffb0, #4fd2ff, #b04fff, #ff4fd8) border-box !important;
+  box-shadow: 0 6px 0 #000, 0 0 18px rgba(255,255,255,.9), 0 0 34px rgba(160,210,255,.55) !important; }
+.card.r-mythic .ci::before, .slot.r-mythic::before, .flip.open.r-mythic .cfront .ci::before { display: none; }

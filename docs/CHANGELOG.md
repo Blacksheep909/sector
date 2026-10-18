@@ -2,6 +2,61 @@
 
 Every release, newest first. Each version also has its own post on the [Releases page](https://github.com/Blacksheep909/sector/releases).
 
+## v0.7.0
+
+**The huge one.** Teams and World War modes, Mythic cards, a Carrier, ocean maps, smarter bots with moods, an end-of-game War Report, taking over bots mid-game, and a big pile of fixes and balance.
+
+**New modes**
+- **👥 Teams** (lobby option): pick teams A–D. Teammates share vision, can't hurt each other, start close together and win together.
+- **🌍 World War:** a colossal map with a war economy (more cash, a starting army and wider borders), +1 move for every unit, double-speed playback of other turns, a 45% land win and **🚀 superweapon silos** that hand out Mythic cards.
+- **🌊 Open Ocean maps:** small scattered islands and lots of oil rigs. Everyone starts with a Port and an Ark.
+
+**New cards**
+- **Mythic rarity:** white-hot cards with a rainbow edge and their own reveal.
+  - **☢ Tsar Bomba:** a 9-hex nuke.
+  - **🏛 Regime Change:** an enemy hex and their land around it flip to you, and their troops there switch sides.
+  - **🛡 Aegis Protocol:** +3 defence everywhere and immunity to enemy tactics until your next turn.
+- **Carrier** (Legendary): a floating airbase. Deploy aircraft onto it, fly them off and land them back.
+- **⛏ Quarry Blast** (Rare): blast a mountain into Highlands to open a pass.
+- **🕵 Spy Ring** (Epic): steal a random card from an enemy.
+
+**Diplomacy and bots**
+- **Bot moods:** a face by each bot's name shows how it feels about you. Bots hold grudges, warm to long-standing allies, gang up on whoever is most dangerous, and turn on an ally who gets too big.
+- **Betrayal hurts:** breaking a pact makes you a TRAITOR for 3 turns: -40% income, no new pacts, and your victim gets +2 mult against you.
+- **Loyalty pays:** an alliance held for 2+ rounds earns both sides up to +$4 a turn, and allies' bordering hexes defend at +1.
+
+**Network play**
+- **Take over a bot:** spectating a game in progress? Press **TAKE OVER** under any bot's name to take command of its empire.
+- The network scan starts by itself and shows how many bots each running game has.
+- **Skips are shared:** if anyone fighting in a battle skips it, it skips for everyone, and anyone can skip bot-vs-bot fights. **Space** skips animations.
+
+**War Report**
+- The victory screen now has tabs:
+  - Balance of power
+  - **Battle heatmap**
+  - **Land swings** (the front lines)
+  - **Economy** and **Armies** charts round by round
+  - **Awards**: Warmonger, Land Baron, Tycoon, Conqueror, Scavenger, Meat Grinder and the biggest battle of the war
+
+**Balance**
+- Each building of a type now raises the next one's price by **$2** (was $1).
+- **Rerolls** cost a quarter of your income, and more for each extra one. **Bounty** pays a fifth of your income per kill.
+- **★★★ Bunkers are Citadels:** 14 garrison chips, +5 mult, +2 to neighbours, and they hold far more of a big attack.
+- **FOBs must be connected** to your HQ or a Port to deploy from, to supply land, or to be built.
+
+**Fixes and polish**
+- **The Ark works:** it launches from a coastal HQ or FOB as well as a Port, and its passengers can land straight from the selection.
+- **Slow units always move:** the Goliath, and any 1-move unit in snow, highlands or a blizzard, can always step one hex.
+- **Placing is instant:** spam-click to deploy or build. Clicks no longer wait for the last animation.
+- **Hold Alt** for a troops-only view showing every stack's attack and defence.
+- **The Oracle** strikes with a beam from orbit instead of firing out of its dish.
+- **Oil rigs** show their owner with a coloured ring and flag.
+- **The NEXT TURN tag** is no longer hidden behind neighbouring tiles.
+- **Loaded Dice** shows the real roll in the battle panel.
+- **The log** keeps to the headlines instead of every move.
+- **Undo** can no longer be used to scout the fog for free.
+- **Licence:** SECTOR is now under the PolyForm Noncommercial licence: free to play, share and mod, but not to sell.
+
 ## v0.6.5
 
 - **Real weather.** Blizzards now bring drifting snow in layers (near flakes bigger and softly glowing), gusts of wind, and a frosty edge to the screen. Storms and rough seas bring slanted rain, a darker sky and, in storms, the odd lightning flash.

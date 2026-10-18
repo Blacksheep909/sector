@@ -30,6 +30,8 @@ jobs:
         run: if (-not (Test-Path "docs/releases/${{ github.ref_name }}.md")) { throw "Write docs/releases/${{ github.ref_name }}.md first" }
       - name: Bot-vs-bot smoke test
         run: node tools/sim.js domination 4 2
+      - name: Engine checks
+        run: node tools/test-v07.js
       - name: Build Sector.exe
         run: node tools/build-exe.js
       - name: Sign Sector.exe (Azure Trusted Signing)

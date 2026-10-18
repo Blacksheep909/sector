@@ -58,18 +58,18 @@ There are no accounts, no internet servers and no port forwarding. Prefer one sc
 
 | | |
 |---|---|
-| 🗺️ **Procedural maps** | Six layouts (continent, supercontinent, twin continents, archipelago, inland sea, crescent isles), noise-warped so no two outlines match. |
-| 🃏 **Cards** | A deck of up to 10 unit cards. Pull a duplicate and it levels up (★ +1 ATK/DEF, max ★★★). Five rarities from Common to Legendary, and every Legendary is unique. |
+| 🗺️ **Procedural maps** | Seven layouts (continent, supercontinent, twin continents, archipelago, inland sea, crescent isles, open ocean), noise-warped so no two outlines match. |
+| 🃏 **Cards** | A deck of up to 10 unit cards. Pull a duplicate and it levels up (★ +1 ATK/DEF, max ★★★). Six rarities from Common to Mythic, and every Legendary and Mythic is unique. |
 | 🎰 **Supply Drop** | A tactic card in Rare, Epic and Legendary versions. Playing it spins a slot-machine reel for a crate tier, then the crate bursts open. |
 | 🎲 **Combat** | Score = chips × (d6 + mult). Throw the die yourself. Combined Arms, Pincers, Flanking, terrain and structures all stack. |
 | ⚓ **Navy** | Claim sea lanes, oil rigs and fishing grounds, earn shipping-lane income from your Ports, raid treasure islands with Ark transports, and back up land battles with naval gunfire. Build bridges across narrow straits. |
 | 🏭 **Economy and logistics** | Hexes only pay if they're connected by supply to your HQ, a FOB or a Port. Build Markets, Refineries and Depots, and **stack them up to ★★★**. Fortify your HQ. Encircle enemy pockets to annex them. |
-| 🌐 **Easy LAN** | A host/join panel scans your Wi-Fi for games. The Esc menu lets you leave mid-game, and a bot takes over your seat. |
+| 🌐 **Easy LAN** | A host/join panel scans your Wi-Fi for games. Watch games in progress and **take over a bot** mid-game. The Esc menu lets you leave, and a bot takes over your seat. |
 | 🤝 **Diplomacy** | Trade cash and cards with other players. Bots haggle too. |
-| 🧠 **Bots** | Four difficulties. Bots draft, build, invade by sea, set up pincers and judge trades. |
+| 🧠 **Bots** | Four difficulties. Bots draft, build, invade by sea, set up pincers and judge trades. They have moods, hold grudges and ally against whoever is most dangerous. |
 | 📋 **Blueprint** | Queue your turn while others play; it runs the moment your turn begins. |
 | 🗺️ **Living maps** | Biomes (desert, jungle, tundra, swamp), ruins and caches to loot, villages and forts to conquer, relics to fight over. Small to Huge sizes. Random spawns or pick your HQ. |
-| 🌫 **Fog, alliances and events** | Optional fog of war, alliances with shared victory (and betrayal), world events like storms and gold rushes, undo, and a Balance of Power chart at the end. |
+| 🌫 **Fog, alliances and events** | Optional fog of war, alliances with shared victory (and betrayal), world events like storms and gold rushes, undo, and an end-of-game War Report with battle heatmaps, charts and awards. |
 | ⚔️ **Factions** | Iron Covenant, Volt Syndicate, Ashen Nomads, Verdant Host and Null Order, each with a perk and a starting unit. |
 | 🎨 **No assets** | Every unit, card and building is procedural vector art, and every sound is synthesized. The whole game is about 300 KB of code. |
 
@@ -80,6 +80,9 @@ There are no accounts, no internet servers and no port forwarding. Prefer one sc
 | **Domination** | Capturing every enemy HQ. |
 | **Conquest** | Holding 60% of the land. |
 | **Beacon** | Holding the glowing centre hex for 3 turns in a row. |
+| **World War** | Holding 45% of a colossal map with superweapon silos, a war economy and faster turns. |
+
+Any mode can be played in **Teams**.
 
 Full rules are in **[docs/RULES.md](docs/RULES.md)**.
 
@@ -127,5 +130,9 @@ docs/                rules, card reference, development notes, screenshots
 See **[docs/DEVELOPMENT.md](docs/DEVELOPMENT.md)** for the architecture and the testing tools.
 
 ---
+
+## Licence
+
+SECTOR is © 2026 Charlie Frater and licensed under the [PolyForm Noncommercial License 1.0.0](LICENSE): free to play, share and modify for any noncommercial purpose. Commercial use needs written permission.
 
 <sub>SECTOR began as a cardboard board game made in Year 10, with hand-built models and a lot of dice. This is the remake.</sub>

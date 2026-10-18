@@ -81,6 +81,14 @@ const Cards = (() => {
     if (rk === 1) { SFX.select(); burstAt(x, y, [col, '#fff'], 16, 160); return; }
     if (rk === 2) { SFX.rare(); raysOn(card, col); burstAt(x, y, [col, '#fff'], 30, 240); Render.shake(5); return; }
     if (rk === 3) { SFX.rare(); setTimeout(() => SFX.legendary(), 120); raysOn(card, col, 1600, true); burstAt(x, y, [col, '#ff8af6', '#fff'], 60, 320, 10); Render.shake(10); bigText('EPIC!', col, 'epic'); return; }
+    if (rk >= 5) {
+      // mythic: a white-hot, rainbow-edged reveal
+      SFX.legendary(); setTimeout(() => SFX.legendary(), 260); Render.flash(0.7, '#ffffff'); Render.shake(24);
+      raysOn(card, '#ffffff', 3000, true); burstAt(x, y, ['#ffffff', '#ff7ad9', '#7af7ff', '#fff27a', '#9dff7a', '#b48cff'], 160, 540, 12);
+      bigText('MYTHIC', '#ffffff', 'legend mythic');
+      setTimeout(() => burstAt(x, y, ['#fff', '#7af7ff', '#ff7ad9'], 80, 420, 9), 450);
+      return;
+    }
     SFX.legendary(); Render.flash(0.45, '#ffb52e'); Render.shake(18);
     raysOn(card, col, 2400, true); burstAt(x, y, ['#ffb52e', '#fff3a8', '#ff6a3d', '#fff'], 120, 480, 11);
     bigText('LEGENDARY', col, 'legend');
