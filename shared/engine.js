@@ -146,7 +146,7 @@
     embargo: { name: 'Embargo', rarity: 'uncommon', cost: 3, target: 'enemyHex', desc: 'Click any enemy territory: that commander earns half income for their next 2 turns and cannot trade.' },
     bounty: { name: 'Bounty', rarity: 'uncommon', cost: 1, target: 'none', desc: 'This turn, every enemy unit you destroy pays a fifth of your income (min $2).' },
     quarry: { name: 'Quarry Blast', rarity: 'rare', cost: 3, target: 'mountain', range: 3, desc: 'Blast a mountain within 3 of your land down into Highlands, opening a new pass.' },
-    spy: { name: 'Spy Ring', rarity: 'epic', cost: 3, target: 'enemyHand', desc: 'Click any enemy territory: steal a random tactic card from that commander.' },
+    spy: { name: 'Spy Ring', rarity: 'epic', cost: 3, target: 'enemyHand', desc: 'Click any enemy territory: steal a random card that commander has earned (a tactic or a unit, never their starting cards).' },
     bonds: { name: 'War Bonds', rarity: 'rare', cost: 0, target: 'none', desc: 'Gain $1 for every 2 hexes you own.' },
     blitz: { name: 'Blitz Doctrine', rarity: 'rare', cost: 3, target: 'none', desc: 'This turn: all units +1 move, fresh units may act.' },
     drop_rare: { name: 'Supply Drop', rarity: 'rare', cost: 0, target: 'none', desc: 'Spin the reel for a crate (60% Standard · 32% Gilded · 8% Mythic), then keep 1 of 3 cards.' },
@@ -1462,6 +1462,8 @@
     const foot = k => def.target === 'tsar' ? tsarArea(s, k) : ['area', 'nuke'].includes(def.target) ? area(k, 1) : def.target === 'regime' ? area(k, 1) : [k];
     return out.filter(k => !isAlly(s, pid, s.map.tiles[k] && s.map.tiles[k].owner) && !(idx[k] || []).some(u => isAlly(s, pid, u.owner)) && (!shielded.length || (def.target === 'enemyHand' ? !shielded.includes(s.map.tiles[k].owner) : !foot(k).some(touches))));
   }
+  // units a Spy Ring can steal: anything in the deck except the starting cards
+  function stealableUnits(o) { const st = FACTIONS[o.faction] && FACTIONS[o.faction].starter; return o.arsenal.filter(id => id !== 'grunt' && id !== st && id !== 'ark'); }
   // the Tsar Bomba footprint: a hex, its ring, and one more hex east and west (9 hexes)
   function tsarArea(s, k) { const [q, r] = parse(k); return area(k, 1).concat([key(q + 2, r), key(q - 2, r)]).filter(a => s.map.tiles[a]); }
   function tacticTargetsRaw(s, pid, id, from) {
@@ -1499,7 +1501,7 @@
         }
         return out;
       case 'mountain': for (const k in tiles) if (tiles[k].t === 'mountain' && nearOwned(s, pid, k, def.range)) out.push(k); return out;
-      case 'enemyHand': { for (const k in tiles) { const o = tiles[k].owner; if (o && o !== pid && isLandTile(tiles[k])) { const op = player(s, o); if (op && op.alive && (op.tacticCount ?? op.tactics.length)) out.push(k); } } return out; }   // players only see a rival's hand size
+      case 'enemyHand': { for (const k in tiles) { const o = tiles[k].owner; if (o && o !== pid && isLandTile(tiles[k])) { const op = player(s, o); if (op && op.alive && ((op.tacticCount ?? op.tactics.length) || stealableUnits(op).length)) out.push(k); } } return out; }   // players only see a rival's hand size
       case 'tsar': for (const k in tiles) if (nearOwned(s, pid, k, def.range) && !flakCovered(s, pid, k)) out.push(k); return out;
       case 'regime':
         for (const k in tiles) {
@@ -1620,6 +1622,8 @@
   }
   function pathCaptures(s, pid, path, units, idx) {
     const navy = units.every(u => isSea(u.type)), out = [];
+    // aircraft can't hold ground they fly over: only the hex they land on is taken (strafing gunships excepted)
+    if (units.every(u => UNITS[u.type].cls === 'air') && !units.every(u => UNITS[u.type].ability === 'strafe')) return out;
     for (const k of path.slice(1, -1)) {
       const t = s.map.tiles[k];
       if (t.owner === pid || (idx[k] || []).length) continue;
@@ -1889,11 +1893,20 @@
       }
       case 'quarry': { tiles[a.target].t = 'hills'; ev.push(base); pushLog(s, '⛏ ' + p.name + ' blasted a pass through the mountains.'); break; }
       case 'spy': {
+        // steal one random card the rival has earned: a tactic from their hand, or a unit from their deck.
+        // Starting cards (Grunts, their faction unit, an Ark) can't be taken, and a unit only comes if your deck has room
         const o = player(s, tiles[a.target].owner);
-        if (!o || !o.tactics.length) return 'They have no cards to steal';
-        const c = o.tactics.splice(Math.floor(rng() * o.tactics.length), 1)[0];
-        p.tactics.push(c);
-        ev.push({ ...base, from: o.id, card: c.id }); pushLog(s, '🕵 ' + p.name + ' stole a card from ' + o.name + '.'); break;
+        const units = o ? stealableUnits(o).filter(id => p.arsenal.includes(id) || p.arsenal.length < DECK_MAX) : [];
+        const pool = o ? o.tactics.map(c => ({ c })).concat(units.map(id => ({ id }))) : [];
+        if (!pool.length) return 'They have no cards you can steal';
+        const pick = pool[Math.floor(rng() * pool.length)];
+        let card;
+        if (pick.c) { o.tactics.splice(o.tactics.indexOf(pick.c), 1); p.tactics.push(pick.c); card = pick.c.id; }
+        else {
+          card = pick.id; o.arsenal = o.arsenal.filter(x => x !== card); delete o.levels[card];
+          if (p.arsenal.includes(card)) p.levels[card] = Math.min(MAX_LEVEL, (p.levels[card] || 0) + 1); else p.arsenal.push(card);
+        }
+        ev.push({ ...base, from: o.id, card, unit: !pick.c }); pushLog(s, '🕵 ' + p.name + ' stole a card from ' + o.name + '.'); break;
       }
       case 'tsar': {
         const ar = tsarArea(s, a.target), dead = [];

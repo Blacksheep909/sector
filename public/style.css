@@ -1043,3 +1043,8 @@ body.planning #hexPanel { max-height: calc(100vh - 34vh - 200px); }
 /* long card names shrink to fit instead of being cut off */
 .card .c-name.long, .c-name.long { font-size: 0.82em !important; letter-spacing: 0; }
 .card.zoomed .c-name.long, .offer .card .c-name.long { font-size: 16px !important; }
+
+/* host kick button on in-game player chips */
+.pchip { position: relative; }
+.pchip .kickbtn { position: absolute; top: -6px; right: -6px; border: 0; border-radius: 9px; min-width: 18px; height: 18px; padding: 0 5px; font: 800 10px var(--title, sans-serif); background: #3a1d22; color: #ff9aa3; cursor: pointer; box-shadow: 0 2px 0 #000; opacity: .75; }
+.pchip .kickbtn:hover, .pchip .kickbtn[data-armed="1"] { opacity: 1; background: #b52b38; color: #fff; }

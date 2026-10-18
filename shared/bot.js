@@ -382,17 +382,30 @@ function allyReply(s, pid) {
 function diplomacy(s, pid, mem) {
   if (mem.diplo || s.settings.teams === 'on') return null; mem.diplo = true;
   const p = E.player(s, pid), alive = s.players.filter(q => q.alive);
-  if (alive.length <= 2) return null;
   const th = threats(s, pid), mine = E.threatOf(s, pid), lead = leaderOf(th);
   const pacts = (s.allies || []).filter(x => x.a === pid || x.b === pid);
+  if (alive.length <= 1) return null;
+  // how ruthless: harder bots betray sooner and more often
+  const ruthless = { easy: 0.4, medium: 0.7, hard: 1, impossible: 1.25 }[p.diff] || 0.7;
+  const total = Object.values(th).reduce((a, v) => a + v, 0) || 1;
+  const others = alive.filter(q => q.id !== pid && !E.isAlly(s, pid, q.id));
   for (const x of pacts) {
     if (x.ending) continue;
     const o = x.a === pid ? x.b : x.a;
-    // an ally who has become the runaway leader (or who we've come to hate) gets the knife
-    const runaway = o === lead && th[o] > mine * 1.6 && th[o] > Object.values(th).reduce((a, v) => a + v, 0) * 0.45;
+    // 1. an ally who has become the runaway leader (or who we've come to hate) gets the knife
+    const runaway = o === lead && th[o] > mine * (1.9 - ruthless * 0.3) && th[o] > total * 0.42;
     if (runaway || E.moodOf(s, pid, o) < -45) return { a: 'allyBreak', with: o };
+    // 2. the common enemy is beaten: once every non-ally rival is weak, the pact has done its job
+    const threatGone = others.length && others.every(q => th[q.id] < Math.min(mine, th[o]) * 0.45);
+    // 3. opportunism: a feeble ally sitting on land next to ours, while we're the strongest on the board
+    const borders = Object.keys(s.map.tiles).some(k => s.map.tiles[k].owner === o && E.neighbors(k).some(n => s.map.tiles[n] && s.map.tiles[n].owner === pid));
+    const weakAlly = th[o] < mine * 0.45 * ruthless && borders && mine >= Math.max(...Object.values(th));
+    // 4. endgame: with only this ally left besides us, someone has to win outright (shared wins are for the meek)
+    const lastTwo = alive.length === 2 && ruthless >= 1 && mine > th[o] * 1.15;
+    const held = s.turn.round - (x.since || 0);   // pacts younger than 3 rounds are honoured
+    if (held >= 3 && (threatGone || weakAlly || lastTwo) && (mem.betrayRoll = mem.betrayRoll ?? Math.random()) < 0.5 * ruthless) return { a: 'allyBreak', with: o };
   }
-  if (p.traitor || s.allyOffer || pacts.length >= 2 || s.turn.round < 4) return null;
+  if (alive.length <= 2 || p.traitor || s.allyOffer || pacts.length >= 2 || s.turn.round < 4) return null;
   if ((mem.offered || 0) > 0 || (p._offerRound && s.turn.round - p._offerRound < 3)) return null;
   if (!lead || th[lead] < mine * 1.25) return null;
   // ask the friendliest commander who isn't the leader and isn't already on our side

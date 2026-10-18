@@ -64,7 +64,7 @@ const play = (s, a) => E.applyAction(s, me(s).id, a);
 { // tactics
   const s = game('continent', 3); const p = me(s); p.cash = 99;
   const o = s.players.find(q => q.id !== p.id);
-  o.tactics = [{ uid: 9001, id: 'rally' }];
+  o.tactics = [{ uid: 9001, id: 'rally' }]; o.arsenal = ['grunt', E.FACTIONS[o.faction].starter];
   // give us a foothold next to the enemy so ranged tactics can reach
   for (const k of E.area(o.hq, 3)) { const t = s.map.tiles[k]; if (t && E.isLandTile(t) && E.dist(k, o.hq) === 3 && !t.owner) t.owner = p.id; }
   for (const k of E.area(o.hq, 2)) { const t = s.map.tiles[k]; if (t && E.isLandTile(t) && !t.owner) t.owner = o.id; }
@@ -79,6 +79,26 @@ const play = (s, a) => E.applyAction(s, me(s).id, a);
   const r3 = play(s, { a: 'tactic', uid: ts.uid, target: tt }); ok(r3.ok && r3.events[0].area.length >= 7, 'tsar bomba hits ' + (r3.events[0] && r3.events[0].area.length) + ' hexes ' + (r3.err || '') + ' target=' + tt);
   const rg = give(s, 'regime'); const rt = E.tacticTargets(s, p.id, 'regime').find(k => s.map.tiles[k].owner === o.id) || E.tacticTargets(s, p.id, 'regime')[0];
   const r4 = rt && play(s, { a: 'tactic', uid: rg.uid, target: rt }); ok(r4 && r4.ok && r4.events[0].hexes.length >= 1, 'regime change flips hexes ' + (r4 && r4.err) + ' target=' + rt + ' ' + JSON.stringify(r4 && r4.events[0]));
+}
+{ // spy ring never steals starting cards, but can take an earned unit
+  const s = game('continent', 2); const p = me(s), o = s.players.find(q => q.id !== p.id); p.cash = 99;
+  for (const k of E.area(o.hq, 3)) { const t = s.map.tiles[k]; if (t && E.isLandTile(t) && !t.owner) t.owner = p.id; }
+  o.tactics = []; o.arsenal = ['grunt', E.FACTIONS[o.faction].starter, 'ark'];
+  ok(!E.tacticTargets(s, p.id, 'spy').some(k => s.map.tiles[k].owner === o.id), 'nothing to steal from starting cards only');
+  o.arsenal.push('goliath'); o.levels.goliath = 2;
+  const c = give(s, 'spy'); const tk = E.tacticTargets(s, p.id, 'spy').find(k => s.map.tiles[k].owner === o.id);
+  const r = play(s, { a: 'tactic', uid: c.uid, target: tk });
+  ok(r.ok && p.arsenal.includes('goliath') && !o.arsenal.includes('goliath') && o.arsenal.includes('grunt'), 'spy ring steals an earned unit, starters stay');
+}
+{ // aircraft only take the hex they land on
+  const s = game('continent', 2); const p = me(s); const hq = p.hq;
+  for (const id in s.units) if (s.units[id].hex === hq) delete s.units[id];
+  s.units.h1 = { id: 'h1', type: 'hornet', owner: p.id, hex: hq, moved: false, fresh: false };
+  const reach = E.reachable(s, p.id, ['h1'], hq); const far = Object.keys(reach).filter(k => reach[k].kind === 'move' && !s.map.tiles[k].owner && reach[k].c >= 3)[0];
+  const before = Object.values(s.map.tiles).filter(t => t.owner === p.id).length;
+  const r = play(s, { a: 'move', from: hq, units: ['h1'], to: far });
+  const gained = Object.values(s.map.tiles).filter(t => t.owner === p.id).length - before;
+  ok(r.ok && gained === 1, 'hornet flying 3+ hexes takes only its landing hex (gained ' + gained + ')');
 }
 { // shield blocks enemy tactics
   const s = game('continent', 2); const p = me(s), o = s.players.find(q => q.id !== p.id); o.shield = true; p.cash = 99;
