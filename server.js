@@ -6,7 +6,7 @@ const path = require('path');
 const os = require('os');
 const crypto = require('crypto');
 const E = require('./shared/engine');
-const { botStep, draftStep, spawnStep, tradeReply, BOT_NAMES } = require('./shared/bot');
+const { botStep, draftStep, spawnStep, tradeReply, allyReply, BOT_NAMES } = require('./shared/bot');
 
 // ── self-update, step 2: the freshly downloaded exe is started with this flag. It waits for the old
 //    server to exit, copies itself over the old exe, starts it, and quits. No scripts involved. ──
@@ -146,7 +146,7 @@ setInterval(() => {
 }, 6000);
 
 // ───────────────────────── lobby / game ─────────────────────────
-const lobby = { players: [], hostId: null, settings: { mode: 'domination', mapSize: 'medium', mapType: 'random', spawns: 'random', timer: 0, maxRounds: 0, conquestPct: 60, seed: '' } };
+const lobby = { players: [], hostId: null, settings: { mode: 'domination', mapSize: 'medium', mapType: 'random', spawns: 'random', fog: 'off', events: 'on', timer: 0, maxRounds: 0, conquestPct: 60, seed: '' } };
 let game = null;           // engine state
 let botMem = {}, botTimer = null, turnTimer = null, idleTimer = null;
 let nextPid = 1;
@@ -180,11 +180,26 @@ function seatFor(c) {
   return c.pid;
 }
 function broadcastLobby() { const v = lobbyView(); for (const c of clients) send(c, { t: 'lobby', lobby: v }); }
+const undoStack = []; undoStack.owner = null;
 function broadcastState(events, by, seq) {
-  for (const c of clients) { if (c.left) continue; const seat = seatFor(c); send(c, { t: 'state', state: E.view(game, seat), events: filterEvents(events, seat), by, seq, seat, mine: controls(c, by) }); }
+  if (game && game.players[game.turn.idx] && game.players[game.turn.idx].id !== undoStack.owner) undoStack.length = 0;
+  for (const c of clients) { if (c.left) continue; const seat = seatFor(c); send(c, { t: 'state', state: E.view(game, seat), events: filterEvents(events, seat), by, seq, seat, mine: controls(c, by), undo: undoStack.owner === seat ? undoStack.length : 0, timeLeft: game && game.turn.deadline ? Math.max(0, game.turn.deadline - (game.turn.pausedAt || Date.now())) : 0, paused: !!(game && game.turn.pausedAt) }); }
 }
 function filterEvents(events, pid) {
-  return events.map(e => (e.e === 'card' && e.pid !== pid && e.kind === 'tactic' && e.rarity !== 'legendary') ? { ...e, id: null } : e);
+  let out = events.map(e => (e.e === 'card' && e.pid !== pid && e.kind === 'tactic' && e.rarity !== 'legendary') ? { ...e, id: null } : e);
+  const pl = game && pid && game.players.find(p => p.id === pid);
+  if (game && game.settings.fog === 'on' && pl && pl.alive && game.phase === 'play') {
+    const vis = E.visionOf(game, pid), mine = e => e.pid === pid || (e.pid && E.isAlly(game, pid, e.pid));
+    out = out.filter(e => {
+      if (mine(e)) return true;
+      if (e.e === 'move') return (e.path || []).some(k => vis.has(k));
+      if (e.e === 'combat') return vis.has(e.to) || (e.def && e.def.pid === pid);
+      if (e.e === 'deploy' || e.e === 'build' || e.e === 'loot') return vis.has(e.hex);
+      if (e.e === 'advance') return vis.has(e.to);
+      return true;
+    });
+  }
+  return out;
 }
 function freeColor() { return E.COLORS.find(c => !lobby.players.some(p => p.color === c)) || E.COLORS[0]; }
 
@@ -214,9 +229,9 @@ function onMessage(c, m) {
       if (m.color && E.COLORS.includes(m.color) && !lobby.players.some(x => x.color === m.color && x !== p)) p.color = m.color;
       return broadcastLobby();
     }
-    case 'settings': if (c.pid !== lobby.hostId || game) return; Object.assign(lobby.settings, pick(m.settings, ['mode', 'mapSize', 'mapType', 'spawns', 'timer', 'maxRounds', 'conquestPct', 'seed'])); return broadcastLobby();
+    case 'settings': if (c.pid !== lobby.hostId || game) return; Object.assign(lobby.settings, pick(m.settings, ['mode', 'mapSize', 'mapType', 'spawns', 'fog', 'events', 'timer', 'maxRounds', 'conquestPct', 'seed'])); return broadcastLobby();
     case 'addLocal': {
-      if (game || !c.pid || lobby.players.length >= 6) return;
+      if (game || !c.pid || lobby.players.length >= 8) return;
       const n = lobby.players.filter(p => p.local).length + 2;
       lobby.players.push({ id: 'p' + nextPid++, token: null, name: 'Player ' + n, color: freeColor(), faction: Object.keys(E.FACTIONS)[Math.floor(Math.random() * 5)], bot: false, local: true, controller: c.pid });
       return broadcastLobby();
@@ -230,7 +245,7 @@ function onMessage(c, m) {
       return broadcastLobby();
     }
     case 'addBot': {
-      if (c.pid !== lobby.hostId || game || lobby.players.length >= 6) return;
+      if (c.pid !== lobby.hostId || game || lobby.players.length >= 8) return;
       const used = new Set(lobby.players.map(p => p.name));
       const name = BOT_NAMES.find(n => !used.has(n)) || 'Bot';
       lobby.players.push({ id: 'p' + nextPid++, token: null, name, color: freeColor(), faction: Object.keys(E.FACTIONS)[Math.floor(Math.random() * 5)], bot: true, diff: E.DIFFICULTY[m.diff] ? m.diff : 'medium' });
@@ -273,11 +288,32 @@ function onMessage(c, m) {
       broadcastState(r.events, null);
       return afterChange();
     }
+    case 'clockResume': {
+      if (!game || !game.turn.pausedAt) return;
+      const cur = game.players[game.turn.idx]; if (!cur || !controls(c, cur.id)) return;
+      resumeClock(); broadcastState([], null); return afterChange();
+    }
+    case 'undo': {
+      if (!game || !undoStack.length || game.phase !== 'play') return;
+      const cur = game.players[game.turn.idx];
+      if (!cur || !controls(c, cur.id) || undoStack.owner !== cur.id) return;
+      game = JSON.parse(undoStack.pop()); game.v++;
+      broadcastState([{ e: 'undo', pid: cur.id }], cur.id, m.seq);
+      return afterChange();
+    }
     case 'act': {
       if (!game) return;
       const actor = m.as && controls(c, m.as) ? m.as : c.pid;
+      const isCur = game.players[game.turn.idx] && game.players[game.turn.idx].id === actor;
+      const snap = isCur && ['move', 'deploy', 'build'].includes((m.action || {}).a) ? JSON.stringify(game) : null;
       const r = E.applyAction(game, actor, m.action || {});
       if (!r.ok) return send(c, { t: 'err', msg: r.err, seq: m.seq });
+      if (game.turn.deadline && !game.turn.pausedAt && r.events.some(e => e.e === 'combat' || e.e === 'crate')) game.turn.pausedAt = Date.now();
+      // undo: only for moves/deploys/builds that revealed nothing random (no fights, loot or cards)
+      if (snap && r.events.every(e => ['move', 'deploy', 'build', 'annex'].includes(e.e))) {
+        if (undoStack.owner !== actor) { undoStack.length = 0; undoStack.owner = actor; }
+        undoStack.push(snap); if (undoStack.length > 30) undoStack.shift();
+      } else if (isCur || (m.action || {}).a === 'end') undoStack.length = 0;
       game.v++;
       broadcastState(r.events, actor, m.seq);
       return afterChange(r.events);
@@ -342,7 +378,7 @@ function onDisconnect(c) {
 }
 
 // after every change: schedule bots, timers, idle-skips
-let tradeTimer = null, draftTimer = null;
+let tradeTimer = null, draftTimer = null, allyTimer = null;
 function afterChange(events) {
   clearTimeout(botTimer); clearTimeout(turnTimer); clearTimeout(idleTimer);
   if (game && game.phase === 'spawn') {
@@ -377,6 +413,17 @@ function afterChange(events) {
     return;
   }
   if (!game || game.phase !== 'play') return;
+  if (game.allyOffer && !allyTimer) {
+    const target = lobby.players.find(p => p.id === game.allyOffer.to);
+    if (target && (target.bot || autoPids.has(target.id))) allyTimer = setTimeout(() => {
+      allyTimer = null;
+      if (!game || !game.allyOffer) return;
+      const a = allyReply(game, game.allyOffer.to);
+      const r = a && E.applyAction(game, game.allyOffer.to, a);
+      if (r && r.ok) { game.v++; broadcastState(r.events, null); }
+      afterChange();
+    }, 1400);
+  }
   if (game.trade && !tradeTimer) {
     const target = lobby.players.find(p => p.id === game.trade.to);
     if (target && (target.bot || autoPids.has(target.id))) tradeTimer = setTimeout(() => {
@@ -402,15 +449,23 @@ function afterChange(events) {
     botTimer = setTimeout(runBot, delay * (process.env.SECTOR_FAST ? 0.25 : 1));
     return;
   }
-  if (game.turn.deadline) {
+  if (game.turn.deadline && game.turn.pausedAt) {
+    // paused for an animation: resume on the client's signal, or after 30s if it never comes
+    turnTimer = setTimeout(() => { if (game && game.turn.pausedAt) { resumeClock(); broadcastState([], null); afterChange(); } }, 30000);
+  } else if (game.turn.deadline) {
     turnTimer = setTimeout(() => forceEnd(cur.id), Math.max(0, game.turn.deadline - Date.now()) + 300);
   }
   if (!isConnected(cur.id)) idleTimer = setTimeout(() => { if (!isConnected(cur.id)) forceEnd(cur.id); }, 30000);
 }
+function resumeClock() { if (game && game.turn.pausedAt) { game.turn.deadline += Date.now() - game.turn.pausedAt; game.turn.pausedAt = 0; } }
 function forceEnd(pid) {
   if (!game || game.phase !== 'play' || E.current(game).id !== pid) return;
+  // out of time mid-menu: take the income / scrap the crate, then end
+  const ev = [];
+  if (game.turn.stage === 'choose') { const r0 = E.applyAction(game, pid, { a: 'choose', pick: 'income' }); if (r0.ok) ev.push(...r0.events); }
+  if (game.turn.stage === 'crate') { const r1 = E.applyAction(game, pid, { a: 'scrap' }); if (r1.ok) ev.push(...r1.events); }
   const r = E.applyAction(game, pid, { a: 'end' });
-  if (r.ok) { game.v++; broadcastState(r.events, pid); afterChange(r.events); }
+  if (r.ok || ev.length) { game.log.push('⏱ ' + (E.player(game, pid) || {}).name + ' ran out of time.'); game.v++; broadcastState(ev.concat(r.ok ? r.events : []), pid); afterChange(r.events); }
 }
 function runBot() {
   if (!game || game.phase !== 'play') return;

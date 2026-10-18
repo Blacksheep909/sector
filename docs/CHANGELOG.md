@@ -2,6 +2,39 @@
 
 Every release, newest first. Each version also has its own post on the [Releases page](https://github.com/Blacksheep909/sector/releases).
 
+## v0.6.0
+
+**The big one.** Fog of war, alliances, world events, undo, a Balance of Power chart, up to 8 commanders, menu music, and a pile of fixes.
+
+**New ways to play**
+- **🌫 Fog of war** (lobby option): you only see around your land and units, and your allies' view. Enemy units hide in the fog, and marching into hidden troops means an ambush.
+- **🤝 Alliances:** press ALLY under a rival's name. Allies can't attack each other, share vision, and **win together** if they're the last ones standing. BREAK ends a pact at the start of your next turn, so there's a warning before the betrayal.
+- **⛈ World events:** from round 3, most rounds bring an event for the whole round: Storm Front, Rough Seas, Blizzard, Gold Rush, Arms Fair, Supply Shortage, War Fervour or Clear Skies. Each comes with rain or snow on the map where it fits.
+- **↶ Undo** (`Ctrl+Z`) for moves, deploys and builds that revealed nothing.
+- **Up to 8 commanders**, so you can fill the lobby with bots.
+- **📈 Balance of Power:** the victory screen charts every commander's share of the land, round by round, and marks every moment the lead changed hands.
+
+**World and art**
+- **Bigger biome regions** and a new **Red Canyons** biome (+1 defence, 2 move).
+- **New highlands art:** rolling mounds instead of boxes.
+- **Neutral villages and forts roll their own garrison strength**, shown as pips on the map.
+- **Airstrikes fly real jets** in the striker's colour, with contrails, shadows and falling bombs. Carpet bombing is a three-jet formation.
+- **Fights show the cards:** attacker and defender stacks appear as fanned unit cards in the combat panel instead of tiny icons.
+- **Random map type reveal:** a slot reel of battlefield thumbnails lands on your map.
+- **🎵 Main-menu war theme:** a slow, heavy orchestral march, synthesized live. Menu only.
+
+**Fixes**
+- **Turn timer:**
+  - It now **pauses while your fights and crates play out**, and resupply gets its own 20 seconds.
+  - Running out of time mid-menu no longer stalls the game.
+  - There's a visible clock bar.
+  - It no longer depends on players' computer clocks matching.
+- **Enter no longer ends your turn by accident.** It needs two presses and is ignored during and just after fights.
+- **The camera stays put:** it only glides to your HQ at your turn start, and only if your HQ is off-screen.
+- **Left-hand HUD panels no longer overlap** on smaller or taller windows; the whole HUD scales down to fit.
+- **Card-reveal sunbursts follow the card** (no more off-centre rays), and draft and resupply effects are much lighter on laptop graphics.
+- The blueprint preview no longer acts out sieges, which made land flicker.
+
 ## v0.5.6
 
 - **Bunkers are real strongpoints now** (no dice changes):

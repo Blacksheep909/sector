@@ -15,6 +15,8 @@
   let sel = null;            // { hex, units:Set }
   let mode = null;           // {type:'deploy', unit} | {type:'tactic', uid, id, from}
   let plan = []; let planState = null; let planAuto = true; let executing = false;
+  let undoCount = 0;
+  let enterArm = 0, lastAnimEnd = 0, localDeadline = 0, lastTick = 0, clockPaused = false, pausedLeft = 0;
   const plans = {}; // pass & play: every local seat keeps its own blueprint
   let qid = -1;      // placeholder ids for units deployed inside a blueprint
   const remap = (a, m) => a.a === 'move' ? { ...a, units: a.units.map(id => m[id] || id) } : a;
@@ -63,11 +65,14 @@
       if (m.seat && m.seat !== you) seatChange(m.seat, m.state);
       // pass & play: hide the hand while no local player is acting, so the next person can't peek
       document.body.classList.toggle('pp-idle', !!(m.state && localSeats().length && !needsAction(m.state, you)));
+      undoCount = m.undo || 0;
+      localDeadline = m.timeLeft ? Date.now() + m.timeLeft : 0; clockPaused = !!m.paused; pausedLeft = m.timeLeft || 0;
       if (!S || S.seed !== m.state.seed) { enterGame(m.state); }
       else {
         animating = true; fastForward = msgQ.length > 3;
         try { await playEvents(m.events || [], m.by); } catch (e) { console.error(e); }
-        animating = false; fastForward = false;
+        animating = false; fastForward = false; lastAnimEnd = Date.now();
+        if (m.paused && m.by && (m.by === you || m.mine)) send({ t: 'clockResume' });   // my fight finished playing: restart the turn clock
         applyState(m.state);
       }
       if (m.seq && (m.mine || m.by === you) && pending.has(m.seq)) { pending.get(m.seq)(true); pending.delete(m.seq); }
@@ -84,7 +89,11 @@
   }
 
   // ───────────── menu / lobby ─────────────
-  function showMenu() { $('#menu').hidden = false; $('#hud').hidden = true; $('#victory').hidden = true; $('#supply').hidden = true; if (lobby) renderLobby(); }
+  // menu music: plays on the title/lobby screens only (browsers need a first click before audio can start)
+  const menuMusic = () => { if (!$('#menu').hidden && !SFX.muted) SFX.music.start(); else SFX.music.stop(); };
+  addEventListener('pointerdown', () => setTimeout(menuMusic, 50), { passive: true });
+  addEventListener('keydown', () => setTimeout(menuMusic, 50));
+  function showMenu() { setTimeout(menuMusic, 50); $('#menu').hidden = false; $('#hud').hidden = true; $('#victory').hidden = true; $('#supply').hidden = true; if (lobby) renderLobby(); }
   function showJoin() { $('#joinBox').hidden = !$('#joinNet').hidden; $('#lobbyBox').hidden = true; $('#lobbyBox').dataset.show = ''; }
   $('#nameIn').value = savedName();
   $('#joinBtn').onclick = () => {
@@ -101,7 +110,7 @@
     if (!me) { showJoin(); if (lobby.inGame) $('#joinBox .hint').textContent = 'A war is in progress — you can watch once it loads, or wait for the next game.'; return; }
     $('#joinBox').hidden = true; $('#lobbyBox').hidden = !$('#joinNet').hidden; $('#lobbyBox').dataset.show = '1';
     const host = lobby.hostId === you;
-    { const sp = lobby.players.filter(p => p.spectator).length; $('#pCount').textContent = (lobby.players.length - sp) + '/6' + (sp ? ' · ' + sp + ' watching' : ''); }
+    { const sp = lobby.players.filter(p => p.spectator).length; $('#pCount').textContent = (lobby.players.length - sp) + '/8' + (sp ? ' · ' + sp + ' watching' : ''); }
     const pl = $('#playerList'); pl.innerHTML = '';
     for (const p of lobby.players) {
       const r = el('div', 'prow' + (p.connected ? '' : ' off'));
@@ -150,12 +159,12 @@
       cl.appendChild(d);
     }
     const st = lobby.settings;
-    for (const [id, k] of [['#setMode', 'mode'], ['#setType', 'mapType'], ['#setSize', 'mapSize'], ['#setSpawns', 'spawns'], ['#setTimer', 'timer'], ['#setRounds', 'maxRounds'], ['#setSeed', 'seed']]) {
+    for (const [id, k] of [['#setMode', 'mode'], ['#setType', 'mapType'], ['#setSize', 'mapSize'], ['#setSpawns', 'spawns'], ['#setFog', 'fog'], ['#setEvents', 'events'], ['#setTimer', 'timer'], ['#setRounds', 'maxRounds'], ['#setSeed', 'seed']]) {
       const e = $(id); if (document.activeElement !== e) e.value = st[k] ?? ''; e.disabled = !host;
     }
     $('#startBtn').hidden = !host; $('#waitHost').hidden = host;
   }
-  for (const [id, k] of [['#setMode', 'mode'], ['#setType', 'mapType'], ['#setSize', 'mapSize'], ['#setSpawns', 'spawns'], ['#setTimer', 'timer'], ['#setRounds', 'maxRounds'], ['#setSeed', 'seed']])
+  for (const [id, k] of [['#setMode', 'mode'], ['#setType', 'mapType'], ['#setSize', 'mapSize'], ['#setSpawns', 'spawns'], ['#setFog', 'fog'], ['#setEvents', 'events'], ['#setTimer', 'timer'], ['#setRounds', 'maxRounds'], ['#setSeed', 'seed']])
     $(id).addEventListener('change', e => send({ t: 'settings', settings: { [k]: e.target.value } }));
   $('#addBot').onclick = () => { SFX.click(); send({ t: 'addBot' }); };
   $('#addLocal').onclick = () => { SFX.click(); send({ t: 'addLocal' }); };
@@ -192,6 +201,8 @@
   // ───────────── game entry / state ─────────────
   function enterGame(state) {
     S = state; plan = []; for (const k in plans) delete plans[k]; sel = null; mode = null; lastTurnKey = '';
+    SFX.music.stop();
+    if (state.settings && state.settings.mapType === 'random' && (state.phase === 'draft' || state.phase === 'spawn')) showMapReel(state);
     $('#menu').hidden = true; $('#hud').hidden = false; $('#victory').hidden = true;
     Render.setState(state);
     Render.fitMap();
@@ -445,6 +456,7 @@
   const keys = new Set();
   addEventListener('keydown', e => {
     if (e.target.tagName === 'INPUT' || e.target.tagName === 'SELECT') { if (e.key === 'Escape') e.target.blur(); return; }
+    if ((e.ctrlKey || e.metaKey) && e.key.toLowerCase() === 'z') { e.preventDefault(); doUndo(); return; }
     keys.add(e.key.toLowerCase());
     if (e.key === 'Escape') {
       if (!$('#hostPanel').hidden) closeHost();
@@ -456,10 +468,14 @@
     }
     if (e.key === 'Enter' && S) {
       // Enter ends your turn (when nothing is open); otherwise it opens chat. T always opens chat.
-      const overlay = ['#supply', '#crate', '#draft', '#escMenu', '#trade', '#modal', '#index', '#rules', '#passCover', '#hostPanel'].some(id => $(id) && !$(id).hidden);
+      const overlay = ['#supply', '#crate', '#draft', '#combat', '#escMenu', '#trade', '#modal', '#index', '#rules', '#passCover', '#hostPanel', '#victory', '#allyPop', '#offerPop'].some(id => $(id) && !$(id).hidden);
       const eb = $('#endBtn');
-      if (isMyTurn() && !overlay && !eb.hidden && !eb.disabled) { if (!e.repeat) eb.click(); }
-      else if (!overlay) $('#chatIn').focus();
+      // safe: never during or just after a fight/animation, and it takes two presses
+      const busy = animating || executing || Date.now() - lastAnimEnd < 1500;
+      if (isMyTurn() && !overlay && !busy && !eb.hidden && !eb.disabled && !e.repeat) {
+        if (Date.now() - enterArm < 2000) { enterArm = 0; eb.click(); }
+        else { enterArm = Date.now(); toast('Press Enter again to end your turn'); SFX.click(); eb.classList.remove('arm'); void eb.offsetWidth; eb.classList.add('arm'); }
+      } else if (!overlay && !isMyTurn()) $('#chatIn').focus();
       e.preventDefault();
     }
     if (e.key.toLowerCase() === 't' && S) { $('#chatIn').focus(); e.preventDefault(); }
@@ -567,7 +583,7 @@
   $('#escResume').onclick = () => { SFX.click(); closeEsc(); };
   $('#escRules').onclick = () => { closeEsc(); showRules(); };
   $('#escIndex').onclick = () => { closeEsc(); Cards.showIndex(); };
-  $('#escSound').onclick = () => { const m = SFX.toggle(); $('#escSound').textContent = 'SOUND: ' + (m ? 'OFF' : 'ON'); $('#muteBtn').textContent = m ? '✕' : '♪'; };
+  $('#escSound').onclick = () => { const m = SFX.toggle(); setTimeout(menuMusic, 50); $('#escSound').textContent = 'SOUND: ' + (m ? 'OFF' : 'ON'); $('#muteBtn').textContent = m ? '✕' : '♪'; };
   $('#escLeave').onclick = () => {
     if ($('#escLeave').dataset.armed !== '1' && myP() && S.phase === 'play') { $('#escLeave').dataset.armed = '1'; $('#escLeave').textContent = 'CLICK AGAIN TO LEAVE'; setTimeout(() => { $('#escLeave').dataset.armed = ''; if (!$('#escMenu').hidden) openEsc(); }, 2500); return; }
     $('#escLeave').dataset.armed = '';
@@ -686,7 +702,7 @@
     if (!S) return;
     Render.setState(dispState());
     updateOverlays();
-    renderTop(); renderCash(); renderSiege(); renderPlan(); renderHexPanel(); renderHand(); renderEnd(); renderModeHint(); renderOffer();
+    renderTop(); renderCash(); renderSiege(); renderUndo(); renderWeather(); renderAlly(); renderPlan(); renderHexPanel(); renderHand(); renderEnd(); renderModeHint(); renderOffer();
   }
 
   function renderTop() {
@@ -701,8 +717,18 @@
       c.innerHTML = `<div class="av"><img src="${Art.iconURL('glyph', f ? f.glyph : 'shield', '#0b0f13', 48)}"></div><div><div class="pn">${esc(p.name)}${p.alive ? '' : ' <span class="out">☠ OUT</span>'}</div><div class="ps"><span>⬢ <b>${counts[p.id] || 0}</b></span><span>$<b>${p.cash}</b></span><span>🂠 <b>${p.tacticCount ?? p.tactics.length}</b></span>${extra}</div></div>`;
       c.title = f ? f.name + ' — ' + f.perk + ': ' + f.desc : '';
       c.onclick = () => Render.focus(p.hq);
-      if (isMyTurn() && S.turn.stage === 'act' && p.id !== you && p.alive && !S.trade) {
-        const tb = el('button', 'tradebtn', 'TRADE'); tb.onclick = e => { e.stopPropagation(); SFX.select(); openTrade(p.id); }; c.appendChild(tb);
+      const allied = E.isAlly(S, you, p.id), pact = allied && (S.allies || []).find(x => (x.a === p.id || x.b === p.id) && (x.a === you || x.b === you));
+      if (allied) { c.classList.add('allied'); c.appendChild(el('span', 'allybadge' + (pact && pact.ending ? ' ending' : ''), pact && pact.ending ? '💔' : '🤝')); }
+      if (isMyTurn() && S.turn.stage === 'act' && p.id !== you && p.alive) {
+        const box = el('div', 'chipbtns');
+        if (!S.trade) { const tb = el('button', 'tradebtn', 'TRADE'); tb.onclick = e => { e.stopPropagation(); SFX.select(); openTrade(p.id); }; box.appendChild(tb); }
+        if (!allied && !S.allyOffer && myP() && myP().alive) { const ab = el('button', 'tradebtn ally', 'ALLY'); ab.title = 'Propose an alliance'; ab.onclick = e => { e.stopPropagation(); SFX.select(); act({ a: 'allyOffer', to: p.id }); }; box.appendChild(ab); }
+        if (allied && pact && !pact.ending) {
+          const bb = el('button', 'tradebtn betray', 'BREAK'); bb.title = 'Break the alliance (takes effect at the start of your next turn)';
+          bb.onclick = e => { e.stopPropagation(); if (bb.dataset.armed !== '1') { bb.dataset.armed = '1'; bb.textContent = 'SURE?'; setTimeout(() => { bb.dataset.armed = ''; bb.textContent = 'BREAK'; }, 2500); return; } SFX.alarm(); act({ a: 'allyBreak', with: p.id }); };
+          box.appendChild(bb);
+        }
+        if (box.children.length) c.appendChild(box);
       }
       box.appendChild(c);
     }
@@ -718,6 +744,36 @@
     if (!h) { if (w) w.remove(); return; }
     if (!w) { w = el('div', '', ''); w.id = 'siegeWarn'; document.body.appendChild(w); w.onclick = () => Render.focus(me.hq); }
     w.innerHTML = `🔥 YOUR HQ IS UNDER SIEGE by <b>${esc(pName(h.siege.by))}</b> — deploy troops next to it (they can attack right away) and retake it this turn, or you're eliminated <span>(click to look)</span>`;
+  }
+  function renderUndo() {
+    const b = $('#undoBtn'); if (!b) return;
+    b.hidden = !(isMyTurn() && S.turn.stage === 'act' && undoCount > 0 && !executing);
+    b.innerHTML = '↶ UNDO' + (undoCount > 1 ? ` <small>${undoCount}</small>` : '');
+  }
+  function doUndo() { if (!isMyTurn() || !undoCount || animating || executing) return; SFX.click(); sel = null; mode = null; send({ t: 'undo', seq: seq++ }); }
+  $('#undoBtn').onclick = doUndo;
+  // world events: a chip under the round counter and a weather layer over the map
+  function renderWeather() {
+    const w = S && S.weather && E.WEATHER[S.weather.id];
+    const L = $('#wxLayer'); L.className = w ? 'wx-' + S.weather.id : '';
+    let chip = $('#wxChip');
+    if (!w || S.phase !== 'play') { if (chip) chip.remove(); return; }
+    if (!chip) { chip = el('div', '', ''); chip.id = 'wxChip'; $('#leftCol').insertBefore(chip, $('#leftCol').firstChild.nextSibling); }
+    chip.innerHTML = `<b>${w.icon} ${w.name.toUpperCase()}</b><span>${w.desc}</span>`;
+  }
+  // alliances: incoming offers and pending ones
+  function renderAlly() {
+    const pop = $('#allyPop'), o = S && S.allyOffer;
+    if (!o || S.phase !== 'play' || (o.to !== you && o.from !== you)) { pop.hidden = true; pop.dataset.k = ''; return; }
+    const k = o.from + '>' + o.to; if (pop.dataset.k === k && !pop.hidden) return; pop.dataset.k = k;
+    const from = S.players.find(p => p.id === o.from), to = S.players.find(p => p.id === o.to);
+    if (o.to === you) {
+      pop.innerHTML = `<div class="op-h">🤝 ALLIANCE OFFER</div><div><b style="color:${from.color}">${esc(from.name)}</b> proposes an alliance.</div><div class="sub">You can't attack each other, you share vision in fog of war, and if only allies are left standing you win together. Either side can break it later (it ends at the start of their next turn).</div><div class="row"><button class="btn green" id="alYes">ACCEPT</button><button class="btn red" id="alNo">DECLINE</button></div>`;
+      $('#alYes').onclick = () => { SFX.select(); pop.hidden = true; act({ a: 'allyReply', accept: true }); };
+      $('#alNo').onclick = () => { SFX.click(); pop.hidden = true; act({ a: 'allyReply', accept: false }); };
+      SFX.alarm();
+    } else pop.innerHTML = `<div class="op-h">🤝 OFFER SENT</div><div>Waiting for <b style="color:${to.color}">${esc(to.name)}</b> to answer…</div>`;
+    pop.hidden = false;
   }
   function renderCash() {
     const me = myP(); const box = $('#cashBox');
@@ -760,13 +816,14 @@
     if (E.TERRAIN[t.t].defMult) tags.push(`<span class="hp-tag">+${E.TERRAIN[t.t].defMult} Mult defence</span>`);
     if (E.TERRAIN[t.t].moveCost) tags.push('<span class="hp-tag">Costs 2 move</span>');
     if (E.TERRAIN[t.t].bog) tags.push('<span class="hp-tag">Attackers −1 Mult</span>');
+    if (t.fog) tags.push('<span class="hp-tag">🌫 Fog of war: you can\'t see units here</span>');
     if (t.poi && E.POI[t.poi] && !(t.poi === 'fort' && t.owner)) tags.push(`<span class="hp-tag" style="color:var(--gold)">${E.POI[t.poi].name}</span>`);
     if (t.contam) tags.push(`<span class="hp-tag cut">☢ Fallout ${t.contam} rounds</span>`);
     if (t.smoke) tags.push('<span class="hp-tag">Smoke</span>');
     if (ds.map.beacon === k) tags.push('<span class="hp-tag" style="color:var(--gold)">◆ BEACON</span>');
     if (t.owner === you && !E.supplySet(ds, you).has(k)) tags.push('<span class="hp-tag cut">Cut off — no income</span>');
     let h = `<div class="hp-title">${t.contam ? 'Fallout Zone' : E.TERRAIN[t.t].name}</div><div class="hp-own">${owner ? `<span style="color:${owner.color}">■ ${esc(owner.name)}</span>` : '<span class="sub">Unclaimed</span>'}</div><div class="hp-tags">${tags.join('')}</div>`;
-    if (t.poi && E.POI[t.poi] && !(t.poi === 'fort' && t.owner)) h += `<div class="urow" style="cursor:default"><img src="${Art.iconURL('poi', t.poi)}"><div class="un">${E.POI[t.poi].name}<div class="st">${E.POI[t.poi].desc}</div></div></div>`;
+    if (t.poi && E.POI[t.poi] && !(t.poi === 'fort' && t.owner)) h += `<div class="urow" style="cursor:default"><img src="${Art.iconURL('poi', t.poi)}"><div class="un">${E.POI[t.poi].name}${t.gar && !t.owner ? ` <span class="hp-tag cut">garrison ${t.gar} chips${t.poi === 'village' ? ' · +' + (t.gar >= 7 ? 2 : 1) + ' mult' : ''}</span>` : ''}<div class="st">${E.POI[t.poi].desc}</div></div></div>`;
     for (const st of E.structsOf(t)) {
       const sd = E.STRUCTS[st.type], L = st.lvl || 1;
       const flags = (st.siege ? ' <span class="hp-tag cut">UNDER SIEGE</span>' : '') + (st.lock ? ' <span class="hp-tag">online next turn</span>' : '');
@@ -964,12 +1021,25 @@
     b.hidden = !mine || S.phase !== 'play';
     b.disabled = animating || executing;
     clearInterval(timerInt);
+    // turn clock: a draining bar in the current player's colour, red and ticking for the last 10 seconds
+    let clock = $('#turnClock');
+    if (!clock) { clock = el('div', '', '<div class="tc-bar"><i></i></div><span></span>'); clock.id = 'turnClock'; $('#hud').appendChild(clock); }
+    const total = (S.settings.timer || 0) * 1000;
     const draw = () => {
-      let tm = '';
-      if (S.turn.deadline) { const s = Math.max(0, Math.ceil((S.turn.deadline - Date.now()) / 1000)); tm = `<span class="tmr">${s}s left</span>`; }
-      b.innerHTML = 'END TURN' + tm;
+      if (clockPaused) localDeadline = Date.now() + pausedLeft;   // frozen while a fight or crate plays out
+      const left = localDeadline ? Math.max(0, localDeadline - Date.now()) : 0, s = Math.ceil(left / 1000);
+      b.innerHTML = 'END TURN' + (localDeadline && mine ? `<span class="tmr">${s}s left</span>` : '');
+      clock.hidden = !(localDeadline && S.phase === 'play');
+      if (clock.hidden) return;
+      const cp = curP();
+      clock.style.setProperty('--pc', cp ? cp.color : '#fff');
+      clock.querySelector('i').style.width = Math.min(100, left / Math.max(1, total) * 100) + '%';
+      clock.querySelector('span').textContent = `${clockPaused ? '⏸' : '⏱'} ${cp ? (cp.id === you ? 'YOUR TURN' : cp.name.toUpperCase()) : ''} · ${Math.floor(s / 60)}:${String(s % 60).padStart(2, '0')}${clockPaused ? ' · PAUSED' : ''}`;
+      clock.classList.toggle('paused', clockPaused);
+      clock.classList.toggle('low', s <= 10);
+      if (s <= 10 && s > 0 && mine && s !== lastTick) { lastTick = s; SFX.chip(12 - s); }
     };
-    draw(); if (S.turn.deadline && mine) timerInt = setInterval(draw, 500);
+    draw(); if (localDeadline) timerInt = setInterval(draw, 250);
     // pulse when nothing left to do
     const ds = S; const anyReady = Object.values(ds.units).some(u => u.owner === you && E.canAct(ds, u));
     b.classList.toggle('pulse', mine && !anyReady);
@@ -1099,7 +1169,9 @@
       for (let i = 0; i < maxUnits; i++) {
         sides.forEach(([s, d], si) => {
           const t = d.units[i]; if (!t) return;
-          const img = el('img'); img.src = Art.iconURL('unit', t, '#fff', 64); s.querySelector('.cb-units').appendChild(img);
+          // each unit is dealt in as its card, fanned when the stack is big
+          const cu = s.querySelector('.cb-units'), card = Cards.make(t, { mini: true }); card.classList.add('cb-card');
+          card.style.setProperty('--n', d.units.length); card.style.setProperty('--i', i); cu.appendChild(card);
           counters[si] += unitChips(d, si === 0)[i];
           const box = s.querySelector('.chips'); box.textContent = counters[si]; box.classList.remove('hit'); void box.offsetWidth; box.classList.add('hit');
         });
@@ -1133,7 +1205,7 @@
       ]);
       sides.forEach(([s, d], si) => {
         dice[si].classList.remove('hidden-die'); dieFace(dice[si], d.roll);
-        if (d.raw !== d.roll) { dice[si].classList.add('loaded'); s.querySelector('.cb-bon').appendChild(el('div', 'cb-b', '<span>Loaded Dice</span><span class="v m">1 → 3</span>')); }
+        if (d.raw !== d.roll) { dice[si].classList.add('loaded'); s.querySelector('.cb-bon').appendChild(el('div', 'cb-b', '<span>Loaded Dice</span><span class="v m">${d.raw} → 3</span>')); }
         const mb = s.querySelector('.mult'); mb.textContent = d.roll + d.mult; mb.classList.remove('hit'); void mb.offsetWidth; mb.classList.add('hit');
       });
       SFX.mult(6); Render.shake(5);
@@ -1364,7 +1436,7 @@
   // glide the camera to action happening off-screen
   let evBy = null;
   function follow(k) {
-    if (!k || document.hidden || evBy !== you) return;   // other players' moves never pull your camera
+    return;   // the camera never chases actions; you stay in control of it (F jumps home)
     const [x, y] = Render.screenOf(k);
     if (x < innerWidth * 0.18 || x > innerWidth * 0.82 || y < innerHeight * 0.2 || y > innerHeight * 0.72) Render.focus(k);
   }
@@ -1375,7 +1447,11 @@
       switch (ev.e) {
         case 'turn': {
           const p = S.players.find(x => x.id === ev.pid);
-          if (ev.pid === you) { SFX.yourTurn(); banner('YOUR TURN', 'Round ' + ev.round, pColor(you)); Render.focus(p.hq); }
+          if (ev.pid === you) {
+            SFX.yourTurn(); banner('YOUR TURN', 'Round ' + ev.round, pColor(you));
+            const [hx, hy] = Render.screenOf(p.hq);
+            if (hx < 0 || hx > innerWidth || hy < 0 || hy > innerHeight) Render.focus(p.hq);
+          }
           else { SFX.turn(); banner(p.name.toUpperCase(), 'Round ' + ev.round, p.color); }
           await sleep(ev.pid === you ? 900 : 500);
           break;
@@ -1454,6 +1530,20 @@
           break;
         }
         case 'tactic': if (ev.target) { follow(ev.target); await sleep(200); } await animTactic(ev); break;
+        case 'undo': if (ev.pid === you) toast('↶ Undone'); break;
+        case 'weather': {
+          const w = E.WEATHER[ev.id]; if (!w) break;
+          banner(w.icon + ' ' + w.name.toUpperCase(), w.desc, '#2a4f6b'); SFX.whoosh(); await sleep(1000); break;
+        }
+        case 'ally': {
+          const a = pName(ev.from), b = pName(ev.to), meIn = ev.from === you || ev.to === you;
+          if (ev.status === 'formed') { banner('🤝 ALLIANCE FORMED', a + ' & ' + b, '#2f6b4a'); SFX.rare(); await sleep(900); }
+          else if (ev.status === 'declined' && meIn) toast(`${b} declined the alliance`);
+          else if (ev.status === 'offer' && !meIn) toast(`🤝 ${a} offered ${b} an alliance`);
+          else if (ev.status === 'breaking') { if (ev.to === you) { banner('🗡 BETRAYAL INCOMING', a + ' is breaking your alliance next turn', '#7a1f2b'); SFX.alarm(); } else toast(`🗡 ${a} is breaking the alliance with ${b}`); }
+          else if (ev.status === 'broken') { toast(`💔 ${a} broke the alliance with ${b}`, 'err'); }
+          break;
+        }
         case 'spawnPicked': {
           Render.recolor && Render.recolor();
           Render.ring(ev.hex, pColor(ev.pid), 90, 0.8, 6); Render.burst(ev.hex, [pColor(ev.pid), '#fff'], 30, { up: 140, square: true });
@@ -1531,14 +1621,19 @@
       case 'march': Render.ring(ev.target, pColor(ev.pid), 60, 0.6, 4); Render.float(ev.target, 'FORCED MARCH', '#fff', 16); SFX.select(); break;
       case 'conscript': for (const u of ev.units) { S.units[u.id] = u; } Render.ring(ev.target, pColor(ev.pid), 50, 0.5); SFX.deploy(); Render.shake(4); break;
       case 'carpet': {
-        SFX.whoosh(); await sleep(300);
-        for (let i = 0; i < 7; i++) { const k2 = ev.area[i % ev.area.length]; if (S.map.tiles[k2]) { Render.burst(k2, ['#ffb03a', '#ff5a2a', '#fff2a8'], 14, { speed: 1.2 }); SFX.boom(0.5); Render.shake(7); } await sleep(110); }
+        // a three-jet formation lays bombs along the strip
+        SFX.whoosh();
+        Render.flyover(ev.area.filter(k2 => S.map.tiles[k2]), { count: 3, color: pColor(ev.pid), dur: 2.1, onBomb: () => { SFX.boom(0.5); Render.shake(6); } });
+        await sleep(2000);
         Render.float(ev.target, ev.kills.length + ' DESTROYED', '#ff4f5e', 20); killUnits(ev.kills); await sleep(300); break;
       }
       case 'jackpot': SFX.coin(8); Render.flash(0.2, '#ffc53d'); break;
       case 'airstrike': {
-        SFX.whoosh(); await sleep(350);
-        for (let i = 0; i < 3; i++) { const [x, y] = Render.topOf(ev.target); Render.burst([x + (Math.random() - 0.5) * 40, y + (Math.random() - 0.5) * 20], ['#ffb03a', '#ff5a2a', '#fff2a8'], 18, { speed: 1.3 }); SFX.boom(0.7); Render.shake(9); await sleep(170); }
+        // a jet in the striker's colour makes a bombing run over the target
+        SFX.whoosh();
+        { const [x, y] = Render.topOf(ev.target); const k1 = ev.target, sp = n => { const [q, r] = E.parse(k1); return E.key(q + n, r); };
+          Render.flyover([k1, sp(-1), sp(1)].filter(k2 => S.map.tiles[k2]).slice(0, 1).concat([k1, k1]), { color: pColor(ev.pid), dur: 1.6, onBomb: () => { SFX.boom(0.7); Render.shake(9); } }); }
+        await sleep(1500);
         Render.float(ev.target, ev.kills.length + ' DESTROYED', '#ff4f5e', 20);
         killUnits(ev.kills); await sleep(300); break;
       }
@@ -1584,18 +1679,97 @@
   function showVictory() {
     const v = $('#victory'); if (!v.hidden) return;
     const w = S.winner; const wp = S.players.find(p => p.id === w.pid);
-    const mine = w.pid === you;
+    const winners = w.pids || [w.pid];
+    const mine = winners.includes(you);
     mine ? SFX.win() : SFX.lose();
     const counts = {}; for (const k in S.map.tiles) { const o = S.map.tiles[k].owner; if (o) counts[o] = (counts[o] || 0) + 1; }
     const rows = S.players.slice().sort((a, b) => (counts[b.id] || 0) - (counts[a.id] || 0)).map(p => `<tr><td style="color:${p.color}">■ ${esc(p.name)}</td><td>${E.FACTIONS[p.faction] ? E.FACTIONS[p.faction].name : ''}</td><td>${counts[p.id] || 0}</td><td>${p.stats.captured}</td><td>${p.stats.kills}</td><td>${p.stats.lost}</td></tr>`).join('');
     v.innerHTML = `<div class="vic panel" style="padding:30px 40px"><h1 style="color:${wp.color};text-shadow:0 6px 0 #000">${mine ? 'VICTORY' : myP() ? 'DEFEAT' : 'GAME OVER'}</h1><div class="why"><b style="color:${wp.color}">${esc(wp.name)}</b> ${esc(w.reason)}</div>
+      ${winners.length > 1 ? `<div class="why">🤝 ${winners.map(id => `<b style="color:${pColor(id)}">${esc(pName(id))}</b>`).join(' & ')}</div>` : ''}
+      <div class="power"><h3>BALANCE OF POWER</h3><canvas id="powerChart" width="1240" height="400"></canvas><div id="powerNotes"></div></div>
       <table class="stats"><tr><th>COMMANDER</th><th>FACTION</th><th>HEXES</th><th>CAPTURED</th><th>KILLS</th><th>LOST</th></tr>${rows}</table>
       <div class="row" style="justify-content:center"><button class="btn big" id="vicLook">VIEW BOARD</button>${lobby && lobby.hostId === realId ? '<button class="btn big red" id="vicLobby">BACK TO LOBBY</button>' : ''}<button class="btn big gold" id="vicMenu">MAIN MENU</button></div></div>`;
     v.hidden = false;
+    try { drawPower($('#powerChart'), S.history || [], S.players); } catch (e) { console.error(e); }
     for (let i = 0; i < 6; i++) setTimeout(() => { if (!S) return; const k = Object.keys(S.map.tiles).filter(k => S.map.tiles[k].owner === w.pid); const r = k[Math.floor(Math.random() * k.length)]; if (r) { Render.burst(r, [wp.color, '#fff', '#ffc53d'], 30, { speed: 1.6, up: 200, square: true }); } }, i * 300);
     $('#vicLook').onclick = () => { v.hidden = true; setTimeout(() => { if (S && S.phase === 'over') { v.hidden = false; } }, 8000); };
     const bl = $('#vicLobby'); if (bl) bl.onclick = () => send({ t: 'toLobby' });
     $('#vicMenu').onclick = () => { SFX.click(); send({ t: 'leave' }); setTimeout(() => { if (S) backToMenu(); }, 1500); };
+  }
+
+  // ── random map type: a slot reel of battlefield thumbnails that lands on the real map ──
+  const ARCH_NAME = { continent: 'Continent', pangaea: 'Supercontinent', twin: 'Twin Continents', archipelago: 'Archipelago', inland: 'Inland Sea', crescent: 'Crescent Isles' };
+  const thumbCache = {};
+  function mapThumb(tiles, w = 150, h = 96) {
+    const cv = document.createElement('canvas'); cv.width = w * 2; cv.height = h * 2; const c = cv.getContext('2d'); c.scale(2, 2);
+    const pts = Object.keys(tiles).map(k => { const [q, r] = E.parse(k); return [q + r / 2, r * 0.866, tiles[k]]; });
+    const xs = pts.map(p => p[0]), ys = pts.map(p => p[1]), x0 = Math.min(...xs), x1 = Math.max(...xs), y0 = Math.min(...ys), y1 = Math.max(...ys);
+    const sc = Math.min((w - 10) / (x1 - x0 + 1), (h - 10) / (y1 - y0 + 1)), ox = (w - (x1 - x0) * sc) / 2, oy = (h - (y1 - y0) * sc) / 2;
+    c.fillStyle = '#0d2233'; c.fillRect(0, 0, w, h);
+    const col = { water: '#16405a', mountain: '#6d6a75', hills: '#7a7a52', forest: '#3f6a3f', jungle: '#2f6a3a', desert: '#b69a5e', tundra: '#a9b6bd', swamp: '#4d6048', canyon: '#b0582e', plains: '#6a8a4c' };
+    for (const [x, y, t] of pts) { if (t.t === 'water' && t.deep) continue; c.fillStyle = col[t.t] || '#6a8a4c'; c.beginPath(); c.arc(ox + (x - x0) * sc, oy + (y - y0) * sc, sc * 0.62, 0, Math.PI * 2); c.fill(); }
+    return cv.toDataURL();
+  }
+  function archThumb(a, n) { const k = a + n; if (!thumbCache[k]) thumbCache[k] = mapThumb(E.generateMap({ seed: 9100 + Object.keys(ARCH_NAME).indexOf(a), nPlayers: n, size: 'small', archetype: a }).tiles); return thumbCache[k]; }
+  async function showMapReel(state) {
+    const arch = state.map.arch, n = state.players.length, archs = Object.keys(ARCH_NAME);
+    const box = el('div', '', ''); box.id = 'mapReel'; document.body.appendChild(box);
+    box.innerHTML = `<h2>ROLLING THE BATTLEFIELD</h2><div class="mr-window"><div class="mr-strip"></div><div class="mr-mark"></div></div><div class="mr-name">&nbsp;</div>`;
+    const strip = box.querySelector('.mr-strip'), cells = [], land = 22;
+    for (let i = 0; i < 28; i++) {
+      const a = i === land ? arch : archs[(i * 5 + Math.floor(Math.random() * 6)) % archs.length];
+      const cell = el('div', 'mr-cell', `<img src="${i === land ? mapThumb(state.map.tiles) : archThumb(a, n)}" alt=""><span>${ARCH_NAME[a].toUpperCase()}</span>`);
+      strip.appendChild(cell); cells.push(cell);
+    }
+    await sleep(60);
+    const cw = 176, win = box.querySelector('.mr-window').clientWidth, off = land * cw - (win / 2 - cw / 2);
+    const t0 = performance.now(), dur = 2600; let last = -1;
+    await new Promise(res => { const stepF = () => { const p = Math.min(1, (performance.now() - t0) / dur), e = 1 - Math.pow(1 - p, 4); strip.style.transform = `translateX(${-off * e}px)`; const idx = Math.floor((off * e + win / 2) / cw); if (idx !== last) { last = idx; SFX.chip(idx % 10); } if (p < 1) requestAnimationFrame(stepF); else res(); }; stepF(); });
+    cells[land].classList.add('won'); SFX.victoryHit(); Render.shake(6);
+    box.querySelector('.mr-name').innerHTML = `<b>${ARCH_NAME[arch].toUpperCase()}</b>`;
+    await sleep(1500);
+    box.classList.add('out'); setTimeout(() => box.remove(), 500);
+  }
+
+  // stacked share of the land per round, with the moments the lead changed hands
+  function drawPower(cv, hist, players) {
+    if (!cv || hist.length < 2) { if (cv) cv.parentNode.hidden = true; return; }
+    const c = cv.getContext('2d'), W = cv.width, H = cv.height, padL = 50, padR = 20, padT = 20, padB = 46;
+    const iw = W - padL - padR, ih = H - padT - padB, n = hist.length;
+    const X = i => padL + iw * i / (n - 1);
+    const tot = h => Math.max(1, players.reduce((a, p) => a + (h.c[p.id] || 0), 0));
+    c.clearRect(0, 0, W, H);
+    c.fillStyle = '#0b1117'; c.fillRect(padL, padT, iw, ih);
+    // stacked bands, bottom to top in player order
+    const acc = hist.map(() => 0);
+    for (const p of players) {
+      const low = acc.slice(), high = hist.map((h, i) => acc[i] + (h.c[p.id] || 0) / tot(h));
+      c.beginPath();
+      hist.forEach((h, i) => { const y = padT + ih * (1 - high[i]); i ? c.lineTo(X(i), y) : c.moveTo(X(i), y); });
+      for (let i = n - 1; i >= 0; i--) c.lineTo(X(i), padT + ih * (1 - low[i]));
+      c.closePath(); c.fillStyle = p.color; c.globalAlpha = 0.85; c.fill(); c.globalAlpha = 1;
+      c.strokeStyle = '#0b1117'; c.lineWidth = 2; c.stroke();
+      high.forEach((v, i) => { acc[i] = v; });
+    }
+    // grid + axis
+    c.strokeStyle = 'rgba(255,255,255,.12)'; c.lineWidth = 1; c.font = '600 18px "Chakra Petch", sans-serif'; c.fillStyle = '#7f8c98'; c.textAlign = 'right'; c.textBaseline = 'middle';
+    for (const f of [0, 0.25, 0.5, 0.75, 1]) { const y = padT + ih * (1 - f); c.beginPath(); c.moveTo(padL, y); c.lineTo(padL + iw, y); c.stroke(); c.fillText(Math.round(f * 100) + '%', padL - 8, y); }
+    c.textAlign = 'center'; c.textBaseline = 'top';
+    const step = Math.max(1, Math.ceil(n / 12));
+    for (let i = 0; i < n; i += step) c.fillText('R' + hist[i].r, X(i), padT + ih + 8);
+    // lead changes
+    const notes = []; let lead = null;
+    hist.forEach((h, i) => {
+      const top = players.slice().sort((a, b) => (h.c[b.id] || 0) - (h.c[a.id] || 0))[0];
+      if (!top || !(h.c[top.id] > 0)) return;
+      if (lead && top.id !== lead) {
+        c.strokeStyle = '#fff'; c.setLineDash([6, 6]); c.lineWidth = 2; c.beginPath(); c.moveTo(X(i), padT); c.lineTo(X(i), padT + ih); c.stroke(); c.setLineDash([]);
+        c.fillStyle = top.color; c.beginPath(); c.arc(X(i), padT + 12, 9, 0, Math.PI * 2); c.fill(); c.strokeStyle = '#000'; c.lineWidth = 3; c.stroke();
+        notes.push(`<span><i style="background:${top.color}"></i>Round ${h.r}: <b style="color:${top.color}">${esc(top.name)}</b> takes the lead</span>`);
+      }
+      lead = top.id;
+    });
+    const n0 = $('#powerNotes'); if (n0) n0.innerHTML = notes.length ? notes.slice(-6).join('') : '<span>One commander led from start to finish.</span>';
   }
 
   // ───────────── misc UI ─────────────
@@ -1609,7 +1783,7 @@
     while ($('#log').children.length > 14) $('#log').firstChild.remove();
   }
   $('#chatIn').addEventListener('keydown', e => { if (e.key === 'Enter') { const v = e.target.value.trim(); if (v) send({ t: 'chat', text: v }); e.target.value = ''; e.target.blur(); } });
-  $('#muteBtn').onclick = () => { const m = SFX.toggle(); $('#muteBtn').textContent = m ? '✕' : '♪'; };
+  $('#muteBtn').onclick = () => { const m = SFX.toggle(); setTimeout(menuMusic, 50); $('#muteBtn').textContent = m ? '✕' : '♪'; };
   $('#muteBtn').textContent = SFX.muted ? '✕' : '♪';
 
   function showRules() {
@@ -1648,6 +1822,6 @@
   $('#rulesBtn').onclick = showRules; $('#rulesBtn2').onclick = showRules;
   for (const b of ['#indexBtn', '#indexBtn2', '#indexBtn3']) $(b).onclick = () => { SFX.select(); Cards.showIndex(); };
 
-  window.SECTOR_DEBUG = { resume: () => pump(), refresh: () => refreshAll(), crushFx: ev => obliterate(ev), combatFx: ev => showCombat(ev), send, state: () => S, you: () => you, plan: () => plan, planState: () => planState, act: doAction, click: onHexClick };
+  window.SECTOR_DEBUG = { resume: () => pump(), refresh: () => refreshAll(), victoryFx: () => showVictory(), crushFx: ev => obliterate(ev), combatFx: ev => showCombat(ev), send, state: () => S, you: () => you, plan: () => plan, planState: () => planState, act: doAction, click: onHexClick };
   connect();
 })();

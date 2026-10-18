@@ -53,6 +53,8 @@
       <div class="set"><label>Mode</label><select id="setMode"><option value="domination">Domination — take every HQ</option><option value="conquest">Conquest — hold 60% of land</option><option value="koth">Beacon — hold the centre 3 turns</option></select></div>
       <div class="set"><label>Map type</label><select id="setType"><option value="random">Random</option><option value="continent">Continent</option><option value="pangaea">Supercontinent</option><option value="twin">Twin continents</option><option value="archipelago">Archipelago</option><option value="inland">Inland sea</option><option value="crescent">Crescent isles</option></select></div>
       <div class="set"><label>Map size</label><select id="setSize"><option value="small">Small</option><option value="medium">Medium</option><option value="large">Large</option><option value="huge">Huge</option></select></div>
+      <div class="set"><label>Fog of war</label><select id="setFog"><option value="off">Off</option><option value="on">On</option></select></div>
+      <div class="set"><label>World events</label><select id="setEvents"><option value="on">On</option><option value="off">Off</option></select></div>
       <div class="set"><label>Spawns</label><select id="setSpawns"><option value="random">Random</option><option value="pick">Pick your HQ</option></select></div>
       <div class="set"><label>Turn timer</label><select id="setTimer"><option value="0">Off</option><option value="45">45s</option><option value="90">90s</option><option value="150">150s</option></select></div>
       <div class="set"><label>Round limit</label><select id="setRounds"><option value="0">None</option><option value="15">15</option><option value="25">25</option><option value="40">40</option></select></div>
@@ -68,6 +70,7 @@
 <!-- ───────── in-game HUD ───────── -->
 <section id="hud" hidden>
   <div id="topbar"><div id="roundBox"></div><div id="players"></div><div class="top-btns"><button id="muteBtn" class="icon-btn" title="Sound">♪</button><button id="menuBtn" class="icon-btn" title="Menu (Esc)">☰</button><button id="indexBtn" class="icon-btn" title="Card index">▤</button><button id="rulesBtn" class="icon-btn" title="How to play">?</button></div></div>
+  <div id="leftCol">
   <div id="cashBox" class="panel">
     <div class="cash-row"><span class="cur">$</span><span id="cash">0</span></div>
     <div id="incomeLine" class="sub"></div>
@@ -79,6 +82,8 @@
     <div class="row"><label class="chk"><input type="checkbox" id="planAuto" checked> auto-collect income</label><button id="planClear" class="btn tiny">CLEAR</button></div>
   </div>
   <div id="logBox"><div id="log"></div><input id="chatIn" placeholder="T to chat…" maxlength="140"></div>
+  <div id="buildBar"><div class="bar-label">BUILD · Z–M</div><div id="hbBuild"></div></div>
+  </div>
   <div id="hexPanel" class="panel" hidden></div>
   <div id="modeHint" hidden></div>
   <div id="bottom">
@@ -86,7 +91,7 @@
     <div id="hand"></div>
   </div>
   <div id="slotTip" hidden></div>
-  <div id="buildBar"><div class="bar-label">BUILD · Z–M</div><div id="hbBuild"></div></div>
+  <button id="undoBtn" class="btn undo-btn" hidden title="Undo (Ctrl+Z)">↶ UNDO</button>
   <button id="endBtn" class="btn big red">END TURN</button>
   <div id="banner"></div>
 </section>
@@ -115,6 +120,8 @@
   </div>
 </div>
 <div id="offerPop" hidden></div>
+<div id="allyPop" hidden></div>
+<div id="wxLayer"></div>
 <div id="flyLayer"></div>
 <div id="combat" hidden></div>
 <div id="victory" hidden></div>
