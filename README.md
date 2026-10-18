@@ -23,7 +23,9 @@ Procedural maps · card drafting · naval warfare · Balatro-style dice combat.
 
 **Updates install themselves.** Sector.exe checks this repo's releases, and when there's a new version the server window says so: press **U** to update and restart. Only the host needs the exe: friends who join through a browser always get the host's version.
 
-> The first launch asks for network access. Tick **Private networks** so friends can connect. Windows SmartScreen may warn that the exe is unsigned: click *More info → Run anyway*.
+> The first launch asks for network access. Tick **Private networks** so friends can connect.
+
+**"Windows protected your PC"?** Click **More info → Run anyway**. SECTOR isn't code-signed yet, so SmartScreen doesn't know the publisher; that's normal for small indie downloads. Microsoft Defender scans the exe clean, and updates installed from the server window (**U**) don't trigger the warning again. The release workflow signs the exe automatically once a code-signing certificate is added (see [DEVELOPMENT.md](docs/DEVELOPMENT.md#code-signing)).
 
 There are no accounts, no internet servers and no port forwarding. Prefer one screen? Add **local players** in the lobby for **pass-and-play** on a single device. Short on friends? Add bots on **Easy, Medium, Hard or Impossible**.
 
@@ -102,7 +104,7 @@ node tools/build-exe.js
 
 This packages the server and the client into a single `dist/Sector.exe` (a Node single-executable application).
 
-Releases are automated. Pushing a tag like `v1.0.0` makes GitHub Actions run the bot-vs-bot smoke test, build the exe on Windows, and attach it to a GitHub Release:
+Releases are automated. Write the release post in `docs/releases/vX.Y.Z.md` (plus a line in `docs/CHANGELOG.md`), then push the tag. GitHub Actions runs the bot-vs-bot smoke test, builds and (if configured) signs the exe, and publishes a release with that post:
 
 ```bash
 git tag v1.0.0

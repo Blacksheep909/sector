@@ -101,13 +101,14 @@
     if (!me) { showJoin(); if (lobby.inGame) $('#joinBox .hint').textContent = 'A war is in progress — you can watch once it loads, or wait for the next game.'; return; }
     $('#joinBox').hidden = true; $('#lobbyBox').hidden = !$('#joinNet').hidden; $('#lobbyBox').dataset.show = '1';
     const host = lobby.hostId === you;
-    $('#pCount').textContent = lobby.players.length + '/6';
+    { const sp = lobby.players.filter(p => p.spectator).length; $('#pCount').textContent = (lobby.players.length - sp) + '/6' + (sp ? ' · ' + sp + ' watching' : ''); }
     const pl = $('#playerList'); pl.innerHTML = '';
     for (const p of lobby.players) {
       const r = el('div', 'prow' + (p.connected ? '' : ' off'));
       const f = E.FACTIONS[p.faction];
       r.innerHTML = `<div class="sw" style="background:${p.color}"></div><div class="nm">${esc(p.name)}<div class="fx">${f ? f.name : ''}</div></div>` +
         (p.id === lobby.hostId ? '<span class="tag host">HOST</span>' : '') + (p.bot ? '<span class="tag">BOT</span>' : '') + (p.id === you ? '<span class="tag">YOU</span>' : '');
+      if (p.spectator) { r.classList.add('spec'); const fx = r.querySelector('.fx'); if (fx) fx.textContent = '👁 Spectating'; }
       if (p.bot) {
         const dsel = el('select', 'diffsel ' + (p.diff || 'medium'));
         dsel.innerHTML = Object.keys(E.DIFFICULTY).map(d => `<option value="${d}"${p.diff === d ? ' selected' : ''}>${E.DIFFICULTY[d].name}</option>`).join('');
@@ -122,6 +123,12 @@
           fs.onchange = () => send({ t: 'seatCfg', id: p.id, faction: fs.value }); r.insertBefore(fs, r.querySelector('.tag'));
         } else inp.disabled = true;
         r.insertBefore(el('span', 'tag', 'LOCAL'), r.querySelector('.tag'));
+      }
+      if (!p.bot && (p.id === realId || host || (p.local && p.controller === realId))) {
+        const sb = el('button', 'specbtn' + (p.spectator ? ' on' : ''), p.spectator ? '▶' : '👁');
+        sb.title = p.spectator ? 'Join the game as a commander' : 'Sit this game out and spectate';
+        sb.onclick = () => { SFX.click(); send({ t: 'spectate', id: p.id, on: !p.spectator }); };
+        r.appendChild(sb);
       }
       if ((host && p.id !== you) || (p.local && p.controller === realId)) { const x = el('button', 'x', '✕'); x.onclick = () => send({ t: 'kick', id: p.id }); r.appendChild(x); }
       pl.appendChild(r);
@@ -1372,12 +1379,13 @@
           await tween(260, p => { Render.unitPos[u.id] = { x, y: y - 120 * (1 - p * p) }; });
           delete Render.unitPos[u.id]; Render.extraUnits.splice(Render.extraUnits.indexOf(u), 1);
           S.units[u.id] = u;
+          if (ev.claimed) flipTile(ev.hex, ev.pid, 3);
           SFX.deploy(); Render.shake(3); Render.burst(ev.hex, ['#c9b78f', '#8f8068'], 14, { up: 30, g: 120, size: 3 }); Render.ring(ev.hex, pColor(ev.pid), 40, 0.4, 3);
           await sleep(120); break;
         }
         case 'build': {
           { const tt = S.map.tiles[ev.hex]; tt.structs = E.structsOf(tt).slice(); const ex = tt.structs.find(x => x.type === ev.struct);
-            if (ex) ex.lvl = ev.lvl || ex.lvl; else tt.structs.push({ type: ev.struct, owner: ev.pid, lvl: ev.lvl || 1 });
+            if (ex) ex.lvl = ev.lvl || ex.lvl; else tt.structs.push({ type: ev.struct, owner: ev.pid, lvl: ev.lvl || 1, lock: ev.lock || 0 });
             if (!tt.struct || ev.struct === 'hq' || ev.struct === 'fob') tt.struct = tt.structs.find(x => x.type === ev.struct); }
           if (ev.lvl > 1) { Render.ring(ev.hex, '#ffc53d', 70, 0.6, 5); Render.float(ev.hex, '★'.repeat(ev.lvl) + ' UPGRADED', '#ffc53d', 18); }
           Render.pop(ev.hex); SFX.build(); Render.burst(ev.hex, [pColor(ev.pid), '#fff', '#ffc53d'], 22, { square: true, up: 140 }); Render.float(ev.hex, E.STRUCTS[ev.struct].name.toUpperCase(), '#fff', 16);

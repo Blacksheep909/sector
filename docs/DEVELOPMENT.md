@@ -61,3 +61,21 @@ Run the server with `SECTOR_DEV=1` to enable autoplay. A client can then send `{
 | `SECTOR_FAST=1` | Bots act about 4× faster, for tests. |
 | `SECTOR_OPEN=1` | Opens the browser on start. This is always on for the exe. |
 | `SECTOR_NO_OPEN=1` | Never opens the browser. |
+
+
+## Releases
+
+1. Bump `version` in `package.json`.
+2. Write the release post in `docs/releases/vX.Y.Z.md` and add the changes to the top of `docs/CHANGELOG.md`.
+3. Commit, then `git tag vX.Y.Z && git push origin main vX.Y.Z`.
+
+The workflow refuses to publish a tag that has no `docs/releases/<tag>.md`. Every host's Sector.exe checks the latest release and offers **U** to update.
+
+## Code signing
+
+An unsigned exe makes Windows SmartScreen show "Windows protected your PC". Only a code-signing certificate removes it. The release workflow signs `Sector.exe` automatically once you add one of these as repository secrets (Settings → Secrets and variables → Actions):
+
+- **Azure Trusted Signing** (Microsoft's signing service, about $10/month after identity validation): `AZURE_TENANT_ID`, `AZURE_CLIENT_ID`, `AZURE_CLIENT_SECRET`, `TRUSTED_SIGNING_ENDPOINT`, `TRUSTED_SIGNING_ACCOUNT`, `TRUSTED_SIGNING_PROFILE`.
+- **A certificate file** (for example an OV certificate from Certum, Sectigo or DigiCert): `WINDOWS_CERT_PFX` (the .pfx, base64-encoded) and `WINDOWS_CERT_PASSWORD`.
+
+Free options for open-source projects exist (for example SignPath Foundation), but they need an OSI license on the repository.

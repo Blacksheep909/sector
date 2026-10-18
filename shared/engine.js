@@ -1151,7 +1151,7 @@
     const r = applyActionInner(s, pid, a, rng);
     if (r.ok && s.phase === 'play') {
       drown(s, r.events);
-      if (['move', 'assault', 'fire', 'tactic'].includes(a.a)) annex(s, pid, r.events);
+      if (['move', 'assault', 'fire', 'tactic', 'deploy', 'build'].includes(a.a)) annex(s, pid, r.events);
       checkWin(s, r.events);
     }
     return r;
@@ -1176,6 +1176,23 @@
       if (comp.some(c => (idx[c] || []).some(u => u.owner !== pid))) continue;
       if (comp.some(c => structsOf(tiles[c]).some(x => ['hq', 'fob', 'port'].includes(x.type)) || (!tiles[c].owner && ['village', 'fort'].includes(tiles[c].poi)))) continue;
       for (const c of comp) if (captureTile(s, c, pid)) flipped.push(c);
+    }
+    // sea encirclement: a pocket of 12 or fewer water hexes walled in by your coast and your own sea flips to you
+    for (const k in tiles) {
+      const t = tiles[k];
+      if (seen.has(k) || !isWater(t) || t.owner === pid) continue;
+      const comp = [k]; seen.add(k);
+      let enclosed = true;
+      for (let i = 0; i < comp.length && enclosed; i++) for (const n of neighbors(comp[i])) {
+        const nt = tiles[n];
+        if (!nt) { enclosed = false; break; }
+        if (nt.t === 'mountain' || nt.owner === pid) continue;
+        if (!isWater(nt)) { enclosed = false; break; }
+        if (!seen.has(n)) { seen.add(n); comp.push(n); }
+      }
+      if (!enclosed || comp.length > 12) continue;
+      if (comp.some(c => (idx[c] || []).some(u => u.owner !== pid))) continue;
+      for (const c of comp) if (tiles[c].owner !== pid) { tiles[c].owner = pid; flipped.push(c); }
     }
     if (flipped.length) {
       ev.push({ e: 'annex', pid, hexes: flipped });
@@ -1297,7 +1314,10 @@
       if (p.cash < cost) return fail('Need $' + cost);
       p.cash -= cost;
       const u = addUnit(s, pid, a.unit, a.hex, true);
-      ev.push({ e: 'deploy', pid, unit: { ...u }, hex: a.hex });
+      // a ship launched into the sea claims the water it lands on, just like sailing through it
+      const claimed = isSea(a.unit) && isWater(tiles[a.hex]) && tiles[a.hex].owner !== pid;
+      if (claimed) { tiles[a.hex].owner = pid; p.stats.captured++; }
+      ev.push({ e: 'deploy', pid, unit: { ...u }, hex: a.hex, claimed });
       return { ok: true, events: ev };
     }
     if (a.a === 'build') {
@@ -1314,9 +1334,9 @@
         pushLog(s, p.name + ' upgraded a ' + STRUCTS[a.struct].name + ' to ' + '★'.repeat(ex.lvl) + '.');
         return { ok: true, events: ev };
       }
-      addStruct(t, { type: a.struct, owner: pid, lvl: 1 });
+      addStruct(t, a.struct === 'fob' ? { type: 'fob', owner: pid, lvl: 1, lock: 1 } : { type: a.struct, owner: pid, lvl: 1 });
       if (a.struct === 'bridge') { t.bridge = true; t.owner = pid; }
-      ev.push({ e: 'build', pid, struct: a.struct, hex: a.hex, lvl: 1 });
+      ev.push({ e: 'build', pid, struct: a.struct, hex: a.hex, lvl: 1, lock: a.struct === 'fob' ? 1 : 0 });
       return { ok: true, events: ev };
     }
     if (a.a === 'move' || a.a === 'assault') {

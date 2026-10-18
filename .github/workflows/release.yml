@@ -1,4 +1,4 @@
-# Push a tag like v0.2.0 and GitHub builds Sector.exe and attaches it to a Release.
+# Push a tag like v0.5.1 and GitHub builds Sector.exe and publishes a release post from docs/releases/<tag>.md.
 name: release
 
 on:
@@ -12,18 +12,56 @@ permissions:
 jobs:
   build:
     runs-on: windows-latest
+    env:
+      # Code signing switches on by itself once one of these is configured (Settings → Secrets → Actions).
+      # Option A, Azure Trusted Signing: AZURE_TENANT_ID, AZURE_CLIENT_ID, AZURE_CLIENT_SECRET,
+      #   TRUSTED_SIGNING_ENDPOINT, TRUSTED_SIGNING_ACCOUNT, TRUSTED_SIGNING_PROFILE
+      # Option B, a code-signing certificate file: WINDOWS_CERT_PFX (base64 of the .pfx), WINDOWS_CERT_PASSWORD
+      HAS_AZURE_SIGNING: ${{ secrets.AZURE_CLIENT_ID != '' }}
+      HAS_PFX_SIGNING: ${{ secrets.WINDOWS_CERT_PFX != '' }}
     steps:
       - uses: actions/checkout@v4
       - uses: actions/setup-node@v4
         with:
           node-version: 24
+      - name: Release post exists for this tag
+        if: startsWith(github.ref, 'refs/tags/')
+        shell: pwsh
+        run: if (-not (Test-Path "docs/releases/${{ github.ref_name }}.md")) { throw "Write docs/releases/${{ github.ref_name }}.md first" }
       - name: Bot-vs-bot smoke test
         run: node tools/sim.js domination 4 2
       - name: Build Sector.exe
         run: node tools/build-exe.js
+      - name: Sign Sector.exe (Azure Trusted Signing)
+        if: env.HAS_AZURE_SIGNING == 'true'
+        uses: azure/trusted-signing-action@v0
+        with:
+          azure-tenant-id: ${{ secrets.AZURE_TENANT_ID }}
+          azure-client-id: ${{ secrets.AZURE_CLIENT_ID }}
+          azure-client-secret: ${{ secrets.AZURE_CLIENT_SECRET }}
+          endpoint: ${{ secrets.TRUSTED_SIGNING_ENDPOINT }}
+          trusted-signing-account-name: ${{ secrets.TRUSTED_SIGNING_ACCOUNT }}
+          certificate-profile-name: ${{ secrets.TRUSTED_SIGNING_PROFILE }}
+          files-folder: dist
+          files-folder-filter: exe
+          file-digest: SHA256
+          timestamp-rfc3161: http://timestamp.acs.microsoft.com
+          timestamp-digest: SHA256
+      - name: Sign Sector.exe (certificate file)
+        if: env.HAS_PFX_SIGNING == 'true'
+        shell: pwsh
+        env:
+          CERT_B64: ${{ secrets.WINDOWS_CERT_PFX }}
+          CERT_PASSWORD: ${{ secrets.WINDOWS_CERT_PASSWORD }}
+        run: |
+          $pfx = Join-Path $env:RUNNER_TEMP 'sector-cert.pfx'
+          [IO.File]::WriteAllBytes($pfx, [Convert]::FromBase64String($env:CERT_B64))
+          $signtool = Get-ChildItem 'C:\Program Files (x86)\Windows Kits\10\bin\*\x64\signtool.exe' | Sort-Object FullName -Descending | Select-Object -First 1
+          & $signtool.FullName sign /f $pfx /p $env:CERT_PASSWORD /fd sha256 /tr http://timestamp.digicert.com /td sha256 /d SECTOR dist\Sector.exe
+          Remove-Item $pfx
       - name: Zip portable source
         shell: pwsh
-        run: Compress-Archive -Path server.js, package.json, shared, public, "Start Sector.bat", README.md -DestinationPath dist/Sector-source.zip
+        run: Compress-Archive -Path server.js, package.json, shared, public, assets, "Start Sector.bat", README.md -DestinationPath dist/Sector-source.zip
       - name: Publish release
         if: startsWith(github.ref, 'refs/tags/')
         uses: softprops/action-gh-release@v2
@@ -31,4 +69,4 @@ jobs:
           files: |
             dist/Sector.exe
             dist/Sector-source.zip
-          body_path: docs/RELEASE_NOTES.md
+          body_path: docs/releases/${{ github.ref_name }}.md

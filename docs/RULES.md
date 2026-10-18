@@ -4,7 +4,7 @@ Grab land, build an economy, crush your rivals. **Every hex you hold pays you**,
 
 ## Setup and the opening draft
 
-- 2–6 commanders: humans over the network, bots (Easy, Medium, Hard, Impossible), and **pass-and-play** players sharing one device. A cover screen hides each player's hand between turns.
+- 2–6 commanders: humans over the network, bots (Easy, Medium, Hard, Impossible), and **pass-and-play** players sharing one device. Anyone can press 👁 in the lobby to **spectate** instead of play. A cover screen hides each player's hand between turns.
 - Every map is procedurally generated from one of six layouts: continent, supercontinent, twin continents, archipelago, inland sea, or crescent isles. The coastline is noise-warped, so no two boards share an outline. Sizes run from Small to **Huge** (about 3.5× the land of Small).
 - **Spawns.** With *Random* spawns, HQs are placed fairly far apart. With *Pick your HQ*, commanders take turns choosing their HQ hex (whoever moves last picks first). HQs must sit a minimum distance apart, and bots pick roomy spots near resources.
 - Everyone starts with an HQ and its surrounding hexes, 2 Grunts, $6, a **Rare Supply Drop** card, and three unit cards: **Grunts**, the **Ark** transport, and their faction's starter unit.
@@ -198,7 +198,7 @@ Ports and bridges don't upgrade. **Sabotage** knocks a level off a structure, an
 
 **Stacking.** A hex can hold up to **3 different buildings**, for example a Market★★, a Bunker and a Depot. Bridges take a hex to themselves.
 
-**Captured bases.** A FOB or Port you capture comes online at the start of your next turn, so you can't capture one and deploy on it the same turn.
+**New and captured bases.** A FOB you build, and a FOB or Port you capture, comes online at the start of your next turn. You can't build or capture one and deploy on it the same turn.
 
 ## HQ sieges
 
@@ -212,6 +212,8 @@ Taking an enemy HQ doesn't knock them out straight away: it puts their HQ **unde
 ## Encirclement
 
 If your territory completely surrounds a land pocket of 10 hexes or fewer, the pocket is **annexed** automatically. This works on neutral land, and on enemy hexes with no troops and no HQ, FOB or Port.
+
+The same goes for water: a pocket of 12 or fewer sea hexes walled in by your coast and your own sea, with no enemy ships inside, becomes yours.
 
 ## Trading
 
