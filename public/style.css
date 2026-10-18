@@ -843,3 +843,9 @@ body.host-page { overflow: auto; background: radial-gradient(ellipse at top, #16
 /* the glow pulses with `scale`, so it never fights the centring transform */
 .chest-glow { animation: chestGlow 1.2s ease-in-out infinite; }
 @keyframes chestGlow { 50% { scale: 1.12; opacity: .55; } }
+
+/* eliminated commanders: greyed out everywhere in the top bar */
+.pchip.dead { opacity: .55; filter: grayscale(1); }
+.pchip.dead .pn { color: #7f8a93; text-decoration: line-through; text-decoration-thickness: 2px; }
+.pchip.dead .pn .out { text-decoration: none; display: inline-block; font-size: 10px; color: #c9ced3; background: #2a333b; border-radius: 4px; padding: 0 4px; margin-left: 4px; }
+.pchip.dead .ps { opacity: .6; }

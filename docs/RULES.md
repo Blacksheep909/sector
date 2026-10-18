@@ -184,7 +184,7 @@ Units with a range stat fire instead of moving.
 
 ## Buildings and upgrades
 
-Build from the build bar (`Z` and onward, nine slots). To **upgrade** a structure, build the same one again on the same hex. Each structure goes up to ★★★, and each level costs more: ×1.5, then ×2.25.
+Build from the build bar (`Z` and onward, nine slots). To **upgrade** a structure, build the same one again on the same hex. Each structure goes up to ★★★, and each level costs more: ×1.5, then ×2.25. Every building you buy also makes the next one of that type $1 dearer (HQ fortification excepted), so spreading out across building types is cheaper than spamming one.
 
 | Structure | Per level |
 |---|---|

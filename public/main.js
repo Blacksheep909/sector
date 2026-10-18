@@ -697,7 +697,8 @@
       const c = el('div', 'pchip' + (curP().id === p.id && S.phase === 'play' ? ' cur' : '') + (p.alive ? '' : ' dead') + (p.id === you ? ' me' : ''));
       c.style.setProperty('--pc', p.color);
       const extra = S.map.beacon ? ` · ◆${p.koth}/3` : '';
-      c.innerHTML = `<div class="av"><img src="${Art.iconURL('glyph', f ? f.glyph : 'shield', '#0b0f13', 48)}"></div><div><div class="pn">${esc(p.name)}</div><div class="ps"><span>⬢ <b>${counts[p.id] || 0}</b></span><span>$<b>${p.cash}</b></span><span>🂠 <b>${p.tacticCount ?? p.tactics.length}</b></span>${extra}</div></div>`;
+      if (!p.alive) c.style.setProperty('--pc', '#5b6670');
+      c.innerHTML = `<div class="av"><img src="${Art.iconURL('glyph', f ? f.glyph : 'shield', '#0b0f13', 48)}"></div><div><div class="pn">${esc(p.name)}${p.alive ? '' : ' <span class="out">☠ OUT</span>'}</div><div class="ps"><span>⬢ <b>${counts[p.id] || 0}</b></span><span>$<b>${p.cash}</b></span><span>🂠 <b>${p.tacticCount ?? p.tactics.length}</b></span>${extra}</div></div>`;
       c.title = f ? f.name + ' — ' + f.perk + ': ' + f.desc : '';
       c.onclick = () => Render.focus(p.hq);
       if (isMyTurn() && S.turn.stage === 'act' && p.id !== you && p.alive && !S.trade) {
@@ -865,9 +866,16 @@
     tip.innerHTML = `<div class="btip"><img src="${Art.iconURL('struct', id, '#fff', 96)}"><b>${id === 'hq' ? 'Fortify HQ' : d.name} <span class="gold">$${me ? (id === 'hq' ? E.buildCost(S, me, 'hq', me.hq) : E.structCost(me, id)) : d.cost}</span></b><span>${d.desc}</span>${up}</div>`;
     const r = slot.getBoundingClientRect();
     tip.style.left = (r.left + r.width / 2) + 'px'; tip.style.top = (r.top - 12) + 'px';
-    tip.hidden = false;
+    tip.hidden = false; slotTipFor = slot;
   }
-  function hideSlotTip() { $('#slotTip').hidden = true; }
+  function hideSlotTip() { $('#slotTip').hidden = true; slotTipFor = null; }
+  let slotTipFor = null;
+  // any menu opening clears hover-only UI (card zoom, build tips, hex tooltip) so nothing floats on top of it
+  function clearHoverUI() { Cards.zoomHide(); hideSlotTip(); const t = $('#tooltip'); if (t) t.hidden = true; }
+  { const watched = ['#supply', '#crate', '#draft', '#combat', '#trade', '#offerPop', '#index', '#rules', '#modal', '#escMenu', '#hostPanel', '#victory', '#passCover', '#closedCover'];
+    const mo = new MutationObserver(muts => { if (muts.some(m => !m.target.hidden)) clearHoverUI(); });
+    for (const id of watched) { const e = $(id); if (e) mo.observe(e, { attributes: true, attributeFilter: ['hidden'] }); }
+    setInterval(() => { if (slotTipFor && (!document.contains(slotTipFor) || !slotTipFor.matches(':hover'))) hideSlotTip(); }, 200); }
 
   function armSlot(kind, id) {
     const ds = dispState(); const me = ds.players.find(p => p.id === you);
@@ -1346,19 +1354,22 @@
   function flipTile(k, pid, i) {
     const t = S.map.tiles[k]; if (!t) return;
     t.owner = pid; if (t.struct && t.struct.type !== 'hq') t.struct.owner = pid;
-    Render.recolor(); Render.pop(k);
+    Render.recolor();
+    if (E.isWater(t)) { SFX.capture(i); return; }   // sea fades to its new colour (see Render.recolor), no pop
+    Render.pop(k);
     Render.burst(k, [pColor(pid), '#fff'], 10, { size: 2.5, up: 120, square: true });
     SFX.capture(i);
   }
 
   // glide the camera to action happening off-screen
+  let evBy = null;
   function follow(k) {
-    if (!k || document.hidden) return;
+    if (!k || document.hidden || evBy !== you) return;   // other players' moves never pull your camera
     const [x, y] = Render.screenOf(k);
     if (x < innerWidth * 0.18 || x > innerWidth * 0.82 || y < innerHeight * 0.2 || y > innerHeight * 0.72) Render.focus(k);
   }
   async function playEvents(events, by) {
-    Render.setState(S);
+    Render.setState(S); evBy = by;
     const watch = by !== you;
     for (const ev of events) {
       switch (ev.e) {
@@ -1636,6 +1647,6 @@
   $('#rulesBtn').onclick = showRules; $('#rulesBtn2').onclick = showRules;
   for (const b of ['#indexBtn', '#indexBtn2', '#indexBtn3']) $(b).onclick = () => { SFX.select(); Cards.showIndex(); };
 
-  window.SECTOR_DEBUG = { resume: () => pump(), crushFx: ev => obliterate(ev), combatFx: ev => showCombat(ev), send, state: () => S, you: () => you, plan: () => plan, planState: () => planState, act: doAction, click: onHexClick };
+  window.SECTOR_DEBUG = { resume: () => pump(), refresh: () => refreshAll(), crushFx: ev => obliterate(ev), combatFx: ev => showCombat(ev), send, state: () => S, you: () => you, plan: () => plan, planState: () => planState, act: doAction, click: onHexClick };
   connect();
 })();

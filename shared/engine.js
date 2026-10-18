@@ -505,8 +505,9 @@
   function unitAtk(s, u) { const d = UNITS[u.type]; return d.atk + (d.atk ? levelOf(s, u) : 0); }
   function unitDef(s, u) { return UNITS[u.type].def + levelOf(s, u); }
   function unitCost(p, type) { let c = UNITS[type].cost; if (p && p.faction === 'volt' && type === 'hornet') c--; if (p && p.faction === 'ashen' && type === 'skitter') c--; return c; }
+  const STRUCT_RAMP = 1;   // +$ per earlier purchase of the same structure type
   function structCost(p, type, lvl) {
-    let c = STRUCTS[type].cost;
+    let c = STRUCTS[type].cost + (type === 'hq' ? 0 : STRUCT_RAMP * ((p.built && p.built[type]) || 0));
     if (lvl === 2) c = Math.round(c * 1.5); else if (lvl >= 3) c = Math.round(c * 2.25);
     if (p.faction === 'verdant') c = Math.max(1, c - 2);
     return c;
@@ -1328,6 +1329,7 @@
       const cost = buildCost(s, p, a.struct, a.hex);
       if (p.cash < cost) return fail('Need $' + cost);
       p.cash -= cost;
+      p.built = p.built || {}; p.built[a.struct] = (p.built[a.struct] || 0) + 1;
       const t = tiles[a.hex];
       const ex = getS(t, a.struct);
       if (ex) {
