@@ -181,9 +181,11 @@ function seatFor(c) {
 }
 function broadcastLobby() { const v = lobbyView(); for (const c of clients) send(c, { t: 'lobby', lobby: v }); }
 const undoStack = []; undoStack.owner = null;
+let fogMem = {};   // fog of war: what each commander has explored and last seen
+const fogFor = seat => seat ? (fogMem[seat] = fogMem[seat] || { explored: new Set(), seen: {} }) : null;
 function broadcastState(events, by, seq) {
   if (game && game.players[game.turn.idx] && game.players[game.turn.idx].id !== undoStack.owner) undoStack.length = 0;
-  for (const c of clients) { if (c.left) continue; const seat = seatFor(c); send(c, { t: 'state', state: E.view(game, seat), events: filterEvents(events, seat), by, seq, seat, mine: controls(c, by), undo: undoStack.owner === seat ? undoStack.length : 0, timeLeft: game && game.turn.deadline ? Math.max(0, game.turn.deadline - (game.turn.pausedAt || Date.now())) : 0, paused: !!(game && game.turn.pausedAt) }); }
+  for (const c of clients) { if (c.left) continue; const seat = seatFor(c); send(c, { t: 'state', state: E.view(game, seat, fogFor(seat)), events: filterEvents(events, seat), by, seq, seat, mine: controls(c, by), undo: undoStack.owner === seat ? undoStack.length : 0, timeLeft: game && game.turn.deadline ? Math.max(0, game.turn.deadline - (game.turn.pausedAt || Date.now())) : 0, paused: !!(game && game.turn.pausedAt) }); }
 }
 function filterEvents(events, pid) {
   let out = events.map(e => (e.e === 'card' && e.pid !== pid && e.kind === 'tactic' && e.rarity !== 'legendary') ? { ...e, id: null } : e);
@@ -219,7 +221,7 @@ function onMessage(c, m) {
       if (!lobby.hostId || !lobby.players.some(x => x.id === lobby.hostId && !x.bot)) lobby.hostId = p.id;
       send(c, { t: 'welcome', you: p.id, token: p.token });
       broadcastLobby();
-      if (game) { const seat = seatFor(c); send(c, { t: 'state', state: E.view(game, seat), events: [], seat }); afterChange(); }
+      if (game) { const seat = seatFor(c); send(c, { t: 'state', state: E.view(game, seat, fogFor(seat)), events: [], seat }); afterChange(); }
       return;
     }
     case 'me': {
@@ -287,7 +289,7 @@ function onMessage(c, m) {
       if (roster.length < 2) return send(c, { t: 'err', msg: lobby.players.length < 2 ? 'Need at least 2 commanders (add a bot)' : 'Need at least 2 commanders who are playing, not spectating' });
       const s = { ...lobby.settings, timer: +lobby.settings.timer || 0, maxRounds: +lobby.settings.maxRounds || 0, conquestPct: +lobby.settings.conquestPct || 60 };
       const r = E.createGame(s, roster);
-      game = r.state; botMem = {};
+      game = r.state; botMem = {}; fogMem = {};
       console.log('[game] started: ' + lobby.players.length + ' players, ' + s.mode + ', map ' + s.mapSize);
       broadcastLobby();
       broadcastState(r.events, null);
