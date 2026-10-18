@@ -2,6 +2,13 @@
 
 Every release, newest first. Each version also has its own post on the [Releases page](https://github.com/Blacksheep909/sector/releases).
 
+## v0.6.2
+
+- **⚡ Much smoother on big maps.** The board is now drawn into a cached layer that only redraws when the view or board changes. Per-frame drawing time on a Huge map dropped about 6× (8.4ms → 1.3ms zoomed out), and the expensive glow blurs on borders and markers were replaced with cheap look-alikes. Laptops should feel the difference most.
+- **Eliminating a commander is no longer a jackpot.** You take only their heartland (hexes within 2 of their HQ) plus $10 plunder. The rest of their empire collapses into neutral land, open to everyone, and the buildings out there are wrecked.
+- **Pick any colour.** In the lobby you can take a colour a bot is using. The bot swaps to your old colour, so no two commanders ever match. Colours held by other human players stay locked.
+- **Bunkers hold the line.** A defended Bunker now digs in against big attacks: it gains extra chips worth 40% of the attacker's chip lead (up to 4 per Bunker level). One tank barely dents a ★★ Bunker; it takes a real army to crack one.
+
 ## v0.6.1
 
 - **Captured Bunkers are destroyed.** Take an enemy commander's bunkered hex and the Bunker is blown up on the spot (with a demolition blast), so you can't turn their own defences against them. Other buildings on the hex still change hands. Neutral Old Forts still give you their Bunker.

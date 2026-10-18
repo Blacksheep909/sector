@@ -226,7 +226,12 @@ function onMessage(c, m) {
       const p = lobby.players.find(x => x.id === c.pid); if (!p || game) return;
       if (m.name) p.name = String(m.name).slice(0, 16);
       if (m.faction && E.FACTIONS[m.faction]) p.faction = m.faction;
-      if (m.color && E.COLORS.includes(m.color) && !lobby.players.some(x => x.color === m.color && x !== p)) p.color = m.color;
+      if (m.color && E.COLORS.includes(m.color) && m.color !== p.color) {
+        // a human-held colour stays locked; a bot holding it swaps to your old colour so nobody clashes
+        const holder = lobby.players.find(x => x.color === m.color && x !== p);
+        if (!holder) p.color = m.color;
+        else if (holder.bot || (holder.local && holder.controller === c.pid)) { holder.color = p.color; p.color = m.color; }
+      }
       return broadcastLobby();
     }
     case 'settings': if (c.pid !== lobby.hostId || game) return; Object.assign(lobby.settings, pick(m.settings, ['mode', 'mapSize', 'mapType', 'spawns', 'fog', 'events', 'timer', 'maxRounds', 'conquestPct', 'seed'])); return broadcastLobby();

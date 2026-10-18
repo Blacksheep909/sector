@@ -153,7 +153,7 @@
     }
     const cl = $('#colorList'); cl.innerHTML = '';
     for (const c of E.COLORS) {
-      const taken = lobby.players.some(p => p.color === c && p.id !== you);
+      const taken = lobby.players.some(p => p.color === c && p.id !== you && !p.bot && !(p.local && p.controller === realId));
       const d = el('div', 'c' + (me.color === c ? ' on' : '') + (taken ? ' taken' : '')); d.style.background = c;
       if (!taken) d.onclick = () => { SFX.click(); send({ t: 'me', color: c }); };
       cl.appendChild(d);
@@ -1524,7 +1524,8 @@
           banner(p.name.toUpperCase() + ' HAS FALLEN', ev.by ? 'conquered by ' + pName(ev.by) : '', '#b52b38');
           killUnits(ev.units.filter(id => S.units[id]), true);
           const hexes = ev.hexes.slice().sort((a, b) => E.dist(a, ev.hq) - E.dist(b, ev.hq));
-          for (let i = 0; i < hexes.length; i++) { if (ev.by) flipTile(hexes[i], ev.by, i % 12); else { S.map.tiles[hexes[i]].owner = null; Render.recolor(); } await sleep(26); }
+          const taken = new Set(ev.taken || (ev.by ? hexes : []));
+          for (let i = 0; i < hexes.length; i++) { if (taken.has(hexes[i])) flipTile(hexes[i], ev.by, i % 12); else { const tt = S.map.tiles[hexes[i]]; tt.owner = null; tt.structs = (tt.structs || []).filter(x => x.type === 'bridge'); tt.struct = tt.structs[0] || null; Render.recolor(); } await sleep(18); }
           await sleep(700);
           if (ev.pid === you) { SFX.lose(); toast('Your HQ fell. You can keep watching.', 'err'); }
           break;

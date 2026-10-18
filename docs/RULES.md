@@ -212,7 +212,7 @@ Build from the build bar (`Z` and onward, nine slots). To **upgrade** a structur
 | **Market** | +$3, and each level counts toward the trade network |
 | **Refinery** | +$2 (+$4 on a resource node or oil rig) |
 | **Depot** | +1 to its range for the move bonus |
-| **Bunker** | +3 garrison chips (even when empty, so it must be attacked) and +1 defence mult (★ gives +2). From ★★, your neighbouring hexes get +1 mult (Bunker Line). **Destroyed** when an enemy captures its hex |
+| **Bunker** | +3 garrison chips (even when empty, so it must be attacked) and +1 defence mult (★ gives +2). From ★★, your neighbouring hexes get +1 mult (Bunker Line). **Hold the Line:** when defended against a stronger attack, +40% of the attacker's chip lead (max 4 per level). **Destroyed** when an enemy captures its hex |
 | **Flak** | +1 hex of anti-air coverage |
 
 Ports and bridges don't upgrade. **Sabotage** knocks a level off a structure, and destroys it only at ★.
@@ -220,6 +220,10 @@ Ports and bridges don't upgrade. **Sabotage** knocks a level off a structure, an
 **Stacking.** A hex can hold up to **3 different buildings**, for example a Market★★, a Bunker and a Depot. Bridges take a hex to themselves.
 
 **New and captured bases.** A FOB you build, and a FOB or Port you capture, comes online at the start of your next turn. You can't build or capture one and deploy on it the same turn.
+
+## Eliminations
+
+When a commander falls, the conqueror takes their **heartland** (hexes within 2 of the fallen HQ) and $10 plunder. The rest of the fallen empire **collapses into neutral land** for anyone to claim, and the buildings out there are wrecked (bridges remain, unowned).
 
 ## HQ sieges
 
