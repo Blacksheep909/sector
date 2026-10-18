@@ -163,7 +163,7 @@
     depot: { name: 'Depot', cost: 4, desc: 'Logistics hub: your units starting their turn nearby get +1 move. Range = level.' },
     port: { name: 'Port', cost: 5, desc: 'Coast only. Launch ships into the adjacent sea. Supply source for sea lanes.' },
     bridge: { name: 'Bridge', cost: 6, desc: 'Span a 1-hex sea gap between two shores. Land units cross; ships cannot pass.' },
-    bunker: { name: 'Bunker', cost: 4, desc: '+2 Mult defence, +1 more per extra level.' },
+    bunker: { name: 'Bunker', cost: 4, desc: 'Strongpoint with its own garrison: +3 Chips per level even when empty, so enemies must attack it. +2 Mult defence (+1 per extra level). ★★+ also gives your neighbouring hexes +1 Mult.' },
     flak: { name: 'Flak', cost: 5, desc: 'Blocks enemy air tactics nearby (range = level). +2 Mult vs air.' },
   };
   const BUILD_ORDER = ['hq', 'fob', 'market', 'refinery', 'depot', 'port', 'bridge', 'bunker', 'flak'];
@@ -706,7 +706,7 @@
         let kind;
         if (enemy) { if (!canFight) continue; kind = 'attack'; }
         else if (land && !t.owner && (t.poi === 'village' || t.poi === 'fort')) { if (!canFight) continue; kind = 'attack'; }
-        else if (land && t.owner && t.owner !== pid) { const h = getS(t, 'hq'); kind = h && h.owner === t.owner ? (canFight ? 'attack' : null) : 'capture'; }
+        else if (land && t.owner && t.owner !== pid) { const h = getS(t, 'hq'), bk = getS(t, 'bunker'); kind = (h && h.owner === t.owner) || (bk && bk.owner === t.owner) ? (canFight ? 'attack' : null) : 'capture'; }
         else kind = land && !t.contam && stackFits(occ, units) ? 'move' : 'pass';
         if (!kind || (kind === 'capture' && t.contam)) continue;
         set(n, cc, cur, kind);
@@ -802,7 +802,13 @@
     const tm = isWater(t) || t.bridge ? 0 : (TERRAIN[t.t].defMult || 0);
     if (tm) { def.mult += tm; def.bonuses.push({ label: TERRAIN[t.t].name, mult: tm }); }
     const bk = getS(t, 'bunker'), fb = getS(t, 'fob');
-    if (bk && bk.owner === defPid) { const m = 1 + slvlOf(bk); def.mult += m; def.bonuses.push({ label: 'Bunker' + (slvlOf(bk) > 1 ? ' ' + '★'.repeat(slvlOf(bk)) : ''), mult: m }); }
+    if (bk && bk.owner === defPid) {
+      const L = slvlOf(bk), m = 1 + L;
+      def.chips += 3 * L; def.bonuses.push({ label: 'Bunker Garrison' + (L > 1 ? ' ' + '★'.repeat(L) : ''), chips: 3 * L });
+      def.mult += m; def.bonuses.push({ label: 'Bunker' + (L > 1 ? ' ' + '★'.repeat(L) : ''), mult: m });
+    } else if (defPid && t.owner === defPid && isLandTile(t) && neighbors(target).some(n => { const nb = s.map.tiles[n], b2 = nb && getS(nb, 'bunker'); return b2 && b2.owner === defPid && slvlOf(b2) >= 2 && nb.owner === defPid; })) {
+      def.mult += 1; def.bonuses.push({ label: 'Bunker Line', mult: 1 });
+    }
     if (fb && fb.owner === defPid) { const m = slvlOf(fb); def.mult += m; def.bonuses.push({ label: 'FOB Walls' + (m > 1 ? ' ' + '★'.repeat(m) : ''), mult: m }); }
     if (t.smoke && t.smoke === defPid) { def.mult += 2; def.bonuses.push({ label: 'Smoke Screen', mult: 2 }); }
     const aegis = Math.min(2, defenders.filter(u => UNITS[u.type].ability === 'aegis').length);
@@ -1127,7 +1133,7 @@
           for (const k of area(from, def.range)) {
             const t = tiles[k]; if (!isLandTile(t) || k === from || t.contam) continue;
             if ((idx[k] || []).length) continue;
-            if (getS(t, 'hq') || (!t.owner && ['village', 'fort'].includes(t.poi))) continue;
+            if (getS(t, 'hq') || (!t.owner && ['village', 'fort'].includes(t.poi)) || (t.owner && t.owner !== pid && getS(t, 'bunker') && getS(t, 'bunker').owner === t.owner)) continue;
             if (t.owner !== pid && flakCovered(s, pid, k)) continue;
             if (!stackFits([], ms)) continue;
             out.push(k);
@@ -1185,7 +1191,7 @@
       }
       if (!enclosed || comp.length > 10) continue;
       if (comp.some(c => (idx[c] || []).some(u => u.owner !== pid))) continue;
-      if (comp.some(c => structsOf(tiles[c]).some(x => ['hq', 'fob', 'port'].includes(x.type)) || (!tiles[c].owner && ['village', 'fort'].includes(tiles[c].poi)))) continue;
+      if (comp.some(c => structsOf(tiles[c]).some(x => ['hq', 'fob', 'port'].includes(x.type) || (x.type === 'bunker' && x.owner && x.owner === tiles[c].owner)) || (!tiles[c].owner && ['village', 'fort'].includes(tiles[c].poi)))) continue;
       for (const c of comp) if (captureTile(s, c, pid)) flipped.push(c);
     }
     // sea encirclement: a pocket of 12 or fewer water hexes walled in by your coast and your own sea flips to you
@@ -1247,6 +1253,7 @@
     for (const k of path.slice(1, -1)) {
       const t = s.map.tiles[k];
       if (t.owner === pid || (idx[k] || []).length) continue;
+      { const bk = getS(t, 'bunker'); if (bk && bk.owner === t.owner && t.owner) continue; }   // garrisoned bunkers aren't seized in passing
       if (navy ? isWater(t) : isLandTile(t)) { if (captureTile(s, k, pid)) out.push(k); }
     }
     return out;
