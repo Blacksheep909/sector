@@ -1036,6 +1036,28 @@
     const on = { 1: [4], 2: [0, 8], 3: [0, 4, 8], 4: [0, 2, 6, 8], 5: [0, 2, 4, 6, 8], 6: [0, 2, 3, 5, 6, 8] }[n];
     d.innerHTML = ''; for (let i = 0; i < 9; i++) d.appendChild(el('i', on.includes(i) ? 'on' : ''));
   }
+  // a fight with a 100% win chance skips the dice: the defenders are crushed on the spot
+  async function obliterate(ev) {
+    const all = ev.killed.length >= ev.def.units.length;
+    const word = ev.ranged && !all ? 'DIRECT HIT!' : 'OBLITERATED!';
+    const [x, y] = Render.screenOf(ev.to);
+    const ff = fastForward ? 0.4 : 1;
+    // wind-up: attacker stacks lunge in
+    if (!ev.ranged) for (const st of ev.stages || [ev.from]) Render.beam(st, ev.to, pColor(ev.att.pid), 0.25, 40);
+    SFX.whoosh(); await sleep(180 * ff);
+    // impact
+    Render.flash(0.35, '#ffffff'); Render.shake(20);
+    Render.ring(ev.to, '#ffffff', 90, 0.45, 8); Render.ring(ev.to, '#ff4f5e', 140, 0.7, 7); Render.ring(ev.to, '#ffc53d', 190, 0.95, 5);
+    Render.burst(ev.to, ['#ffffff', '#ffc53d', '#ff4f5e', '#ff7a2a', '#3a3a3a'], 70, { speed: 2.4, size: 4.5, up: 160 });
+    Render.smoke(ev.to, 16, 'rgba(90,80,70,');
+    SFX.boom(1.5); SFX.victoryHit();
+    const t = el('div', 'oblit', `<b>${word}</b><small>${ev.killed.length} unit${ev.killed.length === 1 ? '' : 's'} wiped out · no contest</small>`);
+    t.style.left = x + 'px'; t.style.top = y + 'px'; t.style.setProperty('--pc', pColor(ev.att.pid));
+    $('#flyLayer').appendChild(t);
+    if (ev.att.pid === you) SFX.win();
+    setTimeout(() => t.remove(), 1900);
+    await sleep(1100 * ff);
+  }
   async function showCombat(ev) {
     try { await combatSeq(ev); } catch (e) { console.error(e); }
     $('#combat').hidden = true; $('#combat').onclick = null;
@@ -1398,7 +1420,7 @@
             SFX.shot(); Render.beam(ev.from, ev.to, '#ffcf5a', 0.45 * speed(), 70); await sleep(450);
             Render.burst(ev.to, ['#ffcf5a', '#fff'], 14, { speed: 1.2 }); SFX.boom(0.6);
           }
-          await showCombat(ev);
+          if (ev.crush) await obliterate(ev); else await showCombat(ev);
           killUnits(ev.killed.concat(ev.pyrrhic), ev.killed.length > 2);
           await sleep(350); break;
         }
@@ -1614,6 +1636,6 @@
   $('#rulesBtn').onclick = showRules; $('#rulesBtn2').onclick = showRules;
   for (const b of ['#indexBtn', '#indexBtn2', '#indexBtn3']) $(b).onclick = () => { SFX.select(); Cards.showIndex(); };
 
-  window.SECTOR_DEBUG = { resume: () => pump(), send, state: () => S, you: () => you, plan: () => plan, planState: () => planState, act: doAction, click: onHexClick };
+  window.SECTOR_DEBUG = { resume: () => pump(), crushFx: ev => obliterate(ev), send, state: () => S, you: () => you, plan: () => plan, planState: () => planState, act: doAction, click: onHexClick };
   connect();
 })();

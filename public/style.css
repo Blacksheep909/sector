@@ -765,3 +765,20 @@ body.host-page { overflow: auto; background: radial-gradient(ellipse at top, #16
 .prow .nm { min-width: 64px; }
 .prow .specbtn { width: 28px; height: 26px; padding: 0; font-size: 13px; flex: none; }
 .prow.spec .fx { color: #8fd8ff; }
+
+/* OBLITERATED: certain-win crush, no dice */
+.oblit { position: fixed; transform: translate(-50%, -50%); text-align: center; pointer-events: none; z-index: 95; animation: oblitIn 1.8s cubic-bezier(.2,1.5,.4,1) forwards; white-space: nowrap; }
+.oblit b { display: block; font-family: var(--title); font-weight: 400; font-size: 58px; letter-spacing: 3px; color: #fff;
+  -webkit-text-stroke: 3px #0b0f13; paint-order: stroke fill;
+  text-shadow: 0 5px 0 #b52b38, 0 9px 0 #000, 0 0 30px var(--pc, #ff4f5e), 0 0 60px rgba(255,197,61,.7); }
+.oblit small { display: inline-block; margin-top: 6px; font-size: 13px; font-weight: 800; letter-spacing: 1.5px; text-transform: uppercase; color: #ffc53d; background: #0b0f13; padding: 3px 10px; border-radius: 6px; border: 2px solid var(--pc, #ff4f5e); }
+@keyframes oblitIn {
+  0% { transform: translate(-50%, -50%) scale(3.2) rotate(-12deg); opacity: 0; filter: blur(6px); }
+  12% { transform: translate(-50%, -50%) scale(.86) rotate(-5deg); opacity: 1; filter: blur(0); }
+  20% { transform: translate(-50%, -50%) scale(1.08) rotate(-6deg); }
+  26% { transform: translate(-52%, -50%) scale(1) rotate(-6deg); }
+  30% { transform: translate(-48%, -50%) scale(1) rotate(-6deg); }
+  34% { transform: translate(-50%, -50%) scale(1) rotate(-6deg); }
+  75% { transform: translate(-50%, -70%) scale(1) rotate(-6deg); opacity: 1; }
+  100% { transform: translate(-50%, -95%) scale(.92) rotate(-6deg); opacity: 0; }
+}

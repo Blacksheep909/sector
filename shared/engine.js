@@ -824,11 +824,12 @@
     if (calc.aNull && ra <= 2) ra = 3;
     if (calc.dNull && rd <= 2) rd = 3;
     const aScore = calc.att.chips * Math.max(1, ra + calc.att.mult), dScore = calc.def.chips * Math.max(1, rd + calc.def.mult);
-    const attWin = aScore > dScore;
+    const crush = calc.winProb >= 1;   // every possible roll wins: the defenders are simply crushed
+    const attWin = crush || aScore > dScore;
     const killed = [], pyrrhic = [];
     if (attWin) {
       killed.push(...defenders);
-      if (dScore >= 0.6 * aScore && units.length > 1 && !units.some(u => ['juggernaut', 'titan', 'medic'].includes(UNITS[u.type].ability))) pyrrhic.push(weakest(units));
+      if (!crush && dScore >= 0.6 * aScore && units.length > 1 && !units.some(u => ['juggernaut', 'titan', 'medic'].includes(UNITS[u.type].ability))) pyrrhic.push(weakest(units));
     } else {
       killed.push(...units);
       if (aScore >= 0.6 * dScore && defenders.length > 1 && !defenders.some(u => ['juggernaut', 'titan', 'medic'].includes(UNITS[u.type].ability))) pyrrhic.push(weakest(defenders));
@@ -839,7 +840,7 @@
       e: 'combat', ranged: false, from: stages[0], stages, to: target,
       att: { ...calc.att, roll: ra, raw: rawA, score: aScore, units: units.map(u => u.type) },
       def: { ...calc.def, roll: rd, raw: rawD, score: dScore, units: defenders.map(u => u.type) },
-      attWin, killed: killed.map(u => u.id), pyrrhic: pyrrhic.map(u => u.id), winProb: calc.winProb,
+      attWin, crush, killed: killed.map(u => u.id), pyrrhic: pyrrhic.map(u => u.id), winProb: calc.winProb,
     });
     const ap = player(s, pid), dp = player(s, defPid);
     const survivors = units.filter(u => s.units[u.id]);
@@ -859,7 +860,7 @@
     }
     // everyone who didn't advance goes back to where they started
     for (const g of groups) for (const u of g.units) if (s.units[u.id] && u.hex !== target) u.hex = g.from;
-    pushLog(s, '⚔ ' + (ap ? ap.name : '?') + (groups.length > 1 ? ' launched a ' + groups.length + '-way assault on ' : ' attacked ') + (dp ? dp.name : 'a garrison') + ' — ' + aScore + ' vs ' + dScore + (attWin ? ' · WIN' : ' · REPELLED'));
+    pushLog(s, '⚔ ' + (ap ? ap.name : '?') + (groups.length > 1 ? ' launched a ' + groups.length + '-way assault on ' : ' attacked ') + (dp ? dp.name : 'a garrison') + ' — ' + aScore + ' vs ' + dScore + (crush ? ' · OBLITERATED' : attWin ? ' · WIN' : ' · REPELLED'));
     return attWin;
   }
   function resolveFire(s, pid, units, from, target, rng, ev) {
@@ -869,7 +870,8 @@
     if (calc.aNull && ra <= 2) ra = 3;
     if (calc.dNull && rd <= 2) rd = 3;
     const aScore = calc.att.chips * Math.max(1, ra + calc.att.mult), dScore = calc.def.chips * Math.max(1, rd + calc.def.mult);
-    const attWin = aScore > dScore, killed = [];
+    const crush = calc.winProb >= 1;
+    const attWin = crush || aScore > dScore, killed = [];
     if (attWin) {
       const pool = defenders.filter(u => UNITS[u.type].ability !== 'stealth');
       const n = aScore >= 2 * dScore ? 2 : 1;
@@ -881,7 +883,7 @@
       e: 'combat', ranged: true, from, stages: [from], to: target,
       att: { ...calc.att, roll: ra, raw: rawA, score: aScore, units: units.map(u => u.type) },
       def: { ...calc.def, roll: rd, raw: rawD, score: dScore, units: defenders.map(u => u.type) },
-      attWin, killed: killed.map(u => u.id), pyrrhic: [], winProb: calc.winProb,
+      attWin, crush, killed: killed.map(u => u.id), pyrrhic: [], winProb: calc.winProb,
     });
     const ap = player(s, pid), dp = player(s, defPid);
     pushLog(s, '💥 ' + (ap ? ap.name : '?') + ' shelled ' + (dp ? dp.name : '?') + ' — ' + aScore + ' vs ' + dScore + (attWin ? ' · HIT' : ' · MISS'));

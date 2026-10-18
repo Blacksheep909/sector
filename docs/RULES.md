@@ -158,6 +158,8 @@ You **throw your own die**: drag and fling it in the dice tray, or press `Space`
 | Aegis / Flak | +1 defender mult / +2 vs air |
 | Shore Assault | −1 mult when ships alone attack a land hex |
 
+**No contest.** When the odds show 100%, every possible roll wins, so there's no dice roll at all. The defenders are **obliterated** on the spot, and you take no pyrrhic losses.
+
 ## Artillery and gunships
 
 Units with a range stat fire instead of moving.
