@@ -721,7 +721,7 @@
     else if (!countCash.running) $('#cash').textContent = me.cash;
     const inc = E.computeIncome(S, you);
     $('#incomeLine').innerHTML = `Income <b>+$${inc.total}</b> /turn` + (planning() ? ' · <span style="color:var(--blue)">blueprint view</span>' : '');
-    $('#incomeLine').title = `Base $${inc.base} + $${inc.fromHex} land (${inc.hexes} hexes, 1 per 3) + $${inc.fromSea} sea (${inc.sea} hexes, 1 per 4) + $${inc.fromRes} resources/rigs + $${inc.ref} refineries + $${inc.trade} markets`;
+    $('#incomeLine').title = `Base $${inc.base} + $${inc.fromHex} land (${inc.hexes} hexes, 1 per 3) + $${inc.fromSea} sea (${inc.sea} hexes, 1 per 4) + $${inc.fromRes} resources/rigs + $${inc.fish || 0} fishing + $${inc.lanes || 0} shipping lanes + $${inc.ref} refineries + $${inc.trade} markets + $${inc.poi || 0} villages/relics`;
     $('#hexLine').innerHTML = `⬢ ${inc.hexes} land · ≈ ${inc.sea} sea` + (inc.cut ? ` · <span style="color:#ff9aa3">${inc.cut} cut off</span>` : '');
 
   }
@@ -746,7 +746,9 @@
     box.hidden = false;
     const owner = t.owner ? ds.players.find(p => p.id === t.owner) : null;
     const tags = [];
-    if (t.res) tags.push('<span class="hp-tag res">◆ Resource +$2</span>');
+    if (t.res) tags.push(`<span class="hp-tag res">◆ ${E.isWater(t) ? 'Oil rig' : 'Resource'} +$2</span>`);
+    if (t.fish) tags.push('<span class="hp-tag res">🐟 Fishing grounds +$1</span>');
+    if (E.structsOf(t).some(x => x.type === 'port')) tags.push('<span class="hp-tag">⚓ Shipping lanes: +$1 per 4 of your connected sea hexes (max $5)</span>');
     if (E.TERRAIN[t.t].defMult) tags.push(`<span class="hp-tag">+${E.TERRAIN[t.t].defMult} Mult defence</span>`);
     if (E.TERRAIN[t.t].moveCost) tags.push('<span class="hp-tag">Costs 2 move</span>');
     if (E.TERRAIN[t.t].bog) tags.push('<span class="hp-tag">Attackers −1 Mult</span>');
@@ -990,7 +992,7 @@
       const t = ds.map.tiles[k];
       const units = Object.values(ds.units).filter(u => u.hex === k);
       if (!units.length && !t.struct && !t.res && !t.owner) return hideTip();
-      html = `<b style="color:${t.owner ? pColor(t.owner) : '#fff'}">${t.owner ? esc(pName(t.owner)) : 'Unclaimed'}</b> · ${t.bridge ? 'Bridge' : t.contam ? 'Fallout' : E.TERRAIN[t.t].name}` + (t.res ? ` · <span style="color:#9ffcf2">${E.isWater(t) ? 'Oil rig' : 'Resource'} +$2</span>` : '') + (t.poi && E.POI[t.poi] && !(t.poi === 'fort' && t.owner) ? ` · <span style="color:var(--gold)">${E.POI[t.poi].name}</span>` : '');
+      html = `<b style="color:${t.owner ? pColor(t.owner) : '#fff'}">${t.owner ? esc(pName(t.owner)) : 'Unclaimed'}</b> · ${t.bridge ? 'Bridge' : t.contam ? 'Fallout' : E.TERRAIN[t.t].name}` + (t.res ? ` · <span style="color:#9ffcf2">${E.isWater(t) ? 'Oil rig' : 'Resource'} +$2</span>` : '') + (t.fish ? ' · <span style="color:#9ffcf2">Fishing grounds +$1</span>' : '') + (t.poi && E.POI[t.poi] && !(t.poi === 'fort' && t.owner) ? ` · <span style="color:var(--gold)">${E.POI[t.poi].name}</span>` : '');
       if (!t.bridge) for (const st of E.structsOf(t)) html += `<div class="tip-struct"><img src="${Art.iconURL('struct', st.type, '#fff', 40)}">${E.STRUCTS[st.type].name} <span class="gold">${'★'.repeat(st.lvl || 1)}</span>${st.siege ? ' <b style="color:#ff6a4a">UNDER SIEGE</b>' : ''}</div>`;
       html += intel(ds, k);
     }

@@ -358,6 +358,16 @@ const Render = (() => {
       ctx.fillStyle = 'rgba(255,255,255,.12)'; for (let i = 0; i < 3; i++) ctx.fillRect(cx + (i - 1) * 7 * z + (v * 10 - 5) * z, cy + (i % 2) * 4 * z, 1.6 * z, 4 * z);
     }
     if (tile.bridge) drawBridge(tile, c.q + ',' + c.r, cx, cy, s, z);
+    if (tile.fish) {
+      const bob = Math.sin(t * 2.4 + v * 9) * 1.5 * z, x = cx - 6 * z, y = cy + bob;
+      ctx.strokeStyle = 'rgba(200,240,255,.35)'; ctx.lineWidth = 1.2 * z;
+      for (let i = 0; i < 2; i++) { const r = ((t * 0.6 + v + i * 0.5) % 1) * 12 * z; ctx.globalAlpha = 1 - r / (12 * z); ctx.beginPath(); ctx.ellipse(x, y + 3 * z, r, r * 0.4, 0, 0, Math.PI * 2); ctx.stroke(); }
+      ctx.globalAlpha = 1;
+      ctx.fillStyle = '#f1efe6'; ctx.fillRect(x - 0.8 * z, y - 9 * z, 1.6 * z, 10 * z);
+      ctx.fillStyle = '#ff4f5e'; ctx.beginPath(); ctx.arc(x, y - 9 * z, 2.6 * z, 0, Math.PI * 2); ctx.fill();
+      const jump = (t * 0.5 + v * 3) % 3;
+      if (jump < 0.9) { const p = jump / 0.9, fx = cx + 6 * z + p * 10 * z, fy = cy + 2 * z - Math.sin(p * Math.PI) * 10 * z; ctx.save(); ctx.translate(fx, fy); ctx.rotate(-Math.cos(p * Math.PI) * 0.9); ctx.fillStyle = '#9fd9ff'; ctx.beginPath(); ctx.ellipse(0, 0, 3.2 * z, 1.4 * z, 0, 0, Math.PI * 2); ctx.fill(); ctx.beginPath(); ctx.moveTo(-3 * z, 0); ctx.lineTo(-5.5 * z, -1.8 * z); ctx.lineTo(-5.5 * z, 1.8 * z); ctx.fill(); ctx.restore(); }
+    }
     if (tile.res && tile.t === 'water') drawRig(cx, cy, z, v);
     else if (tile.res) {
       const bob = Math.sin(t * 2.2 + v * 6) * 2 * z, x = cx + s * 0.38, y = cy - 4 * z + bob;

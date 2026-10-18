@@ -7,6 +7,17 @@
 
 > The first launch asks for network access: tick **Private networks**. SmartScreen may warn that the exe is unsigned: click *More info → Run anyway*.
 
+## What's new in v0.5
+
+**The sea is worth taking**, though it's never required: players who stay on land lose nothing.
+
+- **Fishing grounds:** shoals with red buoys, worth +$1 each while you hold them.
+- **Twice as many offshore oil rigs** (+$2 each).
+- **Shipping lanes:** every Port earns $1 per 4 of your sea hexes connected to it, up to $5 per Port.
+- **Treasure islands:** small islands now hold ruins, caches, villages and relics. Sail an Ark over to grab them.
+- **Naval gunfire:** each warship next to a land fight adds +2 chips to its side (up to 3 ships), whether attacking or defending. Fleets now back up the land war.
+- **Smarter bot admirals:** bots build Ports when there are prizes at sea, chase rigs and fishing grounds, and raid treasure islands.
+
 ## What's new in v0.4.1
 
 - **A real server window.** Sector.exe is a dedicated server with a live terminal dashboard showing your addresses, players, status, updates and activity. Keys: **O** open the game, **C** copy the invite, **U** update, **Q** stop. The game itself lives in the browser.

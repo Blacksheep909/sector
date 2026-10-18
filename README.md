@@ -60,7 +60,7 @@ There are no accounts, no internet servers and no port forwarding. Prefer one sc
 | 🃏 **Cards** | A deck of up to 10 unit cards. Pull a duplicate and it levels up (★ +1 ATK/DEF, max ★★★). Five rarities from Common to Legendary, and every Legendary is unique. |
 | 🎰 **Supply Drop** | A tactic card in Rare, Epic and Legendary versions. Playing it spins a slot-machine reel for a crate tier, then the crate bursts open. |
 | 🎲 **Combat** | Score = chips × (d6 + mult). Throw the die yourself. Combined Arms, Pincers, Flanking, terrain and structures all stack. |
-| ⚓ **Navy** | Claim sea lanes, take offshore oil rigs, shell coastlines, and run amphibious invasions with Ark transports. Build bridges across narrow straits. |
+| ⚓ **Navy** | Claim sea lanes, oil rigs and fishing grounds, earn shipping-lane income from your Ports, raid treasure islands with Ark transports, and back up land battles with naval gunfire. Build bridges across narrow straits. |
 | 🏭 **Economy and logistics** | Hexes only pay if they're connected by supply to your HQ, a FOB or a Port. Build Markets, Refineries and Depots, and **stack them up to ★★★**. Fortify your HQ. Encircle enemy pockets to annex them. |
 | 🌐 **Easy LAN** | A host/join panel scans your Wi-Fi for games. The Esc menu lets you leave mid-game, and a bot takes over your seat. |
 | 🤝 **Diplomacy** | Trade cash and cards with other players. Bots haggle too. |
