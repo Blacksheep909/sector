@@ -524,12 +524,14 @@ const Art = (() => {
       rr(c, -0.03, -0.95, 0.06, 0.62, 0.02); c.fill(); poly(c, [0.03, -0.95, 0.55, -0.82, 0.03, -0.66]); c.fill();
     },
     aegis(c) {
-      // a hexagonal energy dome over a shield
-      c.save(); c.lineWidth = 0.08; c.strokeStyle = c.fillStyle; c.beginPath(); c.arc(0, 0.4, 0.95, P, 0); c.stroke();
-      for (const [x, y] of [[-0.55, -0.15], [0, -0.4], [0.55, -0.15]]) { c.beginPath(); for (let i = 0; i < 6; i++) { const a = i * P / 3; c.lineTo(x + Math.cos(a) * 0.17, y + Math.sin(a) * 0.17); } c.closePath(); c.stroke(); } c.restore();
-      c.beginPath(); c.moveTo(0, -0.12); c.lineTo(0.42, 0.02); c.lineTo(0.38, 0.42); c.quadraticCurveTo(0.25, 0.75, 0, 0.88); c.quadraticCurveTo(-0.25, 0.75, -0.38, 0.42); c.lineTo(-0.42, 0.02); c.closePath(); c.fill();
-      c.save(); c.fillStyle = 'rgba(0,0,0,.35)'; c.beginPath(); c.moveTo(0, -0.12); c.lineTo(0, 0.88); c.quadraticCurveTo(0.25, 0.75, 0.38, 0.42); c.lineTo(0.42, 0.02); c.closePath(); c.fill(); c.restore();
-      rr(c, -1, 0.38, 2, 0.08, 0.03); c.fill();
+      // a big shield under a ring of hexagonal force-field cells, all inside the icon box
+      c.save(); c.lineWidth = 0.07; c.strokeStyle = c.fillStyle;
+      const cells = [[-0.62, -0.28], [-0.36, -0.62], [0, -0.76], [0.36, -0.62], [0.62, -0.28]];
+      for (const [x, y] of cells) { c.beginPath(); for (let i = 0; i < 6; i++) { const a = i * Math.PI / 3; c.lineTo(x + Math.cos(a) * 0.15, y + Math.sin(a) * 0.15); } c.closePath(); c.stroke(); }
+      c.restore();
+      c.beginPath(); c.moveTo(0, -0.42); c.lineTo(0.52, -0.24); c.lineTo(0.48, 0.24); c.quadraticCurveTo(0.34, 0.68, 0, 0.88); c.quadraticCurveTo(-0.34, 0.68, -0.48, 0.24); c.lineTo(-0.52, -0.24); c.closePath(); c.fill();
+      c.save(); c.fillStyle = 'rgba(0,0,0,.35)'; c.beginPath(); c.moveTo(0, -0.42); c.lineTo(0, 0.88); c.quadraticCurveTo(0.34, 0.68, 0.48, 0.24); c.lineTo(0.52, -0.24); c.closePath(); c.fill(); c.restore();
+      c.save(); c.fillStyle = 'rgba(255,255,255,.3)'; c.beginPath(); c.moveTo(-0.08, -0.12); c.lineTo(0.08, -0.12); c.lineTo(0.06, 0.42); c.lineTo(-0.06, 0.42); c.closePath(); c.fill(); c.fillRect(-0.24, 0.04, 0.48, 0.12); c.restore();
     },
   });
   // Carrier: a flat-deck legendary airbase
@@ -552,6 +554,13 @@ const Art = (() => {
     relic(c) { poly(c, [0, -0.95, 0.5, -0.1, 0, 0.95, -0.5, -0.1]); c.fill(); c.save(); c.fillStyle = 'rgba(0,0,0,.3)'; poly(c, [0, -0.95, 0.5, -0.1, 0, -0.1]); c.fill(); c.restore(); },
   };
   const STRUCT = {
+    mine(c) {
+      circ(c, 0, -0.05, 0.5); c.fill();
+      for (let i = 0; i < 8; i++) { const a = i * Math.PI / 4; c.save(); c.translate(Math.cos(a) * 0.5, -0.05 + Math.sin(a) * 0.5); c.rotate(a); rr(c, -0.02, -0.07, 0.26, 0.14, 0.04); c.fill(); circ(c, 0.26, 0, 0.09); c.fill(); c.restore(); }
+      c.save(); c.fillStyle = 'rgba(0,0,0,.35)'; circ(c, 0.1, 0.05, 0.36); c.fill(); c.restore();
+      c.save(); c.fillStyle = 'rgba(255,255,255,.35)'; circ(c, -0.16, -0.22, 0.1); c.fill(); c.restore();
+      rr(c, -0.03, 0.45, 0.06, 0.45, 0.02); c.fill();
+    },
     hq(c) { poly(c, [-0.55, 0.8, -0.4, -0.3, 0.4, -0.3, 0.55, 0.8]); c.fill(); rr(c, -0.55, -0.5, 1.1, 0.28, 0.04); c.fill(); for (let i = -2; i <= 2; i++) c.fillRect(i * 0.22 - 0.07, -0.68, 0.14, 0.2); },
     fob(c) { poly(c, [-0.85, 0.7, 0, -0.35, 0.85, 0.7]); c.fill(); rr(c, -0.04, -0.95, 0.08, 0.7, 0.02); c.fill(); poly(c, [0.04, -0.95, 0.6, -0.8, 0.04, -0.62]); c.fill(); },
     bunker(c) { c.beginPath(); c.arc(0, 0.55, 0.8, P, 0); c.closePath(); c.fill(); c.save(); c.fillStyle = 'rgba(0,0,0,.5)'; c.fillRect(-0.4, 0.05, 0.8, 0.12); c.restore(); },

@@ -2,6 +2,30 @@
 
 Every release, newest first. Each version also has its own post on the [Releases page](https://github.com/Blacksheep909/sector/releases).
 
+## v0.7.1
+
+**Ready up, rivers, sea mines, and a lot faster.**
+
+**New**
+- **✔ Ready up:** every guest presses READY UP before the host can deploy. Changing a setting un-readies everyone.
+- **🌊 Rivers** wind from the highlands to the sea. Fording costs 2 move, river hexes defend at +1, and every 3 river hexes you hold pay +$1.
+- **💣 Sea Mines:** the naval Bunker. Build them in your own sea (up to ★★★); enemy ships have to fight through a minefield instead of sailing past. Bots lay them in front of their Ports.
+- **Host online:** a new [hosting guide](https://github.com/Blacksheep909/sector/blob/main/docs/HOSTING.md) covers playing through a free Cloudflare tunnel (no port forwarding, your IP stays hidden) or on a cloud server, with a Dockerfile and a **public mode** (`npm run start:public`).
+
+**Faster**
+- **Card picking is smooth again:** the spinning sunburst behind the draft and resupply was a huge 2× layer; it's now screen-sized, and the card glows no longer repaint every frame.
+- **The board no longer stutters on slower PCs:** it redraws its animated scenery less often when that's expensive, unit tokens are cached instead of redrawn every frame, and the menu background stops repainting constantly.
+
+**Fixes**
+- **Sea tiles** shimmer smoothly instead of flashing.
+- **The EMP** is a clean electric shockwave with crackling arcs, and frozen units show a calm pulse and a lightning badge.
+- **Spy Ring** works (it couldn't find targets in your browser).
+- **Nothing else can be built on an HQ hex;** the Fortify card fortifies the HQ instead.
+- **Chat** no longer overlaps the build bar.
+- **The card index** shows where Mythics are (they're tactics) instead of an empty page.
+- **Aegis Protocol** has a properly sized icon, the Mythic cards no longer overflow, and long card names shrink to fit.
+- **Security:** the host panel can't be reached through tunnels or proxies, and public servers don't reveal private network addresses.
+
 ## v0.7.0
 
 **The huge one.** Teams and World War modes, Mythic cards, a Carrier, ocean maps, smarter bots with moods, an end-of-game War Report, taking over bots mid-game, and a big pile of fixes and balance.

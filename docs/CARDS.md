@@ -32,7 +32,7 @@ Unit cards are permanent unlocks: deploy as many as you can afford.
 | **Leviathan** | Vehicle | Legendary | $14 | 12 | 10 | 1 | – | Land dreadnought. Never suffers pyrrhic losses. |
 | **Titan** | Vehicle | Legendary | $16 | 13 | 12 | 1 | – | Colossus. Siege Breaker and never suffers pyrrhic losses. |
 | **Seraph** | Air | Legendary | $12 | 9 | 4 | 5 | – | Gunship. Seizes enemy hexes it flies over. |
-| **Carrier** | Naval | Legendary | $13 | 3 | 9 | 3 | – | Floating airbase. Deploy aircraft straight onto it, fly them off it, land them back. Carries up to 4 aircraft. |
+| **Carrier** | Naval | Legendary | $13 | 3 | 9 | 3 | – | Floating airbase: deploy aircraft onto it and fly them off it. Holds 4. |
 | **Oracle** | Artillery | Legendary | $11 | 8 | 3 | 2 | 4 | Orbital uplink. Range 4, ignores mountains. |
 | **Abyssal** | Naval | Legendary | $15 | 12 | 10 | 3 | 4 | Sea dreadnought. Range 4. Never suffers pyrrhic losses. |
 
@@ -45,7 +45,7 @@ Single-use cards from your hand.
 | **Smoke Screen** | Common | $1 | A hex you own gets +2 Mult on defence until your next turn. |
 | **Forced March** | Common | $1 | Units on one hex may act again, with +2 move. |
 | **Rally** | Common | $1 | Your next attack this turn gets +2 Mult. |
-| **Fortify** | Common | $2 | Build or upgrade a Bunker on one of your hexes for free. |
+| **Fortify** | Common | $2 | Build or upgrade a Bunker on one of your hexes for free (on your HQ hex it fortifies the HQ instead). |
 | **Conscription** | Common | $1 | Deploy 2 free Grunts at a deploy point. |
 | **Airstrike** | Uncommon | $4 | Bomb enemy units within 4 of your land. Roll: kills 1–3. |
 | **Heli Drop** | Uncommon | $3 | Fly a stack up to 5 hexes onto any empty land and seize it. |
@@ -73,6 +73,7 @@ Built from the hotbar (keys Z–M) on hexes you own that are connected to supply
 | **Port** | $5 | Coast only. Launch ships into the adjacent sea. Supply source for sea lanes. |
 | **Bridge** | $6 | Span a 1-hex sea gap between two shores. Land units cross; ships cannot pass. |
 | **Bunker** | $4 | Strongpoint with its own garrison: +3 Chips per level even when empty, so enemies must attack it. +2 Mult defence (+1 per extra level). ★★+ also gives your neighbouring hexes +1 Mult. Digs in against big attacks: +40% of the attacker chip lead (up to 4 per level). ★★★ Citadel: 14 garrison Chips, +5 Mult, +2 Mult to neighbours, and holds 60% of the lead (up to 20). Destroyed if an enemy captures it. |
+| **Sea Mine** | $4 | A minefield on one of your sea hexes: the naval Bunker. +3 Chips per level even when empty, so enemy ships must fight their way through instead of sailing past. +2 Mult defence (+1 per extra level). Cleared if an enemy captures the hex. |
 | **Flak** | $5 | Blocks enemy air tactics nearby (range = level). +2 Mult vs air. |
 
 ## Factions

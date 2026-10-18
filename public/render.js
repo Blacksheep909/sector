@@ -11,6 +11,7 @@ const Render = (() => {
 
   let cv, ctx, W = 0, H = 0, DPR = 1;
   const late = [];
+  let layerCost = 0, menuKey = '';
   let lc = null, lctx = null, layerKey = '', layerT = -1, stateVer = 0, fadeUntil = 0;   // cached terrain layer
   let S_ = null;                 // display state
   let order = [];                // tile keys sorted for drawing
@@ -20,7 +21,7 @@ const Render = (() => {
   const unitPos = {};            // id -> {x,y} world override during animation
   const unitHidden = new Set();  // units hidden during animation
   const extraUnits = [];         // units shown during animation not yet in state
-  const fx = { parts: [], floats: [], rings: [], beams: [], lances: [], shake: 0, flash: 0, flashCol: '#fff', pops: {} };
+  const fx = { parts: [], floats: [], rings: [], beams: [], lances: [], emps: [], shake: 0, flash: 0, flashCol: '#fff', pops: {} };
   let t = 0, lastT = 0;
 
   // ── colour helpers ──
@@ -181,6 +182,8 @@ const Render = (() => {
   }
   function float(k, text, color = '#fff', size = 22, dur = 1.3) { const [x, y] = Array.isArray(k) ? k : topOf(k); fx.floats.push({ x, y: y - 20, text, color, size, t0: t, dur }); }
   function ring(k, color, r1 = 80, dur = 0.6, w = 4) { const [x, y] = Array.isArray(k) ? k : topOf(k); fx.rings.push({ x, y, color, r1, t0: t, dur, w }); }
+  // EMP: an electric shockwave rolling out over a hex and its ring, with crackling arcs
+  function emp(k, dur = 1.2) { fx.emps.push({ b: topOf(k), t0: t, dur }); }
   // orbital lance: a column of light straight down from the sky onto hex k
   function lance(k, color, dur = 0.9) { fx.lances.push({ b: topOf(k), color, t0: t, dur }); }
   function beam(a, b, color, dur, arc = 0, cb) { fx.beams.push({ a: topOf(a), b: topOf(b), color, t0: t, dur, arc, cb, done: false }); }
@@ -246,13 +249,27 @@ const Render = (() => {
     if (ov.selectedExtra && ov.selectedExtra.includes(k)) { hexPath(cx, cy, s * (1.02 + pulse * 0.04)); ctx.strokeStyle = '#ffc53d'; ctx.lineWidth = 3 * z; ctx.setLineDash([8 * z, 5 * z]); ctx.lineDashOffset = t * 30; ctx.stroke(); ctx.setLineDash([]); }
     if (ov.selected === k) { hexPath(cx, cy, s * (1.02 + pulse * 0.04)); ctx.strokeStyle = '#fff'; ctx.lineWidth = 3 * z; ctx.setLineDash([8 * z, 5 * z]); ctx.lineDashOffset = t * 30; ctx.stroke(); ctx.setLineDash([]); }
   }
+  // sea shimmer: a soft light that swells and fades across the water, drawn per frame so it never snaps
+  function drawWaterGlints() {
+    const z = cam.z, sc = S / 34, s = S * 0.965 * z;
+    for (const k of order) {
+      const tile = S_.map.tiles[k]; if (tile.t !== 'water' || tile.fog || tile.contam) continue;
+      const c = tc[k]; if (!c) continue;
+      const sh = 0.5 + 0.5 * Math.sin(t * 1.1 + c.q * 0.9 - c.r * 0.6); if (sh < 0.55) continue;
+      const [cx, gy] = toScreen(c.wx, c.wy); const cy = gy - c.h * sc * z;
+      if (cx < -60 || cx > W + 60 || cy < -60 || cy > H + 60) continue;
+      ctx.globalAlpha = Math.pow((sh - 0.55) / 0.45, 2) * (tile.deep ? 0.18 : 0.24);
+      ctx.fillStyle = tile.deep ? '#4f8fb8' : '#7cc4e6';
+      ctx.beginPath(); for (let i = 0; i < 6; i++) { const v = VERT[i]; i ? ctx.lineTo(cx + v[0] * s, cy + v[1] * s * TILT) : ctx.moveTo(cx + v[0] * s, cy + v[1] * s * TILT); } ctx.closePath(); ctx.fill();
+    }
+    ctx.globalAlpha = 1;
+  }
   function drawTile(k, pass) {
     const c = tc[k], tile = S_.map.tiles[k], z = cam.z, sc = S / 34;
     if (pass !== 'overlay' && c.fadeFrom) { if (t - c.fadeT0 >= FADE) { c.fadeFrom = null; setCols(c, c.base, c.owned); } else setCols(c, fadeNow(c, t), c.owned); }
     let h = c.h * sc;
     const popT = fx.pops[k]; let popS = 1;
     if (popT !== undefined) { const p = (t - popT) / 0.35; if (p < 1) { h += Math.sin(p * Math.PI) * 10; popS = 1 + Math.sin(p * Math.PI) * 0.08; } else if (pass !== 'overlay') delete fx.pops[k]; }
-    if (tile.t === 'water' && tile.fog !== 2) h += Math.sin(t * 1.4 + c.q * 0.7 + c.r * 0.5) * 1.2;
     const [cx, gy] = toScreen(c.wx, c.wy);
     const cy = gy - h * z, s = S * 0.965 * z * popS;
     if (cx < -80 || cx > W + 80 || cy < -120 || gy > H + 120) return;
@@ -268,10 +285,7 @@ const Render = (() => {
     }
     // left vertical-ish face (pointy hex has a visible lower-left/right sliver)
     hexPath(cx, cy, s);
-    if (tile.t === 'water' && tile.fog !== 2) {
-      const sh = 0.5 + 0.5 * Math.sin(t * 1.1 + c.q * 0.9 - c.r * 0.6);
-      ctx.fillStyle = sh > 0.88 ? (tile.deep ? '#21506f' : '#3a82a6') : c.top;
-    } else ctx.fillStyle = c.top;
+    ctx.fillStyle = c.top;   // water shimmer is drawn every frame on top (drawWaterGlints), so it fades smoothly
     ctx.fill();
     // top bevel highlight
     ctx.strokeStyle = 'rgba(255,255,255,.13)'; ctx.lineWidth = 1.2 * z;
@@ -292,6 +306,7 @@ const Render = (() => {
       return;
     }
     decorate(tile, c, cx, cy, s, z);
+    if (tile.river) drawRiver(k, tile, cx, cy, z);
     // territory borders
     if (tile.owner && c.oc) {
       const nb = E.neighbors(k);
@@ -411,6 +426,28 @@ const Render = (() => {
       for (let i = 4; i >= 0; i--) ctx.lineTo(fx0 + i * 2.2 * z, fy - 3 * z + Math.sin(t * 6 + i * 0.9 + v * 9) * 1.1 * z);
       ctx.fill();
     }
+  }
+  // a river channel: from each upstream neighbour's edge, through the hex, out toward the downstream hex
+  function drawRiver(k, tile, cx, cy, z) {
+    const edge = n => { const a = tc[n]; if (!a) return null; const [nx, ny] = toScreen(a.wx, a.wy - a.h * (S / 34)); return [(cx + nx) / 2, (cy + ny) / 2]; };
+    const ends = [];
+    for (const n of E.neighbors(k)) { const nt = S_.map.tiles[n]; if (nt && nt.river && nt.flow === k) { const e = edge(n); if (e) ends.push(e); } }
+    const out = tile.flow && edge(tile.flow);
+    const spring = !ends.length;
+    if (spring) ends.push([cx, cy]);
+    // each hex bends the channel a little to one side, so the river meanders
+    const v = tc[k] ? tc[k].v : 0.5, bend = (v - 0.5) * 16 * z;
+    ctx.save(); ctx.lineCap = 'round'; ctx.lineJoin = 'round';
+    const paths = ends.map(([ex, ey]) => {
+      const tx = out ? out[0] : cx, ty = out ? out[1] : cy, dx = tx - ex, dy = ty - ey, l = Math.hypot(dx, dy) || 1;
+      return [ex, ey, cx - dy / l * bend, cy + dx / l * bend * TILT, tx, ty];
+    });
+    for (const [w, col] of [[11, 'rgba(60,90,50,.35)'], [8, '#1f5677'], [5.5, '#2f7eae'], [2, 'rgba(170,225,250,.7)']]) {
+      ctx.strokeStyle = col; ctx.lineWidth = w * z;
+      for (const [ex, ey, qx, qy, tx, ty] of paths) { ctx.beginPath(); ctx.moveTo(ex, ey); ctx.quadraticCurveTo(qx, qy, tx, ty); ctx.stroke(); }
+    }
+    if (spring) { ctx.fillStyle = '#2f7eae'; ctx.beginPath(); ctx.ellipse(cx, cy, 5 * z, 3 * z, 0, 0, Math.PI * 2); ctx.fill(); }
+    ctx.restore();
   }
   function decorate(tile, c, cx, cy, s, z) {
     const v = c.v;
@@ -617,21 +654,15 @@ const Render = (() => {
     // ground shadow
     ctx.fillStyle = 'rgba(0,0,0,.45)'; ctx.beginPath(); ctx.ellipse(x, y + 1 * z, r * 1.0, r * 0.38, 0, 0, Math.PI * 2); ctx.fill();
     const ty = y - r * 0.95 + bob;
-    // stacked plates behind (one per extra unit, max 2)
-    for (let i = Math.min(2, units.length - 1); i >= 1; i--) {
-      plate(x, ty + i * 4.5 * z, r, '#0a0e12', col, z, 2);
-    }
-    plate(x, ty, r, exhausted ? mixHex(col, '#20262c', 0.55) : col, '#0a0e12', z, 3);
-    // inner dark disc for icon contrast
-    ctx.fillStyle = 'rgba(8,12,16,.82)'; ctx.beginPath(); ctx.arc(x, ty, r * 0.66, 0, Math.PI * 2); ctx.fill();
-    Art.drawIcon(ctx, 'unit', top.type, x, ty, r * 0.5, exhausted ? '#8a9299' : '#ffffff');
-    if (d.rarity === 'legendary') { ctx.fillStyle = '#ffb52e'; ctx.strokeStyle = '#000'; ctx.lineWidth = 1.5 * z; star(x, ty - r - 3 * z, 5.5 * z); ctx.stroke(); }
-    if (units.some(u => u.stun)) { ctx.strokeStyle = '#7ff3ff'; ctx.lineWidth = 2 * z; ctx.beginPath(); for (let i = 0; i < 6; i++) { const a = t * 4 + i * 1.05; ctx.moveTo(x + Math.cos(a) * r, ty + Math.sin(a) * r); ctx.lineTo(x + Math.cos(a + 0.4) * (r + 5 * z), ty + Math.sin(a + 0.4) * (r + 5 * z)); } ctx.stroke(); }
-    if (units.length > 1) {
-      const bx = x + r * 0.95, by = ty - r * 0.7;
-      ctx.fillStyle = '#fff'; ctx.strokeStyle = '#0a0e12'; ctx.lineWidth = 2.5 * z;
-      ctx.beginPath(); ctx.arc(bx, by, 8 * z, 0, Math.PI * 2); ctx.fill(); ctx.stroke();
-      ctx.fillStyle = '#0a0e12'; ctx.font = `800 ${11 * z}px "Chakra Petch",sans-serif`; ctx.textAlign = 'center'; ctx.textBaseline = 'middle'; ctx.fillText(units.length, bx, by + 0.5 * z);
+    const spr = tokenSprite(top.type, units.length, col, !!exhausted, r, z);
+    ctx.drawImage(spr.cv, x - spr.ox, ty - spr.oy, spr.w, spr.h);
+    if (units.some(u => u.stun)) {
+      // stunned: a slow cyan pulse and a lightning badge
+      const pz = 0.5 + 0.5 * Math.sin(t * 3);
+      ctx.strokeStyle = `rgba(127,243,255,${0.45 + pz * 0.45})`; ctx.lineWidth = (1.5 + pz) * z; ctx.beginPath(); ctx.arc(x, ty, r + (3 + pz * 2) * z, 0, Math.PI * 2); ctx.stroke();
+      const bx = x - r * 0.95, by = ty - r * 0.7;
+      ctx.fillStyle = '#0b1a22'; ctx.beginPath(); ctx.arc(bx, by, 7 * z, 0, Math.PI * 2); ctx.fill(); ctx.strokeStyle = '#7ff3ff'; ctx.lineWidth = 1.5 * z; ctx.stroke();
+      ctx.fillStyle = '#7ff3ff'; ctx.beginPath(); ctx.moveTo(bx + 1 * z, by - 5 * z); ctx.lineTo(bx - 3 * z, by + 1 * z); ctx.lineTo(bx, by + 1 * z); ctx.lineTo(bx - 1 * z, by + 5 * z); ctx.lineTo(bx + 3 * z, by - 1 * z); ctx.lineTo(bx, by - 1 * z); ctx.closePath(); ctx.fill();
     }
     // ready marker: bouncing chevron
     if (opts.ready) {
@@ -640,6 +671,33 @@ const Render = (() => {
       ctx.beginPath(); ctx.moveTo(x - 6 * z, cy2 - 4 * z); ctx.lineTo(x, cy2 + 2 * z); ctx.lineTo(x + 6 * z, cy2 - 4 * z); ctx.lineTo(x + 6 * z, cy2 - 1 * z); ctx.lineTo(x, cy2 + 5 * z); ctx.lineTo(x - 6 * z, cy2 - 1 * z); ctx.closePath(); ctx.stroke(); ctx.fill();
     }
     ctx.restore();
+  }
+  // cached token bodies, keyed by unit, stack size, colour, state and zoom (zoom is bucketed so sprites get reused)
+  const sprites = new Map();
+  function tokenSprite(type, n, col, exhausted, r, z) {
+    const zb = Math.round(z * 20) / 20, key = type + '|' + Math.min(n, 99) + '|' + col + '|' + exhausted + '|' + zb + '|' + r.toFixed(1) + '|' + DPR;
+    let sp = sprites.get(key);
+    if (sp) return sp;
+    if (sprites.size > 600) sprites.clear();
+    const pad = 12 * z, w = r * 2 + pad * 2 + 10 * z, h = r * 2 + pad * 2 + 14 * z, ox = r + pad, oy = r + pad;
+    const cv2 = document.createElement('canvas'); cv2.width = Math.ceil(w * DPR); cv2.height = Math.ceil(h * DPR);
+    const c2 = cv2.getContext('2d'); c2.scale(DPR, DPR);
+    const main = ctx; ctx = c2;
+    const x = ox, ty = oy, d = E.UNITS[type];
+    for (let i = Math.min(2, n - 1); i >= 1; i--) plate(x, ty + i * 4.5 * z, r, '#0a0e12', col, z, 2);
+    plate(x, ty, r, exhausted ? mixHex(col, '#20262c', 0.55) : col, '#0a0e12', z, 3);
+    ctx.fillStyle = 'rgba(8,12,16,.82)'; ctx.beginPath(); ctx.arc(x, ty, r * 0.66, 0, Math.PI * 2); ctx.fill();
+    Art.drawIcon(ctx, 'unit', type, x, ty, r * 0.5, exhausted ? '#8a9299' : '#ffffff');
+    if (d.rarity === 'legendary') { ctx.fillStyle = '#ffb52e'; ctx.strokeStyle = '#000'; ctx.lineWidth = 1.5 * z; star(x, ty - r - 3 * z, 5.5 * z); ctx.stroke(); }
+    if (n > 1) {
+      const bx = x + r * 0.95, by = ty - r * 0.7;
+      ctx.fillStyle = '#fff'; ctx.strokeStyle = '#0a0e12'; ctx.lineWidth = 2.5 * z;
+      ctx.beginPath(); ctx.arc(bx, by, 8 * z, 0, Math.PI * 2); ctx.fill(); ctx.stroke();
+      ctx.fillStyle = '#0a0e12'; ctx.font = `800 ${11 * z}px "Chakra Petch",sans-serif`; ctx.textAlign = 'center'; ctx.textBaseline = 'middle'; ctx.fillText(n, bx, by + 0.5 * z);
+    }
+    ctx = main;
+    sp = { cv: cv2, ox, oy, w, h }; sprites.set(key, sp);
+    return sp;
   }
   function plate(x, y, r, fill, stroke, z, w) {
     ctx.beginPath();
@@ -765,6 +823,27 @@ const Render = (() => {
       ctx.strokeStyle = r.color; ctx.globalAlpha = 1 - p; ctx.lineWidth = r.w * z * (1 - p) + 1;
       ctx.beginPath(); ctx.ellipse(x, y, r.r1 * e * z, r.r1 * e * z * TILT, 0, 0, Math.PI * 2); ctx.stroke(); ctx.globalAlpha = 1;
     }
+    for (let i = fx.emps.length - 1; i >= 0; i--) {
+      const e = fx.emps[i], p = (t - e.t0) / e.dur; if (p >= 1) { fx.emps.splice(i, 1); continue; }
+      const [x, y] = toScreen(e.b[0], e.b[1] - 4), ease = 1 - Math.pow(1 - p, 3), R = (12 + ease * S * 1.9) * z, fade = 1 - p;
+      ctx.save();
+      // soft charged dome
+      const g = ctx.createRadialGradient(x, y, 0, x, y, R); g.addColorStop(0, `rgba(170,250,255,${0.35 * fade})`); g.addColorStop(0.7, `rgba(80,220,255,${0.18 * fade})`); g.addColorStop(1, 'rgba(80,220,255,0)');
+      ctx.fillStyle = g; ctx.beginPath(); ctx.ellipse(x, y, R, R * TILT * 1.15, 0, 0, Math.PI * 2); ctx.fill();
+      // the shock front
+      ctx.strokeStyle = `rgba(190,250,255,${fade})`; ctx.lineWidth = (2 + 4 * fade) * z; ctx.beginPath(); ctx.ellipse(x, y, R, R * TILT * 1.15, 0, 0, Math.PI * 2); ctx.stroke();
+      // crackling arcs: they re-strike ~12 times a second (not every frame), so they read as lightning rather than noise
+      const step = Math.floor((t - e.t0) * 12);
+      ctx.strokeStyle = `rgba(220,255,255,${0.9 * fade})`; ctx.lineWidth = 1.6 * z; ctx.shadowBlur = 0;
+      for (let a = 0; a < 7; a++) {
+        const h = n => { const v = Math.sin(n * 12.9898 + step * 78.233 + a * 37.719) * 43758.5453; return v - Math.floor(v); };
+        const ang = a / 7 * Math.PI * 2 + h(1) * 0.6;
+        ctx.beginPath(); ctx.moveTo(x, y);
+        for (let j = 1; j <= 5; j++) { const rr = R * j / 5, off = (h(j + 2) - 0.5) * 0.45; ctx.lineTo(x + Math.cos(ang + off) * rr, y + Math.sin(ang + off) * rr * TILT * 1.15); }
+        ctx.stroke();
+      }
+      ctx.restore();
+    }
     for (let i = fx.lances.length - 1; i >= 0; i--) {
       const l = fx.lances[i], p = (t - l.t0) / l.dur; if (p >= 1) { fx.lances.splice(i, 1); continue; }
       const [x, y] = toScreen(l.b[0], l.b[1] - 6), drop = Math.min(1, p / 0.22), top = -40, bot = top + (y - top) * drop;
@@ -798,22 +877,27 @@ const Render = (() => {
 
   // full-screen overlays hide the board, so don't burn the GPU redrawing it underneath them
   const COVERS = '#supply:not([hidden]), #crate:not([hidden]), #draft:not([hidden]), #index:not([hidden]), #passCover:not([hidden])';
-  let coveredFrames = 0;
+  let coveredFrames = 0, covered = false, frameN = 0;
   function loop(now) {
     requestAnimationFrame(loop);
-    if (document.querySelector(COVERS)) { if (++coveredFrames > 2) { lastT = now; return; } } else coveredFrames = 0;
+    if ((frameN++ & 7) === 0) covered = !!document.querySelector(COVERS);
+    if (covered) { if (++coveredFrames > 2) { lastT = now; return; } } else coveredFrames = 0;
     const dt = Math.min(0.05, (now - lastT) / 1000 || 0); lastT = now; t += dt;
     cam.x += (cam.tx - cam.x) * Math.min(1, dt * 8); cam.y += (cam.ty - cam.y) * Math.min(1, dt * 8); cam.z += (cam.tz - cam.z) * Math.min(1, dt * 10);
     ctx.setTransform(DPR, 0, 0, DPR, 0, 0);
     let sx = 0, sy = 0;
     if (fx.shake > 0.1) { sx = (Math.random() - 0.5) * fx.shake; sy = (Math.random() - 0.5) * fx.shake; fx.shake *= Math.pow(0.02, dt); } else fx.shake = 0;
     const p0 = performance.now();
-    if (!S_ || !S_.map) { bg(); return; }
+    if (!S_ || !S_.map) { const mk = W + 'x' + H + '|' + Math.floor(t * 4); if (mk !== menuKey) { menuKey = mk; bg(); } return; }
     if (Math.abs(cam.tx - cam.x) < 0.02) cam.x = cam.tx; if (Math.abs(cam.ty - cam.y) < 0.02) cam.y = cam.ty; if (Math.abs(cam.tz - cam.z) < 0.0005) cam.z = cam.tz;
     // terrain, background and fog live in an offscreen layer: redrawn only when the view or board changes,
     // while a fade/pop plays, or ~10x a second for ambient motion (water, sway, markers)
     const key = Math.round(cam.x * 4) + '|' + Math.round(cam.y * 4) + '|' + Math.round(cam.z * 2000) + '|' + W + '|' + H + '|' + DPR + '|' + stateVer + '|' + (ov.unsupplied ? ov.unsupplied.size : 0);
-    if (key !== layerKey || t < fadeUntil || Object.keys(fx.pops).length || t - layerT > 0.1) {
+    // ambient motion refreshes the layer ~10x a second on fast machines; the slower the board is to draw,
+    // the less often it refreshes (down to never), so weak laptops don't stutter on an idle board
+    const ambient = layerCost < 5 ? 0.1 : layerCost < 12 ? 0.35 : layerCost < 25 ? 1.2 : Infinity;
+    if (key !== layerKey || t < fadeUntil || Object.keys(fx.pops).length || t - layerT > ambient) {
+      const lt0 = performance.now();
       const main = ctx; ctx = lctx;
       ctx.setTransform(DPR, 0, 0, DPR, 0, 0);
       bg();
@@ -822,9 +906,11 @@ const Render = (() => {
       // labels go on top of every tile, so taller neighbours never cut them off
       for (const f of late) f(); late.length = 0;
       ctx = main; layerKey = key; layerT = t;
+      const lc0 = performance.now() - lt0; layerCost = layerCost ? layerCost * 0.85 + lc0 * 0.15 : lc0;
     }
     ctx.drawImage(lc, sx, sy, W, H);
     ctx.translate(sx, sy);
+    drawWaterGlints();
     const p1 = performance.now();
     for (const k of order) if (hasOverlay(k)) drawTile(k, 'overlay');
     for (const pa of ov.planArrows) drawPath(pa.path, pa.color, true, 0.85);
@@ -848,5 +934,5 @@ const Render = (() => {
   }
   const perf = { tiles: 0, fog: 0, units: 0, rest: 0, total: 0 };
 
-  return { invalidate, perf, flyover, init, setState, recolor, focus, fitMap, pan, zoomAt, hexAt, screenOf, topOf, world, ov, unitPos, unitHidden, extraUnits, burst, smoke, float, ring, beam, lance, shake, flash, pop, cam, get time() { return t; } };
+  return { invalidate, perf, flyover, init, setState, recolor, focus, fitMap, pan, zoomAt, hexAt, screenOf, topOf, world, ov, unitPos, unitHidden, extraUnits, burst, smoke, float, ring, beam, lance, emp, shake, flash, pop, cam, get time() { return t; } };
 })();

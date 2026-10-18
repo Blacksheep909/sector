@@ -30,6 +30,7 @@ const { botStep, draftStep, spawnStep, tradeReply, allyReply, BOT_NAMES } = requ
   try { const left = path.join(path.dirname(process.execPath), 'Sector.update.exe'); if (path.basename(process.execPath).toLowerCase() !== 'sector.update.exe' && fs.existsSync(left)) setTimeout(() => { try { fs.unlinkSync(left); } catch (e) {} }, 3000); } catch (e) {}
 }
 
+if (process.argv.includes('--public')) Object.assign(process.env, { SECTOR_PUBLIC: '1', SECTOR_NO_OPEN: '1', SECTOR_PLAIN: '1' });
 let PORT = +process.env.PORT || 3000;
 const BASE_PORT = PORT;
 // build-exe injects __SECTOR_VERSION; from source we read package.json
@@ -41,6 +42,7 @@ const SERVER_ID = crypto.randomBytes(6).toString('hex'); // lets LAN scanners sp
 const MIME = { '.html': 'text/html; charset=utf-8', '.js': 'text/javascript', '.css': 'text/css', '.png': 'image/png', '.svg': 'image/svg+xml', '.ico': 'image/x-icon', '.json': 'application/json', '.woff2': 'font/woff2' };
 
 function lanAddresses() {
+  if (process.env.SECTOR_PUBLIC) return [];   // an internet-facing server never advertises its private network addresses
   const out = [];
   for (const list of Object.values(os.networkInterfaces())) for (const a of list || []) if (a.family === 'IPv4' && !a.internal) out.push(a.address);
   return out;
@@ -66,7 +68,11 @@ if (TUI) {
   console.log = console.info = console.warn = console.error = w;
   process.on('uncaughtException', e => w('[crash] ' + (e && e.stack || e)));
 }
-const isLoopback = req => ['127.0.0.1', '::1', '::ffff:127.0.0.1'].includes(req.socket.remoteAddress);
+// the host panel only answers the host's own computer. Requests relayed by a tunnel or reverse proxy (Cloudflare Tunnel,
+// ngrok, a cloud load balancer) also arrive from 127.0.0.1, so anything carrying forwarding headers is treated as remote,
+// and SECTOR_PUBLIC=1 switches the panel off entirely for internet-facing servers
+const FWD = ['x-forwarded-for', 'x-real-ip', 'forwarded', 'cf-connecting-ip', 'true-client-ip', 'x-forwarded-host', 'fly-client-ip'];
+const isLoopback = req => !process.env.SECTOR_PUBLIC && ['127.0.0.1', '::1', '::ffff:127.0.0.1'].includes(req.socket.remoteAddress) && !FWD.some(h => req.headers[h]);
 
 // ───────────────────────── http ─────────────────────────
 const server = http.createServer((req, res) => {
@@ -154,10 +160,13 @@ const autoPids = new Set(); // dev: humans driven by the bot AI (SECTOR_DEV=1)
 
 function lobbyView() {
   return {
-    players: lobby.players.map(p => ({ id: p.id, name: p.name, color: p.color, faction: p.faction, bot: p.bot, diff: p.diff, local: !!p.local, controller: p.controller || null, spectator: !!p.spectator, team: p.team || 0, connected: p.bot || isConnected(p.id) })),
+    players: lobby.players.map(p => ({ id: p.id, name: p.name, color: p.color, faction: p.faction, bot: p.bot, diff: p.diff, local: !!p.local, controller: p.controller || null, spectator: !!p.spectator, team: p.team || 0, ready: isReady(p), connected: p.bot || isConnected(p.id) })),
     hostId: lobby.hostId, settings: lobby.settings, inGame: !!game, version: VERSION, lan: lanAddresses().map(a => 'http://' + a + ':' + PORT), port: PORT,
   };
 }
+// ready-up: every human commander (not bots, spectators or pass-and-play seats, whose device owner readies for them) must be ready
+const isReady = p => !!(p.bot || p.spectator || p.local || p.ready);
+const notReady = () => lobby.players.filter(p => !isReady(p));
 const isConnected = pid => {
   const lp = lobby.players.find(p => p.id === pid);
   if (lp && lp.local) return [...clients].some(c => c.pid === lp.controller);
@@ -268,7 +277,7 @@ function onMessage(c, m) {
       }
       return broadcastLobby();
     }
-    case 'settings': if (c.pid !== lobby.hostId || game) return; Object.assign(lobby.settings, pick(m.settings, ['mode', 'mapSize', 'mapType', 'spawns', 'fog', 'events', 'timer', 'maxRounds', 'conquestPct', 'seed', 'teams'])); return broadcastLobby();
+    case 'settings': if (c.pid !== lobby.hostId || game) return; Object.assign(lobby.settings, pick(m.settings, ['mode', 'mapSize', 'mapType', 'spawns', 'fog', 'events', 'timer', 'maxRounds', 'conquestPct', 'seed', 'teams'])); for (const p of lobby.players) if (p.id !== lobby.hostId) p.ready = false; return broadcastLobby();
     case 'addLocal': {
       if (game || !c.pid || lobby.players.length >= 8) return;
       const n = lobby.players.filter(p => p.local).length + 2;
@@ -288,6 +297,11 @@ function onMessage(c, m) {
       const used = new Set(lobby.players.map(p => p.name));
       const name = BOT_NAMES.find(n => !used.has(n)) || 'Bot';
       lobby.players.push({ id: 'p' + nextPid++, token: null, name, color: freeColor(), faction: Object.keys(E.FACTIONS)[Math.floor(Math.random() * 5)], bot: true, diff: E.DIFFICULTY[m.diff] ? m.diff : 'medium' });
+      return broadcastLobby();
+    }
+    case 'ready': {
+      const rp = lobby.players.find(p => p.id === c.pid); if (!rp || game) return;
+      rp.ready = !!m.on;
       return broadcastLobby();
     }
     case 'team': {
@@ -326,6 +340,9 @@ function onMessage(c, m) {
       const diffs = Object.keys(E.DIFFICULTY);
       const roster = lobby.players.filter(p => !p.spectator).map(p => p.bot && p.diff === 'random' ? { ...p, diff: diffs[Math.floor(Math.random() * diffs.length)] } : p);
       if (roster.length < 2) return send(c, { t: 'err', msg: lobby.players.length < 2 ? 'Need at least 2 commanders (add a bot)' : 'Need at least 2 commanders who are playing, not spectating' });
+      const host = lobby.players.find(p => p.id === c.pid); if (host) host.ready = true;   // pressing DEPLOY readies the host
+      const waiting = notReady();
+      if (waiting.length) return send(c, { t: 'err', msg: 'Waiting for ' + waiting.map(p => p.name).join(', ') + ' to ready up' });
       const s = { ...lobby.settings, timer: +lobby.settings.timer || 0, maxRounds: +lobby.settings.maxRounds || 0, conquestPct: +lobby.settings.conquestPct || 60 };
       const r = E.createGame(s, roster);
       game = r.state; botMem = {}; fogMem = {};
@@ -406,6 +423,7 @@ function pick(o, keys) { const r = {}; for (const k of keys) if (o && k in o) r[
 function endGame() {
   console.log('[game] returned to lobby');
   game = null; clearTimeout(botTimer); clearTimeout(turnTimer); clearTimeout(idleTimer);
+  for (const p of lobby.players) p.ready = false;   // everyone readies up again for the next war
   for (const c of clients) send(c, { t: 'state', state: null, events: [] });
   broadcastLobby();
 }

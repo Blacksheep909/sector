@@ -293,6 +293,15 @@ function botStep(s, pid, mem) {
     for (const k of supLand) { const t = tiles[k]; if (t.struct || t.contam || !E.isCoastal(s, k)) continue; const v = nearest(k, targets.length ? targets : enemyTiles); if (v < bv) { bv = v; best = k; } }
     if (best) return { a: 'build', struct: 'port', hex: best };
   }
+  if (myPorts.length && !mem.mineTried && p.cash >= E.structCost(p, 'mine') + 6) {
+    mem.mineTried = true;
+    const enemyShips = Object.values(s.units).filter(u => u.owner !== pid && E.isSea(u.type) && !E.isAlly(s, pid, u.owner));
+    if (enemyShips.length) {
+      const cands = Object.keys(tiles).filter(k => { const t = tiles[k]; return E.isWater(t) && t.owner === pid && sup.has(k) && !E.structsOf(t).length && myPorts.some(pk => E.dist(pk, k) <= 2); });
+      cands.sort((a, b) => Math.min(...enemyShips.map(u => E.dist(u.hex, a))) - Math.min(...enemyShips.map(u => E.dist(u.hex, b))));
+      if (cands[0] && Math.min(...enemyShips.map(u => E.dist(u.hex, cands[0]))) <= 6) return { a: 'build', struct: 'mine', hex: cands[0] };
+    }
+  }
   const owns = type => Object.keys(tiles).filter(k => tiles[k].owner === pid && tiles[k].struct && tiles[k].struct.type === type).length;
   if (!mem.upTried && p.cash >= 20) {
     mem.upTried = true;

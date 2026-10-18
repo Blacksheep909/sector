@@ -118,7 +118,8 @@
       const r = el('div', 'prow' + (p.connected ? '' : ' off'));
       const f = E.FACTIONS[p.faction];
       r.innerHTML = `<div class="sw" style="background:${p.color}"></div><div class="nm">${esc(p.name)}<div class="fx">${f ? f.name : ''}</div></div>` +
-        (p.id === lobby.hostId ? '<span class="tag host">HOST</span>' : '') + (p.bot ? '<span class="tag">BOT</span>' : '') + (p.id === you ? '<span class="tag">YOU</span>' : '');
+        (p.id === lobby.hostId ? '<span class="tag host">HOST</span>' : '') + (p.bot ? '<span class="tag">BOT</span>' : '') + (p.id === you ? '<span class="tag">YOU</span>' : '') +
+        (!p.bot && !p.local && !p.spectator && p.id !== lobby.hostId ? (p.ready ? '<span class="tag ready">✔ READY</span>' : '<span class="tag notready">NOT READY</span>') : '');
       if (p.spectator) { r.classList.add('spec'); const fx = r.querySelector('.fx'); if (fx) fx.textContent = '👁 Spectating'; }
       if (p.bot) {
         const dsel = el('select', 'diffsel ' + (p.diff || 'medium'));
@@ -173,12 +174,23 @@
       const e = $(id); if (document.activeElement !== e) e.value = st[k] ?? ''; e.disabled = !host;
     }
     $('#startBtn').hidden = !host; $('#waitHost').hidden = host;
+    // ready-up: guests toggle READY; the host's DEPLOY waits until every guest is ready
+    const meRow = lobby.players.find(p => p.id === realId);
+    const waiting = lobby.players.filter(p => !p.bot && !p.local && !p.spectator && !p.ready && p.id !== lobby.hostId);
+    const rb = $('#readyBtn');
+    rb.hidden = host || !meRow || meRow.spectator;
+    if (meRow) { rb.textContent = meRow.ready ? '✔ READY — CLICK TO CANCEL' : 'READY UP'; rb.classList.toggle('green', !meRow.ready); rb.classList.toggle('on', !!meRow.ready); }
+    $('#startBtn').classList.toggle('waiting', waiting.length > 0);
+    $('#startBtn').textContent = waiting.length ? 'WAITING FOR ' + waiting.length + ' TO READY' : 'DEPLOY';
+    $('#startBtn').title = waiting.length ? 'Not ready: ' + waiting.map(p => p.name).join(', ') : '';
+    $('#waitHost').textContent = meRow && meRow.ready ? 'Ready! Waiting for the host to start…' : 'Ready up so the host can start.';
   }
   for (const [id, k] of [['#setMode', 'mode'], ['#setType', 'mapType'], ['#setSize', 'mapSize'], ['#setSpawns', 'spawns'], ['#setFog', 'fog'], ['#setEvents', 'events'], ['#setTimer', 'timer'], ['#setRounds', 'maxRounds'], ['#setSeed', 'seed'], ['#setTeams', 'teams']])
     $(id).addEventListener('change', e => send({ t: 'settings', settings: { [k]: e.target.value } }));
   $('#addBot').onclick = () => { SFX.click(); send({ t: 'addBot' }); };
   $('#addLocal').onclick = () => { SFX.click(); send({ t: 'addLocal' }); };
   $('#startBtn').onclick = () => { SFX.select(); send({ t: 'start' }); };
+  $('#readyBtn').onclick = () => { const me = lobby && lobby.players.find(p => p.id === realId); SFX.select(); send({ t: 'ready', on: !(me && me.ready) }); };
 
   // ───────────── pass & play ─────────────
   let realId = null, passTo = null, unlocked = null;
@@ -840,7 +852,7 @@
     else if (!countCash.running) $('#cash').textContent = me.cash;
     const inc = E.computeIncome(S, you);
     $('#incomeLine').innerHTML = `Income <b>+$${inc.total}</b> /turn` + (inc.pact ? ` · <span style="color:#7fe0a0">🤝 +$${inc.pact}</span>` : '') + (inc.traitor ? ` · <span style="color:#ff9aa3">🗡 traitor ${inc.traitor}</span>` : '') + (planning() ? ' · <span style="color:var(--blue)">blueprint view</span>' : '');
-    $('#incomeLine').title = `Base $${inc.base} + $${inc.fromHex} land (${inc.hexes} hexes, 1 per 3) + $${inc.fromSea} sea (${inc.sea} hexes, 1 per 4) + $${inc.fromRes} resources/rigs + $${inc.fish || 0} fishing + $${inc.lanes || 0} shipping lanes + $${inc.ref} refineries + $${inc.trade} markets + $${inc.poi || 0} villages/relics` + (inc.pact ? ` + $${inc.pact} alliance dividend` : '') + (inc.traitor ? ` − $${-inc.traitor} traitor penalty (${me.traitor} turn${me.traitor > 1 ? 's' : ''} left)` : '');
+    $('#incomeLine').title = `Base $${inc.base} + $${inc.fromHex} land (${inc.hexes} hexes, 1 per 3) + $${inc.fromSea} sea (${inc.sea} hexes, 1 per 4) + $${inc.fromRes} resources/rigs + $${inc.fish || 0} fishing + $${inc.lanes || 0} shipping lanes + $${inc.ref} refineries + $${inc.trade} markets + $${inc.poi || 0} villages/relics + $${inc.fromRiver || 0} river valleys (${inc.river || 0} river hexes, 1 per 3)` + (inc.pact ? ` + $${inc.pact} alliance dividend` : '') + (inc.traitor ? ` − $${-inc.traitor} traitor penalty (${me.traitor} turn${me.traitor > 1 ? 's' : ''} left)` : '');
     $('#hexLine').innerHTML = `⬢ ${inc.hexes} land · ≈ ${inc.sea} sea` + (inc.cut ? ` · <span style="color:#ff9aa3">${inc.cut} cut off</span>` : '');
 
   }
@@ -910,7 +922,7 @@
 
   // ───────────── bars: unit deck (cards, keys 1-0), build bar (Z-M), tactic hand ─────────────
   const UNIT_KEYS = ['1', '2', '3', '4', '5', '6', '7', '8', '9', '0'];
-  const BUILD_KEYS = ['z', 'x', 'c', 'v', 'b', 'n', 'm', ',', '.'];
+  const BUILD_KEYS = ['z', 'x', 'c', 'v', 'b', 'n', 'm', ',', '.', '/'];
   let hotbarSig = '';
   function hotbarItems() {
     const ds = dispState(); const me = ds && ds.players.find(p => p.id === you);
@@ -1746,7 +1758,11 @@
         SFX.deploy(); Render.burst(ev.target, ['#c9b78f'], 16, { up: 20 }); break;
       }
       case 'sabotage': Render.burst(ev.target, ['#ffb03a', '#ff5a2a', '#666'], 30, { speed: 1.5 }); SFX.boom(1); Render.shake(10); S.map.tiles[ev.target].struct = null; await sleep(300); break;
-      case 'emp': for (let i = 0; i < 3; i++) { Render.ring(ev.target, '#7ff3ff', 110, 0.7, 5); await sleep(120); } SFX.zap(); Render.flash(0.15, '#7ff3ff'); break;
+      case 'emp': {
+        SFX.zap(); Render.emp(ev.target, 1.3); Render.shake(6); await sleep(250);
+        for (const id of ev.units || []) if (S.units[id]) S.units[id].stun = 1;
+        Render.float(ev.target, '⚡ ' + (ev.units || []).length + ' FROZEN', '#7ff3ff', 18); await sleep(900); break;
+      }
       case 'nuke': {
         banner('☢ NUCLEAR LAUNCH DETECTED', who, '#8a9a2c'); SFX.alarm(); await sleep(1300);
         Render.flash(1.2, '#ffffff'); SFX.boom(3); Render.shake(40);

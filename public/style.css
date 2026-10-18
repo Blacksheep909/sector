@@ -1016,3 +1016,30 @@ body.planning #hexPanel { max-height: calc(100vh - 34vh - 200px); }
   background: linear-gradient(160deg, #ffffff, #eef6ff 40%, #f7efff 70%, #effff8) padding-box, linear-gradient(120deg, #ff4fd8, #ffe14f, #4fffb0, #4fd2ff, #b04fff, #ff4fd8) border-box !important;
   box-shadow: 0 6px 0 #000, 0 0 18px rgba(255,255,255,.9), 0 0 34px rgba(160,210,255,.55) !important; }
 .card.r-mythic .ci::before, .slot.r-mythic::before, .flip.open.r-mythic .cfront .ci::before { display: none; }
+
+/* perf: sunburst sized to the screen (no 2x scale), so weak GPUs aren't compositing a ~10-megapixel layer every frame */
+.sd-rays { width: 110vmax !important; height: 110vmax !important; animation: sdSpin2 90s linear infinite !important; }
+@keyframes sdSpin2 { from { transform: translate(-50%, -50%) rotate(0deg); } to { transform: translate(-50%, -50%) rotate(360deg); } }
+/* perf: glow pulses animate opacity on a pseudo-element instead of box-shadow (box-shadow repaints every frame) */
+.flip.open.r-rare .cfront .ci, .flip.open.r-epic .cfront .ci, .flip.open.r-legendary .cfront .ci, .flip.open.r-mythic .cfront .ci { animation: none !important; }
+.flip.open.r-rare .cfront .ci { box-shadow: 0 6px 0 #000, inset 0 0 0 2px var(--rc), 0 0 26px rgba(63,160,255,.6); }
+.flip.open.r-epic .cfront .ci { box-shadow: 0 6px 0 #000, inset 0 0 0 2px var(--rc), 0 0 30px rgba(194,92,255,.65); }
+.flip.open.r-legendary .cfront .ci { box-shadow: 0 6px 0 #000, inset 0 0 0 2px var(--rc), 0 0 44px rgba(255,181,46,.85); }
+/* chat input clears the build bar's raised label */
+#leftCol > #buildBar { margin-top: 16px; }
+#leftCol > #logBox { padding-bottom: 2px; }
+
+/* ready-up */
+.prow .tag.ready { background: #2fbf71; color: #06120b; }
+.prow .tag.notready { background: #3a2a2a; color: #ff9aa3; }
+#startBtn.waiting { filter: grayscale(.7) brightness(.8); }
+#readyBtn.on { background: #1d3a2a; color: #7fe0a0; box-shadow: 0 5px 0 #0c1a12, inset 0 0 0 2px #2fbf71; }
+#readyBtn { width: 100%; }
+.prow .tag.ready, .prow .tag.notready { white-space: nowrap; }
+.ix-empty { grid-column: 1 / -1; padding: 40px 10px; text-align: center; color: #9fb3c8; font-size: 15px; }
+.ix-empty .btn { margin-left: 10px; }
+.chip.r-mythic:not(.on) { color: #fff; }
+.chip.r-mythic.on { color: #0b0f13 !important; }
+/* long card names shrink to fit instead of being cut off */
+.card .c-name.long, .c-name.long { font-size: 0.82em !important; letter-spacing: 0; }
+.card.zoomed .c-name.long, .offer .card .c-name.long { font-size: 16px !important; }
