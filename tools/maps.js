@@ -1,7 +1,7 @@
 // Preview every map archetype as ASCII: node tools/maps.js [players]
 const E = require('../shared/engine');
 const nP = +(process.argv[2] || 4);
-for (const arch of ['continent', 'twin', 'archipelago', 'inland', 'crescent', 'pangaea']) {
+for (const arch of ['continent', 'twin', 'archipelago', 'inland', 'crescent', 'pangaea', 'ocean']) {
   const m = E.generateMap({ seed: (Math.random() * 1e9) >>> 0, nPlayers: nP, size: 'medium', archetype: arch });
   const ks = Object.keys(m.tiles).map(E.parse);
   const rs = ks.map(k => k[1]), cs = ks.map(k => k[0] + Math.floor(k[1] / 2));

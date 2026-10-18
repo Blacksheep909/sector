@@ -1,6 +1,6 @@
 {
   "name": "sector",
-  "version": "0.6.5",
+  "version": "0.7.0",
   "description": "SECTOR — a turn-based hex conquest game for your local network",
   "main": "server.js",
   "scripts": {
@@ -10,6 +10,6 @@
     "cards": "node tools/gen-cards.js",
     "build:exe": "node tools/build-exe.js"
   },
-  "license": "UNLICENSED",
+  "license": "PolyForm-Noncommercial-1.0.0",
   "private": true
 }

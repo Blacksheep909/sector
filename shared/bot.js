@@ -7,7 +7,7 @@ const BOT_NAMES = ['Vex', 'Kestrel', 'Morrow', 'Juno', 'Halcyon', 'Rook', 'Sable
 function unitValue(type) { const d = E.UNITS[type]; return d.atk + d.def + d.mv * 0.6; }
 function stackValue(units) { return units.reduce((a, u) => a + unitValue(u.type), 0); }
 
-const RAR = { common: 1, uncommon: 2, rare: 3.2, epic: 4.6, legendary: 6.5 };
+const RAR = { common: 1, uncommon: 2, rare: 3.2, epic: 4.6, legendary: 6.5, mythic: 9 };
 // how much a card is worth to this player right now
 function cardScore(s, p, id) {
   const d = E.cardDef(id);
@@ -46,7 +46,7 @@ const SKILL = {
 function tradeReply(s, pid) {
   const t = s.trade; if (!t || t.to !== pid) return null;
   const p = E.player(s, pid), from = E.player(s, t.from);
-  const cardVal = id => { const d = E.TACTICS[id]; return d ? d.cost + { common: 2, uncommon: 4, rare: 7, epic: 10, legendary: 14 }[d.rarity] : 0; };
+  const cardVal = id => { const d = E.TACTICS[id]; return d ? d.cost + { common: 2, uncommon: 4, rare: 7, epic: 10, legendary: 14, mythic: 22 }[d.rarity] : 0; };
   const gain = t.give.cash + (t.cardIds || []).reduce((a, id) => a + cardVal(id), 0);
   const cost = t.get.cash;
   const greed = { easy: 1, medium: 1.15, hard: 1.35, impossible: 1.6 }[p.diff] || 1.15;
@@ -97,6 +97,7 @@ function botStep(s, pid, mem) {
   const tiles = s.map.tiles;
   const enemyNear = (k, r) => E.area(k, r).some(a => (idx[a] || []).some(u => u.owner !== pid));
 
+  { const d = diplomacy(s, pid, mem); if (d) return d; }
   // 0. HQ under siege: rush defenders onto the muster hexes so the attack logic can retake it this turn
   { const mh = E.musterHexes(s, pid);
     if (mh.length && (mem.musterN || 0) < 4) {
@@ -113,17 +114,22 @@ function botStep(s, pid, mem) {
     else if ((c.id === 'rally' || c.id === 'bounty') && Object.values(s.units).filter(u => u.owner === pid && !u.moved).length >= 4) act = { a: 'tactic', uid: c.uid };
     else if (c.id === 'fortify' && enemyNear(p.hq, 4)) act = { a: 'tactic', uid: c.uid, target: p.hq };
     else if (c.id === 'embargo') { const lead = s.players.filter(o => o.alive && o.id !== pid).sort((a, b) => E.ownedLand(s, b.id).length - E.ownedLand(s, a.id).length)[0]; const k = lead && E.tacticTargets(s, pid, 'embargo').find(k => tiles[k].owner === lead.id); if (k) act = { a: 'tactic', uid: c.uid, target: k }; }
-    else if (['airstrike', 'mutiny', 'nuke', 'sabotage', 'emp', 'carpet', 'orbital'].includes(c.id)) {
+    else if (c.id === 'aegis' && (enemyNear(p.hq, 3) || Object.values(s.units).some(u => u.owner !== pid && E.dist(u.hex, p.hq) <= 2))) act = { a: 'tactic', uid: c.uid };
+    else if (c.id === 'spy') { const ts = E.tacticTargets(s, pid, 'spy'); const k = ts.sort((a, b) => E.player(s, tiles[b].owner).tactics.length - E.player(s, tiles[a].owner).tactics.length)[0]; if (k) act = { a: 'tactic', uid: c.uid, target: k }; }
+    else if (c.id === 'quarry') { const ts = E.tacticTargets(s, pid, 'quarry'); const k = ts.find(k => E.neighbors(k).some(n => tiles[n] && tiles[n].owner && tiles[n].owner !== pid) && E.neighbors(k).some(n => tiles[n] && tiles[n].owner === pid)); if (k) act = { a: 'tactic', uid: c.uid, target: k }; }
+    else if (['airstrike', 'mutiny', 'nuke', 'sabotage', 'emp', 'carpet', 'orbital', 'tsar', 'regime'].includes(c.id)) {
       const ts = E.tacticTargets(s, pid, c.id);
       let best = null, bv = 0;
       for (const k of ts) {
         let v = 0;
         if (c.id === 'sabotage') v = tiles[k].struct.type === 'fob' ? 10 : 5;
         else if (c.id === 'nuke' || c.id === 'emp' || c.id === 'carpet') for (const a of E.area(k, 1)) for (const u of idx[a] || []) v += u.owner === pid ? -unitValue(u.type) * 2 : unitValue(u.type);
+        else if (c.id === 'tsar') for (const a of E.tsarArea(s, k)) { for (const u of idx[a] || []) v += u.owner === pid ? -unitValue(u.type) * 2 : unitValue(u.type); if (tiles[a].owner === pid) v -= 3; else if (tiles[a].owner) v += 1; }
+        else if (c.id === 'regime') for (const a of E.area(k, 1)) { if (tiles[a] && tiles[a].owner === tiles[k].owner && !E.structsOf(tiles[a]).some(x => x.type === 'hq')) { v += 2; for (const u of idx[a] || []) v += unitValue(u.type); } }
         else v = stackValue(idx[k] || []);
         if (v > bv) { bv = v; best = k; }
       }
-      const need = { airstrike: 9, mutiny: 8, nuke: 30, sabotage: 5, emp: 20, carpet: 18, orbital: 14 }[c.id];
+      const need = { airstrike: 9, mutiny: 8, nuke: 30, sabotage: 5, emp: 20, carpet: 18, orbital: 14, tsar: 36, regime: 14 }[c.id];
       if (best && bv >= need) act = { a: 'tactic', uid: c.uid, target: best };
     } else if (c.id === 'conscript') {
       const ts = E.tacticTargets(s, pid, c.id); if (ts.length) act = { a: 'tactic', uid: c.uid, target: ts[0] };
@@ -345,11 +351,50 @@ function botStep(s, pid, mem) {
 }
 
 // alliance offers: say yes to someone who isn't running away with the game, when we aren't either
+// ── diplomacy: bots read the board. They team up against whoever is most dangerous, hold grudges, and turn on allies who get too big ──
+function threats(s, pid) {
+  const out = {}; for (const p of s.players) if (p.alive && p.id !== pid) out[p.id] = E.threatOf(s, p.id);
+  return out;
+}
+function leaderOf(th, except) { let best = null; for (const id in th) if (id !== except && (!best || th[id] > th[best])) best = id; return best; }
 function allyReply(s, pid) {
   const o = s.allyOffer; if (!o || o.to !== pid) return null;
-  const land = id => E.ownedLand(s, id).length;
-  const alive = s.players.filter(p => p.alive), avg = alive.reduce((a, p) => a + land(p.id), 0) / alive.length;
-  const accept = land(o.from) < avg * 1.35 && land(pid) < avg * 1.6 && alive.length > 2;
+  const alive = s.players.filter(p => p.alive);
+  if (alive.length <= 2) return { a: 'allyReply', accept: false };
+  const mood = E.moodOf(s, pid, o.from), th = threats(s, pid), mine = E.threatOf(s, pid);
+  const lead = leaderOf(th, o.from), from = th[o.from] || 0;
+  // worth it when someone else is the real danger, and we don't hate the one asking
+  const danger = lead && th[lead] > Math.max(mine, from) * 1.15;
+  const notTheBully = from < Math.max(mine, th[lead] || 0) * 1.25;
+  const accept = mood > 45 || (mood > -30 && danger && notTheBully);
   return { a: 'allyReply', accept };
+}
+// propose or break pacts on our own turn (at most one diplomatic move per turn)
+function diplomacy(s, pid, mem) {
+  if (mem.diplo || s.settings.teams === 'on') return null; mem.diplo = true;
+  const p = E.player(s, pid), alive = s.players.filter(q => q.alive);
+  if (alive.length <= 2) return null;
+  const th = threats(s, pid), mine = E.threatOf(s, pid), lead = leaderOf(th);
+  const pacts = (s.allies || []).filter(x => x.a === pid || x.b === pid);
+  for (const x of pacts) {
+    if (x.ending) continue;
+    const o = x.a === pid ? x.b : x.a;
+    // an ally who has become the runaway leader (or who we've come to hate) gets the knife
+    const runaway = o === lead && th[o] > mine * 1.6 && th[o] > Object.values(th).reduce((a, v) => a + v, 0) * 0.45;
+    if (runaway || E.moodOf(s, pid, o) < -45) return { a: 'allyBreak', with: o };
+  }
+  if (p.traitor || s.allyOffer || pacts.length >= 2 || s.turn.round < 4) return null;
+  if ((mem.offered || 0) > 0 || (p._offerRound && s.turn.round - p._offerRound < 3)) return null;
+  if (!lead || th[lead] < mine * 1.25) return null;
+  // ask the friendliest commander who isn't the leader and isn't already on our side
+  let best = null, bm = -31;
+  for (const q of alive) {
+    if (q.id === pid || q.id === lead || q.traitor || E.isAlly(s, pid, q.id)) continue;
+    const m = E.moodOf(s, pid, q.id) + (th[q.id] < th[lead] ? 10 : 0);
+    if (m > bm) { bm = m; best = q.id; }
+  }
+  if (!best) return null;
+  mem.offered = 1; p._offerRound = s.turn.round;
+  return { a: 'allyOffer', to: best };
 }
 module.exports = { botStep, draftStep, spawnStep, tradeReply, allyReply, BOT_NAMES };

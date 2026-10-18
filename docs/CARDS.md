@@ -32,6 +32,7 @@ Unit cards are permanent unlocks: deploy as many as you can afford.
 | **Leviathan** | Vehicle | Legendary | $14 | 12 | 10 | 1 | – | Land dreadnought. Never suffers pyrrhic losses. |
 | **Titan** | Vehicle | Legendary | $16 | 13 | 12 | 1 | – | Colossus. Siege Breaker and never suffers pyrrhic losses. |
 | **Seraph** | Air | Legendary | $12 | 9 | 4 | 5 | – | Gunship. Seizes enemy hexes it flies over. |
+| **Carrier** | Naval | Legendary | $13 | 3 | 9 | 3 | – | Floating airbase. Deploy aircraft straight onto it, fly them off it, land them back. Carries up to 4 aircraft. |
 | **Oracle** | Artillery | Legendary | $11 | 8 | 3 | 2 | 4 | Orbital uplink. Range 4, ignores mountains. |
 | **Abyssal** | Naval | Legendary | $15 | 12 | 10 | 3 | 4 | Sea dreadnought. Range 4. Never suffers pyrrhic losses. |
 
@@ -50,7 +51,8 @@ Single-use cards from your hand.
 | **Heli Drop** | Uncommon | $3 | Fly a stack up to 5 hexes onto any empty land and seize it. |
 | **Sabotage** | Uncommon | $3 | Destroy an enemy structure (or bridge) within 3 of your land. |
 | **Embargo** | Uncommon | $3 | Click any enemy territory: that commander earns half income for their next 2 turns and cannot trade. |
-| **Bounty** | Uncommon | $1 | This turn, earn $2 for every enemy unit you destroy. |
+| **Bounty** | Uncommon | $1 | This turn, every enemy unit you destroy pays a fifth of your income (min $2). |
+| **Quarry Blast** | Rare | $3 | Blast a mountain within 3 of your land down into Highlands, opening a new pass. |
 | **War Bonds** | Rare | $0 | Gain $1 for every 2 hexes you own. |
 | **Blitz Doctrine** | Rare | $3 | This turn: all units +1 move, fresh units may act. |
 | **Supply Drop** | Rare | $0 | Spin the reel for a crate (60% Standard · 32% Gilded · 8% Mythic), then keep 1 of 3 cards. |
@@ -70,7 +72,7 @@ Built from the hotbar (keys Z–M) on hexes you own that are connected to supply
 | **Depot** | $4 | Logistics hub: your units starting their turn nearby get +1 move. Range = level. |
 | **Port** | $5 | Coast only. Launch ships into the adjacent sea. Supply source for sea lanes. |
 | **Bridge** | $6 | Span a 1-hex sea gap between two shores. Land units cross; ships cannot pass. |
-| **Bunker** | $4 | Strongpoint with its own garrison: +3 Chips per level even when empty, so enemies must attack it. +2 Mult defence (+1 per extra level). ★★+ also gives your neighbouring hexes +1 Mult. Digs in against big attacks: +40% of the attacker chip lead (up to 4 per level). Destroyed if an enemy captures it. |
+| **Bunker** | $4 | Strongpoint with its own garrison: +3 Chips per level even when empty, so enemies must attack it. +2 Mult defence (+1 per extra level). ★★+ also gives your neighbouring hexes +1 Mult. Digs in against big attacks: +40% of the attacker chip lead (up to 4 per level). ★★★ Citadel: 14 garrison Chips, +5 Mult, +2 Mult to neighbours, and holds 60% of the lead (up to 20). Destroyed if an enemy captures it. |
 | **Flak** | $5 | Blocks enemy air tactics nearby (range = level). +2 Mult vs air. |
 
 ## Factions

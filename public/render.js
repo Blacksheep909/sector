@@ -7,9 +7,10 @@ const Render = (() => {
   const HEIGHT = { water: 2, plains: 8, forest: 8, hills: 10, mountain: 10, desert: 7, jungle: 8, tundra: 9, swamp: 5, canyon: 12 };
   // neutral land is deliberately muted so player territory pops
   const COL = { shallow: '#2a6688', water: '#173d58', plains: '#55644a', forest: '#3f5640', hills: '#6b6150', mountain: '#4a4752', fallout: '#6f7a25', desert: '#9c8a5c', jungle: '#2f5a37', tundra: '#9aa7ae', swamp: '#4b5a46', canyon: '#a8532c' };
-  const POI_COL = { ruins: '#d9b77a', cache: '#ffcf4a', village: '#f1efe6', fort: '#c9cfd6', relic: '#c27bff' };
+  const POI_COL = { ruins: '#d9b77a', cache: '#ffcf4a', village: '#f1efe6', fort: '#c9cfd6', relic: '#c27bff', silo: '#ffffff' };
 
   let cv, ctx, W = 0, H = 0, DPR = 1;
+  const late = [];
   let lc = null, lctx = null, layerKey = '', layerT = -1, stateVer = 0, fadeUntil = 0;   // cached terrain layer
   let S_ = null;                 // display state
   let order = [];                // tile keys sorted for drawing
@@ -19,7 +20,7 @@ const Render = (() => {
   const unitPos = {};            // id -> {x,y} world override during animation
   const unitHidden = new Set();  // units hidden during animation
   const extraUnits = [];         // units shown during animation not yet in state
-  const fx = { parts: [], floats: [], rings: [], beams: [], shake: 0, flash: 0, flashCol: '#fff', pops: {} };
+  const fx = { parts: [], floats: [], rings: [], beams: [], lances: [], shake: 0, flash: 0, flashCol: '#fff', pops: {} };
   let t = 0, lastT = 0;
 
   // ── colour helpers ──
@@ -180,6 +181,8 @@ const Render = (() => {
   }
   function float(k, text, color = '#fff', size = 22, dur = 1.3) { const [x, y] = Array.isArray(k) ? k : topOf(k); fx.floats.push({ x, y: y - 20, text, color, size, t0: t, dur }); }
   function ring(k, color, r1 = 80, dur = 0.6, w = 4) { const [x, y] = Array.isArray(k) ? k : topOf(k); fx.rings.push({ x, y, color, r1, t0: t, dur, w }); }
+  // orbital lance: a column of light straight down from the sky onto hex k
+  function lance(k, color, dur = 0.9) { fx.lances.push({ b: topOf(k), color, t0: t, dur }); }
   function beam(a, b, color, dur, arc = 0, cb) { fx.beams.push({ a: topOf(a), b: topOf(b), color, t0: t, dur, arc, cb, done: false }); }
   function shake(v) { fx.shake = Math.max(fx.shake, v); }
   function flash(v, col = '#fff') { fx.flash = Math.max(fx.flash, v); fx.flashCol = col; }
@@ -386,16 +389,28 @@ const Render = (() => {
     ctx.restore();
   }
   function bridgeCol(tile) { const p = tile.owner && S_.players.find(pl => pl.id === tile.owner); return p ? p.color : '#5a4630'; }
-  function drawRig(cx, cy, z, v) {
+  function drawRig(cx, cy, z, v, owner) {
     const x = cx + 6 * z, y = cy - 2 * z;
+    const op = owner && S_.players.find(p => p.id === owner), oc = op ? op.color : null;
+    // an owned rig sits in a ring of its owner's colour
+    if (oc) { ctx.save(); ctx.globalAlpha = 0.35; ctx.fillStyle = oc; ctx.beginPath(); ctx.ellipse(x, y + 5 * z, 15 * z, 6 * z, 0, 0, Math.PI * 2); ctx.fill(); ctx.globalAlpha = 1; ctx.strokeStyle = oc; ctx.lineWidth = 1.6 * z; ctx.stroke(); ctx.restore(); }
     ctx.strokeStyle = '#2b3138'; ctx.lineWidth = 2 * z;
     for (const dx of [-7, 7]) { ctx.beginPath(); ctx.moveTo(x + dx * z, y); ctx.lineTo(x + dx * z, y + 7 * z); ctx.stroke(); }
     ctx.fillStyle = '#59626d'; ctx.fillRect(x - 10 * z, y - 4 * z, 20 * z, 5 * z);
-    ctx.fillStyle = '#c9a53a'; ctx.fillRect(x - 10 * z, y - 4 * z, 20 * z, 1.5 * z);
+    ctx.fillStyle = oc || '#c9a53a'; ctx.fillRect(x - 10 * z, y - 4 * z, 20 * z, oc ? 2.2 * z : 1.5 * z);
     ctx.strokeStyle = '#8e98a3'; ctx.lineWidth = 1.4 * z;
     ctx.beginPath(); ctx.moveTo(x - 4 * z, y - 4 * z); ctx.lineTo(x, y - 20 * z); ctx.lineTo(x + 4 * z, y - 4 * z); ctx.moveTo(x - 2.5 * z, y - 10 * z); ctx.lineTo(x + 2.5 * z, y - 10 * z); ctx.stroke();
     const f = 0.7 + 0.3 * Math.sin(t * 9 + v * 20);
     ctx.fillStyle = `rgba(255,${150 + 60 * f | 0},40,.9)`; ctx.beginPath(); ctx.ellipse(x + 7 * z, y - 9 * z - f * 2 * z, 2 * z, 3.5 * z * f, 0, 0, Math.PI * 2); ctx.fill();
+    if (oc) {
+      // owner's flag on the derrick
+      const fx0 = x - 1 * z, fy = y - 20 * z;
+      ctx.strokeStyle = '#ddd'; ctx.lineWidth = 1.1 * z; ctx.beginPath(); ctx.moveTo(fx0, fy); ctx.lineTo(fx0, fy - 7 * z); ctx.stroke();
+      ctx.fillStyle = oc; ctx.beginPath(); ctx.moveTo(fx0, fy - 7 * z);
+      for (let i = 0; i <= 4; i++) ctx.lineTo(fx0 + i * 2.2 * z, fy - 7 * z + Math.sin(t * 6 + i * 0.9 + v * 9) * 1.1 * z);
+      for (let i = 4; i >= 0; i--) ctx.lineTo(fx0 + i * 2.2 * z, fy - 3 * z + Math.sin(t * 6 + i * 0.9 + v * 9) * 1.1 * z);
+      ctx.fill();
+    }
   }
   function decorate(tile, c, cx, cy, s, z) {
     const v = c.v;
@@ -472,7 +487,7 @@ const Render = (() => {
       const jump = (t * 0.5 + v * 3) % 3;
       if (jump < 0.9) { const p = jump / 0.9, fx = cx + 6 * z + p * 10 * z, fy = cy + 2 * z - Math.sin(p * Math.PI) * 10 * z; ctx.save(); ctx.translate(fx, fy); ctx.rotate(-Math.cos(p * Math.PI) * 0.9); ctx.fillStyle = '#9fd9ff'; ctx.beginPath(); ctx.ellipse(0, 0, 3.2 * z, 1.4 * z, 0, 0, Math.PI * 2); ctx.fill(); ctx.beginPath(); ctx.moveTo(-3 * z, 0); ctx.lineTo(-5.5 * z, -1.8 * z); ctx.lineTo(-5.5 * z, 1.8 * z); ctx.fill(); ctx.restore(); }
     }
-    if (tile.res && tile.t === 'water') drawRig(cx, cy, z, v);
+    if (tile.res && tile.t === 'water') drawRig(cx, cy, z, v, tile.owner);
     else if (tile.res) {
       const bob = Math.sin(t * 2.2 + v * 6) * 2 * z, x = cx + s * 0.38, y = cy - 4 * z + bob;
       const gl = ctx.createRadialGradient(x, y, 0, x, y, 16 * z); gl.addColorStop(0, 'rgba(110,255,240,.55)'); gl.addColorStop(1, 'rgba(110,255,240,0)');
@@ -552,22 +567,22 @@ const Render = (() => {
       ctx.lineWidth = 3 * z; ctx.strokeStyle = '#0b0f13'; ctx.strokeText('★'.repeat(L), 0, 15 * z * big); ctx.fillStyle = '#ffc53d'; ctx.fillText('★'.repeat(L), 0, 15 * z * big);
     }
     ctx.restore();
-    if (tile.struct.lock && z > 0.55) {
+    if (tile.struct.lock && z > 0.55) late.push(() => {
       const label = 'NEXT TURN';
       ctx.font = `800 ${7 * Math.min(1.25, Math.max(0.85, z))}px "Chakra Petch",sans-serif`; ctx.textAlign = 'center'; ctx.textBaseline = 'middle';
       const w = ctx.measureText(label).width + 10 * z, ly = y + 13 * z;
       ctx.fillStyle = '#1d1404'; ctx.beginPath(); ctx.roundRect ? ctx.roundRect(x - w / 2, ly - 6 * z, w, 12 * z, 4 * z) : ctx.rect(x - w / 2, ly - 6 * z, w, 12 * z); ctx.fill();
       ctx.strokeStyle = '#ffc53d'; ctx.lineWidth = 1.5 * z; ctx.stroke();
       ctx.fillStyle = '#ffc53d'; ctx.fillText(label, x, ly + 0.5 * z);
-    }
-    if (type === 'hq' && p) {
+    });
+    if (type === 'hq' && p) late.push(() => {
       const label = p.name.toUpperCase();
       ctx.font = `800 ${11 * Math.max(0.8, z)}px "Chakra Petch",sans-serif`; ctx.textAlign = 'center'; ctx.textBaseline = 'middle';
       const w = ctx.measureText(label).width + 12 * z, ly = y - 46 * z;
       ctx.fillStyle = '#0a0e12'; ctx.beginPath(); ctx.roundRect ? ctx.roundRect(x - w / 2, ly - 8 * z, w, 16 * z, 5 * z) : ctx.rect(x - w / 2, ly - 8 * z, w, 16 * z); ctx.fill();
       ctx.strokeStyle = col; ctx.lineWidth = 2 * z; ctx.stroke();
       ctx.fillStyle = col; ctx.fillText(label, x, ly + 0.5 * z);
-    }
+    });
     if (type === 'hq') {
       // flag
       const fx0 = x + 14 * z, fy = y - 24 * z;
@@ -644,6 +659,19 @@ const Render = (() => {
       const own = st.units[0].owner === ov.me;
       const ready = own && ov.myTurn && st.units.some(u => E.canAct(S_, u));
       const exhausted = own && ov.myTurn && !ready;
+      if (ov.troops) {
+        // troops view: owner halo plus the stack's total attack / defence
+        const op = S_.players.find(p => p.id === st.units[0].owner), col = op ? op.color : '#aaa';
+        ctx.save(); ctx.globalAlpha = 0.35; ctx.fillStyle = col; ctx.beginPath(); ctx.ellipse(x, y + 4 * z, 20 * z, 9 * z, 0, 0, Math.PI * 2); ctx.fill(); ctx.restore();
+        drawToken(x, y, st.units, st.units[0].owner, z, { ready, exhausted });
+        const atk = st.units.reduce((a, u) => a + E.UNITS[u.type].atk, 0), def = st.units.reduce((a, u) => a + E.UNITS[u.type].def, 0);
+        const label = '⚔' + atk + ' 🛡' + def;
+        ctx.font = `800 ${Math.max(9, 10 * z)}px "Chakra Petch",sans-serif`; ctx.textAlign = 'center'; ctx.textBaseline = 'middle';
+        const w = ctx.measureText(label).width + 10, ly = y + 22 * z;
+        ctx.fillStyle = 'rgba(8,12,18,.92)'; ctx.beginPath(); ctx.roundRect ? ctx.roundRect(x - w / 2, ly - 8, w, 16, 5) : ctx.rect(x - w / 2, ly - 8, w, 16); ctx.fill();
+        ctx.strokeStyle = col; ctx.lineWidth = 1.5; ctx.stroke(); ctx.fillStyle = '#fff'; ctx.fillText(label, x, ly + 0.5);
+        continue;
+      }
       drawToken(x + (hasStruct ? 12 * z : 0), y + (hasStruct ? 6 * z : 0), st.units, st.units[0].owner, z, { ready, exhausted });
     }
     // animated units
@@ -737,6 +765,17 @@ const Render = (() => {
       ctx.strokeStyle = r.color; ctx.globalAlpha = 1 - p; ctx.lineWidth = r.w * z * (1 - p) + 1;
       ctx.beginPath(); ctx.ellipse(x, y, r.r1 * e * z, r.r1 * e * z * TILT, 0, 0, Math.PI * 2); ctx.stroke(); ctx.globalAlpha = 1;
     }
+    for (let i = fx.lances.length - 1; i >= 0; i--) {
+      const l = fx.lances[i], p = (t - l.t0) / l.dur; if (p >= 1) { fx.lances.splice(i, 1); continue; }
+      const [x, y] = toScreen(l.b[0], l.b[1] - 6), drop = Math.min(1, p / 0.22), top = -40, bot = top + (y - top) * drop;
+      const w = (p < 0.22 ? 3 : 3 + Math.sin(Math.min(1, (p - 0.22) / 0.78) * Math.PI) * 16) * z, a = p < 0.8 ? 1 : (1 - p) / 0.2;
+      const g = ctx.createLinearGradient(0, top, 0, bot); g.addColorStop(0, 'rgba(255,255,255,0)'); g.addColorStop(0.6, l.color); g.addColorStop(1, '#fff');
+      ctx.save(); ctx.globalAlpha = a * 0.35; ctx.fillStyle = l.color; ctx.fillRect(x - w * 1.8, top, w * 3.6, bot - top);
+      ctx.globalAlpha = a; ctx.fillStyle = g; ctx.fillRect(x - w / 2, top, w, bot - top);
+      ctx.fillStyle = '#fff'; ctx.fillRect(x - w / 6, top, w / 3, bot - top);
+      if (drop >= 1) { ctx.globalAlpha = a * 0.6; ctx.fillStyle = l.color; ctx.beginPath(); ctx.ellipse(x, y, w * 2.4, w * 2.4 * TILT, 0, 0, Math.PI * 2); ctx.fill(); }
+      ctx.restore();
+    }
     for (let i = fx.beams.length - 1; i >= 0; i--) {
       const b = fx.beams[i], p = Math.min(1, (t - b.t0) / b.dur);
       const xw = b.a[0] + (b.b[0] - b.a[0]) * p, yw = b.a[1] + (b.b[1] - b.a[1]) * p - Math.sin(p * Math.PI) * b.arc;
@@ -780,6 +819,8 @@ const Render = (() => {
       bg();
       for (const k of order) drawTile(k, 'base');
       if (S_.fogOn) for (const k of order) if (S_.map.tiles[k].fog === 1) drawFog(k);
+      // labels go on top of every tile, so taller neighbours never cut them off
+      for (const f of late) f(); late.length = 0;
       ctx = main; layerKey = key; layerT = t;
     }
     ctx.drawImage(lc, sx, sy, W, H);
@@ -789,6 +830,10 @@ const Render = (() => {
     for (const pa of ov.planArrows) drawPath(pa.path, pa.color, true, 0.85);
     if (ov.path) drawPath(ov.path, ov.pathColor || '#fff', false);
     const p2 = performance.now();
+    if (ov.troops) {
+      // hold Alt: everything but the armies fades out
+      ctx.fillStyle = 'rgba(6,10,16,.74)'; ctx.fillRect(-sx - 20, -sy - 20, W + 40, H + 40);
+    }
     drawUnits();
     const p3 = performance.now();
     drawAir();
@@ -803,5 +848,5 @@ const Render = (() => {
   }
   const perf = { tiles: 0, fog: 0, units: 0, rest: 0, total: 0 };
 
-  return { invalidate, perf, flyover, init, setState, recolor, focus, fitMap, pan, zoomAt, hexAt, screenOf, topOf, world, ov, unitPos, unitHidden, extraUnits, burst, smoke, float, ring, beam, shake, flash, pop, cam, get time() { return t; } };
+  return { invalidate, perf, flyover, init, setState, recolor, focus, fitMap, pan, zoomAt, hexAt, screenOf, topOf, world, ov, unitPos, unitHidden, extraUnits, burst, smoke, float, ring, beam, lance, shake, flash, pop, cam, get time() { return t; } };
 })();

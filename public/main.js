@@ -5,7 +5,8 @@
   const el = (tag, cls, html) => { const e = document.createElement(tag); if (cls) e.className = cls; if (html !== undefined) e.innerHTML = html; return e; };
   const sleep = ms => new Promise(r => setTimeout(r, ms * speed()));
   let fastForward = false;
-  const speed = () => document.hidden ? 0.02 : fastForward ? 0.12 : 1;
+  // World War: other commanders' turns play at double speed so the huge map keeps moving
+  const speed = () => document.hidden ? 0.02 : fastForward ? 0.12 : (S && S.settings && S.settings.mode === 'worldwar' && evBy !== you) ? 0.5 : 1;
   const esc = s => String(s).replace(/[&<>"]/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;' }[c]));
 
   // ───────────── app state ─────────────
@@ -40,7 +41,7 @@
   function onMsg(m) {
     switch (m.t) {
       case 'welcome':
-        you = m.you; realId = m.you; spectator = !!m.spectator;
+        { const tookOver = S && !myP() && m.you; you = m.you; realId = m.you; spectator = !!m.spectator; if (tookOver) { toast('You have taken command!', 'leg'); SFX.legendary(); } }
         if (m.token) { token = m.token; try { localStorage.setItem('sector.token', token); } catch (e) {} }
         joinedOnce = true;
         break;
@@ -50,6 +51,7 @@
         if (m.seq && pending.has(m.seq)) { pending.get(m.seq)(false); pending.delete(m.seq); }
         toast(m.msg, 'err'); SFX.error(); break;
       case 'serverClosed': serverClosed(m); break;
+      case 'skipFx': if (curFight && curFight.att === m.att && curFight.to === m.to) fastForward = true; break;
       case 'chat': addLog(`<b style="--c:${m.color}">${esc(m.from)}:</b> ${esc(m.text)}`, 'chat'); SFX.click(); break;
       case 'left': leftGame = true; token = null; try { localStorage.removeItem('sector.token'); } catch (e) {} you = null; realId = null; joinedOnce = false; backToMenu(); toast('You left the game'); break;
       case 'kicked': token = null; try { localStorage.removeItem('sector.token'); } catch (e) {} you = null; toast('You were removed from the lobby', 'err'); showJoin(); break;
@@ -139,6 +141,14 @@
         sb.onclick = () => { SFX.click(); send({ t: 'spectate', id: p.id, on: !p.spectator }); };
         r.appendChild(sb);
       }
+      if (lobby.settings.teams === 'on' && !p.spectator) {
+        // team chip: click to cycle A → B → C → D
+        const tm = p.team || 1, can = host || p.id === realId || (p.local && p.controller === realId);
+        const tb = el('button', 'teamchip t' + tm, 'TEAM ' + 'ABCD'[tm - 1]); tb.disabled = !can;
+        tb.title = can ? 'Click to change team' : '';
+        tb.onclick = () => { SFX.click(); send({ t: 'team', id: p.id, team: tm % 4 + 1 }); };
+        r.insertBefore(tb, r.querySelector('.tag'));
+      }
       if ((host && p.id !== you) || (p.local && p.controller === realId)) { const x = el('button', 'x', '✕'); x.onclick = () => send({ t: 'kick', id: p.id }); r.appendChild(x); }
       pl.appendChild(r);
     }
@@ -159,12 +169,12 @@
       cl.appendChild(d);
     }
     const st = lobby.settings;
-    for (const [id, k] of [['#setMode', 'mode'], ['#setType', 'mapType'], ['#setSize', 'mapSize'], ['#setSpawns', 'spawns'], ['#setFog', 'fog'], ['#setEvents', 'events'], ['#setTimer', 'timer'], ['#setRounds', 'maxRounds'], ['#setSeed', 'seed']]) {
+    for (const [id, k] of [['#setMode', 'mode'], ['#setType', 'mapType'], ['#setSize', 'mapSize'], ['#setSpawns', 'spawns'], ['#setFog', 'fog'], ['#setEvents', 'events'], ['#setTimer', 'timer'], ['#setRounds', 'maxRounds'], ['#setSeed', 'seed'], ['#setTeams', 'teams']]) {
       const e = $(id); if (document.activeElement !== e) e.value = st[k] ?? ''; e.disabled = !host;
     }
     $('#startBtn').hidden = !host; $('#waitHost').hidden = host;
   }
-  for (const [id, k] of [['#setMode', 'mode'], ['#setType', 'mapType'], ['#setSize', 'mapSize'], ['#setSpawns', 'spawns'], ['#setFog', 'fog'], ['#setEvents', 'events'], ['#setTimer', 'timer'], ['#setRounds', 'maxRounds'], ['#setSeed', 'seed']])
+  for (const [id, k] of [['#setMode', 'mode'], ['#setType', 'mapType'], ['#setSize', 'mapSize'], ['#setSpawns', 'spawns'], ['#setFog', 'fog'], ['#setEvents', 'events'], ['#setTimer', 'timer'], ['#setRounds', 'maxRounds'], ['#setSeed', 'seed'], ['#setTeams', 'teams']])
     $(id).addEventListener('change', e => send({ t: 'settings', settings: { [k]: e.target.value } }));
   $('#addBot').onclick = () => { SFX.click(); send({ t: 'addBot' }); };
   $('#addLocal').onclick = () => { SFX.click(); send({ t: 'addLocal' }); };
@@ -208,7 +218,7 @@
     Render.fitMap();
     const me = myP();
     if (me && me.hq) setTimeout(() => Render.focus(me.hq, Math.max(Render.cam.z, 1.05)), 300);
-    $('#log').innerHTML = ''; for (const l of state.log.slice(-6)) addLog(esc(l));
+    $('#log').innerHTML = ''; for (const l of state.log.filter(logWorthy).slice(-6)) addLog(esc(l));
     applyState(state, true);
   }
 
@@ -217,16 +227,23 @@
   const isMyTurn = () => !!S && S.phase === 'play' && curP() && curP().id === you;
   const planning = () => !!S && S.phase === 'play' && !isMyTurn() && myP() && myP().alive;
   const draftPhase = () => !!S && S.phase === 'draft';
+  const canPlace = () => planning() || (isMyTurn() && S.turn.stage === 'act' && !executing);
   const canCommand = () => (isMyTurn() && S.turn.stage === 'act' && !animating && !executing) || planning();
   const dispState = () => planning() && planState ? planState : S;
   const pName = id => { const p = S.players.find(x => x.id === id); return p ? p.name : '?'; };
   const pColor = id => { const p = S.players.find(x => x.id === id); return p ? p.color : '#aaa'; };
 
+  // the log keeps headlines only: falls, sieges, pacts, nukes, wins, and fights that involve you
+  const LOG_ALWAYS = ['☠', '🏆', '🔥', '🤝', '🗡', '☢', '⛔', '🚪', '🛰', '💔', '🃏', 'Draft complete'];
+  function logWorthy(l) {
+    if (LOG_ALWAYS.some(p => l.startsWith(p))) return true;
+    const me = myP(); return !!me && l.includes(me.name) && /^(⚔|💥|⭕|🧨|🏴|⚡|💣|✈)/u.test(l);
+  }
   function applyState(state, initial) {
     const prevCash = myP() ? myP().cash : null;
     S = state;
     const log = state.log || [];
-    if (!initial) { const i = log.lastIndexOf(applyState.lastLog); for (const l of log.slice(i >= 0 ? i + 1 : -3)) addLog(esc(l)); }
+    if (!initial) { const i = log.lastIndexOf(applyState.lastLog); for (const l of log.slice(i >= 0 ? i + 1 : -3)) if (logWorthy(l)) addLog(esc(l)); }
     applyState.lastLog = log[log.length - 1];
     recomputePlan();
     // validate selection
@@ -245,7 +262,7 @@
     if (S.phase === 'draft') Cards.showDraft(S, you, (idx, replace) => act({ a: 'draftPick', idx, replace })); else Cards.hideDraft();
     const me2 = myP();
     if (isMyTurn() && S.turn.stage === 'choose' && me2 && !executing && !(plan.length && planAuto) && passReady())
-      Cards.openSupply({ me: me2, offer: S.turn.offer, income: S.turn.income, round: S.turn.round, rerollCost: 2 + S.turn.rerolls, key: S.turn.round + ':' + S.turn.idx + ':' + S.turn.rerolls,
+      Cards.openSupply({ me: me2, offer: S.turn.offer, income: S.turn.income, round: S.turn.round, rerollCost: E.rerollCost(S), key: S.turn.round + ':' + S.turn.idx + ':' + S.turn.rerolls,
         onPick: pickFromSupply, onIncome: async () => { const ok = await act({ a: 'choose', pick: 'income' }); if (ok && plan.length) runPlan(); return ok; }, onReroll: () => act({ a: 'reroll' }) });
     else Cards.closeSupply();
     if (isMyTurn() && S.turn.stage === 'crate' && S.turn.crate && !S.turn.crate.hidden && me2 && passReady())
@@ -403,6 +420,17 @@
       const idx = E.buildIndex(ds);
       ov.reach = E.reachable(ds, you, ids, sel.hex, idx);
       const units = ids.map(id => ds.units[id]);
+      // troops riding a transport can wade ashore straight from the selection
+      const cargo = units.filter(u => u && !E.isSea(u.type));
+      if (cargo.length && cargo.length < units.length) {
+        const rc = E.reachable(ds, you, cargo.map(u => u.id), sel.hex, idx);
+        for (const k in rc) {
+          if (rc[k].kind === 'start' || ov.reach[k]) continue;
+          // waypoints stay unclickable so paths can still be traced back to the ship
+          const ashore = ds.map.tiles[k].t !== 'water' || rc[k].kind === 'attack';
+          ov.reach[k] = ashore && rc[k].kind !== 'pass' ? { ...rc[k], cargo: true } : { ...rc[k], kind: 'pass', cargo: true };
+        }
+      }
       ov.probs = {};
       // extra selected stacks add their attack targets (pincers)
       for (const g of sel.extra || []) {
@@ -482,14 +510,20 @@
     }
     if (e.key.toLowerCase() === 't' && S) { $('#chatIn').focus(); e.preventDefault(); }
     if (e.key.toLowerCase() === 'f' && myP()) Render.focus(myP().hq);
-    if (e.key === ' ') e.preventDefault(); // space is for flipping cards / throwing dice only — never ends the turn
+    if (e.key === ' ') {
+      // space flips cards / throws dice when those are up; otherwise it skips the animation playing (never ends the turn)
+      e.preventDefault();
+      if (!e.repeat && (animating || curFight) && $('#supply').hidden && $('#crate').hidden && $('#draft').hidden) skipAnim();
+    }
+    if (e.key === 'Alt') { e.preventDefault(); if (!Render.ov.troops) { Render.ov.troops = true; Render.invalidate(); } }
     if (S && S.phase === 'play') {
       const kk = e.key.toLowerCase(), items = hotbarItems();
       const ui = UNIT_KEYS.indexOf(kk); if (ui >= 0 && items.units[ui]) { armSlot('unit', items.units[ui]); keys.delete(kk); }
       const bi = BUILD_KEYS.indexOf(kk); if (bi >= 0 && items.builds[bi]) { armSlot('build', items.builds[bi]); keys.delete(kk); }
     }
   });
-  addEventListener('keyup', e => keys.delete(e.key.toLowerCase()));
+  addEventListener('keyup', e => { keys.delete(e.key.toLowerCase()); if (e.key === 'Alt') { e.preventDefault(); Render.ov.troops = false; Render.invalidate(); } });
+  addEventListener('blur', () => { if (Render.ov.troops) { Render.ov.troops = false; Render.invalidate(); } });
   (function panLoop() {
     requestAnimationFrame(panLoop);
     const v = 12; let dx = 0, dy = 0;
@@ -612,7 +646,7 @@
     document.querySelectorAll('#netTabs [data-tab]').forEach(x => x.classList.toggle('on', x === b));
     const join = b.dataset.tab === 'join';
     $('#joinNet').hidden = !join; $('#joinBox').hidden = join || !!(lobby && lobby.players.some(p => p.id === realId)); $('#lobbyBox').hidden = join || $('#lobbyBox').dataset.show !== '1';
-    if (join) renderRecent();
+    if (join) { renderRecent(); if (!$('#scanBtn').disabled && !$('#scanList .srv')) $('#scanBtn').click(); }
   });
   $('#joinGo').onclick = () => { const v = $('#joinAddr').value.trim(); if (v) goTo(v); };
   $('#joinAddr').addEventListener('keydown', e => { if (e.key === 'Enter') $('#joinGo').click(); });
@@ -629,7 +663,7 @@
       try { const r = await fetch(`http://${ip}:${port}/info`, { signal: ctl.signal }); const j = await r.json(); if (j.game === 'sector' && !found.some(f => f.id && f.id === j.id)) { found.push({ url: `http://${ip}:${port}`, ...j }); show(); } } catch (e) {} finally { clearTimeout(tm); }
     };
     const show = () => {
-      list.innerHTML = found.map(s => `<div class="srv${s.url === location.origin ? ' me' : ''}"><div><b>${s.host ? esc(s.host) + "'s game" : 'Open lobby'}</b> <span class="sub">· ${s.humans} player${s.humans === 1 ? '' : 's'} · ${s.inGame ? 'in progress (round ' + s.round + ')' : 'in lobby'}</span><div class="sub">${esc(s.url.replace('http://', ''))}${s.url === location.origin ? ' · this server' : ''}</div></div><button class="btn tiny ${s.inGame ? '' : 'green'}" data-u="${s.url}">${s.inGame ? 'WATCH' : 'JOIN'}</button></div>`).join('') || '<div class="hint">Looking for games…</div>';
+      list.innerHTML = found.map(s => `<div class="srv${s.url === location.origin ? ' me' : ''}"><div><b>${s.host ? esc(s.host) + "'s game" : 'Open lobby'}</b> <span class="sub">· ${s.humans} player${s.humans === 1 ? '' : 's'} · ${s.inGame ? 'in progress (round ' + s.round + ')' : 'in lobby'}${s.inGame && s.bots ? ' · <span style="color:#7fe0a0">' + s.bots + ' bot' + (s.bots > 1 ? 's' : '') + ' you can take over</span>' : ''}</span><div class="sub">${esc(s.url.replace('http://', ''))}${s.url === location.origin ? ' · this server' : ''}</div></div><button class="btn tiny ${s.inGame ? '' : 'green'}" data-u="${s.url}">${s.inGame ? 'WATCH' : 'JOIN'}</button></div>`).join('') || '<div class="hint">Looking for games…</div>';
       list.querySelectorAll('[data-u]').forEach(b => b.onclick = () => goTo(b.dataset.u));
     };
     // known addresses first (instant), then sweep each subnet with a throttled pool so dead IPs don't starve live ones
@@ -653,20 +687,24 @@
     const ds = dispState();
     if (mode && mode.type === 'deploy') {
       if (!k || !Render.ov.spawn || !Render.ov.spawn.has(k)) { if (!k) cancel(); else { toast(E.isSea(mode.unit) ? 'Launch ships into the sea next to your Port' : 'Deploy at a highlighted HQ / FOB', 'err'); SFX.error(); } return; }
-      if (!canCommand()) return;
-      await doAction({ a: 'deploy', unit: mode.unit, hex: k });
-      const me = dispState().players.find(p => p.id === you);
-      if (mode && me && me.cash < E.unitCost(me, mode.unit)) mode = null;
-      refreshAll(); return;
+      if (!canPlace()) return;
+      // fire and forget: you can click again straight away, even while the last drop is still landing
+      const unit = mode.unit;
+      doAction({ a: 'deploy', unit, hex: k }).then(() => {
+        const me = dispState().players.find(p => p.id === you);
+        if (mode && mode.unit === unit && me && me.cash < E.unitCost(me, unit)) { mode = null; refreshAll(); }
+      });
+      return;
     }
     if (mode && mode.type === 'build') {
       if (!k || !Render.ov.spawn || !Render.ov.spawn.has(k)) { if (!k) cancel(); else { toast('Build on a highlighted hex', 'err'); SFX.error(); } return; }
-      if (!canCommand()) return;
+      if (!canPlace()) return;
       const st = mode.struct;
-      await doAction({ a: 'build', struct: st, hex: k });
-      const me = dispState().players.find(p => p.id === you);
-      if (mode && me && (!E.buildHexes(dispState(), you, st).some(k2 => me.cash >= E.buildCost(dispState(), me, st, k2)))) mode = null;
-      refreshAll(); return;
+      doAction({ a: 'build', struct: st, hex: k }).then(() => {
+        const me = dispState().players.find(p => p.id === you);
+        if (mode && mode.struct === st && me && (!E.buildHexes(dispState(), you, st).some(k2 => me.cash >= E.buildCost(dispState(), me, st, k2)))) { mode = null; refreshAll(); }
+      });
+      return;
     }
     if (mode && mode.type === 'tactic') {
       if (!k) return cancel();
@@ -690,7 +728,8 @@
         if (gs.length === 1) { const a = { a: 'move', from: gs[0].from, units: gs[0].units, to: k }; sel = null; refreshAll(); await doAction(a); return; }
       }
       if (r && r.kind !== 'start' && r.kind !== 'pass' && !r.extra) {
-        const a = { a: 'move', from: sel.hex, units: [...sel.units], to: k };
+        const ids = r.cargo ? [...sel.units].filter(id => ds.units[id] && !E.isSea(ds.units[id].type)) : [...sel.units];
+        const a = { a: 'move', from: sel.hex, units: ids, to: k };
         sel = null; refreshAll();
         await doAction(a); return;
       }
@@ -702,11 +741,19 @@
   // ───────────── HUD rendering ─────────────
   function refreshAll() {
     if (!S) return;
-    Render.setState(dispState());
-    updateOverlays();
-    renderTop(); renderCash(); renderSiege(); renderUndo(); renderWeather(); renderAlly(); renderPlan(); renderHexPanel(); renderHand(); renderEnd(); renderModeHint(); renderOffer();
+    const P = window.__refreshPerf || (window.__refreshPerf = {}), tm = (n, f) => { const t0 = performance.now(); f(); const d = performance.now() - t0; P[n] = +((P[n] || 0) * 0.8 + d * 0.2).toFixed(2); if (d > (P[n + '^'] || 0)) P[n + '^'] = +d.toFixed(1); };
+    tm('state', () => Render.setState(dispState()));
+    tm('overlays', updateOverlays);
+    tm('top', renderTop); tm('cash', renderCash); renderSiege(); renderUndo(); renderWeather(); tm('ally', renderAlly); tm('plan', renderPlan); tm('hex', renderHexPanel); tm('hand', renderHand); renderEnd(); renderModeHint(); renderOffer();
   }
 
+  // how a bot feels about you
+  function moodTag(p) {
+    if (!p.bot || !p.alive || p.id === you || !myP()) return '';
+    const m = E.moodOf(S, p.id, you);
+    const [face, word] = m >= 40 ? ['😊', 'Friendly'] : m >= 10 ? ['🙂', 'Warm'] : m > -10 ? ['😐', 'Neutral'] : m > -40 ? ['😠', 'Wary'] : ['😡', 'Hostile'];
+    return ` <span class="mood" title="${word} towards you (${m > 0 ? '+' : ''}${m}). Bots ally with commanders they like, against whoever is most dangerous.">${face}</span>`;
+  }
   function renderTop() {
     const box = $('#players'); box.innerHTML = '';
     const counts = {}; for (const k in S.map.tiles) { const o = S.map.tiles[k].owner; if (o) counts[o] = (counts[o] || 0) + 1; }
@@ -716,16 +763,22 @@
       c.style.setProperty('--pc', p.color);
       const extra = S.map.beacon ? ` · ◆${p.koth}/3` : '';
       if (!p.alive) c.style.setProperty('--pc', '#5b6670');
-      c.innerHTML = `<div class="av"><img src="${Art.iconURL('glyph', f ? f.glyph : 'shield', '#0b0f13', 48)}"></div><div><div class="pn">${esc(p.name)}${p.alive ? '' : ' <span class="out">☠ OUT</span>'}</div><div class="ps"><span>⬢ <b>${counts[p.id] || 0}</b></span><span>$<b>${p.cash}</b></span><span>🂠 <b>${p.tacticCount ?? p.tactics.length}</b></span>${extra}</div></div>`;
+      c.innerHTML = `<div class="av"><img src="${Art.iconURL('glyph', f ? f.glyph : 'shield', '#0b0f13', 48)}"></div><div><div class="pn">${esc(p.name)}${p.alive ? '' : ' <span class="out">☠ OUT</span>'}${p.team ? ` <span class="teamchip t${p.team}">${'ABCD'[p.team - 1]}</span>` : ''}${p.traitor ? ' <span class="out" title="Broke an alliance: -40% income and no new pacts">🗡 TRAITOR</span>' : ''}${moodTag(p)}</div><div class="ps"><span>⬢ <b>${counts[p.id] || 0}</b></span><span>$<b>${p.cash}</b></span><span>🂠 <b>${p.tacticCount ?? p.tactics.length}</b></span>${extra}</div></div>`;
       c.title = f ? f.name + ' — ' + f.perk + ': ' + f.desc : '';
       c.onclick = () => Render.focus(p.hq);
       const allied = E.isAlly(S, you, p.id), pact = allied && (S.allies || []).find(x => (x.a === p.id || x.b === p.id) && (x.a === you || x.b === you));
       if (allied) { c.classList.add('allied'); c.appendChild(el('span', 'allybadge' + (pact && pact.ending ? ' ending' : ''), pact && pact.ending ? '💔' : '🤝')); }
+      if (!myP() && p.bot && p.alive && S.phase !== 'over') {
+        const box = el('div', 'chipbtns'), tb = el('button', 'tradebtn ally', 'TAKE OVER');
+        tb.title = 'Take command of this bot: its land, army and cards become yours';
+        tb.onclick = e => { e.stopPropagation(); SFX.select(); send({ t: 'takeover', id: p.id, name: savedName() || 'Commander' }); };
+        box.appendChild(tb); c.appendChild(box);
+      }
       if (isMyTurn() && S.turn.stage === 'act' && p.id !== you && p.alive) {
         const box = el('div', 'chipbtns');
         if (!S.trade) { const tb = el('button', 'tradebtn', 'TRADE'); tb.onclick = e => { e.stopPropagation(); SFX.select(); openTrade(p.id); }; box.appendChild(tb); }
-        if (!allied && !S.allyOffer && myP() && myP().alive) { const ab = el('button', 'tradebtn ally', 'ALLY'); ab.title = 'Propose an alliance'; ab.onclick = e => { e.stopPropagation(); SFX.select(); act({ a: 'allyOffer', to: p.id }); }; box.appendChild(ab); }
-        if (allied && pact && !pact.ending) {
+        if (!allied && !S.allyOffer && myP() && myP().alive && S.settings.teams !== 'on') { const ab = el('button', 'tradebtn ally', 'ALLY'); ab.title = 'Propose an alliance'; ab.onclick = e => { e.stopPropagation(); SFX.select(); act({ a: 'allyOffer', to: p.id }); }; box.appendChild(ab); }
+        if (allied && pact && !pact.ending && !pact.team) {
           const bb = el('button', 'tradebtn betray', 'BREAK'); bb.title = 'Break the alliance (takes effect at the start of your next turn)';
           bb.onclick = e => { e.stopPropagation(); if (bb.dataset.armed !== '1') { bb.dataset.armed = '1'; bb.textContent = 'SURE?'; setTimeout(() => { bb.dataset.armed = ''; bb.textContent = 'BREAK'; }, 2500); return; } SFX.alarm(); act({ a: 'allyBreak', with: p.id }); };
           box.appendChild(bb);
@@ -786,8 +839,8 @@
     if (planning()) $('#cash').textContent = dm.cash;
     else if (!countCash.running) $('#cash').textContent = me.cash;
     const inc = E.computeIncome(S, you);
-    $('#incomeLine').innerHTML = `Income <b>+$${inc.total}</b> /turn` + (planning() ? ' · <span style="color:var(--blue)">blueprint view</span>' : '');
-    $('#incomeLine').title = `Base $${inc.base} + $${inc.fromHex} land (${inc.hexes} hexes, 1 per 3) + $${inc.fromSea} sea (${inc.sea} hexes, 1 per 4) + $${inc.fromRes} resources/rigs + $${inc.fish || 0} fishing + $${inc.lanes || 0} shipping lanes + $${inc.ref} refineries + $${inc.trade} markets + $${inc.poi || 0} villages/relics`;
+    $('#incomeLine').innerHTML = `Income <b>+$${inc.total}</b> /turn` + (inc.pact ? ` · <span style="color:#7fe0a0">🤝 +$${inc.pact}</span>` : '') + (inc.traitor ? ` · <span style="color:#ff9aa3">🗡 traitor ${inc.traitor}</span>` : '') + (planning() ? ' · <span style="color:var(--blue)">blueprint view</span>' : '');
+    $('#incomeLine').title = `Base $${inc.base} + $${inc.fromHex} land (${inc.hexes} hexes, 1 per 3) + $${inc.fromSea} sea (${inc.sea} hexes, 1 per 4) + $${inc.fromRes} resources/rigs + $${inc.fish || 0} fishing + $${inc.lanes || 0} shipping lanes + $${inc.ref} refineries + $${inc.trade} markets + $${inc.poi || 0} villages/relics` + (inc.pact ? ` + $${inc.pact} alliance dividend` : '') + (inc.traitor ? ` − $${-inc.traitor} traitor penalty (${me.traitor} turn${me.traitor > 1 ? 's' : ''} left)` : '');
     $('#hexLine').innerHTML = `⬢ ${inc.hexes} land · ≈ ${inc.sea} sea` + (inc.cut ? ` · <span style="color:#ff9aa3">${inc.cut} cut off</span>` : '');
 
   }
@@ -1155,13 +1208,21 @@
   }
   async function showCombat(ev) {
     try { await combatSeq(ev); } catch (e) { console.error(e); }
-    $('#combat').hidden = true; $('#combat').onclick = null;
+    $('#combat').hidden = true; $('#combat').onclick = null; curFight = null;
+  }
+  // skipping: a fight skipped by anyone in it (or by anyone at all, for bot-vs-bot fights) skips for everyone watching
+  let curFight = null;
+  function skipAnim() {
+    if (!animating && !curFight) return;
+    fastForward = true;
+    if (curFight) send({ t: 'skipFx', att: curFight.att, def: curFight.def, to: curFight.to });
   }
   function combatSeq(ev) {
     return new Promise(async (resolve, reject) => { try {
       const box = $('#combat'); box.innerHTML = ''; box.hidden = false;
       fastForward = false;
-      box.onclick = () => { fastForward = true; };
+      box.onclick = () => skipAnim();
+      curFight = { att: ev.att.pid, def: ev.def.pid || null, to: ev.to };
       const wrap = el('div', 'cb');
       const side = (role, data, name, color) => {
         const s = el('div', 'cb-side'); s.style.setProperty('--pc', color);
@@ -1222,7 +1283,7 @@
       ]);
       sides.forEach(([s, d], si) => {
         dice[si].classList.remove('hidden-die'); dieFace(dice[si], d.roll);
-        if (d.raw !== d.roll) { dice[si].classList.add('loaded'); s.querySelector('.cb-bon').appendChild(el('div', 'cb-b', '<span>Loaded Dice</span><span class="v m">${d.raw} → 3</span>')); }
+        if (d.raw !== d.roll) { dice[si].classList.add('loaded'); s.querySelector('.cb-bon').appendChild(el('div', 'cb-b', `<span>🎲 Loaded Dice</span><span class="v m">${d.raw} → 3</span>`)); }
         const mb = s.querySelector('.mult'); mb.textContent = d.roll + d.mult; mb.classList.remove('hit'); void mb.offsetWidth; mb.classList.add('hit');
       });
       SFX.mult(6); Render.shake(5);
@@ -1293,7 +1354,7 @@
       };
       cv.onclick = e => e.stopPropagation();
       // SPACE flings your die
-      const onKey = e => { if (e.key !== ' ') return; e.preventDefault(); e.stopPropagation(); const d = dice.find(d => d.human && !d.thrown); if (d) fling(d, -d.side * (900 + Math.random() * 500), (Math.random() - 0.5) * 700); };
+      const onKey = e => { if (e.key !== ' ') return; const d = dice.find(d => d.human && !d.thrown); if (!d) return; e.preventDefault(); e.stopPropagation(); fling(d, -d.side * (900 + Math.random() * 500), (Math.random() - 0.5) * 700); };
       addEventListener('keydown', onKey, true);
       const cleanupKey = () => removeEventListener('keydown', onKey, true);
       const settle = d => {
@@ -1502,13 +1563,13 @@
           const [x, y] = Render.topOf(ev.hex);
           Render.extraUnits.push(u);
           Render.unitPos[u.id] = { x, y: y - 120 };
-          await tween(260, p => { Render.unitPos[u.id] = { x, y: y - 120 * (1 - p * p) }; });
+          await tween(ev.pid === you ? 150 : 260, p => { Render.unitPos[u.id] = { x, y: y - 120 * (1 - p * p) }; });
           delete Render.unitPos[u.id]; Render.extraUnits.splice(Render.extraUnits.indexOf(u), 1);
           S.units[u.id] = u;
           if (ev.claimed) flipTile(ev.hex, ev.pid, 3);
           if (ev.muster) { Render.ring(ev.hex, '#ff4a2a', 60, 0.5, 5); Render.float(ev.hex, 'MUSTER! READY TO FIGHT', '#ffb03a', 15); if (ev.pid === you) SFX.rare(); }
           SFX.deploy(); Render.shake(3); Render.burst(ev.hex, ['#c9b78f', '#8f8068'], 14, { up: 30, g: 120, size: 3 }); Render.ring(ev.hex, pColor(ev.pid), 40, 0.4, 3);
-          await sleep(120); break;
+          if (ev.pid === you) continue; await sleep(120); break;
         }
         case 'build': {
           { const tt = S.map.tiles[ev.hex]; tt.structs = E.structsOf(tt).slice(); const ex = tt.structs.find(x => x.type === ev.struct);
@@ -1516,14 +1577,21 @@
             if (!tt.struct || ev.struct === 'hq' || ev.struct === 'fob') tt.struct = tt.structs.find(x => x.type === ev.struct); }
           if (ev.lvl > 1) { Render.ring(ev.hex, '#ffc53d', 70, 0.6, 5); Render.float(ev.hex, '★'.repeat(ev.lvl) + ' UPGRADED', '#ffc53d', 18); }
           Render.pop(ev.hex); SFX.build(); Render.burst(ev.hex, [pColor(ev.pid), '#fff', '#ffc53d'], 22, { square: true, up: 140 }); Render.float(ev.hex, E.STRUCTS[ev.struct].name.toUpperCase(), '#fff', 16);
-          await sleep(350); break;
+          if (ev.pid === you) continue; await sleep(350); break;
         }
         case 'move': if (watch) { follow(ev.path[ev.path.length - 1]); await sleep(150); } await animMove(ev); break;
         case 'combat': {
           follow(ev.to);
           if (ev.ranged) {
-            SFX.shot(); Render.beam(ev.from, ev.to, '#ffcf5a', 0.45 * speed(), 70); await sleep(450);
-            Render.burst(ev.to, ['#ffcf5a', '#fff'], 14, { speed: 1.2 }); SFX.boom(0.6);
+            if (ev.att.units && ev.att.units.includes('oracle')) {
+              // the Oracle calls its strike down from orbit, not out of its dish
+              SFX.zap(); Render.ring(ev.from, '#7ff3ff', 40, 0.5, 3); await sleep(250);
+              Render.lance(ev.to, '#7ff3ff', 0.9 * speed()); await sleep(260 * speed());
+              Render.flash(0.25, '#bff6ff'); Render.shake(10); Render.burst(ev.to, ['#fff', '#bff6ff', '#36c9ff'], 30, { speed: 1.8 }); SFX.boom(1); await sleep(300);
+            } else {
+              SFX.shot(); Render.beam(ev.from, ev.to, '#ffcf5a', 0.45 * speed(), 70); await sleep(450);
+              Render.burst(ev.to, ['#ffcf5a', '#fff'], 14, { speed: 1.2 }); SFX.boom(0.6);
+            }
           }
           if (ev.crush) await obliterate(ev); else await showCombat(ev);
           killUnits(ev.killed.concat(ev.pyrrhic), ev.killed.length > 2);
@@ -1534,6 +1602,13 @@
           await animMove({ pid: ev.pid, units: ev.units, path, captures: [] }, true);
           flipTile(ev.to, ev.pid, 6); Render.ring(ev.to, pColor(ev.pid), 70, 0.6, 5);
           await sleep(200); break;
+        }
+        case 'silo': {
+          const d = E.cardDef(ev.card);
+          follow(ev.hex); Render.lance(ev.hex, '#ffffff', 0.8); Render.ring(ev.hex, '#fff', 90, 0.8, 6); SFX.legendary();
+          banner('🚀 SILO ARMED', pName(ev.pid) + ' gets ' + (d ? d.name : 'a mythic'), '#ffffff');
+          if (ev.pid === you) Render.flash(0.4, '#ffffff');
+          await sleep(1100); break;
         }
         case 'eliminate': {
           const p = S.players.find(x => x.id === ev.pid);
@@ -1682,12 +1757,47 @@
         for (const k of ev.area) { const t = S.map.tiles[k]; if (t && E.isLandTile(t)) { t.owner = null; t.struct = null; t.contam = 4; } }
         Render.recolor(); await sleep(1100); break;
       }
+      case 'quarry': {
+        Render.lance(ev.target, '#ffb03a', 0.5); await sleep(200);
+        SFX.boom(1.4); Render.shake(16); Render.burst(ev.target, ['#8a7a66', '#5d5144', '#c9b78f', '#ffb03a'], 70, { speed: 2.2, size: 4, up: 160 });
+        Render.smoke(ev.target, 24, 'rgba(150,135,115,');
+        S.map.tiles[ev.target].t = 'hills'; Render.recolor(); Render.invalidate();
+        Render.float(ev.target, 'PASS OPENED', '#ffb03a', 18); await sleep(500); break;
+      }
+      case 'spy': {
+        const thief = ev.pid === you, victim = ev.from === you, d = E.cardDef(ev.card);
+        Render.float(ev.target, '🕵 CARD STOLEN', '#c25cff', 18); SFX.rare();
+        if (thief) toast(`Spy Ring stole ${d ? d.name : 'a card'} from ${pName(ev.from)}`, 'leg');
+        else if (victim) { toast(`${pName(ev.pid)}'s spies stole your ${d ? d.name : 'card'}!`, 'err'); SFX.alarm(); }
+        await sleep(400); break;
+      }
+      case 'tsar': {
+        banner('☢ TSAR BOMBA', who + ' — 9-hex blast', '#ffffff'); SFX.alarm(); await sleep(900); SFX.alarm(); await sleep(700);
+        Render.lance(ev.target, '#ffffff', 1.0); await sleep(450);
+        Render.flash(1.6, '#ffffff'); SFX.boom(3); setTimeout(() => SFX.boom(2.4), 220); Render.shake(55);
+        for (let i = 0; i < 6; i++) Render.ring(ev.target, ['#fff', '#ffe6a0', '#ffdd55', '#ff7a2a', '#d9ff3b', '#ffffff'][i], 200 + i * 55, 1.1 + i * 0.3, 10);
+        for (const k of ev.area) { Render.burst(k, ['#fff', '#ffdd55', '#ff7a2a', '#ff3a1a', '#444'], 50, { speed: 2.6, size: 5, life: 1.4 }); Render.smoke(k, 16, 'rgba(120,110,90,'); }
+        for (const id of ev.units) delete S.units[id];
+        for (const k of ev.area) { const t = S.map.tiles[k]; if (!t) continue; const hq = (t.structs || []).find(x => x.type === 'hq'); if (hq) { t.structs = [hq]; t.struct = hq; continue; } t.owner = null; t.struct = null; t.structs = []; if (E.isLandTile(t)) t.contam = 5; }
+        Render.recolor(); await sleep(1400); break;
+      }
+      case 'regime': {
+        banner('🏛 REGIME CHANGE', who + ' takes ' + ev.hexes.length + ' hexes', pColor(ev.pid)); SFX.rare(); await sleep(500);
+        for (const id of ev.units) if (S.units[id]) S.units[id].owner = ev.pid;
+        for (let i = 0; i < ev.hexes.length; i++) { flipTile(ev.hexes[i], ev.pid, i); Render.ring(ev.hexes[i], pColor(ev.pid), 50, 0.5, 4); await sleep(70); }
+        await sleep(400); break;
+      }
+      case 'aegis': {
+        const me2 = S.players.find(p => p.id === ev.pid);
+        if (me2 && me2.hq) for (let i = 0; i < 3; i++) { Render.ring(me2.hq, ['#7ff3ff', '#ffffff', '#b48cff'][i], 120 + i * 60, 0.9, 6); }
+        banner('🛡 AEGIS PROTOCOL', who + ' — untouchable until their next turn', '#bff6ff'); SFX.zap(); await sleep(700); break;
+      }
       case 'rally': banner('RALLY!', who + ' — next attack +2 Mult', pColor(ev.pid)); SFX.rare(); await sleep(500); break;
-      case 'bounty': Render.float(me.hq, 'BOUNTY: $2 PER KILL', '#ffc53d', 18); SFX.coin(3); break;
+      case 'bounty': Render.float(me.hq, 'BOUNTY: $' + (ev.amount || 2) + ' PER KILL', '#ffc53d', 18); SFX.coin(3); break;
       case 'fortify': Render.ring(ev.target, pColor(ev.pid), 60, 0.6, 5); Render.float(ev.target, 'FORTIFIED ' + '★'.repeat(ev.lvl || 1), '#ffc53d', 18); SFX.deploy(); Render.shake(4); break;
       case 'embargo': Render.ring(ev.target, '#ff4f5e', 90, 0.8, 5); Render.float(ev.target, 'EMBARGO', '#ff4f5e', 20); SFX.alarm(); break;
       case 'orbital': {
-        SFX.zap(); await sleep(250);
+        SFX.zap(); Render.lance(ev.target, '#bff6ff', 1.1); await sleep(450);
         const [x, y] = Render.topOf(ev.target);
         for (let i = 0; i < 4; i++) { Render.ring(ev.target, ['#bff6ff', '#7ff3ff', '#fff', '#36c9ff'][i], 50 + i * 30, 0.5 + i * 0.15, 6); await sleep(80); }
         Render.flash(0.5, '#bff6ff'); SFX.boom(1.6); Render.shake(22);
@@ -1710,11 +1820,33 @@
     const rows = S.players.slice().sort((a, b) => (counts[b.id] || 0) - (counts[a.id] || 0)).map(p => `<tr><td style="color:${p.color}">■ ${esc(p.name)}</td><td>${E.FACTIONS[p.faction] ? E.FACTIONS[p.faction].name : ''}</td><td>${counts[p.id] || 0}</td><td>${p.stats.captured}</td><td>${p.stats.kills}</td><td>${p.stats.lost}</td></tr>`).join('');
     v.innerHTML = `<div class="vic panel" style="padding:30px 40px"><h1 style="color:${wp.color};text-shadow:0 6px 0 #000">${mine ? 'VICTORY' : myP() ? 'DEFEAT' : 'GAME OVER'}</h1><div class="why"><b style="color:${wp.color}">${esc(wp.name)}</b> ${esc(w.reason)}</div>
       ${winners.length > 1 ? `<div class="why">🤝 ${winners.map(id => `<b style="color:${pColor(id)}">${esc(pName(id))}</b>`).join(' & ')}</div>` : ''}
-      <div class="power"><h3>BALANCE OF POWER</h3><canvas id="powerChart" width="1240" height="400"></canvas><div id="powerNotes"></div></div>
+      <div class="power"><div class="wr-tabs"><h3>WAR REPORT</h3><button class="on" data-wr="power">Balance of power</button><button data-wr="heat">Battle heatmap</button><button data-wr="flips">Land swings</button><button data-wr="inc">Economy</button><button data-wr="army">Armies</button><button data-wr="awards">Awards</button></div>
+        <div class="wr-pane" data-p="power"><canvas id="powerChart" width="1240" height="400"></canvas><div id="powerNotes"></div></div>
+        <div class="wr-pane" data-p="heat" hidden><canvas id="heatChart" width="1240" height="520"></canvas><div class="wr-cap">Every battle, airstrike and bombardment, glowing hotter where more units fell.</div></div>
+        <div class="wr-pane" data-p="flips" hidden><canvas id="flipChart" width="1240" height="520"></canvas><div class="wr-cap">How often each hex changed hands. The bright bands are the front lines.</div></div>
+        <div class="wr-pane" data-p="inc" hidden><canvas id="incChart" width="1240" height="400"></canvas><div class="wr-cap">Income per turn, round by round.</div></div>
+        <div class="wr-pane" data-p="army" hidden><canvas id="armyChart" width="1240" height="400"></canvas><div class="wr-cap">Army size (total unit cost on the board), round by round.</div></div>
+        <div class="wr-pane" data-p="awards" hidden><div id="awards" class="awards"></div></div>
+      </div>
       <table class="stats"><tr><th>COMMANDER</th><th>FACTION</th><th>HEXES</th><th>CAPTURED</th><th>KILLS</th><th>LOST</th></tr>${rows}</table>
       <div class="row" style="justify-content:center"><button class="btn big" id="vicLook">VIEW BOARD</button>${lobby && lobby.hostId === realId ? '<button class="btn big red" id="vicLobby">BACK TO LOBBY</button>' : ''}<button class="btn big gold" id="vicMenu">MAIN MENU</button></div></div>`;
     v.hidden = false;
     try { drawPower($('#powerChart'), S.history || [], S.players); } catch (e) { console.error(e); }
+    const drawn = {};
+    const drawPane = k => {
+      if (drawn[k]) return; drawn[k] = true;
+      try {
+        if (k === 'heat') drawHeat($('#heatChart'), S.heat || {}, '#ff3b2f');
+        if (k === 'flips') drawHeat($('#flipChart'), S.flips || {}, '#7af7ff');
+        if (k === 'inc') drawLines($('#incChart'), S.history || [], S.players, h => h.inc, '$');
+        if (k === 'army') drawLines($('#armyChart'), S.history || [], S.players, h => h.army, '');
+        if (k === 'awards') $('#awards').innerHTML = awardsHTML();
+      } catch (e) { console.error(e); }
+    };
+    v.querySelectorAll('[data-wr]').forEach(b => b.onclick = () => {
+      SFX.click(); v.querySelectorAll('[data-wr]').forEach(x => x.classList.toggle('on', x === b));
+      v.querySelectorAll('.wr-pane').forEach(p => { p.hidden = p.dataset.p !== b.dataset.wr; }); drawPane(b.dataset.wr);
+    });
     for (let i = 0; i < 6; i++) setTimeout(() => { if (!S) return; const k = Object.keys(S.map.tiles).filter(k => S.map.tiles[k].owner === w.pid); const r = k[Math.floor(Math.random() * k.length)]; if (r) { Render.burst(r, [wp.color, '#fff', '#ffc53d'], 30, { speed: 1.6, up: 200, square: true }); } }, i * 300);
     $('#vicLook').onclick = () => { v.hidden = true; setTimeout(() => { if (S && S.phase === 'over') { v.hidden = false; } }, 8000); };
     const bl = $('#vicLobby'); if (bl) bl.onclick = () => send({ t: 'toLobby' });
@@ -1722,7 +1854,7 @@
   }
 
   // ── random map type: a slot reel of battlefield thumbnails that lands on the real map ──
-  const ARCH_NAME = { continent: 'Continent', pangaea: 'Supercontinent', twin: 'Twin Continents', archipelago: 'Archipelago', inland: 'Inland Sea', crescent: 'Crescent Isles' };
+  const ARCH_NAME = { continent: 'Continent', pangaea: 'Supercontinent', twin: 'Twin Continents', archipelago: 'Archipelago', inland: 'Inland Sea', crescent: 'Crescent Isles', ocean: 'Open Ocean' };
   const thumbCache = {};
   function mapThumb(tiles, w = 150, h = 96) {
     const cv = document.createElement('canvas'); cv.width = w * 2; cv.height = h * 2; const c = cv.getContext('2d'); c.scale(2, 2);
@@ -1794,6 +1926,69 @@
       lead = top.id;
     });
     const n0 = $('#powerNotes'); if (n0) n0.innerHTML = notes.length ? notes.slice(-6).join('') : '<span>One commander led from start to finish.</span>';
+  }
+
+  // the whole battlefield, each hex tinted by its final owner, glowing wherever `vals` is high
+  function drawHeat(cv, vals, hot) {
+    const c = cv.getContext('2d'), W = cv.width, H = cv.height, tiles = S.map.tiles;
+    const xy = k => { const [q, r] = E.parse(k); return [q + r / 2, r * 0.866]; };
+    const pts = Object.keys(tiles).map(k => { const [x, y] = xy(k); return { k, x, y, t: tiles[k] }; });
+    const xs = pts.map(p => p.x), ys = pts.map(p => p.y), x0 = Math.min(...xs), x1 = Math.max(...xs), y0 = Math.min(...ys), y1 = Math.max(...ys);
+    const sc = Math.min((W - 30) / (x1 - x0 + 1), (H - 30) / (y1 - y0 + 1)), ox = (W - (x1 - x0) * sc) / 2, oy = (H - (y1 - y0) * sc) / 2;
+    const P = (x, y) => [ox + (x - x0) * sc, oy + (y - y0) * sc];
+    c.fillStyle = '#081018'; c.fillRect(0, 0, W, H);
+    const hex = (x, y, r) => { c.beginPath(); for (let i = 0; i < 6; i++) { const a = Math.PI / 6 + i * Math.PI / 3; c.lineTo(x + Math.cos(a) * r, y + Math.sin(a) * r); } c.closePath(); };
+    for (const p of pts) {
+      // a neutral board, so the heat reads clearly whoever won
+      const [x, y] = P(p.x, p.y);
+      hex(x, y, sc * 0.58);
+      c.fillStyle = p.t.t === 'water' ? '#0d1f2c' : p.t.t === 'mountain' ? '#3a3d48' : '#26313c'; c.fill();
+    }
+    const max = Math.max(1, ...Object.values(vals));
+    c.globalCompositeOperation = 'lighter';
+    for (const p of pts) {
+      const v = vals[p.k]; if (!v) continue;
+      const [x, y] = P(p.x, p.y), f = Math.sqrt(v / max), r = sc * (0.8 + f * 1.8);
+      const g = c.createRadialGradient(x, y, 0, x, y, r); g.addColorStop(0, f > 0.6 ? '#fff4b0' : hot); g.addColorStop(0.45, hot); g.addColorStop(1, 'rgba(0,0,0,0)');
+      c.globalAlpha = 0.25 + f * 0.75; c.fillStyle = g; c.fillRect(x - r, y - r, r * 2, r * 2);
+    }
+    c.globalCompositeOperation = 'source-over'; c.globalAlpha = 1;
+    for (const p of S.players) if (p.hq && tiles[p.hq]) { const [hx, hy] = xy(p.hq), [x, y] = P(hx, hy); c.fillStyle = p.color; c.strokeStyle = '#000'; c.lineWidth = 3; c.beginPath(); c.arc(x, y, Math.max(6, sc * 0.5), 0, Math.PI * 2); c.fill(); c.stroke(); }
+    if (!Object.keys(vals).length) { c.fillStyle = '#7f8c98'; c.font = '600 26px "Chakra Petch", sans-serif'; c.textAlign = 'center'; c.fillText('No data for this war', W / 2, H / 2); }
+  }
+  // one line per commander
+  function drawLines(cv, hist, players, get, unit) {
+    const c = cv.getContext('2d'), W = cv.width, H = cv.height, padL = 60, padR = 20, padT = 20, padB = 46;
+    const rows = hist.filter(h => get(h)), n = rows.length;
+    c.clearRect(0, 0, W, H); c.fillStyle = '#0b1117'; c.fillRect(padL, padT, W - padL - padR, H - padT - padB);
+    if (n < 2) { c.fillStyle = '#7f8c98'; c.font = '600 22px "Chakra Petch", sans-serif'; c.textAlign = 'center'; c.fillText('Not enough rounds recorded', W / 2, H / 2); return; }
+    const iw = W - padL - padR, ih = H - padT - padB, max = Math.max(1, ...rows.flatMap(h => players.map(p => get(h)[p.id] || 0)));
+    const X = i => padL + iw * i / (n - 1), Y = v => padT + ih * (1 - v / max);
+    c.strokeStyle = 'rgba(255,255,255,.12)'; c.lineWidth = 1; c.font = '600 18px "Chakra Petch", sans-serif'; c.fillStyle = '#7f8c98'; c.textAlign = 'right'; c.textBaseline = 'middle';
+    for (const f of [0, 0.25, 0.5, 0.75, 1]) { const y = padT + ih * (1 - f); c.beginPath(); c.moveTo(padL, y); c.lineTo(padL + iw, y); c.stroke(); c.fillText(unit + Math.round(max * f), padL - 8, y); }
+    c.textAlign = 'center'; c.textBaseline = 'top'; const step = Math.max(1, Math.ceil(n / 12));
+    for (let i = 0; i < n; i += step) c.fillText('R' + rows[i].r, X(i), padT + ih + 8);
+    for (const p of players) {
+      c.beginPath(); rows.forEach((h, i) => { const y = Y(get(h)[p.id] || 0); i ? c.lineTo(X(i), y) : c.moveTo(X(i), y); });
+      c.strokeStyle = '#000'; c.lineWidth = 7; c.stroke(); c.strokeStyle = p.color; c.lineWidth = 4; c.stroke();
+    }
+  }
+  function awardsHTML() {
+    const ps = S.players, hist = S.history || [];
+    const best = (f, fmt) => { const p = ps.slice().sort((a, b) => f(b) - f(a))[0]; return p && f(p) > 0 ? { p, v: fmt ? fmt(f(p)) : f(p) } : null; };
+    const peak = p => Math.max(0, ...hist.map(h => h.c[p.id] || 0));
+    const list = [
+      ['⚔', 'Warmonger', 'most enemy units destroyed', best(p => p.stats.kills)],
+      ['🗺', 'Land Baron', 'biggest empire at its peak', best(peak, v => v + ' hexes')],
+      ['💰', 'Tycoon', 'most money earned', best(p => p.stats.earned || 0, v => '$' + v)],
+      ['🚩', 'Conqueror', 'most hexes captured', best(p => p.stats.captured)],
+      ['📦', 'Scavenger', 'most crates opened', best(p => p.stats.crates)],
+      ['🪦', 'Meat Grinder', 'most units lost', best(p => p.stats.lost)],
+    ].filter(a => a[3]);
+    let html = list.map(([ic, t, d, w]) => `<div class="aw" style="--pc:${w.p.color}"><div class="aw-i">${ic}</div><div><div class="aw-t">${t}</div><div class="aw-n">${esc(w.p.name)} · <b>${w.v}</b></div><div class="aw-d">${d}</div></div></div>`).join('');
+    const bb = S.bigBattle;
+    if (bb) html += `<div class="aw big" style="--pc:${pColor(bb.att)}"><div class="aw-i">💥</div><div><div class="aw-t">Biggest battle · round ${bb.round}</div><div class="aw-n"><b style="color:${pColor(bb.att)}">${esc(pName(bb.att))}</b> vs <b style="color:${bb.def ? pColor(bb.def) : '#aaa'}">${bb.def ? esc(pName(bb.def)) : 'a garrison'}</b></div><div class="aw-d">${bb.size} chips clashed · ${bb.attWin ? 'the attack broke through' : 'the defence held'} · ${bb.killed} unit${bb.killed === 1 ? '' : 's'} died</div></div></div>`;
+    return html || '<div class="wr-cap">No awards: the war was too short.</div>';
   }
 
   // ───────────── misc UI ─────────────
