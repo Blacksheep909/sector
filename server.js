@@ -8,6 +8,28 @@ const crypto = require('crypto');
 const E = require('./shared/engine');
 const { botStep, draftStep, spawnStep, tradeReply, BOT_NAMES } = require('./shared/bot');
 
+// ── self-update, step 2: the freshly downloaded exe is started with this flag. It waits for the old
+//    server to exit, copies itself over the old exe, starts it, and quits. No scripts involved. ──
+{
+  const i = process.argv.indexOf('--sector-finish-update');
+  if (i >= 0) {
+    const target = process.argv[i + 1], oldPid = +process.argv[i + 2];
+    const alive = pid => { try { process.kill(pid, 0); return true; } catch (e) { return e.code === 'EPERM'; } };
+    let tries = 0;
+    const step = () => {
+      if (alive(oldPid) && tries++ < 60) return setTimeout(step, 500);
+      try { fs.copyFileSync(process.execPath, target); }
+      catch (e) { if (tries++ < 80) return setTimeout(step, 500); }
+      require('child_process').spawn(target, [], { detached: true, stdio: 'ignore', cwd: path.dirname(target) }).unref();
+      setTimeout(() => process.exit(0), 300);
+    };
+    step();
+    return;
+  }
+  // step 3: the relaunched exe tidies up the downloaded copy
+  try { const left = path.join(path.dirname(process.execPath), 'Sector.update.exe'); if (path.basename(process.execPath).toLowerCase() !== 'sector.update.exe' && fs.existsSync(left)) setTimeout(() => { try { fs.unlinkSync(left); } catch (e) {} }, 3000); } catch (e) {}
+}
+
 let PORT = +process.env.PORT || 3000;
 const BASE_PORT = PORT;
 // build-exe injects __SECTOR_VERSION; from source we read package.json
@@ -132,7 +154,7 @@ const autoPids = new Set(); // dev: humans driven by the bot AI (SECTOR_DEV=1)
 
 function lobbyView() {
   return {
-    players: lobby.players.map(p => ({ id: p.id, name: p.name, color: p.color, faction: p.faction, bot: p.bot, diff: p.diff, local: !!p.local, controller: p.controller || null, connected: p.bot || isConnected(p.id) })),
+    players: lobby.players.map(p => ({ id: p.id, name: p.name, color: p.color, faction: p.faction, bot: p.bot, diff: p.diff, local: !!p.local, controller: p.controller || null, spectator: !!p.spectator, connected: p.bot || isConnected(p.id) })),
     hostId: lobby.hostId, settings: lobby.settings, inGame: !!game, version: VERSION, lan: lanAddresses().map(a => 'http://' + a + ':' + PORT), port: PORT,
   };
 }
@@ -221,6 +243,15 @@ function onMessage(c, m) {
       if (m.faction && E.FACTIONS[m.faction]) b.faction = m.faction;
       return broadcastLobby();
     }
+    case 'spectate': {
+      // before a game: sit yourself (or, as host, any human) out to watch instead of play
+      const target = lobby.players.find(p => p.id === m.id);
+      if (!target || game || target.bot) return;
+      if (!(target.id === c.pid || c.pid === lobby.hostId || (target.local && target.controller === c.pid))) return;
+      target.spectator = !!m.on;
+      note(target.name + (target.spectator ? ' will spectate' : ' will play'));
+      return broadcastLobby();
+    }
     case 'kick': {
       if (game || m.id === c.pid) return;
       const target = lobby.players.find(p => p.id === m.id);
@@ -231,9 +262,10 @@ function onMessage(c, m) {
     }
     case 'start': {
       if (c.pid !== lobby.hostId || game) return;
-      if (lobby.players.length < 2) return send(c, { t: 'err', msg: 'Need at least 2 commanders (add a bot)' });
+      const roster = lobby.players.filter(p => !p.spectator);
+      if (roster.length < 2) return send(c, { t: 'err', msg: lobby.players.length < 2 ? 'Need at least 2 commanders (add a bot)' : 'Need at least 2 commanders who are playing, not spectating' });
       const s = { ...lobby.settings, timer: +lobby.settings.timer || 0, maxRounds: +lobby.settings.maxRounds || 0, conquestPct: +lobby.settings.conquestPct || 60 };
-      const r = E.createGame(s, lobby.players);
+      const r = E.createGame(s, roster);
       game = r.state; botMem = {};
       console.log('[game] started: ' + lobby.players.length + ' players, ' + s.mode + ', map ' + s.mapSize);
       broadcastLobby();
@@ -456,7 +488,7 @@ function checkUpdate() {
 // download the new Sector.exe next to this one, then a tiny script swaps them once we exit and relaunches
 function applyUpdate() {
   if (updateInfo.state === 'downloading' || updateInfo.state === 'restarting') return;
-  const exe = process.execPath, tmp = path.join(path.dirname(exe), path.basename(exe, '.exe') + '.update.exe');
+  const exe = process.execPath, tmp = path.join(path.dirname(exe), 'Sector.update.exe');
   updateInfo.state = 'downloading'; updateInfo.pct = 0; updateInfo.err = null;
   const fail = e => { updateInfo.state = 'error'; updateInfo.err = String((e && e.message) || e); console.log('[update] failed: ' + updateInfo.err); try { fs.unlinkSync(tmp); } catch (_) {} };
   httpsGet(updateInfo.url, (err, res) => {
@@ -470,12 +502,9 @@ function applyUpdate() {
     out.on('finish', () => out.close(() => {
       if (total && got !== total) return fail('download incomplete');
       if (got < 5e6) return fail('downloaded file looks wrong (' + got + ' bytes)');
-      const cmd = path.join(os.tmpdir(), 'sector-update-' + process.pid + '.cmd');
-      fs.writeFileSync(cmd, ['@echo off', 'set SECTOR_NO_OPEN=1', ':wait', 'timeout /t 1 /nobreak >nul',
-        'tasklist /FI "PID eq ' + process.pid + '" 2>nul | find "' + process.pid + '" >nul', 'if not errorlevel 1 goto wait',
-        'move /y "' + tmp + '" "' + exe + '" >nul', 'start "" "' + exe + '"', '(goto) 2>nul & del "%~f0"'].join('\r\n'));
+      // hand over to the new exe: it waits for us to exit, replaces this file and relaunches it
       updateInfo.state = 'restarting';
-      require('child_process').spawn('cmd.exe', ['/d', '/c', cmd], { detached: true, stdio: 'ignore', windowsHide: true }).unref();
+      require('child_process').spawn(tmp, ['--sector-finish-update', exe, String(process.pid)], { detached: true, stdio: 'ignore', windowsHide: true, cwd: path.dirname(exe) }).unref();
       shutdown('Updating SECTOR to v' + updateInfo.latest + '…', true);
     }));
   });
@@ -492,7 +521,7 @@ if (process.env.SECTOR_IDLE_EXIT) setInterval(() => {
 // ───────────────────────── server console dashboard ─────────────────────────
 function openBrowser(url) {
   const cp = require('child_process');
-  if (process.platform === 'win32') cp.spawn('cmd.exe', ['/d', '/c', 'start', '""', url], { detached: true, stdio: 'ignore', windowsHide: true }).unref();
+  if (process.platform === 'win32') cp.spawn('explorer.exe', [url], { detached: true, stdio: 'ignore' }).unref();
   else cp.spawn(process.platform === 'darwin' ? 'open' : 'xdg-open', [url], { detached: true, stdio: 'ignore' }).unref();
 }
 const fg = hex => { const n = parseInt(String(hex).slice(1), 16) || 0xffffff; return '\x1b[38;2;' + (n >> 16 & 255) + ';' + (n >> 8 & 255) + ';' + (n & 255) + 'm'; };
@@ -522,7 +551,7 @@ function tuiDraw() {
   if (!lobby.players.length) L.push(label('COMMANDERS') + A.dim + 'Nobody yet — press O to open the game' + A.r);
   lobby.players.slice(0, 8).forEach((p, i) => {
     const c = [...clients].find(x => x.pid === p.id && !x.left), gp = game && game.players.find(x => x.id === p.id);
-    const tags = [p.id === lobby.hostId ? A.gold + 'HOST' + A.r : '', p.bot ? A.dim + 'bot · ' + (p.diff || 'medium') + A.r : p.local ? A.dim + 'local player' + A.r : c ? A.dim + addrOf(c) + A.r : A.red + 'disconnected' + A.r,
+    const tags = [p.id === lobby.hostId ? A.gold + 'HOST' + A.r : '', p.spectator ? A.blue + 'spectator' + A.r : '', p.bot ? A.dim + 'bot · ' + (p.diff || 'medium') + A.r : p.local ? A.dim + 'local player' + A.r : c ? A.dim + addrOf(c) + A.r : A.red + 'disconnected' + A.r,
       gp ? (gp.alive ? A.dim + (counts[p.id] || 0) + ' hexes' + A.r : A.red + 'eliminated' + A.r) : ''].filter(Boolean).join(A.dim + ' · ' + A.r);
     L.push((i ? '  ' + pad('', 12) : label('COMMANDERS')) + fg(p.color) + '■ ' + A.r + A.ink + pad(p.name, 20) + A.r + tags);
   });

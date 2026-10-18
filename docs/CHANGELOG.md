@@ -1,13 +1,21 @@
-## ⬇ How to play
+# SECTOR changelog
 
-1. Download **`Sector.exe`** below and double-click it. A **SECTOR server window** opens: a live dashboard showing your addresses, who's connected, the game status, updates and recent activity.
-2. Press **O** in that window, or open **http://localhost:3000** in your browser, to play. Everyone plays in the browser.
-3. Friends on the **same Wi-Fi / LAN** open the **INVITE** address in their browser. Press **C** in the server window to copy it.
-4. Press **Q** twice to stop the server. When a new version is out, the dashboard says so and **U** updates and restarts it.
+Every release, newest first. Each version also has its own post on the [Releases page](https://github.com/Blacksheep909/sector/releases).
 
-> The first launch asks for network access: tick **Private networks**. SmartScreen may warn that the exe is unsigned: click *More info → Run anyway*.
+## v0.5.1
 
-## What's new in v0.5
+- **Spectators.** In the lobby, press 👁 next to your name (or, as host, next to any player) to sit the game out and watch. Press ▶ to play again. You need at least 2 commanders who are playing.
+- **Cleaner art:**
+  - The Lancer's launcher now rests on his shoulder instead of going through his head.
+  - The Titan has been redrawn as a proper colossus mech.
+  - Every card was checked at full size and at card size.
+- **FOBs take a turn to construct.** A new FOB comes online at the start of your next turn; until then you can't deploy on it.
+- **Sea encirclement.** A pocket of 12 or fewer water hexes, walled in by your coast and your own sea, flips to you automatically, just like land pockets.
+- **Fixed: ships now claim the water they launch into.** Deploying a ship from a Port claims that sea hex, just like sailing through it.
+- **Calmer for antivirus.** The updater no longer writes and runs a batch script. The new exe swaps itself in and restarts, and the browser now opens through Explorer rather than a hidden command prompt.
+- **One post per release.** Each GitHub release now lists only that version's changes. The full history lives in [CHANGELOG.md](https://github.com/Blacksheep909/sector/blob/main/docs/CHANGELOG.md).
+
+## v0.5
 
 **The sea is worth taking**, though it's never required: players who stay on land lose nothing.
 
@@ -18,7 +26,7 @@
 - **Naval gunfire:** each warship next to a land fight adds +2 chips to its side (up to 3 ships), whether attacking or defending. Fleets now back up the land war.
 - **Smarter bot admirals:** bots build Ports when there are prizes at sea, chase rigs and fishing grounds, and raid treasure islands.
 
-## What's new in v0.4.1
+## v0.4.1
 
 - **A real server window.** Sector.exe is a dedicated server with a live terminal dashboard showing your addresses, players, status, updates and activity. Keys: **O** open the game, **C** copy the invite, **U** update, **Q** stop. The game itself lives in the browser.
 - **SECTOR icon** on the exe, the server window and the browser tab.
@@ -31,7 +39,7 @@
 - **SECTOR card backs:** a crimson hex weave, a cream frame and the SECTOR emblem. Every card shares the same back.
 - **Fixed:** card names that turned into scribbles on cards with long descriptions.
 
-## What's new in v0.4
+## v0.4
 
 **Hosting**
 - **No more terminal.** The exe runs windowless, and the new **Server panel** shows invite addresses (with copy buttons), connected players, uptime, the version, and **Stop server**.
@@ -72,7 +80,7 @@
   - Each pass-and-play seat has its own blueprint.
 - **Enter ends your turn** (T opens chat).
 
-## What's new in v0.3
+## v0.3
 
 - **Game window.** The exe now opens SECTOR in its own app window instead of a browser tab.
 - **Host / Join panel.** Scan your network for games, join by address, or pick a recent server.
@@ -84,20 +92,3 @@
 - **Performance.** The resupply menu runs at full frame rate: the board pauses under overlays, and there's no more full-screen blur or blending.
 - **Space.** It only flips cards and throws dice. It never ends your turn.
 
-## The game
-
-SECTOR is a turn-based hex conquest game for 2–6 players, built around:
-
-- procedural maps
-- an opening draft
-- Resupply picks
-- Supply Drop slot machines
-- chips × mult dice combat
-- navy and bridges
-- supply lines and trading
-- five factions
-- bots on four difficulties
-
-Full rules: [docs/RULES.md](https://github.com/Blacksheep909/sector/blob/main/docs/RULES.md)
-
-`Sector-source.zip` holds the source if you'd rather run `node server.js` on any OS (Node 22+, no dependencies).

@@ -755,3 +755,13 @@ body.host-page { overflow: auto; background: radial-gradient(ellipse at top, #16
   background: var(--card-back, #9e1f2c) center / 100% 100% no-repeat !important; border-color: #2a0a0f; }
 .flip .cback::after { display: none; }
 .flip .cback .cb-logo { display: none; }
+
+.prow .tag.spec { background: #1b4a63; color: #bfeaff; }
+.prow.spec { border-style: dashed; }
+.prow .specbtn { background: #16222c; border: 2px solid #2a3947; color: var(--dim); border-radius: 7px; font-size: 11px; font-weight: 700; padding: 3px 7px; cursor: pointer; }
+.prow .specbtn:hover { color: var(--ink); border-color: var(--blue); }
+.prow .specbtn.on { color: var(--green); border-color: var(--green-d); }
+
+.prow .nm { min-width: 64px; }
+.prow .specbtn { width: 28px; height: 26px; padding: 0; font-size: 13px; flex: none; }
+.prow.spec .fx { color: #8fd8ff; }
