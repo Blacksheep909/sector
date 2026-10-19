@@ -895,8 +895,9 @@
       for (const n of neighbors(cur)) {
         const t = s.map.tiles[n]; if (!t) continue;
         const occ = idx[n] || [];
-        if ((t.owner && isAlly(s, pid, t.owner)) || (occ.length && isAlly(s, pid, occ[0].owner))) continue;   // allied ground is off limits
-        const enemy = occ.length && occ[0].owner !== pid;
+        // allies let each other through: you can cross and stop on their empty land, and pass (not stop) where their troops stand
+        const allyOcc = !!(occ.length && occ[0].owner !== pid && isAlly(s, pid, occ[0].owner)), allyLand = !!(t.owner && t.owner !== pid && isAlly(s, pid, t.owner));
+        const enemy = occ.length && occ[0].owner !== pid && !allyOcc;
         const c = cn.c + 1;
         if (navy) {
           // ships: sail open water; strike enemies on adjacent coasts
@@ -904,14 +905,14 @@
           if (c > mv) continue;
           const mined = getS(t, 'mine'); const enemyMine = mined && mined.owner && mined.owner !== pid && t.owner === mined.owner && !isAlly(s, pid, mined.owner);
           if (enemy || enemyMine) { if (canFight) set(n, c, cur, 'attack'); continue; }
-          const room = stackFits(occ, all);
-          set(n, c, cur, t.owner !== pid ? (room ? 'capture' : 'pass') : (room ? 'move' : 'pass'));
+          const room = stackFits(occ, all) && !allyOcc;
+          set(n, c, cur, t.owner !== pid && !allyLand ? (room ? 'capture' : 'pass') : (room ? 'move' : 'pass'));
           continue;
         }
         if (isWater(t) && !allHover) {
           if (c > mv) continue;
           if (enemy) { if (canFight) set(n, c, cur, 'attack'); continue; }   // shore guns vs ships
-          if (occ.length) {
+          if (occ.length && !allyOcc) {
             const aboard = occ.filter(u => !isSea(u.type) && !isAirU(u)).length;
             if (cargoCap(occ) >= aboard + units.length && stackFits(occ, units)) set(n, c, cur, 'board');
           }
@@ -925,9 +926,10 @@
         if (cc > mv && !(cn.c === 0 && mv > 0)) continue;   // slow units can always crawl one hex
         const land = isLandTile(t);
         let kind;
-        if (enemy) { if (!canFight) continue; kind = 'attack'; }
+        if (allyOcc) kind = 'pass';
+        else if (enemy) { if (!canFight) continue; kind = 'attack'; }
         else if (land && !t.owner && GARRISONED.includes(t.poi)) { if (!canFight) continue; kind = 'attack'; }
-        else if (land && t.owner && t.owner !== pid) { const h = getS(t, 'hq'), bk = getS(t, 'bunker'); kind = (h && h.owner === t.owner) || (bk && bk.owner === t.owner) ? (canFight ? 'attack' : null) : 'capture'; }
+        else if (land && t.owner && t.owner !== pid && !allyLand) { const h = getS(t, 'hq'), bk = getS(t, 'bunker'); kind = (h && h.owner === t.owner) || (bk && bk.owner === t.owner) ? (canFight ? 'attack' : null) : 'capture'; }
         else kind = land && !t.contam && stackFits(occ, units) ? 'move' : 'pass';
         if (!kind || (kind === 'capture' && t.contam)) continue;
         set(n, cc, cur, kind);
@@ -1211,6 +1213,7 @@
   function captureTile(s, k, pid) {
     const t = s.map.tiles[k];
     if (!t || t.t === 'mountain' || t.owner === pid) return false;
+    if (t.owner && isAlly(s, pid, t.owner)) return false;   // allied land is never taken
     if (t.owner) addMood(s, t.owner, pid, -2);
     const cp = player(s, pid);
     if (cp && cp.faction === 'ashen' && t.owner && t.owner !== pid) { cp.cash += 2; cp.loot = (cp.loot || 0) + 2; }
@@ -1359,6 +1362,7 @@
         // betrayal: 3 turns of a crippled economy, no new pacts, and the betrayed side fights you with +2 Mult
         p.traitor = 3; o.vengeance = { vs: p.id, turns: 3 };
         for (const q of s.players) if (q.id !== p.id) addMood(s, q.id, p.id, q.id === o.id ? -80 : -25);
+        evict(s, p.id, o.id, ev);
         ev.push({ e: 'ally', status: 'broken', from: p.id, to: o.id });
         pushLog(s, '💔 ' + p.name + ' broke the alliance with ' + o.name + '. Traitor for 3 turns: -40% income, and ' + o.name + ' gets +2 Mult against them.');
       }
@@ -1552,12 +1556,22 @@
     } else ev.push({ e: 'ally', status: 'renewing', from: p.id, to: a.with });
     return { ok: true, events: ev };
   }
+  // when a pact ends, any troops still standing in the other side's territory are lost
+  function evict(s, a, b, ev) {
+    const dead = [];
+    for (const id in s.units) {
+      const u = s.units[id], t = s.map.tiles[u.hex]; if (!t) continue;
+      if ((u.owner === a && t.owner === b) || (u.owner === b && t.owner === a)) { dead.push(u.id); const o = player(s, u.owner); if (o) o.stats.lost++; delete s.units[id]; }
+    }
+    if (dead.length) { ev.push({ e: 'evicted', units: dead, a, b }); pushLog(s, '🚫 ' + dead.length + ' unit' + (dead.length > 1 ? 's' : '') + ' caught behind the old border were lost.'); }
+  }
   function expirePacts(s, ev) {
     if (!(s.allies || []).length) return;
     const gone = s.allies.filter(x => !x.team && x.until && s.turn.round >= x.until && !x.ending);
     if (!gone.length) return;
     s.allies = s.allies.filter(x => !gone.includes(x));
     for (const x of gone) {
+      evict(s, x.a, x.b, ev);
       ev.push({ e: 'ally', status: 'expired', from: x.a, to: x.b });
       pushLog(s, '🕊 The alliance between ' + player(s, x.a).name + ' and ' + player(s, x.b).name + ' ran out (not renewed).');
     }
@@ -1569,7 +1583,7 @@
     if (x.team) return { ok: false, err: 'Teammates cannot break their alliance', events: [] };
     x.ending = p.id;
     ev.push({ e: 'ally', status: 'breaking', from: p.id, to: a.with });
-    pushLog(s, '🗡 ' + p.name + ' is breaking the alliance with ' + player(s, a.with).name + '. It ends at the start of their next turn.');
+    pushLog(s, '🗡 ' + p.name + ' is breaking the alliance with ' + player(s, a.with).name + '. It ends at the start of their next turn: troops still in the other side\'s land will be lost.');
     return { ok: true, events: ev };
   }
   function declareWin(s, pid, reason, ev) {
@@ -1805,7 +1819,7 @@
     if (units.every(u => UNITS[u.type].cls === 'air')) return out;
     for (const k of path.slice(1, -1)) {
       const t = s.map.tiles[k];
-      if (t.owner === pid || (idx[k] || []).length) continue;
+      if (t.owner === pid || (idx[k] || []).length || (t.owner && isAlly(s, pid, t.owner))) continue;
       { const bk = getS(t, 'bunker'); if (bk && bk.owner === t.owner && t.owner) continue; }   // garrisoned bunkers aren't seized in passing
       if (navy ? isWater(t) : isLandTile(t)) { if (captureTile(s, k, pid)) out.push(k); }
     }

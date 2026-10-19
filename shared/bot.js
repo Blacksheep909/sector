@@ -267,7 +267,9 @@ function botStep(s, pid, mem) {
       const t = tiles[dest];
       let v = 0;
       const path = E.pathTo(reach, dest);
-      for (const pk of path.slice(1, -1)) if (tiles[pk].owner !== pid && E.isLandTile(tiles[pk])) v += 2.5;
+      for (const pk of path.slice(1, -1)) if (tiles[pk].owner !== pid && !(tiles[pk].owner && E.isAlly(s, pid, tiles[pk].owner)) && E.isLandTile(tiles[pk])) v += 2.5;
+      // allied land is for passing through, not for parking troops (they'd be lost if the pact ends)
+      if (t.owner && t.owner !== pid && E.isAlly(s, pid, t.owner)) continue;
       if (r.kind === 'board') {
         const aboard = idx[dest].filter(u => !E.isSea(u.type)).length;
         v = stuck ? 7 - aboard : -1;

@@ -2,6 +2,14 @@
 
 Every release, newest first. Each version also has its own post on the [Releases page](https://github.com/Blacksheep909/sector/releases).
 
+## v0.9.1
+
+**Allies open their borders.**
+
+- **🤝 Allied passage:** while you're allied, your troops and ships can cross your ally's land and sea, and stop on any of it that's empty. You never capture allied hexes. Hexes where your ally's troops stand can be crossed but not stopped on.
+- **🚫 Don't get caught on the wrong side:** when a pact ends, by betrayal or by lapsing without renewal, any troops still standing in the other side's territory are lost. That applies both ways. A betrayal takes effect at the start of the breaker's next turn, and both sides get a warning to pull out first.
+- **Bots** use allied land to pass through, but never park troops in it.
+
 ## v0.9.0
 
 **Something to do on every turn, not just yours.**
