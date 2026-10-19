@@ -174,6 +174,7 @@ function botStep(s, pid, mem) {
         else v = stackValue(idx[k] || []);
         if (v > bv) { bv = v; best = k; }
       }
+      if (best && E.AIR_STRIKES.includes(c.id)) bv *= 1 - E.interceptChance(s, pid, best, c.id);   // air defences might shoot it down
       const need = { strategic: 12, gunrun: 4, precision: 9, buster: 12, airstrike: 9, mutiny: 8, nuke: 30, sabotage: 5, emp: 20, carpet: 18, orbital: 14, tsar: 36, regime: 14 }[c.id];
       if (best && bv >= need) act = { a: 'tactic', uid: c.uid, target: best };
     } else if (c.id === 'conscript') {

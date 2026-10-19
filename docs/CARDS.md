@@ -14,12 +14,12 @@ Unit cards are permanent unlocks: deploy as many as you can afford.
 | **Skitter** | Vehicle | Common | $3 | 2 | 1 | 4 | – | Raider buggy. Grabs land fast. |
 | **Thumper** | Artillery | Common | $4 | 3 | 1 | 1 | 2 | Mortar crew. Fires 2 hexes instead of moving. |
 | **Barracuda** | Naval | Common | $4 | 3 | 2 | 4 | – | Fast gunboat. Claims sea lanes, raids coasts. |
-| **Stinger** | Infantry | Common | $3 | 1 | 2 | 2 | – | MANPADS team. Anti-air: +3 Chips in any fight involving enemy aircraft. |
+| **Stinger** | Infantry | Common | $3 | 1 | 2 | 2 | – | MANPADS team. +3 Chips vs aircraft, and a 25% chance to shoot down air strikes on its hex. |
 | **Corpsman** | Infantry | Common | $3 | 1 | 3 | 2 | – | Medic squad. Its stack never suffers pyrrhic losses. |
 | **Lancer** | Infantry | Uncommon | $4 | 3 | 2 | 2 | – | Tank Hunter: +3 Chips when fighting vehicles. |
 | **Warden** | Air | Uncommon | $4 | 1 | 3 | 3 | – | Airborne radar plane. Aegis: +1 Mult when its hex defends. |
 | **Sapper** | Infantry | Uncommon | $4 | 2 | 2 | 2 | – | Demolitions: +3 Chips attacking a hex with buildings. |
-| **Scorpion** | Vehicle | Uncommon | $5 | 2 | 3 | 3 | – | Flak tank. Anti-air: +4 Chips in any fight involving enemy aircraft. |
+| **Scorpion** | Vehicle | Uncommon | $5 | 2 | 3 | 3 | – | Flak tank. +4 Chips vs aircraft; 35% to shoot down air strikes within 1. |
 | **Bulwark** | Vehicle | Uncommon | $6 | 3 | 5 | 3 | – | Armoured carrier. Holds the line. |
 | **Hornet** | Air | Uncommon | $5 | 4 | 1 | 4 | – | Strike drone. Flies over mountains and water. |
 | **Mauler** | Vehicle | Uncommon | $6 | 5 | 4 | 2 | – | Main battle tank. |
@@ -27,7 +27,7 @@ Unit cards are permanent unlocks: deploy as many as you can afford.
 | **Marlin** | Naval | Rare | $7 | 5 | 4 | 4 | 2 | Destroyer. Shells coasts and ships 2 hexes away. |
 | **Basilisk** | Artillery | Rare | $7 | 7 | 2 | 1 | 3 | Rocket artillery truck. Fires 3 hexes. |
 | **Ranger** | Infantry | Rare | $6 | 4 | 3 | 3 | – | Pathfinders: rough terrain costs only 1 move. |
-| **Skyguard** | Vehicle | Rare | $7 | 3 | 4 | 3 | – | Gun-missile air defence truck. Anti-air: +6 Chips in any fight involving enemy aircraft. |
+| **Skyguard** | Vehicle | Rare | $7 | 3 | 4 | 3 | – | Air defence truck. +6 Chips vs aircraft; 50% to shoot down air strikes within 2. |
 | **Hellcat** | Vehicle | Rare | $7 | 6 | 2 | 3 | – | Strike tank. Can act on the turn it is deployed. |
 | **Wraith** | Vehicle | Rare | $8 | 6 | 3 | 4 | – | Armed hovercraft. Glides across water. |
 | **Kraken** | Naval | Rare | $8 | 7 | 2 | 4 | – | Submarine. Torpedoes: +4 Chips vs ships. |
@@ -36,6 +36,7 @@ Unit cards are permanent unlocks: deploy as many as you can afford.
 | **Seraph** | Air | Legendary | $12 | 9 | 4 | 5 | – | Heavy gunship. Strafing Run: +2 Mult attacking ground targets. |
 | **Carrier** | Naval | Legendary | $13 | 3 | 9 | 3 | – | Floating airbase: deploy aircraft onto it and fly them off it. Holds 4. |
 | **Oracle** | Artillery | Legendary | $11 | 8 | 3 | 2 | 4 | Orbital uplink. Range 4, ignores mountains. |
+| **Trident** | Naval | Legendary | $16 | 10 | 6 | 3 | 8 | Missile submarine. Fires at any troops or buildings within 8, over mountains; a hit kills one extra unit. Only a Sentinel can intercept. |
 | **Abyssal** | Naval | Legendary | $15 | 12 | 10 | 3 | 4 | Sea dreadnought. Range 4. Never suffers pyrrhic losses. |
 
 ## Tactics
@@ -79,7 +80,7 @@ Built from the hotbar (keys Z–M) on hexes you own that are connected to supply
 | **Bridge** | $6 | Span a 1-hex sea gap between two shores. Land units cross; ships cannot pass. |
 | **Bunker** | $4 | Strongpoint with its own garrison: +3 Chips per level even when empty, so enemies must attack it. +2 Mult defence (+1 per extra level). ★★+ also gives your neighbouring hexes +1 Mult. Digs in against big attacks: +40% of the attacker chip lead (up to 4 per level). ★★★ Citadel: 14 garrison Chips, +5 Mult, +2 Mult to neighbours, and holds 60% of the lead (up to 20). Destroyed if an enemy captures it. |
 | **Sea Mine** | $4 | A minefield on one of your sea hexes: the naval Bunker. +3 Chips per level even when empty, so enemy ships must fight their way through instead of sailing past. +2 Mult defence (+1 per extra level). Cleared if an enemy captures the hex. |
-| **Flak** | $5 | Blocks enemy air tactics nearby (range = level). +2 Mult vs air. |
+| **Flak** | $5 | Air defence: can shoot down enemy air strikes nearby (range = level, 35% +10% per level). Blocks Heli Drops and EMPs (nukes cannot be stopped). +2 Mult vs air. |
 
 ## Factions
 

@@ -2,6 +2,28 @@
 
 Every release, newest first. Each version also has its own post on the [Releases page](https://github.com/Blacksheep909/sector/releases).
 
+## v0.8.3
+
+**Air defence that actually defends, and a missile submarine.**
+
+- **🛡 Air defence shoots down air strikes.** Flak and anti-air vehicles now defend against long-range air attacks the way a bunker defends its hex. Every enemy air-defence asset near the target gets a chance to shoot the strike down (stacking, up to 90%):
+
+  | Asset | Covers | Shoot-down chance |
+  |---|---|---|
+  | Flak | within its level | 35% ★, 45% ★★, 55% ★★★ |
+  | Stinger | its own hex | 25% |
+  | Scorpion | 1 hex | 35% |
+  | Skyguard | 2 hexes | 50% |
+  | Sentinel | 3 hexes | 60% |
+
+  - This applies to Gun Run, Airstrike, Precision Strike, Bunker Buster, Carpet Bombing and Strategic Bombing. Carpet and Strategic Bombing roll for each hex.
+  - Precision Strike (a stealth jet) is only 60% as likely to be caught.
+  - A downed strike still spends the card.
+  - Defended hexes can be targeted now, and the targeting overlay shows the chance your strike gets through.
+  - Flak still blocks Heli Drops and EMPs.
+- **☢ Nukes can't be stopped.** The Tactical Nuke and the Tsar Bomba ignore air defence, and Flak no longer blocks them.
+- **🚀 Trident** (new Legendary submarine, modelled on the Ohio class): fires a missile at any troops or buildings within 8 hexes, over mountains, and a hit kills one extra unit. Only a Sentinel SAM within 3 hexes of the target can intercept it.
+
 ## v0.8.2
 
 **Economic warfare: bomb the factories, not just the troops.**
