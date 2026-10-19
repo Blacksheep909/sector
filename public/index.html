@@ -73,7 +73,7 @@
 
 <!-- ───────── in-game HUD ───────── -->
 <section id="hud" hidden>
-  <div id="topbar"><div id="roundBox"></div><div id="players"></div><div class="top-btns"><button id="speedBtn" class="icon-btn" title="Game speed" hidden>⏩</button><button id="muteBtn" class="icon-btn" title="Sound">♪</button><button id="menuBtn" class="icon-btn" title="Menu (Esc)">☰</button><button id="indexBtn" class="icon-btn" title="Card index">▤</button><button id="rulesBtn" class="icon-btn" title="How to play">?</button></div></div>
+  <div id="topbar"><div id="roundBox"></div><div id="players"></div><div class="top-btns"><div id="speedCtl" class="speed-ctl" hidden><button data-v="pause" title="Pause / resume">⏸</button><button data-v="normal" title="Normal speed">&gt;</button><button data-v="fast" title="Fast">&gt;&gt;</button><button data-v="super" title="Superspeed">&gt;&gt;&gt;</button><button data-v="max" title="Max (bots only)">🚀</button></div><button id="muteBtn" class="icon-btn" title="Sound">♪</button><button id="menuBtn" class="icon-btn" title="Menu (Esc)">☰</button><button id="indexBtn" class="icon-btn" title="Card index">▤</button><button id="rulesBtn" class="icon-btn" title="How to play">?</button></div></div>
   <!-- the HUD is split into regions that never overlap: top bar, centre stack, left and right columns, bottom dock -->
   <div id="centerStack"><div id="modeHint" hidden></div></div>
   <div id="leftCol">

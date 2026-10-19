@@ -18,10 +18,18 @@ async function launch({ browser, url, width = 1600, height = 900, port = 9333 })
   const evalJS = async (expr) => { const r = await cmd('Runtime.evaluate', { expression: expr, awaitPromise: true, returnByValue: true }); if (r.result && r.result.exceptionDetails) throw new Error(JSON.stringify(r.result.exceptionDetails).slice(0, 300)); return r.result && r.result.result && r.result.result.value; };
   const shot = async (file) => { const r = await cmd('Page.captureScreenshot', { format: 'png' }); fs.writeFileSync(file, Buffer.from(r.result.data, 'base64')); console.log('saved', path.basename(file)); };
   const waitFor = async (expr, ms = 30000) => { const t0 = Date.now(); while (Date.now() - t0 < ms) { if (await evalJS(expr)) return true; await sleep(150); } return false; };
+  // never leave a headless browser behind, even if the test crashes (it would keep rejoining the next test's lobby).
+  // Edge hands off to child processes, so kill everything using this run's private profile folder
+  const killAll = () => { try {
+    if (process.platform === 'win32') require('child_process').spawnSync('powershell', ['-NoProfile', '-Command', `Get-CimInstance Win32_Process -Filter "Name='msedge.exe' OR Name='chrome.exe'" | Where-Object { $_.CommandLine -like '*${path.basename(prof)}*' } | ForEach-Object { Stop-Process -Id $_.ProcessId -Force -ErrorAction SilentlyContinue }`], { stdio: 'ignore' });
+    else proc.kill();
+  } catch (e) {} };
+  process.on('exit', killAll);
+  process.on('unhandledRejection', e => { console.error(e); process.exit(1); });
   await cmd('Emulation.setDeviceMetricsOverride', { width, height, deviceScaleFactor: 1, mobile: false });
   await cmd('Page.enable');
   await cmd('Page.navigate', { url });
   await sleep(2500);
-  return { cmd, evalJS, shot, waitFor, close: () => { try { ws.close(); } catch (e) {} if (process.platform === 'win32') require('child_process').spawnSync('taskkill', ['/PID', String(proc.pid), '/T', '/F'], { stdio: 'ignore' }); else proc.kill(); } };
+  return { cmd, evalJS, shot, waitFor, close: () => { try { ws.close(); } catch (e) {} killAll(); } };
 }
 module.exports = { launch, sleep };

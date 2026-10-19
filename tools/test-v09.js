@@ -97,6 +97,30 @@ const idle = (s, pid) => s.players.find(p => p.id !== pid && p.id !== me(s).id) 
   const r = E.applyAction(s, p.id, { a: 'donate', from: p.hq, units: ids, to: o.id });
   ok(r.ok && ids.every(id => s.units[id].owner === o.id && s.units[id].moved), 'an ally receives the stack');
 }
+{ // rivers stop vehicles (unless bridged), not infantry; aircraft may stop over water
+  const s = game(); const p = me(s); E.applyAction(s, p.id, { a: 'choose', pick: 'income' }); p.cash = 99;
+  const k = E.neighbors(p.hq).find(n => s.map.tiles[n] && s.map.tiles[n].owner === p.id && E.isLandTile(s.map.tiles[n]) && s.map.tiles[n].t !== 'mountain');
+  s.map.tiles[k].river = true; for (const id in s.units) if (s.units[id].hex === p.hq || s.units[id].hex === k) delete s.units[id];
+  s.units.tk = { id: 'tk', type: 'mauler', owner: p.id, hex: p.hq, moved: false, fresh: false };
+  s.units.gr = { id: 'gr', type: 'grunt', owner: p.id, hex: p.hq, moved: false, fresh: false };
+  ok(!E.reachable(s, p.id, ['tk'], p.hq)[k], 'a tank cannot drive into a river');
+  ok(!!E.reachable(s, p.id, ['gr'], p.hq)[k], 'infantry can ford a river');
+  { const r = E.reachable(s, p.id, ['gr'], p.hq); ok(!Object.keys(r).some(x => r[x].prev === k), 'fording ends the move: nothing is reachable through the river this turn'); }
+  ok(E.buildHexes(s, p.id, 'bridge').includes(k), 'you can bridge a river on your land');
+  E.applyAction(s, p.id, { a: 'build', struct: 'bridge', hex: k });
+  ok(!!E.reachable(s, p.id, ['tk'], p.hq)[k], 'a bridged river lets vehicles across');
+  const sea = Object.keys(s.map.tiles).find(x => E.isWater(s.map.tiles[x]) && E.dist(x, p.hq) <= 3 && !Object.values(s.units).some(u => u.hex === x));
+  if (sea) { s.units.hn = { id: 'hn', type: 'hornet', owner: p.id, hex: p.hq, moved: false, fresh: false };
+    const r = E.reachable(s, p.id, ['hn'], p.hq); ok(r[sea] && r[sea].kind === 'move', 'aircraft can end a move over water');
+    if (r[sea]) { E.applyAction(s, p.id, { a: 'move', from: p.hq, units: ['hn'], to: sea }); ok(!!s.units.hn, 'and they do not drown there'); } }
+}
+{ // Spy Ring can be aimed at a commander directly
+  const s = game(); const p = me(s); E.applyAction(s, p.id, { a: 'choose', pick: 'income' }); p.cash = 20;
+  const o = s.players.find(q => q.id !== p.id); o.tactics.push({ uid: 3131, id: 'smoke' });
+  p.tactics.push({ uid: 3132, id: 'spy' });
+  const r = E.applyAction(s, p.id, { a: 'tactic', uid: 3132, targetPid: o.id });
+  ok(r.ok && p.tactics.some(c => c.id === 'smoke' || c.uid === 3131) || (r.ok && r.events.length), 'spy ring works when aimed at a commander' + (r.err ? ': ' + r.err : ''));
+}
 { // bots play with all of this switched on, to the end
   const s = game({ mapSize: 'small', maxRounds: 10 }, 3); s.players.forEach(p => { p.bot = true; });
   let n = 0;

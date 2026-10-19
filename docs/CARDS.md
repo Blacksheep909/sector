@@ -16,6 +16,7 @@ Unit cards are permanent unlocks: deploy as many as you can afford.
 | **Barracuda** | Naval | Common | $4 | 3 | 2 | 4 | – | Fast gunboat. Claims sea lanes, raids coasts. |
 | **Stinger** | Infantry | Common | $3 | 1 | 2 | 2 | – | MANPADS team. +3 Chips vs aircraft, and a 25% chance to shoot down air strikes on its hex. |
 | **Corpsman** | Infantry | Common | $3 | 1 | 3 | 2 | – | Medic squad. Its stack never suffers pyrrhic losses. |
+| **Hornet** | Air | Common | $4 | 2 | 1 | 4 | – | Scout drone. Flies over mountains and water and sees 3 hexes around it. |
 | **Jackal** | Vehicle | Uncommon | $3 | 3 | 2 | 4 | – | Light patrol truck with a heavy machine gun. Cheap, quick, hits above its weight. |
 | **Coyote** | Vehicle | Uncommon | $4 | 2 | 2 | 4 | – | Scout truck with a sensor mast. Sees 2 hexes further in the fog of war. |
 | **Lancer** | Infantry | Uncommon | $4 | 3 | 2 | 2 | – | Tank Hunter: +3 Chips when fighting vehicles. |
@@ -23,7 +24,6 @@ Unit cards are permanent unlocks: deploy as many as you can afford.
 | **Sapper** | Infantry | Uncommon | $4 | 2 | 2 | 2 | – | Demolitions: +3 Chips attacking a hex with buildings. |
 | **Scorpion** | Vehicle | Uncommon | $5 | 2 | 3 | 3 | – | Flak tank. +4 Chips vs aircraft; 35% to shoot down air strikes within 1. |
 | **Bulwark** | Vehicle | Uncommon | $6 | 3 | 5 | 3 | – | Armoured carrier. Holds the line. |
-| **Hornet** | Air | Uncommon | $5 | 4 | 1 | 4 | – | Strike drone. Flies over mountains and water. |
 | **Mauler** | Vehicle | Uncommon | $6 | 5 | 4 | 2 | – | Main battle tank. |
 | **Ark** | Naval | Uncommon | $4 | 0 | 3 | 4 | – | Transport. Carries up to 3 land units across the sea. |
 | **Marlin** | Naval | Rare | $7 | 5 | 4 | 4 | 2 | Destroyer. Shells coasts and ships 2 hexes away. |
@@ -53,6 +53,7 @@ Single-use cards from your hand.
 | **Rally** | Common | $1 | Your next attack this turn gets +2 Mult. |
 | **Fortify** | Common | $2 | Build or upgrade a Bunker on one of your hexes for free (on your HQ hex it fortifies the HQ instead). |
 | **Conscription** | Common | $1 | Deploy 2 free Grunts at a deploy point. |
+| **Kamikaze Drone** | Common | $2 | A loitering munition dives on a target within 5 of your land. Troops: roll 4+ kills 1. Undefended buildings: knocks a level off one. |
 | **Gun Run** | Common | $2 | Attack jet, within 3 of your land. Troops: roll 3+ kills 1. Undefended buildings: knocks a level off one. |
 | **Airstrike** | Uncommon | $4 | Bomb a hex within 4 of your land. Troops: roll to kill 1–3. Undefended buildings: knocks 1–2 levels off them. |
 | **Heli Drop** | Uncommon | $3 | Fly a stack up to 5 hexes onto any empty land and seize it. |

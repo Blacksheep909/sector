@@ -4,9 +4,13 @@ const { launch, sleep } = require('./cdp');
 (async () => {
   const b = await launch({ url: process.env.SECTOR_URL || 'http://localhost:3011', port: 9334 });
   const { evalJS, waitFor } = b;
-  await evalJS(`document.querySelector('#nameIn').value='Alice'; document.querySelector('#joinBtn').click(); true`); await sleep(800);
-  await evalJS(`document.querySelector('#addLocal').click(); true`); await sleep(300);
-  await evalJS(`document.querySelector('#addBot').click(); true`); await sleep(500);
+  // wait for each lobby step to land before the next click (fixed sleeps raced the server)
+  const rows = n => `document.querySelectorAll('#playerList .prow').length >= ${n}`;
+  await waitFor(`!!document.querySelector('#joinBtn')`, 15000);
+  await evalJS(`document.querySelector('#nameIn').value='Alice'; document.querySelector('#joinBtn').click(); true`);
+  await waitFor(`!document.querySelector('#lobbyBox').hidden && ${rows(1)}`, 15000);
+  await evalJS(`document.querySelector('#addLocal').click(); true`); await waitFor(rows(2), 15000);
+  await evalJS(`document.querySelector('#addBot').click(); true`); await waitFor(rows(3), 15000);
   await evalJS(`document.querySelector('#startBtn').click(); true`);
   const seen = [];
   for (let step = 0; step < 16; step++) {

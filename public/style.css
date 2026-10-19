@@ -1163,3 +1163,9 @@ body.my-turn #hud::before { content: ''; position: fixed; inset: 0; pointer-even
 #snapPop .sp-row .btn { max-width: 220px; white-space: normal; font-size: 13px; }
 #snapPop .sp-bar { width: 100%; height: 6px; background: #2a2a1a; border-radius: 3px; overflow: hidden; }
 #snapPop .sp-bar i { display: block; height: 100%; background: #ffc53d; animation: rpDrain 6.5s linear forwards; }
+/* speed strip: ⏸ > >> >>> 🚀 */
+.speed-ctl { display: flex; gap: 2px; background: var(--panel); border: 3px solid var(--line); border-radius: 10px; padding: 2px; box-shadow: 0 4px 0 #000; }
+.speed-ctl button { background: transparent; border: 0; color: var(--dim); font: 800 12px var(--ui, sans-serif); min-width: 28px; height: 26px; border-radius: 7px; cursor: pointer; letter-spacing: -1px; }
+.speed-ctl button:hover { color: #fff; background: #1c2a36; }
+.speed-ctl button.on { color: #0b0f13; background: var(--gold); }
+.speed-ctl[hidden], .speed-ctl button[hidden] { display: none; }

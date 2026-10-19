@@ -131,6 +131,30 @@ const SFX = (() => {
     diceLand() { tone(220, 0.08, { type: 'square', vol: 0.16 }); noise(0.08, { vol: 0.25, freq: 1800, type: 'bandpass', q: 2 }); },
     boom(big = 1) { noise(0.5 * big + 0.2, { vol: 0.55, freq: 900, sweep: -800 }); tone(70, 0.4 * big + 0.1, { type: 'sine', vol: 0.5, slide: -45 }); },
     shot() { noise(0.12, { vol: 0.3, freq: 2000, sweep: -1700 }); tone(240, 0.1, { type: 'sawtooth', vol: 0.12, slide: -180 }); },
+    // A-10 Warthog gun run: the GAU-8 cannon's tearing ~65-rounds-a-second "BRRRT", shells crackling on the target,
+    // then the TF34 engines' whine screaming past with a doppler drop
+    brrrt() {
+      if (muted || !ensure()) return;
+      const t = ctx.currentTime, dur = 1.5;
+      // the cannon: a sawtooth buzz chopped 65 times a second, driven hard through a waveshaper
+      const o = ctx.createOscillator(); o.type = 'sawtooth'; o.frequency.setValueAtTime(68, t); o.frequency.linearRampToValueAtTime(62, t + dur);
+      const chop = ctx.createOscillator(); chop.type = 'square'; chop.frequency.value = 65;
+      const am = ctx.createGain(); am.gain.value = 0.5; const amDepth = ctx.createGain(); amDepth.gain.value = 0.5;
+      chop.connect(amDepth); amDepth.connect(am.gain);
+      const shaper = ctx.createWaveShaper(); const curve = new Float32Array(256); for (let i = 0; i < 256; i++) { const x = i / 128 - 1; curve[i] = Math.tanh(x * 4); } shaper.curve = curve;
+      const lp = ctx.createBiquadFilter(); lp.type = 'lowpass'; lp.frequency.value = 1800;
+      const g = ctx.createGain(); g.gain.setValueAtTime(0.0001, t); g.gain.exponentialRampToValueAtTime(0.55, t + 0.04); g.gain.setValueAtTime(0.55, t + dur - 0.15); g.gain.exponentialRampToValueAtTime(0.0001, t + dur);
+      o.connect(am); am.connect(shaper); shaper.connect(lp); lp.connect(g); g.connect(master);
+      o.start(t); chop.start(t); o.stop(t + dur + 0.05); chop.stop(t + dur + 0.05);
+      // grit: noise bursts in step with the gun
+      noise(dur, { vol: 0.18, freq: 2400, q: 0.7, type: 'bandpass' });
+      // shells landing: a crackle of small explosions
+      for (let i = 0; i < 10; i++) noise(0.12, { vol: 0.25, freq: 700 + Math.random() * 500, sweep: -400, delay: 0.2 + i * 0.11 });
+      // the jet screaming past: a high whine dropping in pitch, over a rushing roar
+      tone(2300, 1.8, { type: 'sine', vol: 0.09, slide: -900, delay: dur - 0.2, attack: 0.3 });
+      tone(1150, 1.8, { type: 'triangle', vol: 0.06, slide: -450, delay: dur - 0.2, attack: 0.3 });
+      noise(2.0, { vol: 0.28, freq: 300, sweep: 1400, type: 'bandpass', q: 0.6, delay: dur - 0.3 });
+    },
     whoosh() { noise(0.4, { vol: 0.2, freq: 400, sweep: 2600, type: 'bandpass', q: 1 }); },
     card() { noise(0.09, { vol: 0.18, freq: 5000, type: 'highpass' }); tone(660, 0.05, { type: 'sine', vol: 0.06, delay: 0.03 }); },
     rare() { [0, 4, 7, 12].forEach((s, i) => tone(523 * Math.pow(2, s / 12), 0.25, { type: 'triangle', vol: 0.14, delay: i * 0.06 })); },

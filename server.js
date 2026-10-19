@@ -417,6 +417,7 @@ function onMessage(c, m) {
       if (!game) return;
       const actor = m.as && controls(c, m.as) ? m.as : c.pid;
       if (pendingReact) return send(c, { t: 'err', msg: 'Waiting for the defender to react…', seq: m.seq });
+      if (game.paused && game.phase === 'play') return send(c, { t: 'err', msg: 'The game is paused', seq: m.seq });
       if (!m._reacted) { const w = reactionWindow(actor, m.action); if (w) return openReaction(w, actor, () => onMessage(c, { ...m, _reacted: true })); }
       const isCur = game.players[game.turn.idx] && game.players[game.turn.idx].id === actor;
       const snap = isCur && ['move', 'deploy', 'build'].includes((m.action || {}).a) ? JSON.stringify(game) : null;
@@ -471,6 +472,17 @@ function onMessage(c, m) {
       else { lobby.settings.speed = m.v; if (game) game.settings.speed = m.v; }
       if (game) { game.v++; broadcastState([], null); }
       broadcastLobby(); return afterChange();
+    }
+    case 'pause': {
+      // pause / resume: same people who may set the speed. Bots stop, the turn clock freezes, nobody can act
+      const botsOnly = game && game.players.filter(p => p.alive).every(p => p.bot);
+      if (!game || game.phase !== 'play' || (c.pid !== lobby.hostId && !botsOnly)) return;
+      const on = !!m.on; if (!!game.paused === on) return;
+      game.paused = on;
+      if (on) { clearTimeout(botTimer); clearTimeout(turnTimer); clearTimeout(idleTimer); if (game.turn.deadline && !game.turn.pausedAt) game.turn.pausedAt = Date.now(); }
+      else resumeClock();
+      game.log.push(on ? '⏸ The game is paused.' : '▶ The game resumed.');
+      game.v++; broadcastState([], null); return afterChange();
     }
     case 'autoplay': if (!process.env.SECTOR_DEV || !c.pid) return; m.on ? autoPids.add(c.pid) : autoPids.delete(c.pid); return afterChange();
   }
@@ -613,6 +625,7 @@ function afterChange(events) {
     return;
   }
   if (!game || game.phase !== 'play') return;
+  if (game.paused) return;   // paused: no bots, no clocks, no idle checks
   if (game.allyOffer && !allyTimer) {
     const target = lobby.players.find(p => p.id === game.allyOffer.to);
     if (target && (target.bot || autoPids.has(target.id))) allyTimer = setTimeout(() => {
@@ -696,7 +709,7 @@ function forceEnd(pid) {
   if (r.ok || ev.length) { game.log.push('⏱ ' + (E.player(game, pid) || {}).name + ' ran out of time.'); game.v++; broadcastState(ev.concat(r.ok ? r.events : []), pid); afterChange(r.events); }
 }
 function runBot() {
-  if (!game || game.phase !== 'play') return;
+  if (!game || game.phase !== 'play' || game.paused) return;
   const cur = E.current(game);
   const mem = botMem[cur.id + ':' + game.turn.round] || (botMem = {}, botMem[cur.id + ':' + game.turn.round] = { n: 0 });
   let a = mem.n++ > 60 ? { a: 'end' } : botStep(game, cur.id, mem);

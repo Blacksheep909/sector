@@ -634,6 +634,16 @@ const Art = (() => {
     march(c) { for (let i = 0; i < 3; i++) { poly(c, [-0.9 + i * 0.55, -0.6, -0.55 + i * 0.55, -0.6, -0.15 + i * 0.55, 0, -0.55 + i * 0.55, 0.6, -0.9 + i * 0.55, 0.6, -0.5 + i * 0.55, 0]); c.fill(); } },
     conscript(c) { c.save(); c.translate(-0.15, 0.1); c.scale(0.8, 0.8); UNIT.grunt(c); c.restore(); rr(c, 0.45, -0.75, 0.16, 0.6, 0.04); c.fill(); rr(c, 0.23, -0.53, 0.6, 0.16, 0.04); c.fill(); },
     airstrike(c) { poly(c, [-0.9, -0.55, 0.6, -0.75, 0.95, -0.62, 0.6, -0.48, -0.9, -0.45]); c.fill(); poly(c, [-0.2, -0.6, 0.15, -0.95, 0.35, -0.95, 0.2, -0.6]); c.fill(); for (const [x, y] of [[-0.4, 0.05], [0.05, 0.3], [0.45, 0.6]]) { c.beginPath(); c.ellipse(x, y, 0.12, 0.22, -0.3, 0, P * 2); c.fill(); } },
+    // loitering munition (Shahed / Switchblade style): a delta-wing drone diving onto its target
+    kamikaze(c) {
+      c.save(); c.translate(-0.1, -0.1); c.rotate(0.75);
+      poly(c, [0, -0.9, 0.62, 0.45, 0.14, 0.32, 0, 0.5, -0.14, 0.32, -0.62, 0.45]); c.fill();
+      for (const x of [-0.58, 0.58]) { rr(c, x - 0.04, 0.22, 0.08, 0.26, 0.02); c.fill(); }
+      rr(c, -0.07, 0.42, 0.14, 0.16, 0.04); c.fill();
+      shade(c, () => { c.moveTo(0, -0.9); c.lineTo(0.08, 0.3); c.lineTo(-0.08, 0.3); c.closePath(); }, 'rgba(0,0,0,.3)');
+      c.restore();
+      c.save(); c.globalAlpha *= 0.7; for (const [x, y, r] of [[0.62, 0.62, 0.12], [0.78, 0.5, 0.08], [0.5, 0.8, 0.09]]) { circ(c, x, y, r); c.fill(); } c.restore();
+    },
     gunrun(c) { // A-10 style attack jet, top-down, with a strafing line
       poly(c, [0, -0.9, 0.12, -0.55, 0.12, -0.1, 0.95, 0.05, 0.95, 0.2, 0.12, 0.2, 0.1, 0.55, 0.42, 0.7, 0.42, 0.82, -0.42, 0.82, -0.42, 0.7, -0.1, 0.55, -0.12, 0.2, -0.95, 0.2, -0.95, 0.05, -0.12, -0.1, -0.12, -0.55]); c.fill();
       for (const x of [-0.28, 0.28]) { c.beginPath(); c.ellipse(x, 0.45, 0.12, 0.2, 0, 0, P * 2); c.fill(); }

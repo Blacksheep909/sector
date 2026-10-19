@@ -101,7 +101,7 @@ const Render = (() => {
     const tiles = S_.map.tiles, link = (a, b) => { (roads[a] || (roads[a] = new Set())).add(b); (roads[b] || (roads[b] = new Set())).add(a); };
     for (const p of S_.players) {
       if (!p.alive || !p.hq || !tiles[p.hq] || tiles[p.hq].owner !== p.id) continue;
-      const passable = k => { const t = tiles[k]; return t && t.owner === p.id && t.fog !== 2 && E.isLandTile(t) && t.t !== 'mountain'; };
+      const passable = k => { const t = tiles[k]; return t && t.owner === p.id && t.fog !== 2 && E.isLandTile(t) && t.t !== 'mountain' && (!t.river || t.bridge); };   // roads only cross rivers on a bridge
       const prev = { [p.hq]: null }, q = [p.hq];
       for (let i = 0; i < q.length; i++) for (const n of E.neighbors(q[i])) if (!(n in prev) && passable(n)) { prev[n] = q[i]; q.push(n); }
       for (const k of q) {
@@ -347,6 +347,15 @@ const Render = (() => {
     }
     if (c.river) drawRiver(k, tile, cx, cy, z, s); else decorate(tile, c, cx, cy, s, z);
     drawRoad(k, cx, cy, z);
+    // bridges and their wreckage (sea and river alike)
+    if (tile.bridge) drawBridge(tile, c.q + ',' + c.r, cx, cy, s, z);
+    else if (tile.wreck) {
+      // the stumps and twisted deck of a destroyed bridge
+      ctx.save(); ctx.fillStyle = '#4a3d2c';
+      for (const ox of [-0.38, 0.32]) { ctx.fillRect(cx + ox * s - 2.5 * z, cy - 4 * z, 5 * z, 8 * z); }
+      ctx.translate(cx, cy); ctx.rotate(0.35); ctx.fillStyle = 'rgba(70,58,42,.85)'; ctx.fillRect(-0.3 * s, -1.5 * z, 0.32 * s, 3 * z); ctx.rotate(-0.8); ctx.fillRect(0.02 * s, -1.5 * z, 0.26 * s, 3 * z);
+      ctx.restore();
+    }
     // territory borders
     if (tile.owner && c.oc) {
       const nb = E.neighbors(k);
@@ -427,20 +436,53 @@ const Render = (() => {
       ctx.strokeStyle = 'rgba(255,255,255,.18)'; ctx.lineWidth = 1.2 * z; ctx.beginPath(); ctx.moveTo(...A); ctx.lineTo(...F); ctx.stroke();
     }
   }
+  // a 2.5D bridge: concrete piers in the water, an asphalt deck with a visible edge, railings, and a steel arch overhead.
+  // River bridges run bank to bank (across the flow)
   function drawBridge(tile, k, cx, cy, s, z) {
-    const nb = E.neighbors(k).filter(n => S_.map.tiles[n] && E.TERRAIN[S_.map.tiles[n].t].land);
-    let a = nb[0], b = nb[1], best = -1;
+    const tiles = S_.map.tiles, bank = n => tiles[n] && E.TERRAIN[tiles[n].t].land && !tiles[n].river;
+    const nb = E.neighbors(k).filter(n => tiles[n] && (tile.river ? bank(n) : E.TERRAIN[tiles[n].t].land));
+    let a = null, b = null, best = -1;
     for (const p of nb) for (const q of nb) { const d = E.dist(p, q); if (d > best) { best = d; a = p; b = q; } }
-    if (!a || !b) return;
-    const [ax, ay] = toScreen(tc[a].wx, tc[a].wy), [bx, by] = toScreen(tc[b].wx, tc[b].wy);
-    const ang = Math.atan2(by - ay, bx - ax), len = s * 1.9, wd = s * 0.42;
-    ctx.save(); ctx.translate(cx, cy - 6 * z); ctx.rotate(ang);
-    ctx.fillStyle = 'rgba(0,0,0,.35)'; ctx.fillRect(-len / 2, -wd / 2 + 6 * z, len, wd);
-    ctx.fillStyle = '#7a5a3a'; ctx.fillRect(-len / 2, -wd / 2, len, wd);
-    ctx.fillStyle = '#9b7650';
-    for (let x = -len / 2 + 2 * z; x < len / 2; x += 6 * z) ctx.fillRect(x, -wd / 2 + 1 * z, 4 * z, wd - 2 * z);
-    ctx.fillStyle = bridgeCol(tile); ctx.fillRect(-len / 2, -wd / 2 - 2 * z, len, 2.5 * z); ctx.fillRect(-len / 2, wd / 2 - 0.5 * z, len, 2.5 * z);
-    for (let x = -len / 2; x <= len / 2; x += len / 4) { ctx.fillStyle = '#4b3826'; ctx.fillRect(x - 1.5 * z, -wd / 2 - 3 * z, 3 * z, wd + 6 * z); }
+    if (!a || !b || !tc[a] || !tc[b] || !tc[k]) return;
+    const c0 = tc[k], sc = S / 34;
+    // deck ends sit on the hex edges toward each shore, in world space
+    const e1 = [(c0.wx + tc[a].wx) / 2, (c0.wy + tc[a].wy) / 2], e2 = [(c0.wx + tc[b].wx) / 2, (c0.wy + tc[b].wy) / 2];
+    const dx = e2[0] - e1[0], dy = e2[1] - e1[1], L = Math.hypot(dx, dy) || 1, nx = -dy / L * S * 0.2, ny = dx / L * S * 0.2;
+    const waterH = c0.h * sc, deckH = waterH + 9, thick = 3.2;
+    const P = (wx, wy, h) => { const [x, y] = toScreen(wx, wy); return [x, y - h * z]; };
+    const at = (t, side, h) => P(e1[0] + dx * t + nx * side, e1[1] + dy * t + ny * side, h);
+    const poly = (pts, fill) => { ctx.beginPath(); pts.forEach((p, i) => i ? ctx.lineTo(p[0], p[1]) : ctx.moveTo(p[0], p[1])); ctx.closePath(); ctx.fillStyle = fill; ctx.fill(); };
+    ctx.save();
+    // shadow on the water
+    poly([at(0, -1.1, waterH), at(1, -1.1, waterH), at(1, 1.1, waterH), at(0, 1.1, waterH)], 'rgba(0,0,0,.28)');
+    // piers
+    for (const t of [0.3, 0.7]) {
+      const p1 = at(t, -0.75, waterH), p2 = at(t, 0.75, waterH), q1 = at(t, -0.75, deckH - thick), q2 = at(t, 0.75, deckH - thick);
+      poly([p1, p2, q2, q1], '#8d8a83'); poly([p1, [p1[0] + 2 * z, p1[1]], [q1[0] + 2 * z, q1[1]], q1], 'rgba(0,0,0,.25)');
+    }
+    // deck: the near edge face, then the road surface
+    const front = at(0, 1, deckH)[1] > at(0, -1, deckH)[1] ? 1 : -1;
+    poly([at(0, front, deckH), at(1, front, deckH), at(1, front, deckH - thick), at(0, front, deckH - thick)], '#5f5b55');
+    poly([at(0, -1, deckH), at(1, -1, deckH), at(1, 1, deckH), at(0, 1, deckH)], '#4a4d52');
+    // lane line
+    ctx.strokeStyle = 'rgba(255,214,90,.8)'; ctx.lineWidth = 1.2 * z; ctx.setLineDash([4 * z, 4 * z]);
+    { const m1 = at(0.04, 0, deckH), m2 = at(0.96, 0, deckH); ctx.beginPath(); ctx.moveTo(m1[0], m1[1]); ctx.lineTo(m2[0], m2[1]); ctx.stroke(); }
+    ctx.setLineDash([]);
+    // railings with posts, the owner's colour along the top rail
+    const col = bridgeCol(tile);
+    for (const side of [-1, 1]) {
+      ctx.strokeStyle = '#2b2d31'; ctx.lineWidth = 1 * z;
+      for (let i = 0; i <= 8; i++) { const b0 = at(i / 8, side, deckH), b1 = at(i / 8, side, deckH + 3); ctx.beginPath(); ctx.moveTo(b0[0], b0[1]); ctx.lineTo(b1[0], b1[1]); ctx.stroke(); }
+      const r1 = at(0, side, deckH + 3), r2 = at(1, side, deckH + 3);
+      ctx.strokeStyle = col; ctx.lineWidth = 1.6 * z; ctx.beginPath(); ctx.moveTo(r1[0], r1[1]); ctx.lineTo(r2[0], r2[1]); ctx.stroke();
+    }
+    // steel arch with hangers over the span
+    for (const side of [-1, 1]) {
+      const pts = []; for (let i = 0; i <= 12; i++) { const t = i / 12; pts.push(at(t, side * 0.95, deckH + 3 + Math.sin(t * Math.PI) * 10)); }
+      ctx.strokeStyle = '#c9ccd1'; ctx.lineWidth = 2 * z; ctx.beginPath(); pts.forEach((p, i) => i ? ctx.lineTo(p[0], p[1]) : ctx.moveTo(p[0], p[1])); ctx.stroke();
+      ctx.strokeStyle = 'rgba(201,204,209,.7)'; ctx.lineWidth = 0.8 * z;
+      for (let i = 2; i <= 10; i += 2) { const t = i / 12, top = at(t, side * 0.95, deckH + 3 + Math.sin(t * Math.PI) * 10), bot = at(t, side * 0.95, deckH + 3); ctx.beginPath(); ctx.moveTo(top[0], top[1]); ctx.lineTo(bot[0], bot[1]); ctx.stroke(); }
+    }
     ctx.restore();
   }
   function bridgeCol(tile) { const p = tile.owner && S_.players.find(pl => pl.id === tile.owner); return p ? p.color : '#5a4630'; }
@@ -552,14 +594,7 @@ const Render = (() => {
     } else if (tile.t === 'plains' && v > 0.7 && !tile.struct && !c.owned) {
       ctx.fillStyle = 'rgba(255,255,255,.12)'; for (let i = 0; i < 3; i++) ctx.fillRect(cx + (i - 1) * 7 * z + (v * 10 - 5) * z, cy + (i % 2) * 4 * z, 1.6 * z, 4 * z);
     }
-    if (tile.bridge) drawBridge(tile, c.q + ',' + c.r, cx, cy, s, z);
-    else if (tile.wreck) {
-      // the stumps and twisted deck of a destroyed bridge
-      ctx.save(); ctx.fillStyle = '#4a3d2c';
-      for (const ox of [-0.38, 0.32]) { ctx.fillRect(cx + ox * s - 2.5 * z, cy - 4 * z, 5 * z, 8 * z); }
-      ctx.translate(cx, cy); ctx.rotate(0.35); ctx.fillStyle = 'rgba(70,58,42,.85)'; ctx.fillRect(-0.3 * s, -1.5 * z, 0.32 * s, 3 * z); ctx.rotate(-0.8); ctx.fillRect(0.02 * s, -1.5 * z, 0.26 * s, 3 * z);
-      ctx.restore();
-    }
+
     if (tile.fish) {
       const bob = Math.sin(t * 2.4 + v * 9) * 1.5 * z, x = cx - 6 * z, y = cy + bob;
       ctx.strokeStyle = 'rgba(200,240,255,.35)'; ctx.lineWidth = 1.2 * z;

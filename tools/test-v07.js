@@ -94,7 +94,7 @@ const play = (s, a) => E.applyAction(s, me(s).id, a);
   const s = game('continent', 2); const p = me(s); const hq = p.hq;
   for (const id in s.units) if (s.units[id].hex === hq) delete s.units[id];
   s.units.h1 = { id: 'h1', type: 'hornet', owner: p.id, hex: hq, moved: false, fresh: false };
-  const reach = E.reachable(s, p.id, ['h1'], hq); const far = Object.keys(reach).filter(k => reach[k].kind === 'move' && !s.map.tiles[k].owner && reach[k].c >= 3)[0];
+  const reach = E.reachable(s, p.id, ['h1'], hq); const far = Object.keys(reach).filter(k => reach[k].kind === 'move' && !s.map.tiles[k].owner && reach[k].c >= 3 && E.isLandTile(s.map.tiles[k]))[0];
   const before = Object.values(s.map.tiles).filter(t => t.owner === p.id).length;
   const r = play(s, { a: 'move', from: hq, units: ['h1'], to: far });
   const gained = Object.values(s.map.tiles).filter(t => t.owner === p.id).length - before;
