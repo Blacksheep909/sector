@@ -406,13 +406,27 @@
     const box = $('#waitBox'); const me = myP();
     if (!S || S.phase !== 'play' || !me || !me.alive || isMyTurn()) { box.hidden = true; return; }
     const parts = [];
-    if (me.snap) parts.push(`<div class="wb-h">⚡ QUICK DECISION</div><div class="wb-row">${me.snap.opts.map((id, i) => `<button class="btn tiny snapbtn" data-i="${i}">${esc(E.SNAPS[id].text)}</button>`).join('')}</div>`);
     if (me.nextOffer && me.nextOffer.length) parts.push(`<div class="wb-h">🎴 NEXT RESUPPLY</div><div class="wb-row"><button class="btn tiny" id="prepBtn">${me.prePick ? '✔ ' + (me.prePick.pick === 'income' ? 'Full income' : esc(E.cardDef(me.nextOffer[me.prePick.idx]).name)) + ' · change' : 'Pick it now'}</button></div>`);
     if (S.fogOn) parts.push(`<div class="wb-h">🛰 INTEL</div><div class="wb-row"><button class="btn tiny" id="intelBtn">Scout through the fog · $${E.INTEL_COST} (I)</button></div>`);
     box.hidden = !parts.length; box.innerHTML = parts.join('');
-    box.querySelectorAll('.snapbtn').forEach(b => b.onclick = () => { SFX.select(); act({ a: 'snap', pick: +b.dataset.i }).then(ok => ok && toast('⚡ ' + b.textContent, 'good')); });
     const pb = $('#prepBtn'); if (pb) pb.onclick = openPrep;
     const ib = $('#intelBtn'); if (ib) ib.onclick = () => { mode = { type: 'intel' }; refreshAll(); };
+  }
+  // quick decisions: pop up at a random moment while you wait, for about 6 seconds. Grab one or it's gone
+  let snapShown = '', snapTimer = null;
+  function scheduleSnap() {
+    const me = myP(); if (!me || !me.snap || isMyTurn()) return;
+    const key = me.snap.round + ':' + me.snap.opts.join(','); if (snapShown === key || snapTimer) return;
+    snapTimer = setTimeout(() => { snapTimer = null; const m2 = myP(); if (m2 && m2.snap && !isMyTurn() && document.visibilityState !== 'hidden') { snapShown = key; showSnap(m2.snap); } }, 1500 + Math.random() * 9000);
+  }
+  function showSnap(snap) {
+    let p = $('#snapPop'); if (p) p.remove();
+    p = el('div', '', `<div class="sp-h">⚡ QUICK!</div><div class="sp-row">${snap.opts.map((id, i) => `<button class="btn" data-i="${i}">${esc(E.SNAPS[id].text)}</button>`).join('')}</div><div class="sp-bar"><i></i></div>`);
+    p.id = 'snapPop'; document.body.appendChild(p); SFX.rare();
+    let done = false;
+    const close = pick => { if (done) return; done = true; p.classList.add('gone'); setTimeout(() => p.remove(), 250); act({ a: 'snap', pick }).then(ok => { if (ok && pick >= 0) toast('⚡ ' + E.SNAPS[snap.opts[pick]].text, 'good'); }); };
+    p.querySelectorAll('button').forEach(b => b.onclick = () => { SFX.select(); close(+b.dataset.i); });
+    setTimeout(() => close(-1), 6500);
   }
   function openPrep() {
     const me = myP(); if (!me || !me.nextOffer) return;
@@ -960,7 +974,7 @@
     const P = window.__refreshPerf || (window.__refreshPerf = {}), tm = (n, f) => { const t0 = performance.now(); f(); const d = performance.now() - t0; P[n] = +((P[n] || 0) * 0.8 + d * 0.2).toFixed(2); if (d > (P[n + '^'] || 0)) P[n + '^'] = +d.toFixed(1); };
     tm('state', () => Render.setState(dispState()));
     tm('overlays', updateOverlays);
-    tm('top', renderTop); tm('cash', renderCash); renderSiege(); renderUndo(); renderWeather(); tm('ally', renderAlly); tm('plan', renderPlan); tm('hex', renderHexPanel); tm('hand', renderHand); renderEnd(); renderModeHint(); renderOffer(); renderTurnPill(); renderAfk(); renderSpeed(); renderWait(); checkAutoEnd(); layoutHud();
+    tm('top', renderTop); tm('cash', renderCash); renderSiege(); renderUndo(); renderWeather(); tm('ally', renderAlly); tm('plan', renderPlan); tm('hex', renderHexPanel); tm('hand', renderHand); renderEnd(); renderModeHint(); renderOffer(); renderTurnPill(); renderAfk(); renderSpeed(); renderWait(); scheduleSnap(); checkAutoEnd(); layoutHud();
   }
   // game speed button: the host sets the pace; anyone may once only bots are left
   function renderSpeed() {
@@ -1135,7 +1149,6 @@
     const owner = t.owner ? ds.players.find(p => p.id === t.owner) : null;
     const tags = [];
     if (t.res) tags.push(`<span class="hp-tag res">◆ ${E.isWater(t) ? 'Oil rig' : 'Resource'} +$2</span>`);
-    if (t.fish) tags.push('<span class="hp-tag res">🐟 Fishing grounds +$1</span>');
     if (E.structsOf(t).some(x => x.type === 'port')) tags.push('<span class="hp-tag">⚓ Shipping lanes: +$1 per 4 of your connected sea hexes (max $5)</span>');
     if (E.TERRAIN[t.t].defMult) tags.push(`<span class="hp-tag">+${E.TERRAIN[t.t].defMult} Mult defence</span>`);
     if (E.TERRAIN[t.t].moveCost) tags.push('<span class="hp-tag">Costs 2 move</span>');

@@ -20,7 +20,7 @@ Grab land, build an economy, crush your rivals. **Every hex you hold pays you**,
 | ⛈ Storm Front | Aircraft are grounded |
 | 🌊 Rough Seas | Ships stay in port |
 | ❄ Blizzard | Every unit has 1 less move (minimum 1) |
-| 💰 Gold Rush | Resources, oil rigs and fishing grounds pay double |
+| 💰 Gold Rush | Resources and oil rigs pay double |
 | 🛒 Arms Fair | Units cost $1 less |
 | 📦 Supply Shortage | Buildings cost $2 more |
 | 🔥 War Fervour | Every attack gets +1 mult |
@@ -121,7 +121,6 @@ $3 base
 + $1 per 3 land hexes connected to supply
 + $1 per 4 sea hexes connected to supply
 + $2 per resource node (land crystals and offshore oil rigs)
-+ $1 per fishing ground
 + shipping lanes: each Port earns $1 per 4 of your sea hexes connected to it (max $5 per Port)
 + $2 per village, $3 per relic
 + refineries and warehouses
@@ -140,7 +139,7 @@ $3 base
 
 **Air defence.** Flak and anti-air units can shoot down air strikes (Gun Run, Airstrike, Precision Strike, Bunker Buster, Carpet and Strategic Bombing) aimed near them. Flak covers hexes within its level (35% at ★, +10% per level); a Stinger covers its own hex (25%), a Scorpion 1 hex (35%), a Skyguard 2 (50%) and a Sentinel 3 (60%). Chances stack, up to 90%. Precision Strikes are only 60% as likely to be caught. A downed strike still spends the card. Flak also blocks Heli Drops and EMPs. **Nukes and the Tsar Bomba can't be stopped.** The **Trident** submarine's missile (range 8) can only be intercepted by Sentinels within 3 of its target.
 
-**Supply:** a hex pays only if it connects through your own territory to your HQ or a Port. A **FOB only works while it's connected** that way too: a cut-off FOB is no deploy point and supplies nothing, and you can only build a FOB on supplied land. Owned sea counts as territory, so sea lanes carry supply to your islands. Cut-off hexes are hatched on the map and pay nothing.
+**Supply:** a hex pays only if it connects through your own territory to your HQ or a Port. A **FOB supplies land only while it's connected** that way too (a cut-off FOB still takes reinforcements, but supplies nothing), and you can only build a FOB on supplied land. Owned sea counts as territory, so sea lanes carry supply to your islands. Cut-off hexes are hatched on the map and pay nothing.
 
 ## The land
 
@@ -225,7 +224,6 @@ Units with a range stat fire instead of moving.
 ## The sea
 
 - **Sea control.** Ships claim every sea hex they sail through. Owned sea pays income, carries supply, and holds **offshore oil rigs** worth $2 each.
-- **Fishing grounds** (red buoys) are worth +$1 each while you hold them.
 - **Ports** are built on coastal hexes. They launch ships into the adjacent sea and act as a supply source. Each Port also earns from **shipping lanes**: $1 per 4 of your sea hexes connected to it, up to $5.
 - **Treasure islands.** Small islands away from the HQs carry ruins, caches, villages and often a relic. Sail an Ark over, or fly in.
 - **Naval gunfire.** Each of your warships next to a land hex being fought over adds +2 chips to your side, up to 3 ships. That works whether you're attacking or defending. Ships that aren't in the fight themselves still help, so a fleet off the coast backs up your land war.
@@ -293,7 +291,7 @@ Any time, click **TRADE** under a rival's name. You can offer cash and tactic ca
 You're never just watching:
 - **Reactions.** When an enemy attacks one of your hexes and you hold a reaction card (Smoke Screen, Fortify, Aegis Protocol, Ambush) you can afford, the attack waits up to 7 seconds while you decide whether to play it.
 - **Next resupply.** Your next resupply is dealt when your turn ends. Pick a card or full income from the panel while you wait, and your next turn starts straight in the action.
-- **Quick decisions.** Once a round, while someone else plays, you get an either/or bonus to pick (cash now, extra move, a free Grunt, a bigger resupply and so on). Unanswered ones lapse when your turn starts.
+- **Quick decisions.** On some rounds, at a random moment while someone else plays, an either/or bonus pops up for about 6 seconds (cash now, extra move, a free Grunt, a bigger resupply and so on). Grab one or it's gone.
 - **Diplomacy and trades** work any time, not just on your turn.
 - **Intel ops** (fog of war): $2 to scout a 2-hex area anywhere until the end of next round, twice per round (`I`).
 - **Pings and emotes** from the bar above the chat.

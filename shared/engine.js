@@ -232,7 +232,7 @@
     storm: { name: 'Storm Front', icon: '⛈', desc: 'Aircraft are grounded this round.' },
     seas: { name: 'Rough Seas', icon: '🌊', desc: 'Ships stay in port this round.' },
     blizzard: { name: 'Blizzard', icon: '❄', desc: 'Every unit has 1 less move this round (minimum 1).' },
-    goldrush: { name: 'Gold Rush', icon: '💰', desc: 'Resource nodes, oil rigs and fishing grounds pay double this round.' },
+    goldrush: { name: 'Gold Rush', icon: '💰', desc: 'Resource nodes and oil rigs pay double this round.' },
     armsfair: { name: 'Arms Fair', icon: '🛒', desc: 'All units cost $1 less this round.' },
     shortage: { name: 'Supply Shortage', icon: '📦', desc: 'Buildings cost $2 more this round.' },
     fervour: { name: 'War Fervour', icon: '🔥', desc: 'Every attack gets +1 Mult this round.' },
@@ -443,15 +443,6 @@
       if (rigs >= Math.max(3, Math.round(shallow.length * (arch === 'ocean' ? 0.13 : 0.09)))) break;
       if (spawns.some(s => dist(s, k) < 3) || neighbors(k).some(n => tiles[n] && tiles[n].res)) continue;
       tiles[k].res = true; rigs++;
-    }
-    // fishing grounds: shoals in shallow water (+$1 each while you hold them)
-    const anyWater = Object.keys(tiles).filter(k => tiles[k].t === 'water' && !tiles[k].res).sort(() => rng() - 0.5);
-    let fish = 0;
-    for (const k of anyWater) {
-      if (fish >= Math.max(4, Math.round(anyWater.length * 0.07))) break;
-      if (tiles[k].deep && rng() < 0.6) continue;
-      if (neighbors(k).some(n => tiles[n] && (tiles[n].fish || (tiles[n].res && tiles[n].t === 'water')))) continue;
-      tiles[k].fish = true; fish++;
     }
     // points of interest: loot to grab, neutral strongholds to conquer, relics to hold
     const free = landNow.filter(k => !tiles[k].res && spawns.every(sp => dist(sp, k) >= 3)).sort(() => rng() - 0.5);
@@ -708,7 +699,7 @@
     for (const k in s.map.tiles) {
       const t = s.map.tiles[k]; if (t.owner !== pid) continue;
       const h = getS(t, 'hq'), f = getS(t, 'fob');
-      if ((h && h.owner === pid && !h.siege) || (f && f.owner === pid && !f.lock && (sup || (sup = supplySet(s, pid))).has(k))) out.push(k);
+      if ((h && h.owner === pid && !h.siege) || (f && f.owner === pid && !f.lock)) out.push(k);   // a cut-off FOB still takes reinforcements
     }
     for (const k of musterHexes(s, pid)) if (!out.includes(k)) out.push(k);
     return out;
@@ -779,7 +770,7 @@
       let pt = getS(t, 'port');
       if (!pt && UNITS[type].ability === 'transport') pt = getS(t, 'hq') || getS(t, 'fob');
       if (t.owner !== pid || !pt || pt.owner !== pid || pt.lock || pt.siege) continue;
-      if (pt.type === 'fob' && !sup.has(k)) continue;
+
       for (const n of neighbors(k)) {
         const w = s.map.tiles[n]; if (!isWater(w)) continue;
         const occ = idx[n] || [];
@@ -2019,8 +2010,9 @@
         }
       }
       if (!Object.values(s.units).some(u => u.hex === a.to)) {
-        // shelling an undefended building: each salvo knocks a level off it
+        // shelling an undefended building: each salvo knocks a level off it (and you see the result)
         const infra = damageInfra(s, a.to, 1);
+        p.intel = (p.intel || []).filter(x => x.until >= s.turn.round).concat([{ hex: a.to, until: s.turn.round, bda: true }]);
         units.forEach(u => u.moved = true);
         ev.push({ e: 'shell', pid, from: a.from, to: a.to, infra, structs: structsOf(tiles[a.to]), units: units.map(u => u.type) });
         pushLog(s, '💥 ' + p.name + ' shelled ' + (player(s, tiles[a.to].owner) || {}).name + "'s infrastructure.");
@@ -2048,6 +2040,7 @@
     const def = TACTICS[id], pid = p.id, tiles = s.map.tiles;
     if (def.target !== 'none' && def.target !== 'heli' && !tacticTargets(s, pid, id).includes(a.target)) return 'Invalid target';
     const base = { e: 'tactic', pid, id, target: a.target };
+    if (AIR_STRIKES.includes(id) && a.target && !s._preview) p.intel = (p.intel || []).filter(x => x.until >= s.turn.round).concat([{ hex: a.target, until: s.turn.round, bda: true }]);   // damage assessment: you see what you hit
     if (AIR_STRIKES.includes(id) && id !== 'strategic' && id !== 'carpet') {
       const ch = interceptChance(s, pid, a.target, id);
       if (ch > 0 && rng() < ch) {
@@ -2331,6 +2324,8 @@
     const keys = Object.keys(SNAPS), r = rng || Math.random;
     for (const q of s.players) {
       if (!q.alive || q.id === curPid || q.snapRound === s.turn.round) continue;
+      q.snapRound = s.turn.round;
+      if (r() < 0.5) continue;   // only some rounds bring one, so they stay a surprise
       const a = keys[Math.floor(r() * keys.length)]; let b = a; for (let i = 0; i < 8 && b === a; i++) b = keys[Math.floor(r() * keys.length)];
       q.snap = { round: s.turn.round, opts: [a, b] }; q.snapRound = s.turn.round;
     }
@@ -2338,6 +2333,7 @@
   function snapPick(s, p, a, ev) {
     const fail = err => ({ ok: false, err, events: [] });
     if (!p.snap) return fail('No decision waiting');
+    if (a.pick === -1) { delete p.snap; return { ok: true, events: [] }; }   // let it slip by
     const id = p.snap.opts[a.pick]; if (!id) return fail('Pick one');
     delete p.snap;
     if (id === 'convoy') p.cash += 3;
@@ -2424,18 +2420,18 @@
       // real fog of war: unexplored hexes are unknown; explored-but-unseen hexes show what you last saw
       mem = mem || { explored: new Set(), seen: {} };
       const vis = visionOf(s, pid);
-      for (const k of vis) { const t0 = s.map.tiles[k]; if (!t0) continue; mem.explored.add(k); mem.seen[k] = { owner: t0.owner, structs: JSON.parse(JSON.stringify(structsOf(t0))), poi: t0.poi, gar: t0.gar }; }
+      for (const k of vis) { const t0 = s.map.tiles[k]; if (!t0) continue; mem.explored.add(k); mem.seen[k] = { owner: t0.owner, structs: JSON.parse(JSON.stringify(structsOf(t0))), poi: t0.poi, gar: t0.gar, ruin: t0.ruin || 0, wreck: !!t0.wreck }; }
       for (const id in c.units) { const u = c.units[id]; if (u.owner !== pid && !isAlly(s, pid, u.owner) && !vis.has(u.hex)) delete c.units[id]; }
       for (const k in c.map.tiles) {
         if (vis.has(k)) continue;
         const t = c.map.tiles[k], real = s.map.tiles[k], hq = getS(real, 'hq');
         if (mem.explored.has(k)) {
           t.fog = 1;
-          const m = mem.seen[k]; if (m) { t.owner = m.owner; t.structs = m.structs; t.poi = m.poi; t.gar = m.gar; if (!m.poi) delete t.poi; }
+          const m = mem.seen[k]; if (m) { t.owner = m.owner; t.structs = m.structs; t.poi = m.poi; t.gar = m.gar; if (!m.poi) delete t.poi; if (m.ruin) t.ruin = m.ruin; else delete t.ruin; if (m.wreck) t.wreck = true; else delete t.wreck; }
         } else {
           t.fog = 2;
           t.owner = null; t.structs = [];   // unexplored means unknown: not even an HQ shows through
-          delete t.poi; delete t.gar; delete t.fish; delete t.river; delete t.flow; t.res = false; t.contam = 0; t.smoke = null; t.bridge = false;
+          delete t.poi; delete t.gar; delete t.fish; delete t.river; delete t.flow; delete t.ruin; delete t.wreck; t.res = false; t.contam = 0; t.smoke = null; t.bridge = false;
         }
         t.struct = (t.structs || []).find(x => x.type === 'hq') || (t.structs || [])[0] || null;
       }

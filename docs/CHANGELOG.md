@@ -2,6 +2,15 @@
 
 Every release, newest first. Each version also has its own post on the [Releases page](https://github.com/Blacksheep909/sector/releases).
 
+## v0.9.2
+
+**Quick decisions are quick, and bombing in the fog behaves.**
+
+- **⚡ Quick decisions pop up:** at a random moment while you wait, a choice appears in the middle of the screen for about 6 seconds. Grab one, or it's gone. They now turn up on about half the rounds instead of every round, so they stay a surprise.
+- **🏕 FOBs take reinforcements even when cut off** from your supply network. They still don't supply land until they're reconnected.
+- **🐟 Fishing grounds are gone.** The sea pays through sea lanes, oil rigs and shipping lanes.
+- **🌫 Bombing in the fog of war:** when you bomb or shell a hex you can't see, you get a damage assessment, meaning you can see the area you hit until the end of the round. Wrecked buildings no longer pop back up from your old memory of the hex. Bombed-out land and bridge wreckage also stay as you last saw them once a hex goes back into the fog.
+
 ## v0.9.1
 
 **Allies open their borders.**

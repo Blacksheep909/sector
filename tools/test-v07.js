@@ -44,7 +44,7 @@ const play = (s, a) => E.applyAction(s, me(s).id, a);
   const s = game(); const p = me(s);
   const far = Object.keys(s.map.tiles).find(k => E.isLandTile(s.map.tiles[k]) && !s.map.tiles[k].owner && E.dist(k, p.hq) > 6);
   s.map.tiles[far].owner = p.id; s.map.tiles[far].structs = [{ type: 'fob', owner: p.id, lvl: 1 }]; s.map.tiles[far].struct = s.map.tiles[far].structs[0];
-  ok(!E.spawnPoints(s, p.id).includes(far), 'cut-off FOB is not a deploy point');
+  ok(E.spawnPoints(s, p.id).includes(far), 'a cut-off FOB is still a deploy point');
   ok(!E.supplySet(s, p.id).has(far), 'cut-off FOB is not a supply source');
 }
 { // carrier: deploy air onto it, sail, fly off
