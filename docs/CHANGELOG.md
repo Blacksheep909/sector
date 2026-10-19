@@ -2,6 +2,13 @@
 
 Every release, newest first. Each version also has its own post on the [Releases page](https://github.com/Blacksheep909/sector/releases).
 
+## v0.9.10
+
+**Artillery moves when it can.**
+
+- **Fix:** clicking an empty enemy hex that your artillery (or warship) could both move onto and shell used to fire at the building on it. Now it moves in and captures the hex, buildings and all. Shelling is still there for empty hexes you can only reach by firing, and for hexes with troops on them.
+- **Bots** do the same: they capture empty enemy buildings they can walk into, instead of shelling them.
+
 ## v0.9.9
 
 **No more dice for fights you're not in.**

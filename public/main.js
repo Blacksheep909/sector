@@ -647,7 +647,8 @@
         const gs = assaultGroups(ds, k, idx);
         if (gs.length) ov.probs[k] = E.combatCalc(ds, you, gs.flatMap(g => g.units.map(id => ds.units[id])), gs.map(g => g.stage), k, false, idx).winProb;
       }
-      const fire = E.rangedTargets(ds, you, ids, sel.hex, idx);
+      // an empty hex the stack can walk onto is a move (capturing it, buildings and all), not a shelling target
+      const fire = E.rangedTargets(ds, you, ids, sel.hex, idx).filter(k => !((idx[k] || []).length === 0 && ov.reach[k] && ['move', 'capture'].includes(ov.reach[k].kind)));
       if (fire.length) { ov.fire = new Set(fire); for (const k of fire) ov.probs[k] = E.combatCalc(ds, you, units, sel.hex, k, true, idx).winProb; }
     }
     // blueprint arrows & ghosts
