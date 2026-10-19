@@ -670,7 +670,7 @@
       if (fire.length) { ov.fire = new Set(fire); for (const k of fire) ov.probs[k] = E.combatCalc(ds, you, units, sel.hex, k, true, idx).winProb; }
     }
     // blueprint arrows & ghosts
-    ov.planArrows = []; ov.planGhost = null; ov.planHexes = null;
+    ov.planArrows = []; ov.planGhost = null; ov.planHexes = null; ov.planMoved = null; ov.planTiles = null; ov.planReady = null;
     ov.marches = Object.values(marches).map(o => { const u = S.units[o.units.find(id => S.units[id])]; return u ? { from: u.hex, to: o.to } : null; }).filter(Boolean);
     if (planning()) {
       // blueprint orders are drawn in light blue: planned routes, and every stack or drop the queue has placed
@@ -679,8 +679,31 @@
         if (it.a.a === 'move') { ov.planArrows.push({ path: it.path || [it.a.from, it.a.to], color: BP_BLUE }); ov.planHexes.add(it.a.to); }
         else if (it.a.a === 'deploy' || it.a.a === 'build') ov.planHexes.add(it.a.hex);
       }
+      if (planState) blueprintGhosts(ov);
     }
     if (hoverK) hoverPath(hoverK);
+  }
+  // what the blueprint changes, drawn over the real board: your stacks where they'll stand, land you'll take, buildings you'll raise
+  function blueprintGhosts(ov) {
+    const mineNow = {}, mineThen = {};
+    for (const id in S.units) { const u = S.units[id]; if (u.owner === you) mineNow[id] = u; }
+    for (const id in planState.units) { const u = planState.units[id]; if (u.owner === you) mineThen[id] = u; }
+    const changed = new Set();
+    for (const id in mineThen) { const now = mineNow[id]; if (!now || now.hex !== mineThen[id].hex) changed.add(mineThen[id].hex); }
+    for (const id in mineNow) { const then = mineThen[id]; if (!then || then.hex !== mineNow[id].hex) { if (then) changed.add(then.hex); } }
+    // a hex whose stack changes shows the whole planned stack as a ghost, and hides what stands there now
+    ov.planMoved = new Set(); ov.planGhost = [];
+    for (const id in mineNow) { const then = mineThen[id]; if (!then || then.hex !== mineNow[id].hex || changed.has(mineNow[id].hex)) ov.planMoved.add(mineNow[id].id); }
+    // which stacks will still have orders left when your turn starts (the blueprint's view, not last turn's)
+    ov.planReady = new Set(Object.values(mineThen).filter(u => E.canAct(planState, u) && (E.moveAllow(planState, u) > 0 || E.UNITS[u.type].range)).map(u => u.id));
+    for (const k of changed) { const units = Object.values(mineThen).filter(u => u.hex === k); if (units.length) ov.planGhost.push({ hex: k, units, owner: you }); }
+    ov.planTiles = new Set();
+    for (const k in planState.map.tiles) {
+      const a = S.map.tiles[k], b = planState.map.tiles[k]; if (!a) continue;
+      if (b.owner === you && a.owner !== you) ov.planTiles.add(k);
+      const newS = E.structsOf(b).find(x => x.owner === you && !E.structsOf(a).some(y => y.type === x.type));
+      if (newS) { const g = ov.planGhost.find(x => x.hex === k); if (g) g.struct = newS.type; else ov.planGhost.push({ hex: k, struct: newS.type, owner: you }); }
+    }
   }
   function hoverPath(k) {
     const ov = Render.ov; ov.path = null;
@@ -1048,7 +1071,7 @@
   function refreshAll() {
     if (!S) return;
     const P = window.__refreshPerf || (window.__refreshPerf = {}), tm = (n, f) => { const t0 = performance.now(); f(); const d = performance.now() - t0; P[n] = +((P[n] || 0) * 0.8 + d * 0.2).toFixed(2); if (d > (P[n + '^'] || 0)) P[n + '^'] = +d.toFixed(1); };
-    tm('state', () => Render.setState(dispState()));
+    tm('state', () => Render.setState(S));
     tm('overlays', updateOverlays);
     tm('top', renderTop); tm('cash', renderCash); renderSiege(); renderUndo(); renderWeather(); tm('ally', renderAlly); tm('plan', renderPlan); tm('hex', renderHexPanel); tm('hand', renderHand); renderEnd(); renderModeHint(); renderOffer(); renderTurnPill(); renderAfk(); renderSpeed(); renderWait(); scheduleSnap(); checkAutoEnd(); layoutHud();
   }

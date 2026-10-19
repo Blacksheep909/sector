@@ -2,6 +2,17 @@
 
 Every release, newest first. Each version also has its own post on the [Releases page](https://github.com/Blacksheep909/sector/releases).
 
+## v0.9.14
+
+**The blueprint holds still.**
+
+- **Fix: blueprint flicker.** While you planned during someone else's turn, the board swapped between the real board and your blueprint every time an enemy unit moved. Your planned stacks, captures and deploys blinked out and back, and tiles faded between colours. Now the board always shows the real state, and your blueprint is drawn on top in light blue:
+  - ghost stacks where your orders put them
+  - a dashed blue wash on land you'll capture
+  - ghost buildings where you'll build
+- **Fix:** the blueprint's dashed ring was drawn off-centre on stacks sharing a hex with a building, such as your HQ.
+- **Fix:** the blueprint order list could get squeezed to one line by the alerts panel. It now keeps room for your orders, and the alerts panel scrolls instead.
+
 ## v0.9.13
 
 **Save your wars and pick them up later.**
