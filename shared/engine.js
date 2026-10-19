@@ -725,10 +725,12 @@
       // a river bridge: on your own supplied river hex, so vehicles can cross
       if (t.owner !== pid || !sup.has(k)) return 'Bridge a river on your own supplied land';
       if (structsOf(t).length) return 'Clear the hex first';
+      if (neighbors(k).some(n => tiles[n] && (tiles[n].bridge || getS(tiles[n], 'bridge')))) return 'Too close to another bridge';
       return null;
     }
     if (struct === 'bridge') {
       if (!isWater(t)) return 'Bridges span sea hexes or rivers';
+      if (t.res) return 'An oil rig is in the way';
       if (structsOf(t).length) return 'Already built';
       if (Object.values(s.units).some(u => u.hex === k)) return 'Hex is occupied';
       const shores = neighbors(k).filter(n => tiles[n] && TERRAIN[tiles[n].t].land);
