@@ -68,6 +68,26 @@ const idle = (s, pid) => s.players.find(p => p.id !== pid && p.id !== me(s).id) 
   ok(c.def.bonuses.some(b => b.label === 'Ambush'), 'ambush adds defence chips');
   ok(!E.reactTactic(s, o.id, 999, k).ok, 'only cards in hand');
 }
+{ // allies can march through each other's land (without taking it); troops left there when the pact ends are lost
+  const s = game({}, 3); const p = me(s), o = s.players.find(q => q.id !== p.id);
+  E.applyAction(s, p.id, { a: 'choose', pick: 'income' });
+  E.applyAction(s, p.id, { a: 'allyOffer', to: o.id }); E.applyAction(s, o.id, { a: 'allyReply', accept: true });
+  // hand the ally a strip of land right next to our HQ
+  const k = E.neighbors(p.hq).find(n => s.map.tiles[n] && E.isLandTile(s.map.tiles[n]) && s.map.tiles[n].t !== 'mountain');
+  s.map.tiles[k].owner = o.id; for (const id in s.units) if (s.units[id].hex === k) delete s.units[id];
+  for (const id in s.units) if (s.units[id].hex === p.hq) delete s.units[id];
+  s.units.g = { id: 'g', type: 'grunt', owner: p.id, hex: p.hq, moved: false, fresh: false };
+  const r = E.reachable(s, p.id, ['g'], p.hq);
+  ok(r[k] && r[k].kind === 'move', 'allied land is a normal move');
+  const mv = E.applyAction(s, p.id, { a: 'move', from: p.hq, units: ['g'], to: k });
+  ok(mv.ok && s.units.g.hex === k && s.map.tiles[k].owner === o.id, 'moving onto allied land does not capture it');
+  s.units.a1 = { id: 'a1', type: 'grunt', owner: o.id, hex: k, moved: false, fresh: false };
+  const r2 = E.reachable(s, p.id, ['g'], k); ok(!Object.values(r2).some(x => x.kind === 'attack' && s.units.a1 && x === r2[k]), 'allied troops are never attacked');
+  delete s.units.a1;
+  E.applyAction(s, p.id, { a: 'allyBreak', with: o.id });
+  for (let i = 0; i < 4 && s.units.g; i++) { const id = me(s).id; if (s.turn.stage === 'choose') E.applyAction(s, id, { a: 'choose', pick: 'income' }); E.applyAction(s, id, { a: 'end' }); }
+  ok(!s.units.g, 'troops left in old allied land are lost when the pact ends');
+}
 { // bots play with all of this switched on, to the end
   const s = game({ mapSize: 'small', maxRounds: 10 }, 3); s.players.forEach(p => { p.bot = true; });
   let n = 0;

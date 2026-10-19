@@ -1953,6 +1953,13 @@
         }
         case 'tactic': if (ev.target) { follow(ev.target); await sleep(200); } await animTactic(ev); break;
         case 'undo': if (ev.pid === you) toast('↶ Undone'); break;
+        case 'evicted': {
+          // the pact ended with troops still across the border
+          for (const id of ev.units) { const u = S.units[id]; if (u) { Render.burst(u.hex, ['#ff4f5e', '#fff'], 18, { up: 120 }); Render.float(u.hex, 'CUT OFF', '#ff8a5a', 14); } }
+          killUnits(ev.units.filter(id => S.units[id]));
+          if (ev.a === you || ev.b === you) toast('🚫 Troops left in the other side\'s land when the pact ended were lost', 'err');
+          await sleep(400); break;
+        }
         case 'intercept': {
           // a Sentinel battery swats the missile out of the sky
           SFX.whoosh(); Render.beam(ev.from, ev.to, '#ffb03a', 0.7 * speed(), 260); await sleep(550 * speed());
@@ -1985,7 +1992,7 @@
           if (ev.status === 'formed') { banner('🤝 ALLIANCE FORMED', a + ' & ' + b, '#2f6b4a'); SFX.rare(); await sleep(900); }
           else if (ev.status === 'declined' && meIn) toast(`${b} declined the alliance`);
           else if (ev.status === 'offer' && !meIn) toast(`🤝 ${a} offered ${b} an alliance`);
-          else if (ev.status === 'breaking') { if (ev.to === you) { banner('🗡 BETRAYAL INCOMING', a + ' is breaking your alliance next turn', '#7a1f2b'); SFX.alarm(); } else toast(`🗡 ${a} is breaking the alliance with ${b}`); }
+          else if (ev.status === 'breaking') { if (ev.to === you || ev.from === you) { banner('🗡 BETRAYAL INCOMING', (ev.to === you ? a + ' is breaking your alliance next turn' : 'Your pact with ' + b + ' ends next turn') + ' — pull your troops out of their land', '#7a1f2b'); SFX.alarm(); } else toast(`🗡 ${a} is breaking the alliance with ${b}`); }
           else if (ev.status === 'broken') { toast(`💔 ${a} broke the alliance with ${b}`, 'err'); }
           else if (ev.status === 'renewed') { banner('🤝 ALLIANCE RENEWED', a + ' & ' + b + ' · 5 more rounds', '#2f6b4a'); SFX.rare(); await sleep(700); }
           else if (ev.status === 'renewing' && ev.to === you) { toast(`🤝 ${a} wants to renew your alliance — press RENEW on their name`); SFX.select(); }
