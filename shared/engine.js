@@ -142,6 +142,7 @@
 
   // target: none | ownHex | ownStack | spawn | enemyUnits | heli | enemyStruct | area | nuke | mutiny
   const TACTICS = {
+    ambush: { name: 'Ambush', rarity: 'common', cost: 1, target: 'ownHex', desc: 'Reaction: play it when you are attacked (or on your own turn). Your defenders on that hex get +2 Chips each in the next fight there.' },
     smoke: { name: 'Smoke Screen', rarity: 'common', cost: 1, target: 'ownHex', desc: 'A hex you own gets +2 Mult on defence until your next turn.' },
     march: { name: 'Forced March', rarity: 'common', cost: 1, target: 'ownStack', desc: 'Units on one hex may act again, with +2 move.' },
     rally: { name: 'Rally', rarity: 'common', cost: 1, target: 'none', desc: 'Your next attack this turn gets +2 Mult.' },
@@ -1052,6 +1053,8 @@
     }
     if (fb && fb.owner === defPid) { const m = slvlOf(fb); def.mult += m; def.bonuses.push({ label: 'FOB Walls' + (m > 1 ? ' ' + '★'.repeat(m) : ''), mult: m }); }
     if (t.smoke && t.smoke === defPid) { def.mult += 2; def.bonuses.push({ label: 'Smoke Screen', mult: 2 }); }
+    if (defenders.length && defenders.every(u => u.dug)) { def.mult += 1; def.bonuses.push({ label: 'Dug In', mult: 1 }); }
+    if (t.ambush && t.ambush === defPid && defenders.length) { def.chips += 2 * defenders.length; def.bonuses.push({ label: 'Ambush', chips: 2 * defenders.length }); }
     if (dp && dp.shield && t.owner === defPid) { def.mult += 3; def.bonuses.push({ label: 'Aegis Protocol', mult: 3 }); }
     // allies cover each other: a hex bordering an ally's land holds a little harder
     if (defPid && (s.allies || []).length && isLandTile(t) && neighbors(target).some(n => { const nb = s.map.tiles[n]; return nb && nb.owner && nb.owner !== defPid && isAlly(s, defPid, nb.owner); })) { def.mult += 1; def.bonuses.push({ label: 'Allied Support', mult: 1 }); }
@@ -1366,7 +1369,7 @@
       u.moved = false; u.fresh = false; u.mvBonus = 0;
       if (u.stun > 0) { u.moved = true; u.stun--; }
     }
-    for (const k in s.map.tiles) { const t = s.map.tiles[k]; if (t.smoke === p.id) t.smoke = null; if (t.ruin && t.owner === p.id && !preview) { t.ruin--; if (!t.ruin) delete t.ruin; } }
+    for (const k in s.map.tiles) { const t = s.map.tiles[k]; if (t.smoke === p.id) t.smoke = null; if (t.ambush === p.id) delete t.ambush; if (t.ruin && t.owner === p.id && !preview) { t.ruin--; if (!t.ruin) delete t.ruin; } }
     const depots = Object.keys(s.map.tiles).filter(k => { const t = s.map.tiles[k], d = getS(t, 'depot'); return t.owner === p.id && d && d.owner === p.id; });
     if (depots.length) for (const id in s.units) { const u = s.units[id]; if (u.owner === p.id && depots.some(d => dist(d, u.hex) <= slvlOf(getS(s.map.tiles[d], 'depot')))) u.mvBonus = 1; }
     // structures captured last turn come online; sieges this player started now resolve
@@ -1416,6 +1419,14 @@
       ev.push({ e: 'embargoHit', pid: p.id, left: p.embargo || 0 }); pushLog(s, '⛔ ' + p.name + "'s income is halved by an embargo" + (p.embargo ? ' (1 more turn).' : '.'));
     }
     s.turn.rerolls = 0; s.turn.crate = null;
+    if (!preview) {
+      // a snap decision left unanswered lapses (bots take one at random); then everyone else gets this round's
+      if (p.snap) { if (p.bot) snapPick(s, p, { pick: Math.floor((rng || Math.random)() * 2) }, []); delete p.snap; }
+      offerSnaps(s, p.id, rng);
+    }
+    const snapNow = p.snapNext; if (!preview) delete p.snapNext;
+    if (snapNow === 'drill') for (const id in s.units) { const u = s.units[id]; if (u.owner === p.id) u.mvBonus = (u.mvBonus || 0) + 1; }
+    if (snapNow === 'volunteers' && !preview) { const idx = buildIndex(s); if (stackFits(idx[p.hq] || [], ['grunt']) && !(idx[p.hq] || []).some(u => u.owner !== p.id)) { const u = addUnit(s, p.id, 'grunt', p.hq, false); ev.push({ e: 'deploy', pid: p.id, unit: { ...u }, hex: p.hq }); } }
     ev.push({ e: 'turn', pid: p.id, round: s.turn.round });
     if (s.turn.round === 1) {
       // everyone just drafted 3 cards: round 1 pays full income with no resupply pick
@@ -1423,12 +1434,25 @@
       ev.push({ e: 'income', pid: p.id, amount: s.turn.income, hq: p.hq });
     } else {
       s.turn.stage = 'choose';
-      s.turn.offer = drawCards(s, p, 3, TURN_ODDS, rng);
+      s.turn.offer = p.nextOffer && p.nextOffer.length ? p.nextOffer.slice() : drawCards(s, p, snapNow === 'ration' ? 4 : 3, TURN_ODDS, rng);
+      if (snapNow === 'ration' && s.turn.offer.length < 4) s.turn.offer = s.turn.offer.concat(drawCards(s, p, 4 - s.turn.offer.length, TURN_ODDS, rng));
+      if (!preview) delete p.nextOffer;
+      // picked ahead of time while waiting: apply it straight away
+      const pre = p.prePick; if (!preview) delete p.prePick;
+      if (pre && !preview) {
+        if (pre.pick === 'income') { p.cash += s.turn.income; ev.push({ e: 'income', pid: p.id, amount: s.turn.income, hq: p.hq }); s.turn.offer = []; s.turn.stage = 'act'; }
+        else if (s.turn.offer[pre.idx] && !grantCard(s, p, s.turn.offer[pre.idx], pre.replace, ev)) {
+          const half = Math.floor(s.turn.income / 2); p.cash += half; if (half) ev.push({ e: 'income', pid: p.id, amount: half, hq: p.hq });
+          s.turn.offer = []; s.turn.stage = 'act';
+        }
+      }
     }
   }
 
   function endTurn(s, ev, rng) {
     if (s.phase !== 'play') return;
+    // deal the ending commander's next resupply now, so they can pick from it while the others play
+    { const q = current(s); if (q && q.alive && !s._preview) { q.nextOffer = drawCards(s, q, 3, TURN_ODDS, rng); delete q.prePick; } }
     const n = s.players.length;
     let guard = 0;
     s.turn.crate = null; s.turn.offer = [];
@@ -1798,14 +1822,18 @@
     if (s.phase !== 'play') return fail('Game is not running');
     if (a.a === 'tradeReply') return tradeReply(s, p, a, ev);
     if (a.a === 'allyReply') return allyReply(s, p, a, ev);
-    if (current(s).id !== pid) return fail('Not your turn');
-    const tiles = s.map.tiles;
-    const stage = s.turn.stage;
+    // diplomacy, trades, intel, snap decisions and resupply prep don't wait for your turn
     if (a.a === 'trade') return tradeOffer(s, p, a, ev);
     if (a.a === 'allyOffer') return allyOffer(s, p, a, ev);
     if (a.a === 'allyBreak') return allyBreak(s, p, a, ev);
     if (a.a === 'allyRenew') return allyRenew(s, p, a, ev);
     if (a.a === 'tradeCancel') { if (s.trade && s.trade.from === pid) { s.trade = null; ev.push({ e: 'trade', status: 'cancelled', from: pid }); } return { ok: true, events: ev }; }
+    if (a.a === 'intel') return intelOp(s, p, a, ev);
+    if (a.a === 'snap') return snapPick(s, p, a, ev);
+    if (a.a === 'prepick') return prePick(s, p, a, ev);
+    if (current(s).id !== pid) return fail('Not your turn');
+    const tiles = s.map.tiles;
+    const stage = s.turn.stage;
 
     if (a.a === 'choose') {
       if (stage !== 'choose') return fail('Already chose');
@@ -1932,7 +1960,7 @@
           const fleet = movers(c.units);
           const caps = pathCaptures(s, pid, c.path, fleet, idx);
           const stageK = c.path[c.path.length - 2];
-          fleet.forEach(u => { u.moved = true; u.hex = stageK; });
+          fleet.forEach(u => { u.moved = true; u.hex = stageK; u.dug = false; });
           ev.push({ e: 'move', pid, units: fleet.map(u => u.id), path: c.path.slice(0, -1), captures: caps });
           lootPath(s, pid, c.path.slice(0, -1), ev, rng);
           ag.push({ units: fleet, stage: stageK, from: c.from });
@@ -1944,7 +1972,7 @@
         let cargo = [];
         if (fleet.some(u => isSea(u.type))) cargo = ridersOf((idx[c.from] || []).filter(u => u.owner === pid), fleet);
         const caps = pathCaptures(s, pid, c.path, fleet, idx);
-        fleet.forEach(u => { u.moved = true; u.hex = a.to; });
+        fleet.forEach(u => { u.moved = true; u.hex = a.to; u.dug = false; });
         cargo.forEach(u => { u.hex = a.to; });
         const t = tiles[a.to];
         const navy = fleet.every(u => isSea(u.type));
@@ -1952,6 +1980,14 @@
         ev.push({ e: 'move', pid, units: fleet.concat(cargo).map(u => u.id), path: c.path, captures: caps });
         lootPath(s, pid, c.path, ev, rng);
       }
+      return { ok: true, events: ev };
+    }
+    if (a.a === 'digin') {
+      // dig in: the stack gives up its move for +1 defence Mult until it moves again
+      const units = (a.units || []).map(id => s.units[id]);
+      if (!units.length || units.some(u => !u || u.owner !== pid || u.hex !== a.from || !canAct(s, u))) return fail('Invalid units');
+      units.forEach(u => { u.moved = true; u.dug = true; });
+      ev.push({ e: 'digin', pid, hex: a.from, units: units.map(u => u.id) });
       return { ok: true, events: ev };
     }
     if (a.a === 'fire') {
@@ -2033,6 +2069,7 @@
         pushLog(s, p.name + ' called in a ' + RARITY[def.rarity].name + ' Supply Drop.');
         break;
       case 'smoke': tiles[a.target].smoke = pid; ev.push(base); break;
+      case 'ambush': tiles[a.target].ambush = pid; ev.push(base); break;
       case 'march': {
         const us = Object.values(s.units).filter(u => u.hex === a.target && u.owner === pid);
         us.forEach(u => { u.moved = false; u.fresh = false; u.mvBonus = 2; });
@@ -2252,6 +2289,88 @@
     return { ok: true, events: ev };
   }
 
+  // ── between turns ──
+  // intel ops: $2 to scout a 2-hex patch through the fog until the end of next round (twice per round)
+  const INTEL_COST = 2;
+  function intelOp(s, p, a, ev) {
+    const fail = err => ({ ok: false, err, events: [] });
+    if (s.settings.fog !== 'on') return fail('Intel ops need fog of war');
+    if (!s.map.tiles[a.target]) return fail('Pick a hex');
+    if (p.cash < INTEL_COST) return fail('Need $' + INTEL_COST);
+    if (p.intelRound === s.turn.round && (p.intelN || 0) >= 2) return fail('Two intel ops per round');
+    if (p.intelRound !== s.turn.round) { p.intelRound = s.turn.round; p.intelN = 0; }
+    p.intelN++; p.cash -= INTEL_COST;
+    p.intel = (p.intel || []).filter(x => x.until >= s.turn.round).concat([{ hex: a.target, until: s.turn.round + 1 }]);
+    ev.push({ e: 'intel', pid: p.id, hex: a.target });
+    return { ok: true, events: ev };
+  }
+  // snap decisions: once a round, while someone else is playing, each commander gets a quick either/or
+  const SNAPS = {
+    convoy: { text: '+$3 right now' },
+    drill: { text: 'Your units get +1 move next turn' },
+    volunteers: { text: 'A free Grunt joins at your HQ next turn' },
+    bonds: { text: '+$1 per 4 land hexes (max $6)' },
+    ration: { text: 'Your next resupply deals 4 cards' },
+    goodwill: { text: 'Every bot warms to you (+10 mood)' },
+  };
+  function offerSnaps(s, curPid, rng) {
+    const keys = Object.keys(SNAPS), r = rng || Math.random;
+    for (const q of s.players) {
+      if (!q.alive || q.id === curPid || q.snapRound === s.turn.round) continue;
+      const a = keys[Math.floor(r() * keys.length)]; let b = a; for (let i = 0; i < 8 && b === a; i++) b = keys[Math.floor(r() * keys.length)];
+      q.snap = { round: s.turn.round, opts: [a, b] }; q.snapRound = s.turn.round;
+    }
+  }
+  function snapPick(s, p, a, ev) {
+    const fail = err => ({ ok: false, err, events: [] });
+    if (!p.snap) return fail('No decision waiting');
+    const id = p.snap.opts[a.pick]; if (!id) return fail('Pick one');
+    delete p.snap;
+    if (id === 'convoy') p.cash += 3;
+    else if (id === 'bonds') p.cash += Math.min(6, Math.floor(ownedLand(s, p.id).length / 4));
+    else if (id === 'goodwill') { for (const q of s.players) if (q.bot && q.id !== p.id) addMood(s, q.id, p.id, 10); }
+    else p.snapNext = id;   // drill, volunteers, ration land at the start of your turn
+    ev.push({ e: 'snap', pid: p.id, id });
+    return { ok: true, events: ev };
+  }
+  // resupply prep: your next resupply is dealt when your turn ends, so you can pick from it while you wait
+  function prePick(s, p, a, ev) {
+    const fail = err => ({ ok: false, err, events: [] });
+    if (current(s).id === p.id && s.turn.stage !== 'end') return fail('Pick from your resupply now');
+    if (!p.nextOffer || !p.nextOffer.length) return fail('No resupply dealt yet');
+    if (a.pick === 'income') p.prePick = { pick: 'income' };
+    else if (a.pick === 'card' && p.nextOffer[a.idx]) p.prePick = { pick: 'card', idx: a.idx, replace: a.replace || null };
+    else if (a.pick === 'none') delete p.prePick;
+    else return fail('No such card');
+    ev.push({ e: 'prepick', pid: p.id });
+    return { ok: true, events: ev };
+  }
+  // reactions: when you're attacked, a few cards can be played on the spot
+  const REACTIONS = ['smoke', 'fortify', 'ambush', 'aegis'];
+  function reactTactic(s, defPid, uid, hex, rng) {
+    const p = player(s, defPid); if (!p || !p.alive) return { ok: false, err: 'Not in game', events: [] };
+    const ci = p.tactics.findIndex(c => c.uid === uid); if (ci < 0) return { ok: false, err: 'Card not in hand', events: [] };
+    const id = p.tactics[ci].id, def = TACTICS[id];
+    if (!REACTIONS.includes(id)) return { ok: false, err: 'Not a reaction card', events: [] };
+    if (p.cash < def.cost) return { ok: false, err: 'Need $' + def.cost, events: [] };
+    const ev = [];
+    const err = useTactic(s, p, id, { uid, target: hex }, rng || Math.random, ev);
+    if (err) return { ok: false, err, events: [] };
+    p.cash -= def.cost; const still = p.tactics.findIndex(c => c.uid === uid); if (still >= 0) p.tactics.splice(still, 1);
+    for (const e2 of ev) e2.reaction = true;
+    pushLog(s, '⚡ ' + p.name + ' reacted with ' + def.name + '!');
+    return { ok: true, events: ev };
+  }
+  // the hexes and defenders an attack order would hit (the server pauses for the defender's reaction)
+  function attackTarget(s, pid, a) {
+    if (a.a !== 'move' && a.a !== 'assault') return null;
+    const idx = buildIndex(s), g = a.a === 'move' ? { from: a.from, units: a.units } : (a.groups || [])[0]; if (!g) return null;
+    const v = validGroup(s, pid, g, a.to, idx); if (v.err || v.dest.kind !== 'attack') return null;
+    const occ = (idx[a.to] || []).filter(u => u.owner !== pid); const t = s.map.tiles[a.to];
+    const defPid = occ.length ? occ[0].owner : t.owner; if (!defPid) return null;
+    return { hex: a.to, defPid };
+  }
+
   // planning: the state when this player's turn starts (income paid, crate resolved)
   function simulateTurnStart(s, pid, takeIncome) {
     const c = JSON.parse(JSON.stringify(s));
@@ -2273,6 +2392,7 @@
     for (const p of s.players) if (isAlly(s, pid, p.id)) side.add(p.id);
     const extra = s.weather && s.weather.id === 'clear' ? 2 : 0;
     for (const k in s.map.tiles) if (side.has(s.map.tiles[k].owner)) for (const a of area(k, 1 + extra)) vis.add(a);
+    for (const q of s.players) if (side.has(q.id)) for (const x of q.intel || []) if (x.until >= (s.turn ? s.turn.round : 0)) for (const a of area(x.hex, 2)) vis.add(a);
     for (const id in s.units) {
       const u = s.units[id]; if (!side.has(u.owner)) continue;
       const d = UNITS[u.type], r = 2 + (d.cls === 'air' ? 1 : 0) + (d.ability === 'orbital' || d.ability === 'recon' ? 2 : 0) + extra;
@@ -2300,14 +2420,16 @@
           const m = mem.seen[k]; if (m) { t.owner = m.owner; t.structs = m.structs; t.poi = m.poi; t.gar = m.gar; if (!m.poi) delete t.poi; }
         } else {
           t.fog = 2;
-          t.owner = hq ? real.owner : null; t.structs = hq ? [JSON.parse(JSON.stringify(hq))] : [];
+          t.owner = null; t.structs = [];   // unexplored means unknown: not even an HQ shows through
           delete t.poi; delete t.gar; delete t.fish; delete t.river; delete t.flow; t.res = false; t.contam = 0; t.smoke = null; t.bridge = false;
         }
         t.struct = (t.structs || []).find(x => x.type === 'hq') || (t.structs || [])[0] || null;
       }
+      // rivals' HQ locations stay secret until you've seen them
+      for (const q of c.players) if (q.id !== pid && !isAlly(s, pid, q.id) && q.hq && !mem.explored.has(q.hq)) delete q.hq;
       c.fogOn = true;
     }
-    for (const p of c.players) { p.tacticCount = p.tactics.length; if (p.id !== pid) p.tactics = []; }
+    for (const p of c.players) { p.tacticCount = p.tactics.length; if (p.id !== pid) { p.tactics = []; delete p.nextOffer; delete p.prePick; delete p.snap; delete p.snapNext; delete p.intel; } }
     if (c.trade && c.trade.to !== pid && c.trade.from !== pid) c.trade = { from: c.trade.from, to: c.trade.to, hidden: true };
     const cur = c.players[c.turn.idx];
     if (c.turn.crate && (!cur || cur.id !== pid)) c.turn.crate = { tier: c.turn.crate.tier, hidden: true, cards: [] };
@@ -2319,7 +2441,7 @@
   return {
     DIRS, key, parse, dist, neighbors, area, line, mulberry32, hashStr,
     POI, WEATHER, isAlly, recordHistory, RARITY, RARITY_ORDER, CRATES, DROP_TIERS, SCRAP_VALUE, DECK_MAX, MAX_LEVEL, TERRAIN, DIFFICULTY, UNITS, TACTICS, STRUCTS, BUILD_ORDER, UPGRADABLE, MAX_SLVL, FACTIONS, COLORS, MAX_STACK, GRUNT_STACK, stackFits, CLASS_NAME, cardDef,
-    ECON, infraValue, econOf, AIR_STRIKES, airDefenders, interceptChance, generateMap, createGame, applyAction, spawnChoices, visionOf, startTurn, endTurn, simulateTurnStart, view, drawCards,
+    SNAPS, REACTIONS, INTEL_COST, reactTactic, attackTarget, ECON, infraValue, econOf, AIR_STRIKES, airDefenders, interceptChance, generateMap, createGame, applyAction, spawnChoices, visionOf, startTurn, endTurn, simulateTurnStart, view, drawCards,
     player, current, buildIndex, canAct, moveAllow, ownedTiles, ownedLand, spawnPoints, musterHexes, supplySet, computeIncome, levelOf, unitAtk, unitDef,
     tsarArea, moodOf, addMood, threatOf, rerollCost, bountyValue, reachable, pathTo, rangedTargets, deployHexes, buildHexes, buildError, isSea, isWater, isCoastal, movers, combatCalc, tacticTargets, unitCost, structCost, buildCost, structsOf, MAX_STRUCTS, conquestTarget, isLandTile, flakCovered,
   };
