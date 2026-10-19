@@ -185,6 +185,24 @@ const idle = (s, pid) => s.players.find(p => p.id !== pid && p.id !== me(s).id) 
     ok(step() && T[k].owner === p.id, 'holding the only way in does encircle it');
   }
 }
+{ // bots go and grab a supply drop they can reach
+  let got = 0, tries = 0;
+  for (let g = 0; g < 4; g++) {
+    const s = game({ fog: 'off' }); s.players.forEach(p => { p.bot = true; });
+    if (s.turn.stage === 'choose') E.applyAction(s, me(s).id, { a: 'choose', pick: 'income' });
+    const p = me(s), idx = E.buildIndex(s);
+    const u = Object.values(s.units).find(u => u.owner === p.id && E.canAct(s, u) && !E.isSea(u.type)); if (!u) continue;
+    const r = E.reachable(s, p.id, [u.id], u.hex, idx);
+    // behind our own lines, away from the enemy: somewhere a bot wouldn't wander by accident
+    const foes = Object.keys(s.map.tiles).filter(x => s.map.tiles[x].owner && s.map.tiles[x].owner !== p.id), far = x => Math.min(...foes.map(f => E.dist(f, x)));
+    const k = Object.keys(r).filter(k => r[k].kind === 'move' && !(idx[k] || []).length).sort((a, b) => far(b) - far(a))[0]; if (!k) continue;
+    s.drops = [{ hex: k, kind: 'cash', amount: 7, round: s.turn.round }]; tries++;
+    const mem = {}; let c = 0;
+    while (s.phase === 'play' && me(s).id === p.id && c++ < 90) E.applyAction(s, p.id, botStep(s, p.id, mem) || { a: 'end' });
+    if (!s.drops.length) got++;
+  }
+  ok(tries > 0 && got === tries, 'bots grab supply drops in reach (' + got + '/' + tries + ')');
+}
 { // bots play with all of this switched on, to the end
   const s = game({ mapSize: 'small', maxRounds: 10 }, 3); s.players.forEach(p => { p.bot = true; });
   let n = 0;
