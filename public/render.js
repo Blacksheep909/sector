@@ -553,6 +553,13 @@ const Render = (() => {
       ctx.fillStyle = 'rgba(255,255,255,.12)'; for (let i = 0; i < 3; i++) ctx.fillRect(cx + (i - 1) * 7 * z + (v * 10 - 5) * z, cy + (i % 2) * 4 * z, 1.6 * z, 4 * z);
     }
     if (tile.bridge) drawBridge(tile, c.q + ',' + c.r, cx, cy, s, z);
+    else if (tile.wreck) {
+      // the stumps and twisted deck of a destroyed bridge
+      ctx.save(); ctx.fillStyle = '#4a3d2c';
+      for (const ox of [-0.38, 0.32]) { ctx.fillRect(cx + ox * s - 2.5 * z, cy - 4 * z, 5 * z, 8 * z); }
+      ctx.translate(cx, cy); ctx.rotate(0.35); ctx.fillStyle = 'rgba(70,58,42,.85)'; ctx.fillRect(-0.3 * s, -1.5 * z, 0.32 * s, 3 * z); ctx.rotate(-0.8); ctx.fillRect(0.02 * s, -1.5 * z, 0.26 * s, 3 * z);
+      ctx.restore();
+    }
     if (tile.fish) {
       const bob = Math.sin(t * 2.4 + v * 9) * 1.5 * z, x = cx - 6 * z, y = cy + bob;
       ctx.strokeStyle = 'rgba(200,240,255,.35)'; ctx.lineWidth = 1.2 * z;

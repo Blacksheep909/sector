@@ -171,7 +171,7 @@ Maps have climate. It's colder toward the top and bottom edges and hotter in the
 - **Fog of war:** if something hidden blocks the route you planned, your troops go as far as they can, or run into the hidden enemy (an ambush).
 - **March orders:** Ctrl+click a hex (or select a stack, press `M`, then click) to give the stack a standing order. At the start of each of your turns it advances toward the objective by itself, and it halts on enemy contact or when it arrives. Select it and press `Delete` to cancel.
 - Highlands, jungle, tundra, swamp and canyons cost 2 move, and so does fording into a **river** hex. Rangers ignore this. **A unit can always move at least one hex**, so slow units like the Goliath never get stuck in rough ground (and a Blizzard never takes a unit below 1 move).
-- Mountains block movement except for air units. Open water blocks land units unless they're aboard an Ark; air units and hover tanks fly or glide across it.
+- Mountains block movement except for air units. Open water blocks land units unless they're aboard an Ark; air units fly across it.
 - A hex holds at most 5 units, and mixed types share a stack freely. A hex of nothing but Grunts can hold 10.
 - Entering an empty enemy hex captures it. Entering an occupied hex starts a fight.
 
@@ -236,7 +236,7 @@ Units with a range stat fire instead of moving.
 - **Transports.** An Ark launches from a Port, or from any **coastal HQ or connected FOB**, so you don't need a Port to use one. Land units move onto an Ark to board it (3 per Ark). The Ark carries them as it sails. Select the Ark's hex and its passengers' landing hexes light up too: click one to wade ashore. If the Ark sinks, its cargo drowns.
 - **Carrier** (Legendary). A floating airbase: deploy aircraft straight onto it, fly them off it and land them back on it (4 per Carrier). They ride along when it sails. If it sinks, aircraft still on board ditch into the sea.
 - **Open Ocean** maps are a scatter of small islands with lots of oil rigs. Every commander starts with a Port and an Ark.
-- **Bridges** span a one-hex sea gap between two shores. Land units walk across, but ships can't pass, so a bridge blocks the channel. Sabotage destroys a bridge, and anyone standing on it drowns.
+- **Bridges** span a one-hex sea gap between two shores. Land units walk across, but ships can't pass, so a bridge blocks the channel. Two bridges can't sit next to each other. Sabotage, an Airstrike (on a 3+), a Precision Strike or a Bunker Buster can destroy an enemy bridge, and anyone standing on it drowns. A destroyed bridge leaves **wreckage**: building a new bridge there costs $8 more.
 
 ## Buildings and upgrades
 

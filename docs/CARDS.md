@@ -10,12 +10,14 @@ Unit cards are permanent unlocks: deploy as many as you can afford.
 
 | Unit | Class | Rarity | Cost | ATK | DEF | Move | Range | Notes |
 |---|---|---|---|---|---|---|---|---|
-| **Grunts** | Infantry | Common | $2 | 2 | 2 | 2 | – | Cheap, dependable rifle squad. |
+| **Grunts** | Infantry | Common | $1 | 2 | 2 | 2 | – | Cheap, dependable rifle squad. |
 | **Skitter** | Vehicle | Common | $3 | 2 | 1 | 4 | – | Raider buggy. Grabs land fast. |
 | **Thumper** | Artillery | Common | $4 | 3 | 1 | 1 | 2 | Mortar crew. Fires 2 hexes instead of moving. |
 | **Barracuda** | Naval | Common | $4 | 3 | 2 | 4 | – | Fast gunboat. Claims sea lanes, raids coasts. |
 | **Stinger** | Infantry | Common | $3 | 1 | 2 | 2 | – | MANPADS team. +3 Chips vs aircraft, and a 25% chance to shoot down air strikes on its hex. |
 | **Corpsman** | Infantry | Common | $3 | 1 | 3 | 2 | – | Medic squad. Its stack never suffers pyrrhic losses. |
+| **Jackal** | Vehicle | Uncommon | $3 | 3 | 2 | 4 | – | Light patrol truck with a heavy machine gun. Cheap, quick, hits above its weight. |
+| **Coyote** | Vehicle | Uncommon | $4 | 2 | 2 | 4 | – | Scout truck with a sensor mast. Sees 2 hexes further in the fog of war. |
 | **Lancer** | Infantry | Uncommon | $4 | 3 | 2 | 2 | – | Tank Hunter: +3 Chips when fighting vehicles. |
 | **Warden** | Air | Uncommon | $4 | 1 | 3 | 3 | – | Airborne radar plane. Aegis: +1 Mult when its hex defends. |
 | **Sapper** | Infantry | Uncommon | $4 | 2 | 2 | 2 | – | Demolitions: +3 Chips attacking a hex with buildings. |
@@ -29,7 +31,7 @@ Unit cards are permanent unlocks: deploy as many as you can afford.
 | **Ranger** | Infantry | Rare | $6 | 4 | 3 | 3 | – | Pathfinders: rough terrain costs only 1 move. |
 | **Skyguard** | Vehicle | Rare | $7 | 3 | 4 | 3 | – | Air defence truck. +6 Chips vs aircraft; 50% to shoot down air strikes within 2. |
 | **Hellcat** | Vehicle | Rare | $7 | 6 | 2 | 3 | – | Strike tank. Can act on the turn it is deployed. |
-| **Wraith** | Vehicle | Rare | $8 | 6 | 3 | 4 | – | Armed hovercraft. Glides across water. |
+| **Outrider** | Vehicle | Rare | $7 | 5 | 3 | 5 | – | Eight-wheeled fighting vehicle. 5 move: the fastest thing on the ground. |
 | **Kraken** | Naval | Rare | $8 | 7 | 2 | 4 | – | Submarine. Torpedoes: +4 Chips vs ships. |
 | **Leviathan** | Vehicle | Legendary | $14 | 12 | 10 | 1 | – | Land dreadnought. Never suffers pyrrhic losses. |
 | **Titan** | Vehicle | Legendary | $16 | 13 | 12 | 1 | – | Landship with naval guns. Siege Breaker and never suffers pyrrhic losses. |
@@ -77,7 +79,7 @@ Built from the hotbar (keys Z–M) on hexes you own that are connected to supply
 | **Refinery** | $6 | +$1 per turn per level (+$3 per level on a Resource node or oil rig). |
 | **Depot** | $4 | Logistics hub: your units starting their turn nearby get +1 move. Range = level. |
 | **Port** | $5 | Coast only. Launch ships into the adjacent sea. Supply source for sea lanes. |
-| **Bridge** | $6 | Span a 1-hex sea gap between two shores. Land units cross; ships cannot pass. |
+| **Bridge** | $6 | Span a 1-hex sea gap between two shores. Land units cross; ships cannot pass. Not next to another bridge. A destroyed bridge leaves wreckage: rebuilding there costs $8 more. |
 | **Bunker** | $4 | Strongpoint with its own garrison: +3 Chips per level even when empty, so enemies must attack it. +2 Mult defence (+1 per extra level). ★★+ also gives your neighbouring hexes +1 Mult. Digs in against big attacks: +40% of the attacker chip lead (up to 4 per level). ★★★ Citadel: 14 garrison Chips, +5 Mult, +2 Mult to neighbours, and holds 60% of the lead (up to 20). Destroyed if an enemy captures it. |
 | **Sea Mine** | $4 | A minefield on one of your sea hexes: the naval Bunker. +3 Chips per level even when empty, so enemy ships must fight their way through instead of sailing past. +2 Mult defence (+1 per extra level). Cleared if an enemy captures the hex. |
 | **Flak** | $5 | Air defence: can shoot down enemy air strikes nearby (range = level, 35% +10% per level). Blocks Heli Drops and EMPs (nukes cannot be stopped). +2 Mult vs air. |
