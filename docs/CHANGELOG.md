@@ -2,6 +2,18 @@
 
 Every release, newest first. Each version also has its own post on the [Releases page](https://github.com/Blacksheep909/sector/releases).
 
+## v0.9.20
+
+**The open ocean is actually there now.**
+
+- **Fix: holes in the sea:** the map only laid sea within 2 hexes of land, so on Ocean, Inland Sea and Archipelago maps the open water between far-apart islands had no hexes at all. It showed as dark empty space, and it could cut one sea off from another, so ships couldn't sail across. Now:
+  - any gap the map encloses is filled with open sea
+  - separate seas are joined by open-water channels, so every sea can be reached by ship from every other
+  - Ocean maps have about 15% more hexes, all open water. Map generation still takes milliseconds.
+- **Fix:** bots sometimes tried to move a carrier with its Grunts somewhere the group couldn't reach. They now check the move first.
+
+Maps are made when a game starts, so a war already in progress (or a saved one) keeps its old map. Start a new game to get the full ocean.
+
 ## v0.9.19
 
 **Helicopters, troop carriers, and vehicles that sound like vehicles.**

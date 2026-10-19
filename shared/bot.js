@@ -137,9 +137,14 @@ function botStep(s, pid, mem) {
   const keepTogether = (act) => {
     const here = (idx[act.from] || []).filter(u => u.owner === pid), ids = new Set(act.units), left = () => here.filter(u => !ids.has(u.id));
     if (!left().length || E.stackFits(left(), [])) return act;
-    for (const u of left()) if (u.type === 'grunt' && E.canAct(s, u)) ids.add(u.id);
-    if (!E.stackFits(left(), [])) for (const u of here) if (ids.has(u.id) && E.UNITS[u.type].lift) ids.delete(u.id);
-    return ids.size ? { ...act, units: [...ids] } : act;
+    const reaches = set => { const r = E.reachable(s, pid, [...set], act.from, idx)[act.to]; return r && r.kind !== 'start' && r.kind !== 'pass'; };
+    // first choice: bring the stranded Grunts along (if the group can still get there)
+    const all = new Set(ids); for (const u of left()) if (u.type === 'grunt' && E.canAct(s, u)) all.add(u.id);
+    if (E.stackFits(here.filter(u => !all.has(u.id)), []) && reaches(all)) return { ...act, units: [...all] };
+    // otherwise the carrier stays behind with them
+    const rest = new Set([...ids].filter(id => !E.UNITS[s.units[id].type].lift));
+    if (rest.size && E.stackFits(here.filter(u => !rest.has(u.id)), []) && reaches(rest)) return { ...act, units: [...rest] };
+    return act;
   };
   const idx = E.buildIndex(s);
   const tiles = s.map.tiles;
