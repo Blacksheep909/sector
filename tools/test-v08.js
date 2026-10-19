@@ -106,7 +106,11 @@ const land = (s, from, d) => Object.keys(s.map.tiles).find(k => E.dist(k, from) 
   let tried = 0, two = 0;
   for (let g = 0; g < 10 && tried < 3; g++) {
     const s = game(); const p = me(s);
-    const ts = E.tacticTargets(s, p.id, 'quarry').filter(k => E.neighbors(k).some(n => s.map.tiles[n] && s.map.tiles[n].t === 'mountain'));
+    // make a 2-mountain ridge 2 hexes from the HQ
+    const a1 = Object.keys(s.map.tiles).find(k => E.dist(k, p.hq) === 2 && E.isLandTile(s.map.tiles[k]));
+    const a2 = a1 && E.neighbors(a1).find(n => s.map.tiles[n] && E.isLandTile(s.map.tiles[n]) && E.dist(n, p.hq) === 3);
+    if (!a1 || !a2) continue; s.map.tiles[a1].t = 'mountain'; s.map.tiles[a2].t = 'mountain';
+    const ts = E.tacticTargets(s, p.id, 'quarry').filter(k => k === a1);
     if (!ts.length) continue; tried++;
     p.tactics.push({ uid: 555, id: 'quarry' }); p.cash = 99;
     const r = E.applyAction(s, p.id, { a: 'tactic', uid: 555, target: ts[0] });
@@ -172,6 +176,49 @@ const land = (s, from, d) => Object.keys(s.map.tiles).find(k => E.dist(k, from) 
     const r2 = E.applyAction(s, p.id, { a: 'fire', from: sea, units: ['tr'], to: k }, () => 0.1);
     ok(r2.ok && r2.events.some(e => e.e === 'intercept'), 'a Sentinel can intercept the missile');
   }
+}
+{ // bridges: no neighbours, airstrikes drop them, and the wreckage costs extra to rebuild
+  let checked = false;
+  for (let g = 0; g < 25 && !checked; g++) {
+    const s = game({ mapType: 'archipelago' }); const p = me(s); p.cash = 99;
+    const spots = E.buildHexes(s, p.id, 'bridge'); if (!spots.length) continue;
+    const k = spots[0]; const base = E.buildCost(s, p, 'bridge', k);
+    const r = E.applyAction(s, p.id, { a: 'build', struct: 'bridge', hex: k }); if (!r.ok) continue;
+    checked = true;
+    ok(E.neighbors(k).every(n => E.buildError(s, p.id, 'bridge', n) !== null), 'no bridge can go next to another bridge');
+    const o = s.players.find(q => q.id !== p.id); const b = E.structsOf(s.map.tiles[k]).find(x => x.type === 'bridge'); b.owner = o.id; s.map.tiles[k].owner = o.id;
+    s.turn.idx = s.players.indexOf(o); s.turn.idx = s.players.findIndex(q => q.id === p.id);
+    const near = Object.keys(s.map.tiles).find(x => E.dist(x, k) === 2 && E.isLandTile(s.map.tiles[x])); if (near) s.map.tiles[near].owner = p.id;
+    p.tactics.push({ uid: 700, id: 'precision' });
+    ok(E.tacticTargets(s, p.id, 'precision').includes(k), 'air strikes can target an enemy bridge');
+    const r2 = E.applyAction(s, p.id, { a: 'tactic', uid: 700, target: k });
+    ok(r2.ok && !s.map.tiles[k].bridge && s.map.tiles[k].wreck, 'a bombed bridge falls and leaves wreckage');
+    s.map.tiles[near || k].owner = p.id;
+    ok(E.buildCost(s, p, 'bridge', k) === E.structCost(p, 'bridge', 1) + 8, 'rebuilding over the wreckage costs $8 more');
+  }
+  ok(checked, 'found a bridge spot to test');
+}
+{ // new and reworked units
+  ok(E.UNITS.grunt.cost === 1, 'Grunts cost $1');
+  ok(E.UNITS.wraith.mv === 5 && !E.UNITS.wraith.ability, 'the Outrider is a fast wheeled vehicle, not a hovercraft');
+  ok(E.UNITS.jackal.rarity === 'uncommon' && E.UNITS.coyote.rarity === 'uncommon', 'two uncommon light vehicles');
+  const s = game({ fog: 'on' }); const p = me(s); const k = p.hq;
+  s.units.cy = { id: 'cy', type: 'coyote', owner: p.id, hex: k, moved: false, fresh: false };
+  const far = Object.keys(s.map.tiles).find(x => E.dist(x, k) === 4);
+  ok(E.visionOf(s, p.id).has(far), 'the Coyote sees 4 hexes out');
+}
+{ // Hailstorm salvo hits the stacks around its target
+  const s = game(); const p = me(s); const o = s.players.find(q => q.id !== p.id);
+  const k = land(s, p.hq, 4); const ring = E.neighbors(k).filter(n => s.map.tiles[n] && E.isLandTile(s.map.tiles[n]) && n !== p.hq).slice(0, 2);
+  s.map.tiles[k].owner = o.id;
+  s.units.t1 = { id: 't1', type: 'grunt', owner: o.id, hex: k, moved: false, fresh: false };
+  ring.forEach((n, i) => { s.units['r' + i] = { id: 'r' + i, type: 'grunt', owner: o.id, hex: n, moved: false, fresh: false }; });
+  const from = Object.keys(s.map.tiles).find(x => s.map.tiles[x].owner === p.id && E.dist(x, k) <= 4 && E.dist(x, k) >= 2) || p.hq;
+  for (const id in s.units) if (s.units[id].hex === from) delete s.units[id];
+  s.units.hs = { id: 'hs', type: 'hailstorm', owner: p.id, hex: from, moved: false, fresh: false };
+  const r = E.applyAction(s, p.id, { a: 'fire', from, units: ['hs'], to: k }, () => 0.99);
+  const ce = r.events.find(e => e.e === 'combat');
+  ok(r.ok && ce && ce.attWin && ce.splash.length === ring.length, 'a winning salvo also hits ' + ring.length + ' neighbouring stacks');
 }
 console.log(fails ? fails + ' FAILED' : 'all passed');
 process.exit(fails ? 1 : 0);

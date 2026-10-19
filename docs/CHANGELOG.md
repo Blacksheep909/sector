@@ -2,6 +2,26 @@
 
 Every release, newest first. Each version also has its own post on the [Releases page](https://github.com/Blacksheep909/sector/releases).
 
+## v0.8.4
+
+**Bridges you can bomb, fast wheels, rocket artillery, and every icon drawn from the real thing.**
+
+- **🌉 Bridges:**
+  - Two bridges can't sit next to each other.
+  - Airstrike (on a 3+), Precision Strike and Bunker Buster can hit an enemy bridge, as well as Sabotage. Anyone standing on it goes into the water.
+  - A destroyed bridge leaves **wreckage** in the channel. Building a new bridge there costs **$8 more** to clear it.
+- **🚙 New light vehicles (Uncommon):**
+  - **Jackal**, an up-armoured Humvee with a heavy machine gun ($3, ATK 3, DEF 2, 4 move).
+  - **Coyote**, a JLTV scout truck that sees 2 hexes further in the fog of war ($4).
+- **🛞 The Wraith hover tank is now the Outrider:** an eight-wheeled Stryker-style fighting vehicle with 5 move, the fastest thing on the ground. It no longer crosses water.
+- **🚀 Hailstorm (new Epic):** an M270-style tracked rocket launcher with range 4. A hit also rains rockets on every enemy stack next to the target, killing one unit in each.
+- **🪖 Grunts cost $1.**
+- **Every icon is a real military machine or piece of kit:**
+  - Airstrike is an F-16 dropping bombs, Gun Run an A-10, Heli Drop a UH-60 Black Hawk.
+  - Smoke Screen is an M18 grenade, Tactical Nuke a B61 bomb, Aegis Protocol an Aegis destroyer.
+  - Forced March is combat boots, Rally a bugle, Blitz a charging tank.
+  - EMP is an e-bomb, and Orbital Strike a satellite firing its beam.
+
 ## v0.8.3
 
 **Air defence that actually defends, and a missile submarine.**

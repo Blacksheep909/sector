@@ -1816,7 +1816,12 @@
             }
           }
           if (ev.crush) await obliterate(ev); else await showCombat(ev);
-          killUnits(ev.killed.concat(ev.pyrrhic), ev.killed.length > 2);
+          if (ev.splash && ev.splash.length) {
+            // MLRS salvo: rockets rain on the stacks around the target
+            for (const id of ev.splash) { const u = S.units[id]; if (u) { Render.burst(u.hex, ['#ffcf5a', '#ff5a2a', '#fff'], 18, { speed: 1.3 }); Render.float(u.hex, 'SALVO', '#ffb03a', 14); } }
+            SFX.boom(0.8); Render.shake(8);
+          }
+          killUnits(ev.killed.concat(ev.pyrrhic, ev.splash || []), ev.killed.length > 2);
           await sleep(350); break;
         }
         case 'advance': {
@@ -1964,6 +1969,13 @@
     for (const k of from) { Render.beam(k, to, '#ffd27a', 0.35, 40); Render.burst(k, ['#ffd27a', '#fff'], 8, { up: 120 }); }
     SFX.shot();
   }
+  // a bridge goes into the water and leaves wreckage behind
+  function dropBridge(k) {
+    const tt = S.map.tiles[k]; if (!tt) return;
+    tt.structs = (tt.structs || []).filter(x => x.type !== 'bridge'); tt.struct = tt.structs[0] || null; tt.bridge = false; tt.owner = null; tt.wreck = true;
+    Render.burst(k, ['#8a7a66', '#5d5144', '#9fe8ff', '#ffffff'], 40, { up: 180, speed: 1.6 }); SFX.boom(0.9); Render.shake(8);
+    Render.recolor(); Render.invalidate();
+  }
   async function animTactic(ev) {
     const d = E.TACTICS[ev.id];
     const who = pName(ev.pid);
@@ -2019,7 +2031,8 @@
         { const [x, y] = Render.topOf(ev.target); const k1 = ev.target, sp = n => { const [q, r] = E.parse(k1); return E.key(q + n, r); };
           Render.flyover([k1, sp(-1), sp(1)].filter(k2 => S.map.tiles[k2]).slice(0, 1).concat([k1, k1]), { color: pColor(ev.pid), dur: 1.6, onBomb: () => { SFX.boom(0.7); Render.shake(9); } }); }
         await sleep(1500);
-        if (ev.infra) infraHit(ev.target, ev.infra, ev.structs);
+        if (ev.bridge !== undefined) { if (ev.bridge) { dropBridge(ev.target); Render.float(ev.target, 'BRIDGE DESTROYED', '#ff8a5a', 20); } else Render.float(ev.target, 'MISSED THE BRIDGE', '#cfd8df', 18); }
+        else if (ev.infra) infraHit(ev.target, ev.infra, ev.structs);
         else Render.float(ev.target, ev.kills.length ? ev.kills.length + ' DESTROYED' : 'MISSED', ev.kills.length ? '#ff4f5e' : '#cfd8df', 20);
         killUnits(ev.kills); await sleep(300); break;
       }
@@ -2032,7 +2045,7 @@
         if (ev.captured) flipTile(ev.target, ev.pid, 4);
         SFX.deploy(); Render.burst(ev.target, ['#c9b78f'], 16, { up: 20 }); break;
       }
-      case 'sabotage': Render.burst(ev.target, ['#ffb03a', '#ff5a2a', '#666'], 30, { speed: 1.5 }); SFX.boom(1); Render.shake(10); S.map.tiles[ev.target].struct = null; await sleep(300); break;
+      case 'sabotage': Render.burst(ev.target, ['#ffb03a', '#ff5a2a', '#666'], 30, { speed: 1.5 }); SFX.boom(1); Render.shake(10); if (ev.struct === 'bridge') dropBridge(ev.target); else S.map.tiles[ev.target].struct = null; await sleep(300); break;
       case 'emp': {
         SFX.zap(); Render.emp(ev.target, 1.3); Render.shake(6); await sleep(250);
         for (const id of ev.units || []) if (S.units[id]) S.units[id].stun = 1;

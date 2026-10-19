@@ -102,12 +102,14 @@
 
   // cls: inf | veh | air | art | sea
   const UNITS = {
-    grunt: { name: 'Grunts', cls: 'inf', cost: 2, atk: 2, def: 2, mv: 2, rarity: 'common', desc: 'Cheap, dependable rifle squad.' },
+    grunt: { name: 'Grunts', cls: 'inf', cost: 1, atk: 2, def: 2, mv: 2, rarity: 'common', desc: 'Cheap, dependable rifle squad.' },
     skitter: { name: 'Skitter', cls: 'veh', cost: 3, atk: 2, def: 1, mv: 4, rarity: 'common', desc: 'Raider buggy. Grabs land fast.' },
     thumper: { name: 'Thumper', cls: 'art', cost: 4, atk: 3, def: 1, mv: 1, range: 2, rarity: 'common', desc: 'Mortar crew. Fires 2 hexes instead of moving.' },
     barracuda: { name: 'Barracuda', cls: 'sea', cost: 4, atk: 3, def: 2, mv: 4, rarity: 'common', desc: 'Fast gunboat. Claims sea lanes, raids coasts.' },
     stinger: { name: 'Stinger', cls: 'inf', cost: 3, atk: 1, def: 2, mv: 2, rarity: 'common', ability: 'aa', aa: 3, desc: 'MANPADS team. +3 Chips vs aircraft, and a 25% chance to shoot down air strikes on its hex.' },
     corpsman: { name: 'Corpsman', cls: 'inf', cost: 3, atk: 1, def: 3, mv: 2, rarity: 'common', ability: 'medic', desc: 'Medic squad. Its stack never suffers pyrrhic losses.' },
+    jackal: { name: 'Jackal', cls: 'veh', cost: 3, atk: 3, def: 2, mv: 4, rarity: 'uncommon', desc: 'Light patrol truck with a heavy machine gun. Cheap, quick, hits above its weight.' },
+    coyote: { name: 'Coyote', cls: 'veh', cost: 4, atk: 2, def: 2, mv: 4, rarity: 'uncommon', ability: 'recon', desc: 'Scout truck with a sensor mast. Sees 2 hexes further in the fog of war.' },
     lancer: { name: 'Lancer', cls: 'inf', cost: 4, atk: 3, def: 2, mv: 2, rarity: 'uncommon', ability: 'hunter', desc: 'Tank Hunter: +3 Chips when fighting vehicles.' },
     warden: { name: 'Warden', cls: 'air', cost: 4, atk: 1, def: 3, mv: 3, rarity: 'uncommon', ability: 'aegis', desc: 'Airborne radar plane. Aegis: +1 Mult when its hex defends.' },
     sapper: { name: 'Sapper', cls: 'inf', cost: 4, atk: 2, def: 2, mv: 2, rarity: 'uncommon', ability: 'sapper', desc: 'Demolitions: +3 Chips attacking a hex with buildings.' },
@@ -121,11 +123,12 @@
     ranger: { name: 'Ranger', cls: 'inf', cost: 6, atk: 4, def: 3, mv: 3, rarity: 'rare', ability: 'pathfinder', desc: 'Pathfinders: rough terrain costs only 1 move.' },
     skyguard: { name: 'Skyguard', cls: 'veh', cost: 7, atk: 3, def: 4, mv: 3, rarity: 'rare', ability: 'aa', aa: 6, desc: 'Air defence truck. +6 Chips vs aircraft; 50% to shoot down air strikes within 2.' },
     hellcat: { name: 'Hellcat', cls: 'veh', cost: 7, atk: 6, def: 2, mv: 3, rarity: 'rare', ability: 'blitzer', desc: 'Strike tank. Can act on the turn it is deployed.' },
-    wraith: { name: 'Wraith', cls: 'veh', cost: 8, atk: 6, def: 3, mv: 4, rarity: 'rare', ability: 'hover', desc: 'Armed hovercraft. Glides across water.' },
+    wraith: { name: 'Outrider', cls: 'veh', cost: 7, atk: 5, def: 3, mv: 5, rarity: 'rare', desc: 'Eight-wheeled fighting vehicle. 5 move: the fastest thing on the ground.' },
     kraken: { name: 'Kraken', cls: 'sea', cost: 8, atk: 7, def: 2, mv: 4, rarity: 'rare', ability: 'torpedo', desc: 'Submarine. Torpedoes: +4 Chips vs ships.' },
     goliath: { name: 'Goliath', cls: 'veh', cost: 10, atk: 7, def: 6, mv: 1, rarity: 'epic', ability: 'siege', desc: 'Siege mortar tank. +2 Mult vs fortified hexes.' },
     valkyrie: { name: 'Valkyrie', cls: 'air', cost: 10, atk: 6, def: 4, mv: 4, rarity: 'epic', ability: 'strafe', desc: 'Tiltrotor assault transport. Strafing Run: +2 Mult attacking ground targets.' },
     phantom: { name: 'Phantom', cls: 'air', cost: 10, atk: 7, def: 3, mv: 5, rarity: 'epic', ability: 'stealth', desc: 'Stealth bomber. Immune to artillery, airstrikes and bombardment.' },
+    hailstorm: { name: 'Hailstorm', cls: 'art', cost: 11, atk: 7, def: 3, mv: 2, range: 4, rarity: 'epic', ability: 'salvo', desc: 'Tracked rocket launcher (MLRS). Range 4. A hit also rains rockets on every enemy stack next to the target: 1 unit each.' },
     sentinel: { name: 'Sentinel', cls: 'art', cost: 9, atk: 6, def: 3, mv: 1, range: 3, rarity: 'epic', ability: 'sam', aa: 4, desc: 'SAM battery. Fires at aircraft 3 hexes away; 60% to shoot down air strikes within 3.' },
     bastion: { name: 'Bastion', cls: 'sea', cost: 11, atk: 8, def: 8, mv: 3, range: 3, rarity: 'epic', desc: 'Battleship. Long guns, range 3.' },
     leviathan: { name: 'Leviathan', cls: 'veh', cost: 14, atk: 12, def: 10, mv: 1, rarity: 'legendary', ability: 'juggernaut', desc: 'Land dreadnought. Never suffers pyrrhic losses.' },
@@ -178,7 +181,7 @@
     refinery: { name: 'Refinery', cost: 6, desc: '+$1 per turn per level (+$3 per level on a Resource node or oil rig).' },
     depot: { name: 'Depot', cost: 4, desc: 'Logistics hub: your units starting their turn nearby get +1 move. Range = level.' },
     port: { name: 'Port', cost: 5, desc: 'Coast only. Launch ships into the adjacent sea. Supply source for sea lanes.' },
-    bridge: { name: 'Bridge', cost: 6, desc: 'Span a 1-hex sea gap between two shores. Land units cross; ships cannot pass.' },
+    bridge: { name: 'Bridge', cost: 6, desc: 'Span a 1-hex sea gap between two shores. Land units cross; ships cannot pass. Not next to another bridge. A destroyed bridge leaves wreckage: rebuilding there costs $8 more.' },
     bunker: { name: 'Bunker', cost: 4, desc: 'Strongpoint with its own garrison: +3 Chips per level even when empty, so enemies must attack it. +2 Mult defence (+1 per extra level). ★★+ also gives your neighbouring hexes +1 Mult. Digs in against big attacks: +40% of the attacker chip lead (up to 4 per level). ★★★ Citadel: 14 garrison Chips, +5 Mult, +2 Mult to neighbours, and holds 60% of the lead (up to 20). Destroyed if an enemy captures it.' },
     mine: { name: 'Sea Mine', cost: 4, desc: 'A minefield on one of your sea hexes: the naval Bunker. +3 Chips per level even when empty, so enemy ships must fight their way through instead of sailing past. +2 Mult defence (+1 per extra level). Cleared if an enemy captures the hex.' },
     flak: { name: 'Flak', cost: 5, desc: 'Air defence: can shoot down enemy air strikes nearby (range = level, 35% +10% per level). Blocks Heli Drops and EMPs (nukes cannot be stopped). +2 Mult vs air.' },
@@ -669,10 +672,16 @@
     return c;
   }
   // what building `type` on hex k costs right now (a fresh build, or the next upgrade)
+  const WRECK_COST = 8;   // clearing a destroyed bridge's wreckage
   function buildCost(s, p, type, k) {
     const t = k && s.map.tiles[k];
     const st = t && getS(t, type);
-    return structCost(p, type, st ? slvlOf(st) + 1 : 1);
+    return structCost(p, type, st ? slvlOf(st) + 1 : 1) + (type === 'bridge' && t && t.wreck ? WRECK_COST : 0);
+  }
+  // a bridge that's blown up leaves wreckage in the channel (anyone standing on it drowns)
+  function wreckBridge(s, k) {
+    const t = s.map.tiles[k], b = getS(t, 'bridge'); if (b) removeStruct(t, b);
+    t.bridge = false; t.owner = null; t.wreck = true;
   }
   function canAct(s, u) { const p = player(s, u.owner); return !u.moved && !u.stun && (!u.fresh || (p && p.blitz) || UNITS[u.type].ability === 'blitzer'); }
   function moveAllow(s, u) {
@@ -725,6 +734,7 @@
       const shores = neighbors(k).filter(n => tiles[n] && TERRAIN[tiles[n].t].land);
       const spans = shores.some(a => shores.some(b => dist(a, b) >= 2));
       if (!spans) return 'Needs land on opposite sides (a 1-hex gap)';
+      if (neighbors(k).some(n => tiles[n] && (tiles[n].bridge || getS(tiles[n], 'bridge')))) return 'Too close to another bridge';
       if (!shores.some(n => tiles[n].owner === pid && sup.has(n))) return 'One shore must be your supplied land';
       return null;
     }
@@ -1131,10 +1141,18 @@
       const n = (aScore >= 2 * dScore ? 2 : 1) + (units.some(u => UNITS[u.type].ability === 'ballistic') ? 1 : 0);
       for (let i = 0; i < n && pool.length; i++) killed.push(pool.splice(Math.floor(rng() * pool.length), 1)[0]);
     }
+    // MLRS salvo: a hit also blankets the stacks around the target, one unit each
+    const splash = [];
+    if (attWin && units.some(u => UNITS[u.type].ability === 'salvo')) {
+      for (const n of neighbors(target)) {
+        const occ = Object.values(s.units).filter(u => u.hex === n && u.owner !== pid && !isAlly(s, pid, u.owner) && UNITS[u.type].ability !== 'stealth');
+        if (occ.length) { const v = occ[Math.floor(rng() * occ.length)]; splash.push(v); tallyLosses(s, pid, v.owner, [v]); }
+      }
+    }
     units.forEach(u => u.moved = true);
     tallyLosses(s, pid, defPid, killed);
     ev.push({
-      e: 'combat', ranged: true, from, stages: [from], to: target,
+      e: 'combat', ranged: true, from, stages: [from], to: target, splash: splash.map(u => u.id),
       att: { ...calc.att, roll: ra, raw: rawA, score: aScore, units: units.map(u => u.type) },
       def: { ...calc.def, roll: rd, raw: rawD, score: dScore, units: defenders.map(u => u.type) },
       attWin, crush, killed: killed.map(u => u.id), pyrrhic: [], winProb: calc.winProb,
@@ -1185,6 +1203,7 @@
     }
     return hits;
   }
+  const isEnemyBridge = (s, pid, k) => { const t = s.map.tiles[k], b = t && getS(t, 'bridge'); return !!b && !!b.owner && b.owner !== pid && !isAlly(s, pid, b.owner); };
   const isEnemyInfra = (s, pid, k) => { const t = s.map.tiles[k]; return !!t && t.owner && t.owner !== pid && !isAlly(s, pid, t.owner) && econOf(s, k).length > 0; };
   function captureTile(s, k, pid) {
     const t = s.map.tiles[k];
@@ -1597,17 +1616,18 @@
       case 'spawn': return spawnPoints(s, pid).filter(k => stackFits(idx[k] || [], ['grunt']));
       case 'enemyUnits': for (const k in tiles) {
         const occ = idx[k] || [];
-        if (!(occ.length ? occ[0].owner !== pid && !isAlly(s, pid, occ[0].owner) : isEnemyInfra(s, pid, k))) continue;   // troops, or undefended buildings
+        if (!(occ.length ? occ[0].owner !== pid && !isAlly(s, pid, occ[0].owner) : isEnemyInfra(s, pid, k) || (id === 'airstrike' && isEnemyBridge(s, pid, k)))) continue;   // troops, undefended buildings, or (Airstrike) a bridge
         if (nearOwned(s, pid, k, def.range)) out.push(k);
       } return out;
       case 'precision': for (const k in tiles) {
         const occ = idx[k] || [];
-        if (!(occ.length ? occ[0].owner !== pid && !isAlly(s, pid, occ[0].owner) && occ.some(u => UNITS[u.type].ability !== 'stealth') : isEnemyInfra(s, pid, k))) continue;
+        if (!(occ.length ? occ[0].owner !== pid && !isAlly(s, pid, occ[0].owner) && occ.some(u => UNITS[u.type].ability !== 'stealth') : isEnemyInfra(s, pid, k) || isEnemyBridge(s, pid, k))) continue;
         if (nearOwned(s, pid, k, def.range)) out.push(k);
       } return out;
       case 'infra': for (const k in tiles) { const t = tiles[k]; if (t.owner && t.owner !== pid && !isAlly(s, pid, t.owner) && isLandTile(t) && nearOwned(s, pid, k, def.range)) out.push(k); } return out;
       case 'buster': for (const k in tiles) {
-        const t = tiles[k], o = t.owner || ((idx[k] || [])[0] || {}).owner; if (!o || o === pid || isAlly(s, pid, o) || !nearOwned(s, pid, k, def.range)) continue;
+        const t = tiles[k], o = t.owner || ((idx[k] || [])[0] || {}).owner || (getS(t, 'bridge') || {}).owner; if (!o || o === pid || isAlly(s, pid, o) || !nearOwned(s, pid, k, def.range)) continue;
+        if (isEnemyBridge(s, pid, k)) { out.push(k); continue; }
         if ((idx[k] || []).length || structsOf(t).some(x => ['bunker', 'fob', 'flak', 'mine', 'hq'].includes(x.type) && x.owner === o)) out.push(k);
       } return out;
       case 'heli':
@@ -1870,7 +1890,7 @@
         return { ok: true, events: ev };
       }
       addStruct(t, a.struct === 'fob' ? { type: 'fob', owner: pid, lvl: 1, lock: 1 } : { type: a.struct, owner: pid, lvl: 1 });
-      if (a.struct === 'bridge') { t.bridge = true; t.owner = pid; }
+      if (a.struct === 'bridge') { t.bridge = true; t.owner = pid; delete t.wreck; }
       ev.push({ e: 'build', pid, struct: a.struct, hex: a.hex, lvl: 1, lock: a.struct === 'fob' ? 1 : 0 });
       return { ok: true, events: ev };
     }
@@ -2024,6 +2044,10 @@
         ev.push({ ...base, units: made }); break;
       }
       case 'airstrike': {
+        if (!Object.values(s.units).some(u => u.hex === a.target) && isEnemyBridge(s, pid, a.target)) {
+          const roll = rollDie(rng), hit = roll >= 3; if (hit) wreckBridge(s, a.target);
+          ev.push({ ...base, roll, kills: [], bridge: hit }); pushLog(s, '✈ ' + p.name + (hit ? ' bombed a bridge into the water.' : ' missed a bridge.')); break;
+        }
         if (!Object.values(s.units).some(u => u.hex === a.target)) {
           const roll = rollDie(rng), infra = damageInfra(s, a.target, roll >= 4 ? 2 : 1);
           ev.push({ ...base, roll, kills: [], infra, structs: structsOf(tiles[a.target]) });
@@ -2052,6 +2076,9 @@
         break;
       }
       case 'precision': {
+        if (!Object.values(s.units).some(u => u.hex === a.target) && isEnemyBridge(s, pid, a.target)) {
+          wreckBridge(s, a.target); ev.push({ ...base, roll: 6, kills: [], bridge: true }); pushLog(s, '🎯 ' + p.name + ' dropped a bridge.'); break;
+        }
         if (!Object.values(s.units).some(u => u.hex === a.target)) {
           const infra = damageInfra(s, a.target, 1, true);
           ev.push({ ...base, roll: 6, kills: [], infra, structs: structsOf(tiles[a.target]) });
@@ -2081,6 +2108,7 @@
       }
       case 'buster': {
         const t = tiles[a.target]; let hit = 0;
+        if (isEnemyBridge(s, pid, a.target)) { wreckBridge(s, a.target); hit++; }
         for (const st of structsOf(t).slice()) {
           if (!['bunker', 'fob', 'flak', 'mine', 'hq'].includes(st.type) || st.owner === pid) continue;
           const L = slvlOf(st);
@@ -2121,7 +2149,7 @@
         const st = victimS.type;
         if (slvlOf(victimS) > 1) { victimS.lvl--; ev.push({ ...base, struct: st, lvl: victimS.lvl }); pushLog(s, '🧨 ' + p.name + ' damaged a ' + STRUCTS[st].name + '.'); break; }
         removeStruct(t, victimS);
-        if (st === 'bridge') { t.bridge = false; t.owner = null; }
+        if (st === 'bridge') wreckBridge(s, a.target);
         ev.push({ ...base, struct: st }); pushLog(s, '🧨 ' + p.name + ' sabotaged a ' + STRUCTS[st].name + '.'); break;
       }
       case 'emp': {
@@ -2132,7 +2160,7 @@
       case 'nuke': {
         const ar = area(a.target, 1).filter(k => tiles[k]), dead = [];
         for (const u of Object.values(s.units)) if (ar.includes(u.hex)) { dead.push(u.id); kill(u); }
-        for (const k of ar) { const t = tiles[k]; t.owner = null; t.structs = []; t.struct = null; t.smoke = null; if (t.bridge) t.bridge = false; if (isLandTile(t)) t.contam = 4; }
+        for (const k of ar) { const t = tiles[k]; if (t.bridge) wreckBridge(s, k); t.owner = null; t.structs = []; t.struct = null; t.smoke = null; if (isLandTile(t)) t.contam = 4; }
         ev.push({ ...base, area: ar, units: dead }); pushLog(s, '☢ ' + p.name + ' launched a TACTICAL NUKE.'); break;
       }
       case 'quarry': {
@@ -2165,7 +2193,7 @@
         for (const k of ar) {
           const t = tiles[k], hq = getS(t, 'hq');
           if (hq) { hq.lvl = 1; t.structs = [hq]; t.struct = hq; continue; }   // HQs are bunkered deep enough to survive
-          t.owner = null; t.structs = []; t.struct = null; t.smoke = null; if (t.bridge) t.bridge = false; if (isLandTile(t)) t.contam = 5;
+          if (t.bridge) wreckBridge(s, k); t.owner = null; t.structs = []; t.struct = null; t.smoke = null; if (isLandTile(t)) t.contam = 5;
         }
         ev.push({ ...base, area: ar, units: dead }); pushLog(s, '☢ ' + p.name + ' detonated the TSAR BOMBA.'); break;
       }
@@ -2247,7 +2275,7 @@
     for (const k in s.map.tiles) if (side.has(s.map.tiles[k].owner)) for (const a of area(k, 1 + extra)) vis.add(a);
     for (const id in s.units) {
       const u = s.units[id]; if (!side.has(u.owner)) continue;
-      const d = UNITS[u.type], r = 2 + (d.cls === 'air' ? 1 : 0) + (d.ability === 'orbital' ? 2 : 0) + extra;
+      const d = UNITS[u.type], r = 2 + (d.cls === 'air' ? 1 : 0) + (d.ability === 'orbital' || d.ability === 'recon' ? 2 : 0) + extra;
       for (const a of area(u.hex, r)) vis.add(a);
     }
     return vis;
