@@ -242,6 +242,17 @@ function botStep(s, pid, mem) {
   const stuck = frontier.size < 3;            // our landmass is (nearly) full: time to go by sea
   const targets = Object.keys(tiles).filter(k => E.isLandTile(tiles[k]) && tiles[k].owner !== pid);
   const nearest = (k, list) => { let md = 99; for (const e of list) { const d = E.dist(k, e); if (d < md) md = d; } return md; };
+  // walking distance over open land (around mountains and lakes), so troops don't pile up against a ridge they can't cross.
+  // Falls back to straight-line distance where there's no land route at all (islands: that's the navy's job)
+  const walkMaps = mem.walkMaps && mem.walkMaps.key === s.v + ':' + s.turn.round + ':' + s.turn.idx ? mem.walkMaps : (mem.walkMaps = { key: s.v + ':' + s.turn.round + ':' + s.turn.idx });
+  const walkField = (name, list) => {
+    if (walkMaps[name]) return walkMaps[name];
+    const f = {}, q = [];
+    for (const k of list) if (tiles[k]) { f[k] = 0; q.push(k); }
+    for (let i = 0; i < q.length; i++) for (const n of E.neighbors(q[i])) { const t = tiles[n]; if (!t || n in f || !E.isLandTile(t) || t.t === 'mountain') continue; f[n] = f[q[i]] + 1; q.push(n); }
+    return (walkMaps[name] = f);
+  };
+  const walkGain = (name, list, from, to) => { const f = walkField(name, list); return from in f && to in f ? f[from] - f[to] : nearest(from, list) - nearest(to, list); };
   for (const k in idx) {
     if (mem.skip.has(k)) continue;
     let movers = idx[k].filter(u => u.owner === pid && E.canAct(s, u));
@@ -326,17 +337,18 @@ function botStep(s, pid, mem) {
       } else {
         if (t.owner !== pid) v += t.owner ? 6 : 3;
         if (t.poi === 'ruins' || t.poi === 'cache') v += 6;
+        if (t.poi === 'fort' && !t.owner) v += 9;   // an abandoned FOB: a free forward base
         if ((s.drops || []).some(d => path.includes(d.hex))) v += 8;   // supply drop on the way: first come, first served
         if (t.poi === 'relic' && t.owner !== pid) v += 8;
         if (t.res && t.owner !== pid) v += 4;
         if (t.struct && t.owner !== pid) v += 6;
         if (s.map.beacon === dest) v += 10;
-        if (strat.goal.length) v += (nearest(k, strat.goal) - nearest(dest, strat.goal)) * 1.1 + (nearest(k, enemyTiles) - nearest(dest, enemyTiles)) * 0.3;
-        else if (enemyTiles.length) v += (nearest(k, enemyTiles) - nearest(dest, enemyTiles)) * 0.8;
+        if (strat.goal.length) v += walkGain('goal', strat.goal, k, dest) * 1.1 + walkGain('enemy', enemyTiles, k, dest) * 0.3;
+        else if (enemyTiles.length) v += walkGain('enemy', enemyTiles, k, dest) * 0.8;
         if (t.owner && t.owner === strat.target) v += 3;
         // mass up: join a friendly stack on the front line so the next push has the numbers
         if (t.owner === pid && (idx[dest] || []).some(u => u.owner === pid) && E.neighbors(dest).some(n => (idx[n] || []).some(u => u.owner !== pid && !E.isAlly(s, pid, u.owner)))) v += 2.5;
-        if (r.kind === 'move' && t.owner === pid && v < 1.5) continue;
+        if (r.kind === 'move' && t.owner === pid && v < 1) continue;   // a step closer to the front is worth taking
         let threat = 0; for (const n of E.neighbors(dest)) for (const u of idx[n] || []) if (u.owner !== pid) threat += E.UNITS[u.type].atk;
         const myDef = movers.reduce((a, u) => a + E.UNITS[u.type].def, 0);
         if (threat > myDef * 2) v -= 4;
@@ -444,7 +456,8 @@ function botStep(s, pid, mem) {
     const hexes = E.deployHexes(s, pid, type, idx);
     const goal = strat.goal.length ? strat.goal : enemyTiles.length ? enemyTiles : targets;
     let bs = hexes[0], bd = 99;
-    for (const sp of hexes) { const md = nearest(sp, goal) - (strat.danger[sp] ? 6 + strat.danger[sp] / 3 : 0); if (md < bd) { bd = md; bs = sp; } }
+    const gf = walkField('deploy', goal);
+    for (const sp of hexes) { const md = (sp in gf ? gf[sp] : nearest(sp, goal) + 20) - (strat.danger[sp] ? 6 + strat.danger[sp] / 3 : 0); if (md < bd) { bd = md; bs = sp; } }
     const a = tryOnce({ a: 'deploy', unit: type, hex: bs, n: mem.deployN = (mem.deployN || 0) + 1 });
     if (a) { delete a.n; return a; }
   }

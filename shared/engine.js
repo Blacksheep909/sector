@@ -223,11 +223,11 @@
     ruins: { name: 'Ruins', desc: 'First unit to arrive loots $4–10.' },
     cache: { name: 'Supply Cache', desc: 'First unit to arrive finds a tactic card: usually common or uncommon, sometimes rare, epic or even legendary.' },
     village: { name: 'Village', desc: 'Neutral town with a militia garrison (strength varies). Conquer it for +$2 per turn.' },
-    fort: { name: 'Old Fort', desc: 'Garrisoned ruin with a Bunker (★ to ★★★). Take it and the bunker is yours.' },
+    fort: { name: 'Abandoned FOB', desc: 'A war-torn forward base nobody holds. Drive a unit onto it to claim it: it becomes your FOB (online next turn).' },
     relic: { name: 'Ancient Relic', desc: '+$3 per turn while you hold it.' },
     silo: { name: 'Superweapon Silo', desc: 'World War only. Heavily garrisoned (★★ Bunker). Hold it for 3 of your turns in a row and it hands you a Mythic card.' },
   };
-  const GARRISONED = ['village', 'fort', 'silo'];
+  const GARRISONED = ['village', 'silo'];
   // a world event rolls at the start of most rounds (from round 3) and lasts the whole round
   const WEATHER = {
     storm: { name: 'Storm Front', icon: '⛈', desc: 'Aircraft are grounded this round.' },
@@ -456,7 +456,7 @@
         if (neighbors(k).some(nb => tiles[nb] && tiles[nb].poi)) continue;
         tiles[k].poi = poi; i++;
         if (poi === 'village') tiles[k].gar = 3 + Math.floor(rng() * 7);                 // militia 3–9 chips
-        if (poi === 'fort') { tiles[k].gar = 3 + Math.floor(rng() * 6); tiles[k].structs = [{ type: 'bunker', owner: null, lvl: 1 + Math.floor(rng() * 3) }]; tiles[k].struct = tiles[k].structs[0]; }
+        // abandoned FOBs: no garrison, the first unit to drive in claims the base
       }
     }
     // treasure islands: small landmasses away from the HQs hold loot and relics, so it pays to sail
@@ -1226,8 +1226,15 @@
     if (t.owner) addMood(s, t.owner, pid, -2);
     const cp = player(s, pid);
     if (cp && cp.faction === 'ashen' && t.owner && t.owner !== pid) { cp.cash += 2; cp.loot = (cp.loot || 0) + 2; }
+    const ruin = t.poi === 'fort' && !t.owner;
     t.owner = pid;
     t.smoke = null;
+    if (ruin) {
+      // an abandoned FOB: whoever drives in patches it up and it becomes theirs (any old garrison bunker goes with it)
+      delete t.poi; delete t.gar;
+      if (!getS(t, 'fob') && structsOf(t).length < MAX_STRUCTS) addStruct(t, { type: 'fob', owner: pid, lvl: 1, lock: 1 });
+      pushLog(s, '🚩 ' + (cp ? cp.name : '?') + ' claimed an abandoned FOB.');
+    }
     // an enemy commander's bunker is blown up when its hex falls (neutral forts still hand theirs over)
     const razed = structsOf(t).filter(st => (st.type === 'bunker' || st.type === 'mine') && st.owner && st.owner !== pid);
     if (razed.length) {
@@ -2029,6 +2036,14 @@
       if (!units.some(u => UNITS[u.type].atk > 0)) return fail('Nothing in that stack can shoot');
       units.forEach(u => { u.moved = true; u.ow = true; });
       ev.push({ e: 'overwatch', pid, hex: a.from, units: units.map(u => u.id) });
+      return { ok: true, events: ev };
+    }
+    if (a.a === 'rotateBridge') {
+      // turn your bridge to the next of the hex's three axes so it runs the way you want (looks only: a bridge is crossable from every side)
+      const t = tiles[a.hex];
+      if (!t || !t.bridge || t.owner !== pid) return fail('Not your bridge');
+      t.bridgeRot = ((t.bridgeRot || 0) + 1) % 3;
+      ev.push({ e: 'bridgeRot', pid, hex: a.hex, rot: t.bridgeRot });
       return { ok: true, events: ev };
     }
     if (a.a === 'digin') {

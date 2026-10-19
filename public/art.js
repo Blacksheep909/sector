@@ -871,7 +871,12 @@ const Art = (() => {
     ruins(c) { for (const [x, h] of [[-0.6, 0.9], [-0.2, 0.55], [0.2, 1.1], [0.6, 0.7]]) { rr(c, x - 0.13, 0.6 - h, 0.26, h, 0.03); c.fill(); } rr(c, -0.85, 0.55, 1.7, 0.2, 0.04); c.fill(); rr(c, -0.75, -0.5, 0.75, 0.15, 0.03); c.fill(); },
     cache(c) { TACTIC.cache(c); },
     village(c) { for (const [x, s] of [[-0.45, 0.8], [0.4, 1]]) { c.save(); c.translate(x, 0.2); c.scale(s, s); poly(c, [-0.45, -0.1, 0, -0.55, 0.45, -0.1]); c.fill(); rr(c, -0.35, -0.12, 0.7, 0.6, 0.03); c.fill(); c.restore(); } },
-    fort(c) { rr(c, -0.85, -0.2, 1.7, 0.95, 0.04); c.fill(); for (let i = 0; i < 4; i++) c.fillRect(-0.85 + i * 0.5, -0.45, 0.3, 0.3); c.save(); c.fillStyle = 'rgba(0,0,0,.5)'; c.beginPath(); c.arc(0, 0.75, 0.25, P, 0); c.fill(); c.restore(); },
+    // an abandoned FOB: a sagging, torn tent and a snapped flagpole leaning over
+    fort(c) {
+      poly(c, [-0.85, 0.7, -0.2, -0.2, 0.05, 0.1, 0.3, -0.05, 0.85, 0.7]); c.fill();
+      c.save(); c.translate(0.1, 0.05); c.rotate(-0.6); rr(c, -0.04, -0.8, 0.08, 0.62, 0.02); c.fill(); poly(c, [0.04, -0.8, 0.42, -0.62, 0.04, -0.5]); c.fill(); c.restore();
+      c.save(); c.strokeStyle = 'rgba(0,0,0,.65)'; c.lineWidth = 0.09; c.beginPath(); c.moveTo(-0.45, 0.68); c.lineTo(-0.25, 0.35); c.lineTo(-0.4, 0.15); c.moveTo(0.4, 0.68); c.lineTo(0.3, 0.42); c.lineTo(0.48, 0.3); c.stroke(); c.restore();
+    },
     silo(c) { rr(c, -0.42, -0.2, 0.84, 1.05, 0.06); c.fill(); poly(c, [-0.24, -0.2, 0, -0.95, 0.24, -0.2]); c.fill(); c.save(); c.fillStyle = 'rgba(0,0,0,.4)'; rr(c, -0.42, 0.3, 0.84, 0.12, 0.02); c.fill(); poly(c, [0, -0.95, 0.24, -0.2, 0, -0.2]); c.fill(); c.restore(); poly(c, [-0.24, 0.85, -0.5, 0.95, -0.24, 0.55]); c.fill(); poly(c, [0.24, 0.85, 0.5, 0.95, 0.24, 0.55]); c.fill(); },
     relic(c) { poly(c, [0, -0.95, 0.5, -0.1, 0, 0.95, -0.5, -0.1]); c.fill(); c.save(); c.fillStyle = 'rgba(0,0,0,.3)'; poly(c, [0, -0.95, 0.5, -0.1, 0, -0.1]); c.fill(); c.restore(); },
   };

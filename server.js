@@ -439,7 +439,7 @@ function onMessage(c, m) {
       // undo: only for moves/deploys/builds that revealed nothing random (no fights, loot or cards)
       // fog of war: a move that showed you anything new can't be taken back (no free scouting)
       const scouted = snap && game.settings.fog === 'on' && (() => { const sees = E.visionOf(game, actor), mem = fogFor(actor); for (const k of sees) if (!mem.explored.has(k)) return true; return false; })();
-      if (snap && !scouted && r.events.every(e => ['move', 'deploy', 'build', 'annex'].includes(e.e))) {
+      if (snap && !scouted && r.events.every(e => ['move', 'deploy', 'build', 'annex', 'bridgeRot'].includes(e.e))) {
         if (undoStack.owner !== actor) { undoStack.length = 0; undoStack.owner = actor; }
         undoStack.push(snap); if (undoStack.length > 30) undoStack.shift();
       } else if (isCur || (m.action || {}).a === 'end') undoStack.length = 0;

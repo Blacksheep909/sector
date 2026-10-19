@@ -2,6 +2,14 @@
 
 Every release, newest first. Each version also has its own post on the [Releases page](https://github.com/Blacksheep909/sector/releases).
 
+## v0.9.18
+
+**Turn your bridges, claim old bases, and bots that actually march.**
+
+- **↻ Rotate bridges:** select one of your bridges and press **R**, or click **ROTATE BRIDGE** in the hex panel, to turn it to the next of the hex's three directions. It's free and only changes the look: a bridge is crossable from every side.
+- **🚩 Abandoned FOBs replace Old Forts:** the neutral garrisoned forts are gone. In their place are war-torn, abandoned forward bases with no garrison. Drive any unit onto one and it becomes your ★ FOB: a deploy point and supply source, online next turn. Bots go for them too.
+- **Fix: bots hoarding troops:** bots used to steer by straight-line distance, so on maps where a mountain ridge or lake sat between them and their target, their troops marched up to it and stopped. New troops piled up behind, and whole regions filled with 10-stacks that never moved. Bots now plan routes around mountains and water, place reinforcements where they can actually reach the front, and step up through their own land instead of standing still. In testing, the share of bot units left idle each turn fell from 34% to 13%.
+
 ## v0.9.17
 
 **Bots go for the crates.**
