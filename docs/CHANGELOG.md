@@ -2,6 +2,12 @@
 
 Every release, newest first. Each version also has its own post on the [Releases page](https://github.com/Blacksheep909/sector/releases).
 
+## v0.9.12
+
+**The hex count on name cards now matches what wins.**
+
+- **Fix:** the hex count on each commander's card included sea hexes, but Conquest, World War and the time-up winner only count land. A commander could show 220 against a target of 205 and still not have won. The card now shows land hexes. Hover it to see the sea hexes too.
+
 ## v0.9.11
 
 **Blitz through empty land, and a clean exit.**
