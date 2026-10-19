@@ -102,7 +102,7 @@
 
   // cls: inf | veh | air | art | sea
   const UNITS = {
-    grunt: { name: 'Grunts', cls: 'inf', cost: 1, atk: 2, def: 2, mv: 2, rarity: 'common', desc: 'Cheap, dependable rifle squad.' },
+    grunt: { name: 'Grunts', cls: 'inf', cost: 1, atk: 2, def: 1, mv: 2, rarity: 'common', desc: 'Cheap, dependable rifle squad.' },
     skitter: { name: 'Skitter', cls: 'veh', cost: 3, atk: 2, def: 1, mv: 4, rarity: 'common', desc: 'Raider buggy. Grabs land fast.' },
     thumper: { name: 'Thumper', cls: 'art', cost: 4, atk: 3, def: 1, mv: 1, range: 2, rarity: 'common', desc: 'Mortar crew. Fires 2 hexes instead of moving.' },
     barracuda: { name: 'Barracuda', cls: 'sea', cost: 4, atk: 3, def: 2, mv: 4, rarity: 'common', desc: 'Fast gunboat. Claims sea lanes, raids coasts.' },
