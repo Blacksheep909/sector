@@ -128,7 +128,7 @@ $3 base
 
 **Diminishing returns.** Buildings (refineries and warehouses) pay in full up to $8 a turn, then at half rate up to $24, then a quarter. Past $50 a turn, every extra dollar of income counts as two-thirds. Holding land always pays; farming buildings alone can't run away.
 
-**Rivers** wind from the highlands down to the sea (or into an inland lake) as channels of water hexes, and later rivers join earlier ones as tributaries. They keep their land rules: land units ford them (2 move), a river hex defends at **+1 mult (River Crossing)**, and every 3 river hexes you hold pay **+$1** (fertile valleys). HQs, towns and other sites always sit on dry ground.
+**Rivers** wind from the highlands down to the sea (or into an inland lake) as channels of water hexes, and later rivers join earlier ones as tributaries. **Vehicles and artillery can't cross a river without a bridge**: build a Bridge on a river hex you own. Infantry can ford one, but wading in ends their move for the turn. Aircraft fly over. A river hex defends at **+1 mult (River Crossing)**, and every 3 river hexes you hold pay **+$1** (fertile valleys). HQs, towns and other sites always sit on dry ground.
 
 **Roads** link your buildings back to your HQ through your own land. They're for show: they break where land is captured or cut off, so you can read your supply network at a glance.
 
@@ -169,8 +169,8 @@ Maps have climate. It's colder toward the top and bottom edges and hotter in the
 - Ground units and ships **seize every unclaimed hex they pass through**. Aircraft can't hold ground they fly over: **every aircraft only takes the hex it lands on.** Valkyrie and Seraph gunships can fly over enemy land, and get **Strafing Run** (+2 mult attacking ground targets).
 - **Fog of war:** if something hidden blocks the route you planned, your troops go as far as they can, or run into the hidden enemy (an ambush).
 - **March orders:** Ctrl+click a hex (or select a stack, press `M`, then click) to give the stack a standing order. At the start of each of your turns it advances toward the objective by itself, and it halts on enemy contact or when it arrives. Select it and press `Delete` to cancel.
-- Highlands, jungle, tundra, swamp and canyons cost 2 move, and so does fording into a **river** hex. Rangers ignore this. **A unit can always move at least one hex**, so slow units like the Goliath never get stuck in rough ground (and a Blizzard never takes a unit below 1 move).
-- Mountains block movement except for air units. Open water blocks land units unless they're aboard an Ark; air units fly across it.
+- Highlands, jungle, tundra, swamp and canyons cost 2 move. Fording a **river** ends an infantry unit's move (vehicles need a bridge). Rangers ignore this. **A unit can always move at least one hex**, so slow units like the Goliath never get stuck in rough ground (and a Blizzard never takes a unit below 1 move).
+- Mountains block movement except for air units. Open water blocks land units unless they're aboard an Ark; aircraft fly across it, and can end their move over it.
 - A hex holds at most 5 units, and mixed types share a stack freely. A hex of nothing but Grunts can hold 10.
 - Entering an empty enemy hex captures it. Entering an occupied hex starts a fight.
 
@@ -308,7 +308,7 @@ While others play, queue moves, deploys and builds. The preview shows exactly wh
 - **Undo** (↶ button or `Ctrl+Z`) takes back moves, deploys and builds that didn't reveal anything: no fights, loot or cards, and in fog of war no newly seen hexes. You can undo several steps back to the last such reveal. If nothing can be undone, it tells you why. In the blueprint, `Ctrl+Z` takes back the last queued order.
 - **Auto-end turn:** when you have nothing left to do (no stack can act, nothing affordable to deploy or build, no tactic to play), your turn ends after a 3-second countdown. Press STAY to keep it, or switch it off in the Esc menu.
 - **Whose turn:** a pill under the top bar always shows whose turn it is (and when you're next). On your turn the screen edge glows in your colour.
-- **Game speed:** Normal, Fast or Superspeed (lobby setting, or the speed button for the host). Faster speeds make bot turns and other players' animations quicker. When only bots are left, anyone can change it, up to 🚀 Max.
+- **Game speed:** Normal, Fast or Superspeed (lobby setting, or the **⏸ > >> >>>** strip in the top bar for the host). Faster speeds make bot turns and other players' animations quicker. **⏸ pauses** the game: bots stop and the turn clock freezes until someone resumes. When only bots are left, anyone can use the strip, up to 🚀 Max.
 - **AFK:** a connected player who sits idle through 2 turns gets a bot covering for them until they press any key or click. Without a turn timer, a turn with no sign of life ends after 2 minutes.
 - **Time bank** (lobby option): instead of a per-turn timer, each commander gets a chess clock: 3 or 6 minutes in the bank, plus 20 seconds every turn.
 - **Auto-resolve:** a fight at 95%+ odds that goes the expected way skips the dice and the long animation.
@@ -339,6 +339,6 @@ While others play, queue moves, deploys and builds. The preview shows exactly wh
 | `Shift`-drag | Box-select several stacks for a batch move |
 | `I` | Intel op: scout an area through the fog ($2) |
 | `Ctrl+Z` | Undo the last move, deploy or build |
-| `Enter` ×2 | **End your turn** (press twice; opens chat when it isn't your turn) |
+| `Enter` | **End your turn** (opens chat when it isn't your turn) |
 | `T` | Chat |
 | Hover a card | Enlarge it |

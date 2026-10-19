@@ -2,6 +2,43 @@
 
 Every release, newest first. Each version also has its own post on the [Releases page](https://github.com/Blacksheep909/sector/releases).
 
+## v0.9.4
+
+**Speed controls, real rivers, better bridges, and a big bug sweep.**
+
+**Speed controls**
+- **A speed strip in the top bar:**
+  - **⏸** pauses or resumes.
+  - **>**, **>>** and **>>>** pick Normal, Fast and Superspeed.
+  - **🚀** adds Max speed once only bots are left.
+- **Pause** stops the bots and freezes the turn clock until someone presses **▶**. The host controls the strip, or anyone once only bots are playing.
+
+**Rivers and bridges**
+- **Rivers are real obstacles:**
+  - Vehicles and artillery can't cross a river without a bridge.
+  - Infantry can ford one, but wading in ends their move for the turn.
+  - Aircraft fly over.
+- **Bridge your rivers:** build a Bridge on a river hex you own to let vehicles across. Bots bridge rivers that block their front.
+- **Roads** only cross rivers where there's a bridge.
+- **New bridge model:** an arched steel bridge with concrete piers, an asphalt deck with lane markings, and railings in the owner's colour.
+
+**Units and cards**
+- **✈ Aircraft can stop over water:** they're flying, so they no longer drop into the sea at the end of a move.
+- **🛩 Hornet is now a Common scout drone:** ATK 2, $4.
+- **🔊 Gun Run sounds like a real A-10:** the GAU-8 cannon's "BRRRT", shells crackling on the target, then the jet screaming past.
+- **💥 Kamikaze Drone** (new Common card): a loitering munition with range 5. It kills a unit on a 4+, or knocks a level off an undefended building. Air defence can shoot it down.
+- **🕵 Spy Ring and Embargo:** press **🎯 TARGET** on a rival's name card. You no longer have to find their land in the fog.
+- **Stealing makes enemies:** the victim of a Spy Ring is furious with the thief (a big mood drop that bots act on), and everyone else trusts the thief a little less.
+- **🛰 Intel ops cost about 15% of your income** (minimum $2), so scouting scales with your economy. The button shows what you can actually afford right now.
+
+**Quality of life**
+- **One Enter ends your turn.**
+- **💀 Losing units is never silent:** a message tells you what you lost and why (battle, enemy strike, lost at sea, cut off when a pact ended).
+
+**Fixes from a full bug sweep** (thousands of bot turns across every mode, map type, fog and teams setting, plus random invalid moves)
+- Bots no longer try to fortify an HQ that's already maxed out.
+- The automated browser test no longer leaves hidden browsers running, which had been joining later test lobbies as ghost players.
+
 ## v0.9.3
 
 **Plan with your allies, and lend them troops.**
