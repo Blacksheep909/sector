@@ -280,6 +280,34 @@
     throw new Error('map generation failed');
   }
 
+  // the sea is only laid within 2 hexes of land, which leaves gaps between far-apart islands. Fill any void the map
+  // encloses with open sea, then cut open-water channels through the empty gaps so every sea joins up and ships can cross
+  function openSea(tiles) {
+    const ks = Object.keys(tiles).map(parse), qs = ks.map(a => a[0]), rs = ks.map(a => a[1]);
+    const q0 = Math.min(...qs) - 1, q1 = Math.max(...qs) + 1, r0 = Math.min(...rs) - 1, r1 = Math.max(...rs) + 1;
+    const inBox = k => { const [q, r] = parse(k); return q >= q0 && q <= q1 && r >= r0 && r <= r1; };
+    const sea = k => { const [q, r] = parse(k); tiles[k] = { q, r, t: 'water', owner: null, struct: null, res: false, contam: 0, smoke: null }; };
+    // 1. voids not reachable from outside the map's box are holes in the middle of it: make them sea
+    const outside = new Set([key(q0, r0)]), st = [key(q0, r0)];
+    while (st.length) { const k = st.pop(); for (const n of neighbors(k)) if (inBox(n) && !tiles[n] && !outside.has(n)) { outside.add(n); st.push(n); } }
+    for (let q = q0; q <= q1; q++) for (let r = r0; r <= r1; r++) { const k = key(q, r); if (!tiles[k] && !outside.has(k)) sea(k); }
+    // 2. join separate seas: find a path through water and empty space from each stray sea to the main one, and flood it
+    const comps = () => { const seen = new Set(), out = []; for (const k in tiles) { if (seen.has(k) || tiles[k].t !== 'water') continue; const c = [k]; seen.add(k); for (let i = 0; i < c.length; i++) for (const n of neighbors(c[i])) if (tiles[n] && tiles[n].t === 'water' && !seen.has(n)) { seen.add(n); c.push(n); } out.push(c); } return out.sort((a, b) => b.length - a.length); };
+    for (let guard = 0; guard < 40; guard++) {
+      const cs = comps(); if (cs.length < 2) break;
+      const main = new Set(cs[0]), from = cs[1], prev = {}, q = from.slice(); for (const k of from) prev[k] = null;
+      let hit = null;
+      for (let i = 0; i < q.length && !hit; i++) for (const n of neighbors(q[i])) {
+        if (n in prev || !inBox(n)) continue;
+        if (main.has(n)) { prev[n] = q[i]; hit = n; break; }
+        if (tiles[n] && tiles[n].t !== 'water') continue;   // only through water and empty space, never across land
+        prev[n] = q[i]; q.push(n);
+      }
+      if (!hit) break;   // walled off by land: a lake, and that's fine
+      for (let k = prev[hit]; k; k = prev[k]) if (!tiles[k]) sea(k);
+      if (comps().length === cs.length) break;
+    }
+  }
   function tryMap(seed, nP, size, forceArch) {
     const rng = mulberry32(seed);
     const noise = makeNoise(seed % 100000), noise2 = makeNoise((seed * 3 + 17) % 100000), warpN = makeNoise((seed * 7 + 5) % 100000);
@@ -364,6 +392,7 @@
       const [q, r] = parse(a);
       tiles[a] = { q, r, t: 'water', owner: null, struct: null, res: false, contam: 0, smoke: null };
     }
+    openSea(tiles);
     for (const k in tiles) if (tiles[k].t === 'water') tiles[k].deep = !neighbors(k).some(n => tiles[n] && tiles[n].t !== 'water');
     const isLand = k => tiles[k] && TERRAIN[tiles[k].t].land;
     const compOf = {}, comps = [];
