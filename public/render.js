@@ -6,7 +6,7 @@ const Render = (() => {
   const EDGE_DIR = [1, 0, 5, 4, 3, 2];
   const HEIGHT = { water: 2, plains: 8, forest: 8, hills: 10, mountain: 10, desert: 7, jungle: 8, tundra: 9, swamp: 5, canyon: 12 };
   // neutral land is deliberately muted so player territory pops
-  const COL = { shallow: '#2a6688', water: '#173d58', plains: '#55644a', forest: '#3f5640', hills: '#6b6150', mountain: '#4a4752', fallout: '#6f7a25', desert: '#9c8a5c', jungle: '#2f5a37', tundra: '#9aa7ae', swamp: '#4b5a46', canyon: '#a8532c' };
+  const COL = { river: '#2d7aa6', shallow: '#2a6688', water: '#173d58', plains: '#55644a', forest: '#3f5640', hills: '#6b6150', mountain: '#4a4752', fallout: '#6f7a25', desert: '#9c8a5c', jungle: '#2f5a37', tundra: '#9aa7ae', swamp: '#4b5a46', canyon: '#a8532c' };
   const POI_COL = { ruins: '#d9b77a', cache: '#ffcf4a', village: '#f1efe6', fort: '#c9cfd6', relic: '#c27bff', silo: '#ffffff' };
 
   let cv, ctx, W = 0, H = 0, DPR = 1;
@@ -68,11 +68,14 @@ const Render = (() => {
     const now = t;
     for (const k of order) {
       const t = S_.map.tiles[k], c = tc[k];
-      c.h = t.fog === 2 ? 4 : HEIGHT[t.t];
-      let base = hx(t.fog === 2 ? '#141c24' : t.contam ? COL.fallout : t.t === 'water' ? (t.deep ? COL.water : COL.shallow) : COL[t.t]);
+      // rivers are full water hexes: a sunken, flowing channel (they still keep their land rules)
+      const river = t.river && t.t !== 'water' && t.fog !== 2 && !t.contam;
+      c.h = t.fog === 2 ? 4 : river ? 3.5 : HEIGHT[t.t];
+      c.river = river;
+      let base = hx(t.fog === 2 ? '#141c24' : t.contam ? COL.fallout : river ? COL.river : t.t === 'water' ? (t.deep ? COL.water : COL.shallow) : COL[t.t]);
       base = shade(base, (c.v - 0.5) * 0.06);
-      const owned = t.owner && pc[t.owner] && t.t !== 'water';
-      if (t.owner && pc[t.owner] && t.t === 'water') base = mix(base, pc[t.owner], t.bridge ? 0.5 : 0.32);
+      const owned = t.owner && pc[t.owner] && t.t !== 'water' && !river;
+      if (t.owner && pc[t.owner] && (t.t === 'water' || river)) base = mix(base, pc[t.owner], t.bridge ? 0.5 : river ? 0.38 : 0.32);
       if (owned) {
         // flat, saturated team colour; terrain only nudges the brightness
         const tb = { plains: 0, forest: -0.12, hills: 0.08, desert: 0.1, jungle: -0.16, tundra: 0.14, swamp: -0.1, canyon: -0.04 }[t.t] || 0;
@@ -87,7 +90,37 @@ const Render = (() => {
       c.owner = t.owner; c.oc = t.owner && pc[t.owner] && t.fog !== 2 ? rgb(shade(pc[t.owner], 0.45)) : null;
     }
     if (S_._sup) delete S_._sup;
+    computeRoads();
     stateVer++;
+  }
+  // roads: each commander's buildings are linked back to their HQ along the shortest route through their own land.
+  // Recomputed from the board every time it changes, so a captured or cut-off hex breaks the road there.
+  let roads = {};
+  function computeRoads() {
+    roads = {};
+    const tiles = S_.map.tiles, link = (a, b) => { (roads[a] || (roads[a] = new Set())).add(b); (roads[b] || (roads[b] = new Set())).add(a); };
+    for (const p of S_.players) {
+      if (!p.alive || !p.hq || !tiles[p.hq] || tiles[p.hq].owner !== p.id) continue;
+      const passable = k => { const t = tiles[k]; return t && t.owner === p.id && t.fog !== 2 && E.isLandTile(t) && t.t !== 'mountain'; };
+      const prev = { [p.hq]: null }, q = [p.hq];
+      for (let i = 0; i < q.length; i++) for (const n of E.neighbors(q[i])) if (!(n in prev) && passable(n)) { prev[n] = q[i]; q.push(n); }
+      for (const k of q) {
+        if (k === p.hq || !E.structsOf(tiles[k]).some(st => st.owner === p.id && st.type !== 'hq')) continue;
+        for (let c = k; prev[c] && !(roads[c] && roads[c].has(prev[c])); c = prev[c]) link(c, prev[c]);
+      }
+    }
+  }
+  function drawRoad(k, cx, cy, z) {
+    const set = roads[k]; if (!set) return;
+    ctx.save(); ctx.lineCap = 'round';
+    const ends = [];
+    for (const n of set) { const a = tc[n]; if (!a) continue; const [nx, ny] = toScreen(a.wx, a.wy - a.h * (S / 34)); ends.push([(cx + nx) / 2, (cy + ny) / 2]); }
+    for (const [w, col] of [[3.4, 'rgba(30,24,16,.28)'], [1.7, 'rgba(226,210,170,.42)']]) {
+      ctx.strokeStyle = col; ctx.lineWidth = w * z; ctx.beginPath();
+      for (const [ex, ey] of ends) { ctx.moveTo(cx, cy); ctx.lineTo(ex, ey); }
+      ctx.stroke();
+    }
+    ctx.restore();
   }
 
   // ── camera ──
@@ -253,11 +286,11 @@ const Render = (() => {
   function drawWaterGlints() {
     const z = cam.z, sc = S / 34, s = S * 0.965 * z;
     for (const k of order) {
-      const tile = S_.map.tiles[k]; if (tile.t !== 'water' || tile.fog || tile.contam) continue;
-      const c = tc[k]; if (!c) continue;
-      const sh = 0.5 + 0.5 * Math.sin(t * 1.1 + c.q * 0.9 - c.r * 0.6); if (sh < 0.55) continue;
+      const tile = S_.map.tiles[k], c = tc[k]; if (!c || (tile.t !== 'water' && !c.river) || tile.fog || tile.contam) continue;
       const [cx, gy] = toScreen(c.wx, c.wy); const cy = gy - c.h * sc * z;
       if (cx < -60 || cx > W + 60 || cy < -60 || cy > H + 60) continue;
+      if (c.river && z > 0.45) { drawRiver(k, tile, cx, cy, z, s, true); ctx.globalAlpha = 1; }
+      const sh = 0.5 + 0.5 * Math.sin(t * 1.1 + c.q * 0.9 - c.r * 0.6); if (sh < 0.55) continue;
       ctx.globalAlpha = Math.pow((sh - 0.55) / 0.45, 2) * (tile.deep ? 0.18 : 0.24);
       ctx.fillStyle = tile.deep ? '#4f8fb8' : '#7cc4e6';
       ctx.beginPath(); for (let i = 0; i < 6; i++) { const v = VERT[i]; i ? ctx.lineTo(cx + v[0] * s, cy + v[1] * s * TILT) : ctx.moveTo(cx + v[0] * s, cy + v[1] * s * TILT); } ctx.closePath(); ctx.fill();
@@ -305,8 +338,8 @@ const Render = (() => {
       if (tile.struct && tile.struct.type === 'hq') drawStruct(tile, cx, cy, z, k);
       return;
     }
-    decorate(tile, c, cx, cy, s, z);
-    if (tile.river) drawRiver(k, tile, cx, cy, z);
+    if (c.river) drawRiver(k, tile, cx, cy, z, s); else decorate(tile, c, cx, cy, s, z);
+    drawRoad(k, cx, cy, z);
     // territory borders
     if (tile.owner && c.oc) {
       const nb = E.neighbors(k);
@@ -427,26 +460,25 @@ const Render = (() => {
       ctx.fill();
     }
   }
-  // a river channel: from each upstream neighbour's edge, through the hex, out toward the downstream hex
-  function drawRiver(k, tile, cx, cy, z) {
-    const edge = n => { const a = tc[n]; if (!a) return null; const [nx, ny] = toScreen(a.wx, a.wy - a.h * (S / 34)); return [(cx + nx) / 2, (cy + ny) / 2]; };
-    const ends = [];
-    for (const n of E.neighbors(k)) { const nt = S_.map.tiles[n]; if (nt && nt.river && nt.flow === k) { const e = edge(n); if (e) ends.push(e); } }
-    const out = tile.flow && edge(tile.flow);
-    const spring = !ends.length;
-    if (spring) ends.push([cx, cy]);
-    // each hex bends the channel a little to one side, so the river meanders
-    const v = tc[k] ? tc[k].v : 0.5, bend = (v - 0.5) * 16 * z;
-    ctx.save(); ctx.lineCap = 'round'; ctx.lineJoin = 'round';
-    const paths = ends.map(([ex, ey]) => {
-      const tx = out ? out[0] : cx, ty = out ? out[1] : cy, dx = tx - ex, dy = ty - ey, l = Math.hypot(dx, dy) || 1;
-      return [ex, ey, cx - dy / l * bend, cy + dx / l * bend * TILT, tx, ty];
-    });
-    for (const [w, col] of [[11, 'rgba(60,90,50,.35)'], [8, '#1f5677'], [5.5, '#2f7eae'], [2, 'rgba(170,225,250,.7)']]) {
-      ctx.strokeStyle = col; ctx.lineWidth = w * z;
-      for (const [ex, ey, qx, qy, tx, ty] of paths) { ctx.beginPath(); ctx.moveTo(ex, ey); ctx.quadraticCurveTo(qx, qy, tx, ty); ctx.stroke(); }
+  // a river hex is open water: ripples drift across it toward the hex it drains into
+  function drawRiver(k, tile, cx, cy, z, s, flow) {
+    const a = tile.flow && tc[tile.flow];
+    let dx = 1, dy = 0;
+    if (a) { const [nx, ny] = toScreen(a.wx, a.wy - a.h * (S / 34)); const l = Math.hypot(nx - cx, ny - cy) || 1; dx = (nx - cx) / l; dy = (ny - cy) / l; }
+    ctx.save(); hexPath(cx, cy, s * 0.96); ctx.clip();
+    if (!flow) {
+      // banks: a darker rim so the channel reads as sunk into the land
+      ctx.strokeStyle = 'rgba(10,30,45,.45)'; ctx.lineWidth = 5 * z; hexPath(cx, cy, s * 0.96); ctx.stroke();
+      ctx.restore(); return;
     }
-    if (spring) { ctx.fillStyle = '#2f7eae'; ctx.beginPath(); ctx.ellipse(cx, cy, 5 * z, 3 * z, 0, 0, Math.PI * 2); ctx.fill(); }
+    const v = tc[k] ? tc[k].v : 0.5;
+    ctx.strokeStyle = 'rgba(190,235,255,.55)'; ctx.lineWidth = 1.6 * z; ctx.lineCap = 'round';
+    for (let i = 0; i < 4; i++) {
+      const ph = ((t * 0.35 + i / 4 + v) % 1), off = (i - 1.5) * 7 * z;
+      const px = cx - dx * s * 0.8 + dx * ph * s * 1.6 - dy * off, py = cy - dy * s * 0.8 * TILT + dy * ph * s * 1.6 * TILT + dx * off * TILT;
+      ctx.globalAlpha = Math.sin(ph * Math.PI) * 0.9;
+      ctx.beginPath(); ctx.moveTo(px - dx * 5 * z, py - dy * 5 * z * TILT); ctx.lineTo(px + dx * 5 * z, py + dy * 5 * z * TILT); ctx.stroke();
+    }
     ctx.restore();
   }
   function decorate(tile, c, cx, cy, s, z) {
@@ -655,7 +687,7 @@ const Render = (() => {
     ctx.fillStyle = 'rgba(0,0,0,.45)'; ctx.beginPath(); ctx.ellipse(x, y + 1 * z, r * 1.0, r * 0.38, 0, 0, Math.PI * 2); ctx.fill();
     const ty = y - r * 0.95 + bob;
     const spr = tokenSprite(top.type, units.length, col, !!exhausted, r, z);
-    ctx.drawImage(spr.cv, x - spr.ox, ty - spr.oy, spr.w, spr.h);
+    { const a0 = ctx.globalAlpha; if (exhausted) ctx.globalAlpha = a0 * 0.6; ctx.drawImage(spr.cv, x - spr.ox, ty - spr.oy, spr.w, spr.h); ctx.globalAlpha = a0; }
     if (units.some(u => u.stun)) {
       // stunned: a slow cyan pulse and a lightning badge
       const pz = 0.5 + 0.5 * Math.sin(t * 3);
@@ -663,6 +695,12 @@ const Render = (() => {
       const bx = x - r * 0.95, by = ty - r * 0.7;
       ctx.fillStyle = '#0b1a22'; ctx.beginPath(); ctx.arc(bx, by, 7 * z, 0, Math.PI * 2); ctx.fill(); ctx.strokeStyle = '#7ff3ff'; ctx.lineWidth = 1.5 * z; ctx.stroke();
       ctx.fillStyle = '#7ff3ff'; ctx.beginPath(); ctx.moveTo(bx + 1 * z, by - 5 * z); ctx.lineTo(bx - 3 * z, by + 1 * z); ctx.lineTo(bx, by + 1 * z); ctx.lineTo(bx - 1 * z, by + 5 * z); ctx.lineTo(bx + 3 * z, by - 1 * z); ctx.lineTo(bx, by - 1 * z); ctx.closePath(); ctx.fill();
+    }
+    if (exhausted && !opts.ghost) {
+      // spent: no unit in this stack can move or fire again this turn
+      const bx = x - r * 0.95, by = ty + r * 0.55;
+      ctx.fillStyle = '#20262c'; ctx.strokeStyle = '#0a0e12'; ctx.lineWidth = 2 * z; ctx.beginPath(); ctx.arc(bx, by, 6.5 * z, 0, Math.PI * 2); ctx.fill(); ctx.stroke();
+      ctx.fillStyle = '#9aa4ad'; ctx.font = `800 ${8 * z}px "Chakra Petch",sans-serif`; ctx.textAlign = 'center'; ctx.textBaseline = 'middle'; ctx.fillText('z', bx, by + 0.5 * z);
     }
     // ready marker: bouncing chevron
     if (opts.ready) {
@@ -715,7 +753,7 @@ const Render = (() => {
       const [wx, wy] = topOf(st.k); const [x, y] = toScreen(wx, wy);
       const hasStruct = S_.map.tiles[st.k] && S_.map.tiles[st.k].struct;
       const own = st.units[0].owner === ov.me;
-      const ready = own && ov.myTurn && st.units.some(u => E.canAct(S_, u));
+      const ready = own && ov.myTurn && st.units.some(u => E.canAct(S_, u) && (E.moveAllow(S_, u) > 0 || E.UNITS[u.type].range));
       const exhausted = own && ov.myTurn && !ready;
       if (ov.troops) {
         // troops view: owner halo plus the stack's total attack / defence
@@ -730,7 +768,13 @@ const Render = (() => {
         ctx.strokeStyle = col; ctx.lineWidth = 1.5; ctx.stroke(); ctx.fillStyle = '#fff'; ctx.fillText(label, x, ly + 0.5);
         continue;
       }
-      drawToken(x + (hasStruct ? 12 * z : 0), y + (hasStruct ? 6 * z : 0), st.units, st.units[0].owner, z, { ready, exhausted });
+      const planned = own && ov.planHexes && ov.planHexes.has(st.k);
+      if (planned) {
+        // queued in the blueprint: a light-blue dashed ring under the stack
+        ctx.save(); ctx.strokeStyle = '#8fdcff'; ctx.lineWidth = 2.5 * z; ctx.setLineDash([5 * z, 4 * z]); ctx.lineDashOffset = -t * 20;
+        ctx.beginPath(); ctx.ellipse(x, y + 2 * z, 21 * z, 9 * z, 0, 0, Math.PI * 2); ctx.stroke(); ctx.restore();
+      }
+      drawToken(x + (hasStruct ? 12 * z : 0), y + (hasStruct ? 6 * z : 0), st.units, st.units[0].owner, z, { ready, exhausted: exhausted && !planned, planned });
     }
     // animated units
     const moving = {};
@@ -914,6 +958,13 @@ const Render = (() => {
     const p1 = performance.now();
     for (const k of order) if (hasOverlay(k)) drawTile(k, 'overlay');
     for (const pa of ov.planArrows) drawPath(pa.path, pa.color, true, 0.85);
+    if (ov.marches) for (const mo of ov.marches) {
+      // standing march order: a long dashed line to a flag on the objective
+      drawPath(E.line(mo.from, mo.to), '#7ff3ff', true, 0.6);
+      const [fx, fy] = screenOf(mo.to), z = cam.z;
+      ctx.strokeStyle = '#e8f6ff'; ctx.lineWidth = 2 * z; ctx.beginPath(); ctx.moveTo(fx, fy - 4 * z); ctx.lineTo(fx, fy - 26 * z); ctx.stroke();
+      ctx.fillStyle = '#7ff3ff'; ctx.beginPath(); ctx.moveTo(fx, fy - 26 * z); ctx.lineTo(fx + 13 * z, fy - 21 * z); ctx.lineTo(fx, fy - 16 * z); ctx.fill();
+    }
     if (ov.path) drawPath(ov.path, ov.pathColor || '#fff', false);
     const p2 = performance.now();
     if (ov.troops) {
@@ -934,5 +985,5 @@ const Render = (() => {
   }
   const perf = { tiles: 0, fog: 0, units: 0, rest: 0, total: 0 };
 
-  return { invalidate, perf, flyover, init, setState, recolor, focus, fitMap, pan, zoomAt, hexAt, screenOf, topOf, world, ov, unitPos, unitHidden, extraUnits, burst, smoke, float, ring, beam, lance, emp, shake, flash, pop, cam, get time() { return t; } };
+  return { invalidate, perf, flyover, init, setState, recolor, focus, fitMap, pan, zoomAt, hexAt, screenOf, topOf, world, ov, unitPos, unitHidden, extraUnits, burst, smoke, float, ring, beam, lance, emp, shake, flash, pop, cam, get time() { return t; }, get roads() { return roads; } };
 })();

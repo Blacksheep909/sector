@@ -52,13 +52,14 @@
       <h3>WAR SETTINGS</h3>
       <div class="set"><label>Mode</label><select id="setMode"><option value="domination">Domination — take every HQ</option><option value="conquest">Conquest — hold 60% of land</option><option value="koth">Beacon — hold the centre 3 turns</option><option value="worldwar">World War — colossal map, silos, war economy</option></select></div>
       <div class="set"><label>Teams</label><select id="setTeams"><option value="off">Free for all</option><option value="on">Teams</option></select></div>
-      <div class="set"><label>Map type</label><select id="setType"><option value="random">Random</option><option value="continent">Continent</option><option value="pangaea">Supercontinent</option><option value="twin">Twin continents</option><option value="archipelago">Archipelago</option><option value="inland">Inland sea</option><option value="crescent">Crescent isles</option><option value="ocean">Open ocean</option></select></div>
+      <div class="set"><label>Map type</label><select id="setType"><option value="random">Random</option><option value="continent">Continent</option><option value="pangaea">Supercontinent</option><option value="twin">Twin continents</option><option value="archipelago">Archipelago</option><option value="inland">Inland sea</option><option value="crescent">Crescent isles</option><option value="rings">Rings (abstract)</option><option value="spiral">Spiral galaxy (abstract)</option><option value="shattered">Shattered plates (abstract)</option><option value="maze">Maze (abstract)</option><option value="mirror">Mirror (abstract)</option><option value="lattice">Lattice (abstract)</option><option value="ocean">Open ocean</option></select></div>
       <div class="set"><label>Map size</label><select id="setSize"><option value="small">Small</option><option value="medium">Medium</option><option value="large">Large</option><option value="huge">Huge</option></select></div>
       <div class="set"><label>Fog of war</label><select id="setFog"><option value="off">Off</option><option value="on">On</option></select></div>
       <div class="set"><label>World events</label><select id="setEvents"><option value="on">On</option><option value="off">Off</option></select></div>
       <div class="set"><label>Spawns</label><select id="setSpawns"><option value="random">Random</option><option value="pick">Pick your HQ</option></select></div>
       <div class="set"><label>Turn timer</label><select id="setTimer"><option value="0">Off</option><option value="45">45s</option><option value="90">90s</option><option value="150">150s</option></select></div>
       <div class="set"><label>Round limit</label><select id="setRounds"><option value="0">None</option><option value="15">15</option><option value="25">25</option><option value="40">40</option></select></div>
+      <div class="set"><label>Game speed</label><select id="setSpeed"><option value="normal">Normal</option><option value="fast">Fast — quicker bot turns</option><option value="super">Superspeed</option></select></div>
       <div class="set"><label>Map seed</label><input id="setSeed" placeholder="random" maxlength="20"></div>
       <button id="startBtn" class="btn big red">DEPLOY</button>
       <button id="readyBtn" class="btn big green" hidden>READY UP</button>
@@ -71,7 +72,7 @@
 
 <!-- ───────── in-game HUD ───────── -->
 <section id="hud" hidden>
-  <div id="topbar"><div id="roundBox"></div><div id="players"></div><div class="top-btns"><button id="muteBtn" class="icon-btn" title="Sound">♪</button><button id="menuBtn" class="icon-btn" title="Menu (Esc)">☰</button><button id="indexBtn" class="icon-btn" title="Card index">▤</button><button id="rulesBtn" class="icon-btn" title="How to play">?</button></div></div>
+  <div id="topbar"><div id="roundBox"></div><div id="players"></div><div class="top-btns"><button id="speedBtn" class="icon-btn" title="Game speed" hidden>⏩</button><button id="muteBtn" class="icon-btn" title="Sound">♪</button><button id="menuBtn" class="icon-btn" title="Menu (Esc)">☰</button><button id="indexBtn" class="icon-btn" title="Card index">▤</button><button id="rulesBtn" class="icon-btn" title="How to play">?</button></div></div>
   <div id="leftCol">
   <div id="cashBox" class="panel">
     <div class="cash-row"><span class="cur">$</span><span id="cash">0</span></div>
@@ -115,6 +116,7 @@
     <button class="btn big" id="escRules">HOW TO PLAY</button>
     <button class="btn big" id="escIndex">CARD INDEX</button>
     <button class="btn big" id="escSound">SOUND: ON</button>
+    <button class="btn big" id="escAuto" title="End your turn automatically when nothing is left to do">AUTO-END TURN: ON</button>
     <button class="btn big blue" id="escServer" hidden>SERVER PANEL</button>
     <button class="btn big gold" id="escLeave">LEAVE GAME</button>
     <button class="btn big red" id="escEnd" hidden>END GAME FOR EVERYONE</button>

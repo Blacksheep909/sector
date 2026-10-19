@@ -5,7 +5,7 @@ Grab land, build an economy, crush your rivals. **Every hex you hold pays you**,
 ## Setup and the opening draft
 
 - 2–8 commanders: humans over the network, bots (Easy, Medium, Hard, Impossible), and **pass-and-play** players sharing one device. Anyone can press 👁 in the lobby to **spectate** instead of play. A cover screen hides each player's hand between turns.
-- Every map is procedurally generated from one of six layouts: continent, supercontinent, twin continents, archipelago, inland sea, or crescent isles. The coastline is noise-warped, so no two boards share an outline. Sizes run from Small to **Huge** (about 3.5× the land of Small).
+- Every map is procedurally generated from one of thirteen layouts. Seven are natural (continent, supercontinent, twin continents, archipelago, inland sea, crescent isles, open ocean) and six are abstract (rings, spiral galaxy, shattered plates, maze, mirror, lattice). The coastline is noise-warped, so no two boards share an outline. Sizes run from Small to **Huge** (about 3.5× the land of Small).
 - **Spawns.** With *Random* spawns, HQs are placed fairly far apart. With *Pick your HQ*, commanders take turns choosing their HQ hex (whoever moves last picks first). HQs must sit a minimum distance apart, and bots pick roomy spots near resources.
 - Everyone starts with an HQ and its surrounding hexes, 2 Grunts, $6, a **Rare Supply Drop** card, and two unit cards: **Grunts** and their faction's starter unit. Commanders who start on a small island also get the **Ark** transport so they can reach the mainland.
 - **Opening draft.** Before round 1, every commander picks simultaneously. In each of 3 draft rounds you're offered 3 cards and keep 1.
@@ -26,10 +26,12 @@ Grab land, build an economy, crush your rivals. **Every hex you hold pays you**,
 | 🔥 War Fervour | Every attack gets +1 mult |
 | ☀ Clear Skies | Everyone sees 2 hexes further (fog of war games only) |
 
-- **Alliances.** On your turn, press **ALLY** under a rival's name to propose one. Allies can't attack or enter each other's land, share vision in the fog, and if only allies are left standing they **win together**. Either side can press **BREAK** to end it. The break takes effect at the start of the breaker's next turn, so the other side gets a warning.
+- **Alliances.** On your turn, press **ALLY** under a rival's name to propose one. Allies can't attack or enter each other's land, share vision in the fog, and if only allies are left standing they **win together**. In Conquest and World War, allies who are all allied with each other also **count their land together** toward the win.
+  - **Pacts last 5 rounds** (the 🤝 badge shows how many are left). In the last 2 rounds, both sides can press **RENEW** to extend it 5 more. If either side doesn't, it lapses peacefully: no traitor penalty.
+  - Either side can press **BREAK** to end it early. The break takes effect at the start of the breaker's next turn, so the other side gets a warning.
   - **Holding a pact pays.** After 2 rounds, each alliance earns both sides an **alliance dividend** of +$2 per turn, rising by $1 every 3 rounds (max +$4). A hex next to an ally's land also gets **+1 defence mult (Allied Support)**.
   - **Betrayal costs.** Whoever breaks a pact is branded a **🗡 TRAITOR** for 3 of their turns: **-40% income** and nobody will ally with them. The betrayed side gets **+2 mult (Vengeance)** on every attack against the traitor for 3 turns.
-- **Bot moods.** Every bot keeps a mood towards every commander (the face next to its name shows how it feels about you). Attacks, sieges, land grabs and betrayals sour it; trades and long alliances warm it up, and grudges fade slowly. Bots read the board too: they team up against whoever is most dangerous, turn down pacts with the runaway leader, and knife an ally who gets too big. Harder bots are more ruthless: once a pact is 3 rounds old they may also break it when the common enemy is beaten, or when a weak ally is sitting on land next to theirs and they're the strongest on the board.
+- **Bot moods.** Every bot keeps a mood towards every commander (the face next to its name shows how it feels about you). Attacks, sieges, land grabs and betrayals sour it; trades and long alliances warm it up, and grudges fade slowly. Bots read the board too: they team up against whoever is most dangerous, turn down pacts with the runaway leader, and knife an ally who gets too big. Each bot picks a war target (whoever betrayed it, the runaway leader, or its weakest neighbour), masses troops before attacking, reinforces threatened bases, and buys counters (anti-air against air power, tank hunters against armour, siege units against forts). Harder bots are more ruthless: once a pact is 3 rounds old they may break it when the common enemy is beaten, or when a weak ally sits next to them while they lead. They plan it first: they move a strike force onto the border and only break when they can hit hard.
 
 ## Win conditions
 
@@ -122,10 +124,14 @@ $3 base
 + $1 per fishing ground
 + shipping lanes: each Port earns $1 per 4 of your sea hexes connected to it (max $5 per Port)
 + $2 per village, $3 per relic
-+ refineries and markets
++ refineries and warehouses
 ```
 
-**Rivers** wind from the highlands down to the sea. A river hex defends at **+1 mult (River Crossing)**, and every 3 river hexes you hold pay **+$1** (fertile valleys).
+**Diminishing returns.** Buildings (refineries and warehouses) pay in full up to $8 a turn, then at half rate up to $24, then a quarter. Past $50 a turn, every extra dollar of income counts as two-thirds. Holding land always pays; farming buildings alone can't run away.
+
+**Rivers** wind from the highlands down to the sea as channels of water hexes. They keep their land rules: land units ford them (2 move), a river hex defends at **+1 mult (River Crossing)**, and every 3 river hexes you hold pay **+$1** (fertile valleys). HQs, towns and other sites always sit on dry ground.
+
+**Roads** link your buildings back to your HQ through your own land. They're for show: they break where land is captured or cut off, so you can read your supply network at a glance.
 
 **Supply:** a hex pays only if it connects through your own territory to your HQ or a Port. A **FOB only works while it's connected** that way too: a cut-off FOB is no deploy point and supplies nothing, and you can only build a FOB on supplied land. Owned sea counts as territory, so sea lanes carry supply to your islands. Cut-off hexes are hatched on the map and pay nothing.
 
@@ -154,7 +160,9 @@ Maps have climate. It's colder toward the top and bottom edges and hotter in the
 
 ## Moving
 
-- Ground units and ships **seize every unclaimed hex they pass through**. Aircraft can't hold ground they fly over: they only take the hex they land on (Valkyrie and Seraph gunships still seize enemy hexes on their flight path).
+- Ground units and ships **seize every unclaimed hex they pass through**. Aircraft can't hold ground they fly over: **every aircraft only takes the hex it lands on.** Valkyrie and Seraph gunships can fly over enemy land, and get **Strafing Run** (+2 mult attacking ground targets).
+- **Fog of war:** if something hidden blocks the route you planned, your troops go as far as they can, or run into the hidden enemy (an ambush).
+- **March orders:** Ctrl+click a hex (or select a stack, press `M`, then click) to give the stack a standing order. At the start of each of your turns it advances toward the objective by itself, and it halts on enemy contact or when it arrives. Select it and press `Delete` to cancel.
 - Highlands, jungle, tundra, swamp and canyons cost 2 move, and so does fording into a **river** hex. Rangers ignore this. **A unit can always move at least one hex**, so slow units like the Goliath never get stuck in rough ground (and a Blizzard never takes a unit below 1 move).
 - Mountains block movement except for air units. Open water blocks land units unless they're aboard an Ark; air units and hover tanks fly or glide across it.
 - A hex holds at most 5 units, and mixed types share a stack freely. A hex of nothing but Grunts can hold 10.
@@ -190,6 +198,8 @@ You **throw your own die**: drag and fling it in the dice tray, or press `Space`
 | Bunker / FOB / HQ | +2 / +1 / +2 defender mult; an HQ also has +3 garrison chips |
 | Smoke Screen | +2 defender mult |
 | Tank Hunter / Torpedoes | +3 chips vs vehicles / +4 chips vs ships |
+| Anti-Air | Stinger +3, Scorpion +4, Skyguard +6, Sentinel +4 chips in any fight involving enemy aircraft |
+| Strafing Run | +2 mult when Valkyries or Seraphs attack ground targets |
 | Siege Breaker | +2 mult vs fortified hexes |
 | Aegis / Flak | +1 defender mult / +2 vs air |
 | Shore Assault | −1 mult when ships alone attack a land hex |
@@ -202,7 +212,8 @@ Units with a range stat fire instead of moving.
 
 - If the shot wins, it destroys 1 unit (2 if you double the defender's score).
 - If it misses, nothing happens.
-- Shots can't pass through mountains (the Oracle ignores this).
+- Shots can't pass through mountains (the Oracle and the Sentinel ignore this).
+- The **Sentinel** SAM battery only engages stacks with aircraft in them, and only shoots down aircraft.
 
 ## The sea
 
@@ -228,8 +239,8 @@ Build from the build bar (`Z` and onward, nine slots). To **upgrade** a structur
 |---|---|
 | **Fortify (HQ)** | +3 garrison chips and +1 mult |
 | **FOB** | +1 defence mult |
-| **Market** | +$3, and each level counts toward the trade network |
-| **Refinery** | +$2 (+$4 on a resource node or oil rig) |
+| **Warehouse** | +$2 (+$3 when next to a resource node, Refinery or Port) |
+| **Refinery** | +$1 (+$3 on a resource node or oil rig) |
 | **Depot** | +1 to its range for the move bonus |
 | **Bunker** | +3 garrison chips (even when empty, so it must be attacked) and +1 defence mult (★ gives +2). From ★★, your neighbouring hexes get +1 mult (Bunker Line). **Hold the Line:** when defended against a stronger attack, +40% of the attacker's chip lead (max 4 per level). **★★★ Citadel:** 14 garrison chips, +5 mult, +2 mult to neighbours, and Hold the Line takes 60% of the lead (max 20). **Destroyed** when an enemy captures its hex |
 | **Sea Mine** | The naval Bunker, built on your own sea: +3 garrison chips per level (so enemy ships must fight through instead of sailing past) and +2 defence mult (+1 per extra level). Cleared when an enemy captures the hex |
@@ -237,7 +248,7 @@ Build from the build bar (`Z` and onward, nine slots). To **upgrade** a structur
 
 Ports and bridges don't upgrade. **Sabotage** knocks a level off a structure, and destroys it only at ★.
 
-**Stacking.** A hex can hold up to **3 different buildings**, for example a Market★★, a Bunker and a Depot. Bridges take a hex to themselves, and so does your **HQ**: nothing else can be built on the HQ hex (fortify it instead; the Fortify card fortifies the HQ when played there).
+**Stacking.** A hex can hold up to **3 different buildings**, for example a Warehouse★★, a Bunker and a Depot. Bridges take a hex to themselves, and so does your **HQ**: nothing else can be built on the HQ hex (fortify it instead; the Fortify card fortifies the HQ when played there).
 
 **New and captured bases.** A FOB you build, and a FOB or Port you capture, comes online at the start of your next turn. You can't build or capture one and deploy on it the same turn.
 
@@ -277,7 +288,11 @@ While others play, queue moves, deploys and builds. The preview shows exactly wh
 ## Turn timer and undo
 
 - With a **turn timer** set, a bar under the top bar drains in the current player's colour, turning red for the last 10 seconds. The clock **pauses while your fights and crates play out**, and your resupply pick gets 20 seconds of its own. If time runs out, income is collected and your turn ends.
-- **Undo** (↶ button or `Ctrl+Z`) takes back moves, deploys and builds that didn't reveal anything: no fights, loot or cards, and in fog of war no newly seen hexes. You can undo several steps back to the last such reveal.
+- **Undo** (↶ button or `Ctrl+Z`) takes back moves, deploys and builds that didn't reveal anything: no fights, loot or cards, and in fog of war no newly seen hexes. You can undo several steps back to the last such reveal. If nothing can be undone, it tells you why. In the blueprint, `Ctrl+Z` takes back the last queued order.
+- **Auto-end turn:** when you have nothing left to do (no stack can act, nothing affordable to deploy or build, no tactic to play), your turn ends after a 3-second countdown. Press STAY to keep it, or switch it off in the Esc menu.
+- **Whose turn:** a pill under the top bar always shows whose turn it is (and when you're next). On your turn the screen edge glows in your colour.
+- **Game speed:** Normal, Fast or Superspeed (lobby setting, or the speed button for the host). Faster speeds make bot turns and other players' animations quicker. When only bots are left, anyone can change it, up to 🚀 Max.
+- **AFK:** a connected player who sits idle through 2 turns gets a bot covering for them until they press any key or click. Without a turn timer, a turn with no sign of life ends after 2 minutes.
 - **Fast placing.** In deploy or build mode you can click as fast as you like: each click is sent straight away, even while the last drop is still landing.
 
 ## Controls
@@ -292,9 +307,13 @@ While others play, queue moves, deploys and builds. The preview shows exactly wh
 | `1`–`0` | Deploy |
 | `Z`–`M` | Build |
 | `Space` | Flip the next card · throw your die · skip the animation playing (never ends your turn) |
+| Click a flipping card | Finish its reveal at once; quick clicks flip the rest at triple speed |
 | Hold `Alt` | Troops-only view: the board fades out and every stack shows its total attack and defence |
 | Crate (Supply Drop) | Click or `Space` to burst it open |
 | `F` | Jump to your HQ |
+| `Tab` / `Shift+Tab` / `E` | Select the next stack that can still act |
+| `Ctrl`-click, or `M` then click | Give the selected stack a march order |
+| `Delete` | Cancel the selected stack's march order |
 | `Ctrl+Z` | Undo the last move, deploy or build |
 | `Enter` ×2 | **End your turn** (press twice; opens chat when it isn't your turn) |
 | `T` | Chat |

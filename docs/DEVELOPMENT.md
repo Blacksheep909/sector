@@ -24,6 +24,7 @@ tools/build-exe.js   Builds dist/Sector.exe (Node single-executable application)
 tools/cdp.js         Tiny headless Edge/Chrome driver over the DevTools protocol (no deps).
 tools/screenshots.js Plays a scripted game and saves the README screenshots to docs/img.
 tools/e2e-pass.js    End-to-end pass & play test: two local humans plus a bot, through the draft and first turn.
+tools/test-v07.js    Engine checks for v0.7 rules.  tools/test-v08.js  Engine checks for v0.8 (aircraft, AA, economy, pacts, fog, airstrikes, maps).
 ```
 
 ## How a turn flows
@@ -61,6 +62,8 @@ Run the server with `SECTOR_DEV=1` to enable autoplay. A client can then send `{
 | `SECTOR_FAST=1` | Bots act about 4× faster, for tests. |
 | `SECTOR_OPEN=1` | Opens the browser on start. This is always on for the exe. |
 | `SECTOR_NO_OPEN=1` | Never opens the browser. |
+| `SECTOR_AWAY_MS` | Grace period before a bot covers a disconnected player (default 30000). |
+| `SECTOR_AFK_MS` | With no turn timer, how long a turn with no sign of life lasts before it's ended (default 120000). |
 
 
 ## Releases

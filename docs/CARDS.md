@@ -14,24 +14,26 @@ Unit cards are permanent unlocks: deploy as many as you can afford.
 | **Skitter** | Vehicle | Common | $3 | 2 | 1 | 4 | – | Raider buggy. Grabs land fast. |
 | **Thumper** | Artillery | Common | $4 | 3 | 1 | 1 | 2 | Mortar crew. Fires 2 hexes instead of moving. |
 | **Barracuda** | Naval | Common | $4 | 3 | 2 | 4 | – | Fast gunboat. Claims sea lanes, raids coasts. |
+| **Stinger** | Infantry | Common | $3 | 1 | 2 | 2 | – | MANPADS team. Anti-air: +3 Chips in any fight involving enemy aircraft. |
 | **Corpsman** | Infantry | Common | $3 | 1 | 3 | 2 | – | Medic squad. Its stack never suffers pyrrhic losses. |
 | **Lancer** | Infantry | Uncommon | $4 | 3 | 2 | 2 | – | Tank Hunter: +3 Chips when fighting vehicles. |
-| **Warden** | Air | Uncommon | $4 | 1 | 3 | 3 | – | Shield drone. Aegis: +1 Mult when its hex defends. |
+| **Warden** | Air | Uncommon | $4 | 1 | 3 | 3 | – | Airborne radar plane. Aegis: +1 Mult when its hex defends. |
 | **Sapper** | Infantry | Uncommon | $4 | 2 | 2 | 2 | – | Demolitions: +3 Chips attacking a hex with buildings. |
-| **Scorpion** | Vehicle | Uncommon | $5 | 2 | 3 | 3 | – | Anti-air: +4 Chips in any fight involving enemy aircraft. |
+| **Scorpion** | Vehicle | Uncommon | $5 | 2 | 3 | 3 | – | Flak tank. Anti-air: +4 Chips in any fight involving enemy aircraft. |
 | **Bulwark** | Vehicle | Uncommon | $6 | 3 | 5 | 3 | – | Armoured carrier. Holds the line. |
 | **Hornet** | Air | Uncommon | $5 | 4 | 1 | 4 | – | Strike drone. Flies over mountains and water. |
 | **Mauler** | Vehicle | Uncommon | $6 | 5 | 4 | 2 | – | Main battle tank. |
 | **Ark** | Naval | Uncommon | $4 | 0 | 3 | 4 | – | Transport. Carries up to 3 land units across the sea. |
 | **Marlin** | Naval | Rare | $7 | 5 | 4 | 4 | 2 | Destroyer. Shells coasts and ships 2 hexes away. |
-| **Basilisk** | Artillery | Rare | $7 | 7 | 2 | 1 | 3 | Railgun platform. Fires 3 hexes. |
+| **Basilisk** | Artillery | Rare | $7 | 7 | 2 | 1 | 3 | Rocket artillery truck. Fires 3 hexes. |
 | **Ranger** | Infantry | Rare | $6 | 4 | 3 | 3 | – | Pathfinders: rough terrain costs only 1 move. |
+| **Skyguard** | Vehicle | Rare | $7 | 3 | 4 | 3 | – | Gun-missile air defence truck. Anti-air: +6 Chips in any fight involving enemy aircraft. |
 | **Hellcat** | Vehicle | Rare | $7 | 6 | 2 | 3 | – | Strike tank. Can act on the turn it is deployed. |
-| **Wraith** | Vehicle | Rare | $8 | 6 | 3 | 4 | – | Hover tank. Glides across water. |
+| **Wraith** | Vehicle | Rare | $8 | 6 | 3 | 4 | – | Armed hovercraft. Glides across water. |
 | **Kraken** | Naval | Rare | $8 | 7 | 2 | 4 | – | Submarine. Torpedoes: +4 Chips vs ships. |
 | **Leviathan** | Vehicle | Legendary | $14 | 12 | 10 | 1 | – | Land dreadnought. Never suffers pyrrhic losses. |
-| **Titan** | Vehicle | Legendary | $16 | 13 | 12 | 1 | – | Colossus. Siege Breaker and never suffers pyrrhic losses. |
-| **Seraph** | Air | Legendary | $12 | 9 | 4 | 5 | – | Gunship. Seizes enemy hexes it flies over. |
+| **Titan** | Vehicle | Legendary | $16 | 13 | 12 | 1 | – | Landship with naval guns. Siege Breaker and never suffers pyrrhic losses. |
+| **Seraph** | Air | Legendary | $12 | 9 | 4 | 5 | – | Heavy gunship. Strafing Run: +2 Mult attacking ground targets. |
 | **Carrier** | Naval | Legendary | $13 | 3 | 9 | 3 | – | Floating airbase: deploy aircraft onto it and fly them off it. Holds 4. |
 | **Oracle** | Artillery | Legendary | $11 | 8 | 3 | 2 | 4 | Orbital uplink. Range 4, ignores mountains. |
 | **Abyssal** | Naval | Legendary | $15 | 12 | 10 | 3 | 4 | Sea dreadnought. Range 4. Never suffers pyrrhic losses. |
@@ -47,11 +49,13 @@ Single-use cards from your hand.
 | **Rally** | Common | $1 | Your next attack this turn gets +2 Mult. |
 | **Fortify** | Common | $2 | Build or upgrade a Bunker on one of your hexes for free (on your HQ hex it fortifies the HQ instead). |
 | **Conscription** | Common | $1 | Deploy 2 free Grunts at a deploy point. |
+| **Gun Run** | Common | $2 | A low-flying attack jet strafes enemy units within 3 of your land. Roll 3+: destroys 1 unit. |
 | **Airstrike** | Uncommon | $4 | Bomb enemy units within 4 of your land. Roll: kills 1–3. |
 | **Heli Drop** | Uncommon | $3 | Fly a stack up to 5 hexes onto any empty land and seize it. |
 | **Sabotage** | Uncommon | $3 | Destroy an enemy structure (or bridge) within 3 of your land. |
 | **Embargo** | Uncommon | $3 | Click any enemy territory: that commander earns half income for their next 2 turns and cannot trade. |
 | **Bounty** | Uncommon | $1 | This turn, every enemy unit you destroy pays a fifth of your income (min $2). |
+| **Precision Strike** | Rare | $5 | A stealth jet drops a guided bomb within 5 of your land: always destroys the strongest enemy unit there (2 on a roll of 5+). Ignores Flak. |
 | **Quarry Blast** | Rare | $3 | Blast a mountain within 3 of your land down into Highlands, opening a new pass. |
 | **War Bonds** | Rare | $0 | Gain $1 for every 2 hexes you own. |
 | **Blitz Doctrine** | Rare | $3 | This turn: all units +1 move, fresh units may act. |
@@ -67,8 +71,8 @@ Built from the hotbar (keys Z–M) on hexes you own that are connected to supply
 | Structure | Cost | Effect |
 |---|---|---|
 | **FOB** | $8 | Forward base: deploy point and supply source. +1 Mult defence per level. |
-| **Market** | $7 | +$3 per turn per level, +$1 more for each other Market level or Port you own (trade network). |
-| **Refinery** | $6 | +$2 per turn per level (+$4 per level on a Resource node or oil rig). |
+| **Warehouse** | $6 | +$2 per turn per level. Next to a Resource node, Refinery or Port it stockpiles more: +$3 per level. |
+| **Refinery** | $6 | +$1 per turn per level (+$3 per level on a Resource node or oil rig). |
 | **Depot** | $4 | Logistics hub: your units starting their turn nearby get +1 move. Range = level. |
 | **Port** | $5 | Coast only. Launch ships into the adjacent sea. Supply source for sea lanes. |
 | **Bridge** | $6 | Span a 1-hex sea gap between two shores. Land units cross; ships cannot pass. |

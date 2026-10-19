@@ -100,10 +100,12 @@ const Cards = (() => {
     for (const s of slots) { s.flip.classList.add('dealt'); SFX.card(); await sleep(110); }
     await sleep(420);
   }
-  async function flipCard(s, box) {
+  // spam-clicking: a click during a flip finishes it at once, and the next flips play at triple speed
+  function rush(slots) { let any = false; for (const s of slots) if (s.flipping && s.rush) { s.rush(); any = true; } return any; }
+  async function flipCard(s, box, quick) {
     if (s.flipping || s.flip.classList.contains('open')) return;
     s.flipping = true;
-    const rk = RANK(s.d.rarity), f = Cards.fast ? 0.3 : 1;
+    const rk = RANK(s.d.rarity), f = Cards.fast ? 0.3 : quick ? 0.33 : 1;
     s.flip.classList.remove('tell'); s.flip.classList.add('lifting');
     const r = s.flip.getBoundingClientRect();
     const dx = innerWidth / 2 - (r.left + r.width / 2), dy = innerHeight * 0.45 - (r.top + r.height / 2);
@@ -156,15 +158,20 @@ const Cards = (() => {
     SFX.whoosh();
     const anim = s.flip.animate(frames, { duration: dur, easing: 'cubic-bezier(.3,.1,.3,1)' });
     // swap faces at the reveal moment and fire the rarity effects while the card is front and centre
-    setTimeout(() => {
+    let shown = false;
+    const show = () => {
+      if (shown) return; shown = true;
       s.flip.classList.add('open'); s.flip.classList.remove('cracking');
       SFX.diceLand(); SFX.chip(4 + rk * 2);
       revealFx(s.front, s.d.rarity);
       const [x, y] = center(s.front);
       const ring = el('div', 'ringfx'); ring.style.left = x + 'px'; ring.style.top = y + 'px'; ring.style.borderColor = E.RARITY[s.d.rarity].color; $('#flyLayer').appendChild(ring); setTimeout(() => ring.remove(), 800);
       if (rk === 4) confetti();
-    }, dur * revealAt);
+    };
+    setTimeout(show, dur * revealAt);
+    s.rush = () => { show(); try { anim.finish(); } catch (e) {} };
     await new Promise(res => { anim.onfinish = res; setTimeout(res, dur + 80); });
+    s.rush = null;
     s.flip.classList.remove('lifting');
     box.classList.remove('dim');
     s.flipping = false;
@@ -187,12 +194,20 @@ const Cards = (() => {
       let done = false;
       const check = () => { if (!done && slots.every(s => s.flip.classList.contains('open') && !s.flipping)) { done = true; removeEventListener('keydown', key, true); wrap.remove(); res(); } };
       const busy = () => slots.some(s => s.flipping);
-      const next = async () => { if (busy()) return; const s = slots.find(s => !s.flip.classList.contains('open')); if (s) { await flipCard(s, box); check(); } };
-      const key = e => { if (e.key === ' ' && !box.hidden) { e.preventDefault(); e.stopPropagation(); if (!e.repeat) next(); } };
+      let lastClick = 0;
+      const quick = () => { const q = Date.now() - lastClick < 1500; lastClick = Date.now(); return q; };
+      const next = async () => { const q = quick(); if (busy()) { rush(slots); await sleep(30); } const s = slots.find(s => !s.flip.classList.contains('open') && !s.flipping); if (s) { await flipCard(s, box, q); check(); } };
+      const key = e => { if (e.key === ' ' && !box.hidden) { e.preventDefault(); e.stopPropagation(); next(); } };
       addEventListener('keydown', key, true);
-      all.onclick = async () => { if (all.disabled) return; all.disabled = true; while (busy()) await sleep(50); for (const s of slots) { if (!s.flip.classList.contains('open')) { await flipCard(s, box); await sleep(120); } } check(); };
+      all.onclick = async () => { if (all.disabled) return; all.disabled = true; rush(slots); while (busy()) await sleep(50); for (const s of slots) { if (!s.flip.classList.contains('open')) { await flipCard(s, box, true); await sleep(120); } } check(); };
       slots.forEach(s => {
-        s.flip.addEventListener('click', async () => { if (!s.flip.classList.contains('open') && !busy()) { await flipCard(s, box); check(); } });
+        s.flip.addEventListener('click', async () => {
+          if (s.flip.classList.contains('open')) return;
+          const q = quick();
+          if (s.flipping) { rush(slots); return; }
+          if (busy()) { rush(slots); await sleep(30); }
+          await flipCard(s, box, q); check();
+        });
         s.flip.addEventListener('mouseenter', () => { if (s.flip.classList.contains('open')) return; const rk = RANK(s.d.rarity); SFX.chip(rk * 3); if (rk >= 3) Render.shake(2); });
       });
       // never stall the game: flip whatever's left after a while
@@ -302,7 +317,9 @@ const Cards = (() => {
     reel.remove(); luckBar.remove();
     // 2. the chest slams down, breathes, hops on tap, then bursts open (sunburst lives inside the stage, so it's always centred)
     const T = crate.tier, glowCol = { standard: '#bfe6ff', gilded: '#ffd76a', mythic: '#e3a2ff' }[T] || '#fff';
-    const stage = el('div', 'chest-stage tier-' + T, `<div class="chest-rays"></div><div class="chest-glow"></div><div class="chest-shadow"></div>
+    // the sunburst is its own layer pinned to the screen centre, so the chest hopping or flying off can't drag it around
+    const sun = el('div', 'chest-rays'); sun.style.setProperty('--tc', glowCol); box.appendChild(sun);
+    const stage = el('div', 'chest-stage tier-' + T, `<div class="chest-glow"></div><div class="chest-shadow"></div>
       <div class="chest"><img class="chest-body" src="${Art.chest(T, 'body')}" alt=""><div class="chest-leak"></div><div class="chest-beam"></div><img class="chest-lid" src="${Art.chest(T, 'lid')}" alt=""><div class="chest-count">${crate.cards.length}</div></div>
       <div class="chest-hint">TAP TO OPEN</div>`);
     stage.style.setProperty('--tc', glowCol);
@@ -330,7 +347,7 @@ const Cards = (() => {
       await sleep(Cards.fast ? 50 : 250);
     }
     // burst
-    chestEl.classList.add('open'); stage.classList.add('open');
+    chestEl.classList.add('open'); stage.classList.add('open'); sun.classList.add('open');
     const seam = stage.querySelector('.chest-leak').getBoundingClientRect(), mx = seam.left + seam.width / 2, my = seam.top + seam.height / 2;
     SFX.boom(1.1); SFX.victoryHit(); Render.shake(T === 'mythic' ? 22 : 14);
     burstAt(mx, my, [glowCol, '#ffffff', glowCol], T === 'mythic' ? 80 : 50, 320, 9);
@@ -366,8 +383,8 @@ const Cards = (() => {
       await sleep(Cards.fast ? 60 : 300);
     }
     await sleep(Cards.fast ? 60 : 420);
-    stage.classList.add('done');
-    setTimeout(() => stage.remove(), 700);
+    stage.classList.add('done'); sun.classList.add('fade');
+    setTimeout(() => { stage.remove(); sun.remove(); }, 700);
     if (!document.contains(row)) return;
     await revealRow(box, slots);
     // 4. choose

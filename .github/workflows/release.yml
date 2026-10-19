@@ -31,7 +31,9 @@ jobs:
       - name: Bot-vs-bot smoke test
         run: node tools/sim.js domination 4 2
       - name: Engine checks
-        run: node tools/test-v07.js
+        run: |
+          node tools/test-v07.js
+          node tools/test-v08.js
       - name: Build Sector.exe
         run: node tools/build-exe.js
       - name: Sign Sector.exe (Azure Trusted Signing)

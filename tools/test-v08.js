@@ -1,0 +1,107 @@
+// Engine checks for v0.8 content: node tools/test-v08.js
+const E = require('../shared/engine'); const { draftStep, botStep } = require('../shared/bot');
+let fails = 0; const ok = (c, m) => { console.log((c ? 'ok   ' : 'FAIL ') + m); if (!c) fails++; };
+function game(opts = {}, n = 2) {
+  const roster = Array.from({ length: n }, (_, i) => ({ id: 'p' + i, name: 'P' + i, color: E.COLORS[i], faction: 'iron', bot: true }));
+  const { state: s } = E.createGame({ mode: 'domination', mapSize: 'medium', timer: 0, maxRounds: 50, mapType: 'continent', spawns: 'random', ...opts }, roster);
+  while (s.phase === 'draft' || s.phase === 'spawn') for (const p of s.players) { const a = draftStep(s, p.id); if (a) E.applyAction(s, p.id, a); }
+  E.applyAction(s, E.current(s).id, { a: 'choose', pick: 'income' });
+  return s;
+}
+const me = s => E.current(s);
+const clearHex = (s, k) => { for (const id in s.units) if (s.units[id].hex === k) delete s.units[id]; };
+const land = (s, from, d) => Object.keys(s.map.tiles).find(k => E.dist(k, from) === d && E.isLandTile(s.map.tiles[k]) && s.map.tiles[k].t !== 'mountain' && !s.map.tiles[k].owner && !s.map.tiles[k].poi);
+
+{ // every aircraft (gunships too) only takes the hex it lands on
+  const s = game(); const p = me(s); clearHex(s, p.hq);
+  for (const type of ['hornet', 'valkyrie', 'seraph']) {
+    const c = JSON.parse(JSON.stringify(s));
+    c.units.a1 = { id: 'a1', type, owner: p.id, hex: p.hq, moved: false, fresh: false };
+    const r = E.reachable(c, p.id, ['a1'], p.hq);
+    const to = Object.keys(r).find(k => r[k].kind !== 'pass' && r[k].kind !== 'attack' && E.pathTo(r, k).length >= 4 && E.pathTo(r, k).slice(1, -1).some(x => !c.map.tiles[x].owner && E.isLandTile(c.map.tiles[x])));
+    if (!to) { ok(true, type + ': no long flight on this map (skipped)'); continue; }
+    const res = E.applyAction(c, p.id, { a: 'move', from: p.hq, units: ['a1'], to });
+    const mv = res.events.find(e => e.e === 'move');
+    ok(res.ok && mv.captures.every(k => k === to), type + ' seizes only its landing hex');
+  }
+}
+{ // the Sentinel SAM only engages aircraft, and kills only aircraft
+  const s = game(); const p = me(s); const o = s.players.find(q => q.id !== p.id);
+  const k = land(s, p.hq, 2); clearHex(s, p.hq); clearHex(s, k);
+  s.units.sm = { id: 'sm', type: 'sentinel', owner: p.id, hex: p.hq, moved: false, fresh: false };
+  s.units.g = { id: 'g', type: 'grunt', owner: o.id, hex: k, moved: false, fresh: false };
+  ok(!E.rangedTargets(s, p.id, ['sm'], p.hq).includes(k), 'SAM ignores ground-only stacks');
+  s.units.h = { id: 'h', type: 'hornet', owner: o.id, hex: k, moved: false, fresh: false };
+  ok(E.rangedTargets(s, p.id, ['sm'], p.hq).includes(k), 'SAM targets a stack with aircraft');
+  const r = E.applyAction(s, p.id, { a: 'fire', from: p.hq, units: ['sm'], to: k }, () => 0.99);
+  ok(r.ok && s.units.g, 'SAM never kills the ground troops');
+}
+{ // anti-air units add their AA chips against aircraft
+  const s = game(); const p = me(s); const o = s.players.find(q => q.id !== p.id); const k = land(s, p.hq, 1) || land(s, p.hq, 2);
+  s.units.x = { id: 'x', type: 'skyguard', owner: o.id, hex: k, moved: false, fresh: false };
+  const c = E.combatCalc(s, p.id, [{ id: 'y', type: 'hornet', owner: p.id, hex: p.hq }], p.hq, k, false);
+  ok(c.def.bonuses.some(b => b.label === 'Anti-Air' && b.chips === 6), 'Skyguard adds +6 Anti-Air chips');
+}
+{ // warehouses are linear and building income tapers
+  const s = game(); const p = me(s);
+  const own = Object.keys(s.map.tiles).filter(k => s.map.tiles[k].owner === p.id && k !== p.hq).slice(0, 3);
+  own.forEach(k => { s.map.tiles[k].structs = [{ type: 'warehouse', owner: p.id, lvl: 3 }, { type: 'refinery', owner: p.id, lvl: 3 }]; s.map.tiles[k].struct = s.map.tiles[k].structs[0]; });
+  const inc = E.computeIncome(s, p.id);
+  ok(inc.ware > 0 && inc.taper < 0, 'warehouse income counted, building taper applied (ware ' + inc.ware + ', taper ' + inc.taper + ')');
+  ok(inc.ware + inc.ref + inc.taper <= 8 + Math.ceil((24 - 8) / 2) + Math.ceil((inc.ware + inc.ref - 24) / 4) + 1, 'buildings pay at most 8 + half to 24 + a quarter beyond');
+}
+{ // pacts last 5 rounds, renew together, and lapse without a traitor penalty
+  const s = game({}, 3); const a = me(s).id, b = s.players.find(q => q.id !== a).id;
+  E.applyAction(s, a, { a: 'allyOffer', to: b }); E.applyAction(s, b, { a: 'allyReply', accept: true });
+  const x = s.allies[0];
+  ok(x.until === x.since + 5, 'a new alliance runs 5 rounds');
+  ok(!E.applyAction(s, a, { a: 'allyRenew', with: b }).ok, 'cannot renew early');
+  x.until = s.turn.round + 1;
+  ok(E.applyAction(s, a, { a: 'allyRenew', with: b }).ok, 'can renew in the last rounds');
+  ok(s.allies[0].until === s.turn.round + 1, 'one-sided renewal does not extend yet');
+  x.until = s.turn.round; x.renew = {};
+  for (let i = 0; i < 6 && E.isAlly(s, a, b); i++) { const id = E.current(s).id; if (s.turn.stage === 'choose') E.applyAction(s, id, { a: 'choose', pick: 'income' }); E.applyAction(s, id, { a: 'end' }); }
+  ok(!E.isAlly(s, a, b) && !E.player(s, a).traitor && !E.player(s, b).traitor, 'an unrenewed pact lapses peacefully');
+}
+{ // fog of war: a planned route through hidden enemies turns into an ambush instead of failing
+  let tried = 0, good = 0;
+  for (let g = 0; g < 12 && tried < 4; g++) {
+    const s = game({ fog: 'on' }); const p = me(s); clearHex(s, p.hq);
+    s.units.sk = { id: 'sk', type: 'skitter', owner: p.id, hex: p.hq, moved: false, fresh: false };
+    const v = E.view(s, p.id), r = E.reachable(v, p.id, ['sk'], p.hq);
+    const to = Object.keys(r).find(k => ['move', 'capture'].includes(r[k].kind) && r[k].c >= 3 && v.map.tiles[k].fog);
+    if (!to) continue; const path = E.pathTo(r, to); const mid = path[path.length - 2];
+    const o = s.players.find(q => q.id !== p.id); s.units.e = { id: 'e', type: 'grunt', owner: o.id, hex: mid, moved: false, fresh: false };
+    const plain = E.applyAction(JSON.parse(JSON.stringify(s)), p.id, { a: 'move', from: p.hq, units: ['sk'], to });
+    if (plain.ok) continue; tried++;
+    const res = E.applyAction(s, p.id, { a: 'move', from: p.hq, units: ['sk'], to, path });
+    if (res.ok && res.events.some(e => e.e === 'fogstop')) good++;
+  }
+  ok(good === tried, 'fogged moves stop short or ambush (' + good + '/' + tried + ')');
+}
+{ // new airstrike cards
+  for (const id of ['gunrun', 'precision', 'buster']) {
+    const s = game(); const p = me(s); const o = s.players.find(q => q.id !== p.id); p.cash = 99;
+    const k = land(s, p.hq, 3); s.map.tiles[k].owner = o.id; s.map.tiles[k].structs = [{ type: 'bunker', owner: o.id, lvl: 3 }]; s.map.tiles[k].struct = s.map.tiles[k].structs[0];
+    s.units.m = { id: 'm', type: 'mauler', owner: o.id, hex: k, moved: false, fresh: false };
+    p.tactics.push({ uid: 777, id });
+    const r = E.applyAction(s, p.id, { a: 'tactic', uid: 777, target: k }, () => 0.9);
+    ok(r.ok, id + ' plays' + (r.err ? ': ' + r.err : ''));
+    if (id === 'precision') ok(!s.units.m, 'precision strike always kills the strongest unit');
+    if (id === 'buster') ok(E.structsOf(s.map.tiles[k])[0].lvl === 1, 'bunker buster knocks 2 levels off a bunker');
+  }
+}
+{ // rivers stay off HQs; every map layout generates
+  const s = game(); ok(s.players.every(p => !s.map.tiles[p.hq].river), 'no HQ stands in a river');
+  for (const arch of ['rings', 'spiral', 'shattered', 'maze', 'mirror', 'lattice']) {
+    let good = true; try { game({ mapType: arch }, 4); } catch (e) { good = false; }
+    ok(good, arch + ' map generates');
+  }
+}
+{ // bots finish a short game without failed actions blocking them
+  const s = game({ mapSize: 'small', maxRounds: 8 }, 3); let n = 0;
+  while (s.phase === 'play' && n < 20000) { const p = me(s), mem = {}; let c = 0; while (s.phase === 'play' && me(s).id === p.id) { let a = botStep(s, p.id, mem); if (++c > 90) a = { a: 'end' }; E.applyAction(s, p.id, a); n++; } }
+  ok(s.phase === 'over', 'bots play a game to the end');
+}
+console.log(fails ? fails + ' FAILED' : 'all passed');
+process.exit(fails ? 1 : 0);

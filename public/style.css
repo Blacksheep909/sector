@@ -1048,3 +1048,54 @@ body.planning #hexPanel { max-height: calc(100vh - 34vh - 200px); }
 .pchip { position: relative; }
 .pchip .kickbtn { position: absolute; top: -6px; right: -6px; border: 0; border-radius: 9px; min-width: 18px; height: 18px; padding: 0 5px; font: 800 10px var(--title, sans-serif); background: #3a1d22; color: #ff9aa3; cursor: pointer; box-shadow: 0 2px 0 #000; opacity: .75; }
 .pchip .kickbtn:hover, .pchip .kickbtn[data-armed="1"] { opacity: 1; background: #b52b38; color: #fff; }
+
+/* ── v0.8 lobby: room for names, factions and bot difficulty without clipping ── */
+.lobby { grid-template-columns: 370px 380px 300px; }
+@media (max-width: 1120px) { .lobby { grid-template-columns: 1fr; width: min(560px, 100%); } }
+.prow { flex-wrap: nowrap; min-width: 0; }
+.prow .nm { min-width: 0; }
+.prow .fx { white-space: normal; overflow: visible; line-height: 1.2; }
+.prow .diffsel { flex: none; max-width: 112px; }
+.prow .tag { flex: none; white-space: nowrap; }
+.lobby-players .row { flex-wrap: nowrap; }
+.lobby-players .row .btn { flex: 1 1 0; min-width: 0; white-space: nowrap; padding-left: 8px; padding-right: 8px; }
+
+/* ── v0.8 world-event chip: bright, colour-coded and easy to spot ── */
+#wxChip { --wx: #ffc53d; background: linear-gradient(135deg, color-mix(in srgb, var(--wx) 34%, #182532), #162330 70%); border-color: var(--wx); box-shadow: 0 4px 0 #000, 0 0 18px color-mix(in srgb, var(--wx) 45%, transparent); padding: 8px 12px 9px; }
+#wxChip b { color: #fff; font-size: 16px; text-shadow: 0 2px 0 #000; }
+#wxChip span { color: #e6eef5; font-size: 12px; }
+#wxChip small { display: block; font: 800 9.5px var(--ui, sans-serif); letter-spacing: 1.5px; color: var(--wx); text-transform: uppercase; }
+#wxChip.fresh { animation: slideL .3s ease-out, wxPulse 1.1s ease-in-out 3; }
+@keyframes wxPulse { 50% { box-shadow: 0 4px 0 #000, 0 0 34px var(--wx); transform: scale(1.03); } }
+#wxChip[data-wx="storm"] { --wx: #9fb3ff; } #wxChip[data-wx="seas"] { --wx: #36c9ff; } #wxChip[data-wx="blizzard"] { --wx: #d9f2ff; }
+#wxChip[data-wx="goldrush"] { --wx: #ffc53d; } #wxChip[data-wx="armsfair"] { --wx: #59f08a; } #wxChip[data-wx="shortage"] { --wx: #ff9a3c; }
+#wxChip[data-wx="fervour"] { --wx: #ff4f5e; } #wxChip[data-wx="clear"] { --wx: #ffe58a; }
+.lg { background: rgba(16,26,36,.9); color: #e3eaf0; border-left-color: #5d7a94; }
+
+/* ── v0.8 whose turn is it: a pill under the top bar, and a glowing frame while it's yours ── */
+#turnPill { --pc: #fff; position: absolute; top: 74px; left: 50%; transform: translateX(-50%); z-index: 6; display: flex; flex-direction: column; align-items: center; gap: 1px;
+  background: #0d151c; border: 3px solid var(--pc); border-radius: 14px; padding: 5px 18px 6px; box-shadow: 0 4px 0 #000, 0 0 16px color-mix(in srgb, var(--pc) 40%, transparent); cursor: pointer; pointer-events: auto; text-align: center; }
+#turnPill b { font-family: var(--title); font-weight: 400; letter-spacing: 1.5px; font-size: 17px; color: var(--pc); text-shadow: 0 2px 0 #000; }
+#turnPill span { font-size: 11.5px; color: #d6e0e8; }
+#turnPill.mine { background: color-mix(in srgb, var(--pc) 28%, #0d151c); animation: pillPulse 1.6s ease-in-out infinite; }
+#turnPill.mine b { color: #fff; font-size: 21px; }
+@keyframes pillPulse { 50% { box-shadow: 0 4px 0 #000, 0 0 32px var(--pc); transform: translateX(-50%) scale(1.04); } }
+body.my-turn #hud::before { content: ''; position: fixed; inset: 0; pointer-events: none; z-index: 1; border: 4px solid var(--myc, #59f08a); box-shadow: inset 0 0 38px color-mix(in srgb, var(--myc, #59f08a) 55%, transparent); animation: edgeGlow 2s ease-in-out infinite; }
+@keyframes edgeGlow { 50% { opacity: .45; } }
+#autoEnd { position: absolute; right: 16px; bottom: 84px; z-index: 7; background: #13222f; border: 3px solid #59f08a; border-radius: 12px; padding: 8px 12px; font-size: 13px; color: #e6eef5; box-shadow: 0 4px 0 #000; display: flex; align-items: center; gap: 10px; }
+#autoEnd b { color: #59f08a; font-size: 16px; }
+#afkCover { position: fixed; inset: 0; z-index: 60; background: rgba(5,8,12,.72); display: grid; place-items: center; cursor: pointer; }
+#afkCover .panel { padding: 22px 30px; text-align: center; border-color: #ffc53d; }
+#afkCover h2 { font-family: var(--title); font-weight: 400; color: #ffc53d; margin: 0 0 6px; }
+/* long building names (WAREHOUSE) shrink to fit their slot */
+#hbBuild .slot .bname { max-width: 66px; overflow: hidden; text-overflow: clip; }
+#hbBuild .slot .bname.long { font-size: 8px; letter-spacing: 0; }
+.allybadge small { font: 800 9px var(--ui, sans-serif); margin-left: 1px; vertical-align: top; }
+.allybadge.expiring { animation: bob .8s ease-in-out infinite; filter: drop-shadow(0 0 6px #ffc53d); }
+/* the mode hint sits under the turn pill instead of on top of it */
+#modeHint { top: 134px !important; }
+/* crate sunburst: a fixed layer centred on the chest, which fades out in place instead of following the chest away */
+#crate > .chest-rays { position: fixed; left: 50%; top: 54%; width: 1500px; height: 1500px; margin: -750px 0 0 -750px; transform: scale(.2); z-index: 1; transition: opacity .5s; }
+#crate > .chest-rays.open { animation: chestRaysIn2 .5s cubic-bezier(.2,1.4,.4,1) forwards, chestRaysSpin 14s linear infinite; }
+#crate > .chest-rays.fade { opacity: 0 !important; animation-play-state: paused, running; }
+@keyframes chestRaysIn2 { to { transform: scale(1); opacity: .55; } }
