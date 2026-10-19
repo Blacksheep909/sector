@@ -2,6 +2,12 @@
 
 Every release, newest first. Each version also has its own post on the [Releases page](https://github.com/Blacksheep909/sector/releases).
 
+## v0.9.9
+
+**No more dice for fights you're not in.**
+
+- **🎲 The dice screen is for human fights:** the dice tray and fight screen only play when a human commander is attacking or defending. Bot-vs-bot battles, and bots storming villages and forts, now resolve with a quick clash on the map: a flash, and who won. Watching other players' turns, or a bot-only game, is much faster.
+
 ## v0.9.8
 
 **Taking out a rival pays like it should.**

@@ -1,6 +1,6 @@
 {
   "name": "sector",
-  "version": "0.9.8",
+  "version": "0.9.9",
   "description": "SECTOR — a turn-based hex conquest game for your local network",
   "main": "server.js",
   "scripts": {
