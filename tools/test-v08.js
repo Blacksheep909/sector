@@ -120,5 +120,33 @@ const land = (s, from, d) => Object.keys(s.map.tiles).find(k => E.dist(k, from) 
   while (s.phase === 'play' && n < 20000) { const p = me(s), mem = {}; let c = 0; while (s.phase === 'play' && me(s).id === p.id) { let a = botStep(s, p.id, mem); if (++c > 90) a = { a: 'end' }; E.applyAction(s, p.id, a); n++; } }
   ok(s.phase === 'over', 'bots play a game to the end');
 }
+{ // economic warfare: strikes, shelling and strategic bombing wreck buildings; bombed land pays nothing for 2 turns
+  const setup = () => {
+    const s = game(); const p = me(s); const o = s.players.find(q => q.id !== p.id); p.cash = 99;
+    const k = land(s, p.hq, 3); const t = s.map.tiles[k]; t.owner = o.id; t.structs = [{ type: 'warehouse', owner: o.id, lvl: 2 }, { type: 'refinery', owner: o.id, lvl: 1 }]; t.struct = t.structs[0];
+    for (const n of E.neighbors(k)) if (s.map.tiles[n] && E.isLandTile(s.map.tiles[n]) && !s.map.tiles[n].owner) s.map.tiles[n].owner = o.id;
+    return { s, p, o, k, t };
+  };
+  { const { s, p, k, t } = setup(); p.tactics.push({ uid: 901, id: 'gunrun' });
+    ok(E.tacticTargets(s, p.id, 'gunrun').includes(k), 'gun run can target undefended buildings');
+    const r = E.applyAction(s, p.id, { a: 'tactic', uid: 901, target: k }); ok(r.ok && E.structsOf(t).find(x => x.type === 'warehouse').lvl === 1, 'gun run knocks a level off the warehouse'); }
+  { const { s, p, k, t } = setup(); p.tactics.push({ uid: 902, id: 'precision' });
+    const r = E.applyAction(s, p.id, { a: 'tactic', uid: 902, target: k }); ok(r.ok && !E.structsOf(t).some(x => x.type === 'warehouse'), 'precision strike destroys a building outright'); }
+  { const { s, p, o } = setup();
+    // bomb supplied land right next to the rival's HQ (give the bomber a foothold in range)
+    const k = E.neighbors(o.hq).find(n => s.map.tiles[n] && s.map.tiles[n].owner === o.id && E.isLandTile(s.map.tiles[n])), t = s.map.tiles[k];
+    t.structs = [{ type: 'warehouse', owner: o.id, lvl: 2 }]; t.struct = t.structs[0];
+    const foot = Object.keys(s.map.tiles).find(x => E.dist(x, k) === 4 && E.isLandTile(s.map.tiles[x]) && !s.map.tiles[x].owner); s.map.tiles[foot].owner = p.id;
+    const before = E.computeIncome(s, o.id).total; p.tactics.push({ uid: 903, id: 'strategic' });
+    const r = E.applyAction(s, p.id, { a: 'tactic', uid: 903, target: k }); const after = E.computeIncome(s, o.id);
+    ok(r.ok && t.ruin === 2 && after.ruined >= 1 && after.total < before, 'strategic bombing bombs land out and cuts income (' + before + ' -> ' + after.total + ')');
+    for (let i = 0; i < 8 && t.ruin; i++) { const id = E.current(s).id; if (s.turn.stage === 'choose') E.applyAction(s, id, { a: 'choose', pick: 'income' }); E.applyAction(s, id, { a: 'end' }); }
+    ok(!t.ruin, 'bombed-out land recovers after 2 of its owner turns'); }
+  { const { s, p, k, t } = setup(); const from = Object.keys(s.map.tiles).find(x => s.map.tiles[x].owner === p.id && E.dist(x, k) === 2) || p.hq;
+    for (const id in s.units) if (s.units[id].hex === from) delete s.units[id];
+    s.units.art = { id: 'art', type: 'thumper', owner: p.id, hex: from, moved: false, fresh: false };
+    const tg = E.rangedTargets(s, p.id, ['art'], from); ok(tg.includes(k) || E.dist(from, k) > 2, 'artillery can target undefended buildings in range');
+    if (tg.includes(k)) { const r = E.applyAction(s, p.id, { a: 'fire', from, units: ['art'], to: k }); ok(r.ok && r.events.some(e => e.e === 'shell') && E.structsOf(t).find(x => x.type === 'warehouse').lvl === 1, 'a shell knocks a level off'); } }
+}
 console.log(fails ? fails + ' FAILED' : 'all passed');
 process.exit(fails ? 1 : 0);

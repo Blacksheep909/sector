@@ -143,13 +143,14 @@
     rally: { name: 'Rally', rarity: 'common', cost: 1, target: 'none', desc: 'Your next attack this turn gets +2 Mult.' },
     fortify: { name: 'Fortify', rarity: 'common', cost: 2, target: 'ownHex', desc: 'Build or upgrade a Bunker on one of your hexes for free (on your HQ hex it fortifies the HQ instead).' },
     conscript: { name: 'Conscription', rarity: 'common', cost: 1, target: 'spawn', desc: 'Deploy 2 free Grunts at a deploy point.' },
-    gunrun: { name: 'Gun Run', rarity: 'common', cost: 2, target: 'enemyUnits', range: 3, desc: 'A low-flying attack jet strafes enemy units within 3 of your land. Roll 3+: destroys 1 unit.' },
-    airstrike: { name: 'Airstrike', rarity: 'uncommon', cost: 4, target: 'enemyUnits', range: 4, desc: 'Bomb enemy units within 4 of your land. Roll: kills 1–3.' },
+    gunrun: { name: 'Gun Run', rarity: 'common', cost: 2, target: 'enemyUnits', range: 3, desc: 'Attack jet, within 3 of your land. Troops: roll 3+ kills 1. Undefended buildings: knocks a level off one.' },
+    airstrike: { name: 'Airstrike', rarity: 'uncommon', cost: 4, target: 'enemyUnits', range: 4, desc: 'Bomb a hex within 4 of your land. Troops: roll to kill 1–3. Undefended buildings: knocks 1–2 levels off them.' },
     heli: { name: 'Heli Drop', rarity: 'uncommon', cost: 3, target: 'heli', range: 5, desc: 'Fly a stack up to 5 hexes onto any empty land and seize it.' },
     sabotage: { name: 'Sabotage', rarity: 'uncommon', cost: 3, target: 'enemyStruct', range: 3, desc: 'Destroy an enemy structure (or bridge) within 3 of your land.' },
     embargo: { name: 'Embargo', rarity: 'uncommon', cost: 3, target: 'enemyHex', desc: 'Click any enemy territory: that commander earns half income for their next 2 turns and cannot trade.' },
     bounty: { name: 'Bounty', rarity: 'uncommon', cost: 1, target: 'none', desc: 'This turn, every enemy unit you destroy pays a fifth of your income (min $2).' },
-    precision: { name: 'Precision Strike', rarity: 'rare', cost: 5, target: 'precision', range: 5, desc: 'Guided bomb within 5 of your land: always kills the strongest enemy unit (2 on a 5+). Ignores Flak.' },
+    precision: { name: 'Precision Strike', rarity: 'rare', cost: 5, target: 'precision', range: 5, desc: 'Guided bomb within 5 of your land, ignores Flak. Kills the strongest unit (2 on a 5+), or destroys a building.' },
+    strategic: { name: 'Strategic Bombing', rarity: 'rare', cost: 5, target: 'infra', range: 6, desc: 'Bombers hit an enemy hex within 6 and its neighbours: their economic buildings lose a level, and that land pays nothing for 2 turns.' },
     quarry: { name: 'Quarry Blast', rarity: 'rare', cost: 3, target: 'mountain', range: 3, desc: 'Blast a mountain within 3 of your land, and the mountain behind it, down into Highlands: a 2-hex pass.' },
     spy: { name: 'Spy Ring', rarity: 'epic', cost: 3, target: 'enemyHand', desc: 'Click any enemy territory: steal a random card that commander has earned (a tactic or a unit, never their starting cards).' },
     bonds: { name: 'War Bonds', rarity: 'rare', cost: 0, target: 'none', desc: 'Gain $1 for every 2 hexes you own.' },
@@ -777,10 +778,11 @@
   }
   function computeIncome(s, pid) {
     const sup = supplySet(s, pid);
-    let hexes = 0, sea = 0, cut = 0, res = 0, ref = 0, ware = 0, ports = 0, poi = 0, fish = 0, river = 0; const portHexes = [];
+    let hexes = 0, sea = 0, cut = 0, ruined = 0, res = 0, ref = 0, ware = 0, ports = 0, poi = 0, fish = 0, river = 0; const portHexes = [];
     for (const k in s.map.tiles) {
       const t = s.map.tiles[k]; if (t.owner !== pid) continue;
       if (!sup.has(k)) { cut++; continue; }
+      if (t.ruin) { ruined++; continue; }   // bombed out: no income until it's rebuilt
       if (isWater(t)) sea++; else { hexes++; if (t.river) river++; }
       if (t.res) res++;
       if (t.fish) fish++;
@@ -820,7 +822,7 @@
     total += traitor;
     const bonus = d ? Math.round(total * d.income) - total : 0;
     total += bonus;
-    return { total, base, fromHex, fromSea, fromRes, ref, trade, ware, taper, cap: taper_, poi, fish, lanes, fromRiver, river, pact, traitor, bonus, hexes, sea, cut, res };
+    return { total, base, fromHex, fromSea, fromRes, ref, trade, ware, taper, cap: taper_, poi, fish, lanes, fromRiver, river, pact, traitor, bonus, hexes, sea, cut, ruined, res };
   }
   function nearOwned(s, pid, k, r) {
     for (const a of area(k, r)) { const t = s.map.tiles[a]; if (t && t.owner === pid) return true; }
@@ -925,7 +927,9 @@
     const out = [];
     for (const k of area(from, range)) {
       if (k === from) continue;
-      const occ = idx[k]; if (!occ || !occ.length || occ[0].owner === pid || isAlly(s, pid, occ[0].owner)) continue;
+      const occ = idx[k];
+      if ((!occ || !occ.length) && !sam && isEnemyInfra(s, pid, k) && (orbital || hasLOS(s, from, k))) { out.push(k); continue; }   // shell undefended buildings
+      if (!occ || !occ.length || occ[0].owner === pid || isAlly(s, pid, occ[0].owner)) continue;
       if (occ.every(u => UNITS[u.type].ability === 'stealth')) continue;
       if (sam && !occ.some(u => UNITS[u.type].cls === 'air' && UNITS[u.type].ability !== 'stealth')) continue;
       if (!orbital && !sam && !hasLOS(s, from, k)) continue;
@@ -1150,6 +1154,24 @@
     }
   }
 
+  // ── economic warfare: strikes and shelling can wreck an enemy's buildings, not just their troops ──
+  const ECON = ['warehouse', 'refinery', 'depot', 'port'];
+  const ECON_VALUE = { warehouse: 4, refinery: 4, port: 5, depot: 2 };
+  function econOf(s, k) { const t = s.map.tiles[k]; return t ? structsOf(t).filter(st => ECON.includes(st.type) && st.owner && st.owner === t.owner) : []; }
+  function infraValue(s, k) { return econOf(s, k).reduce((v, st) => v + ECON_VALUE[st.type] * slvlOf(st), 0); }
+  // knock levels off the most valuable buildings on a hex (a ★ building, or a Port, is destroyed). Returns what was hit
+  function damageInfra(s, k, levels, destroy) {
+    const t = s.map.tiles[k], hits = [];
+    for (let i = 0; i < levels; i++) {
+      const st = econOf(s, k).sort((a, b) => ECON_VALUE[b.type] * slvlOf(b) - ECON_VALUE[a.type] * slvlOf(a))[0]; if (!st) break;
+      const from = slvlOf(st);
+      if (destroy || from <= 1 || st.type === 'port') { removeStruct(t, st); hits.push({ type: st.type, from, to: 0 }); }
+      else { st.lvl = from - 1; hits.push({ type: st.type, from, to: from - 1 }); }
+      if (destroy) break;
+    }
+    return hits;
+  }
+  const isEnemyInfra = (s, pid, k) => { const t = s.map.tiles[k]; return !!t && t.owner && t.owner !== pid && !isAlly(s, pid, t.owner) && econOf(s, k).length > 0; };
   function captureTile(s, k, pid) {
     const t = s.map.tiles[k];
     if (!t || t.t === 'mountain' || t.owner === pid) return false;
@@ -1311,7 +1333,7 @@
       u.moved = false; u.fresh = false; u.mvBonus = 0;
       if (u.stun > 0) { u.moved = true; u.stun--; }
     }
-    for (const k in s.map.tiles) if (s.map.tiles[k].smoke === p.id) s.map.tiles[k].smoke = null;
+    for (const k in s.map.tiles) { const t = s.map.tiles[k]; if (t.smoke === p.id) t.smoke = null; if (t.ruin && t.owner === p.id && !preview) { t.ruin--; if (!t.ruin) delete t.ruin; } }
     const depots = Object.keys(s.map.tiles).filter(k => { const t = s.map.tiles[k], d = getS(t, 'depot'); return t.owner === p.id && d && d.owner === p.id; });
     if (depots.length) for (const id in s.units) { const u = s.units[id]; if (u.owner === p.id && depots.some(d => dist(d, u.hex) <= slvlOf(getS(s.map.tiles[d], 'depot')))) u.mvBonus = 1; }
     // structures captured last turn come online; sieges this player started now resolve
@@ -1559,8 +1581,17 @@
       case 'ownHex': for (const k in tiles) if (tiles[k].owner === pid && isLandTile(tiles[k])) out.push(k); return out;
       case 'ownStack': for (const k in idx) if (idx[k][0].owner === pid && !idx[k].some(u => u.stun)) out.push(k); return out;
       case 'spawn': return spawnPoints(s, pid).filter(k => stackFits(idx[k] || [], ['grunt']));
-      case 'enemyUnits': for (const k in idx) if (idx[k][0].owner !== pid && !isAlly(s, pid, idx[k][0].owner) && nearOwned(s, pid, k, def.range) && !flakCovered(s, pid, k)) out.push(k); return out;
-      case 'precision': for (const k in idx) if (idx[k][0].owner !== pid && !isAlly(s, pid, idx[k][0].owner) && nearOwned(s, pid, k, def.range) && idx[k].some(u => UNITS[u.type].ability !== 'stealth')) out.push(k); return out;
+      case 'enemyUnits': for (const k in tiles) {
+        const occ = idx[k] || [];
+        if (!(occ.length ? occ[0].owner !== pid && !isAlly(s, pid, occ[0].owner) : isEnemyInfra(s, pid, k))) continue;   // troops, or undefended buildings
+        if (nearOwned(s, pid, k, def.range) && !flakCovered(s, pid, k)) out.push(k);
+      } return out;
+      case 'precision': for (const k in tiles) {
+        const occ = idx[k] || [];
+        if (!(occ.length ? occ[0].owner !== pid && !isAlly(s, pid, occ[0].owner) && occ.some(u => UNITS[u.type].ability !== 'stealth') : isEnemyInfra(s, pid, k))) continue;
+        if (nearOwned(s, pid, k, def.range)) out.push(k);
+      } return out;
+      case 'infra': for (const k in tiles) { const t = tiles[k]; if (t.owner && t.owner !== pid && !isAlly(s, pid, t.owner) && isLandTile(t) && nearOwned(s, pid, k, def.range) && !flakCovered(s, pid, k)) out.push(k); } return out;
       case 'buster': for (const k in tiles) {
         const t = tiles[k], o = t.owner || ((idx[k] || [])[0] || {}).owner; if (!o || o === pid || isAlly(s, pid, o) || !nearOwned(s, pid, k, def.range) || flakCovered(s, pid, k)) continue;
         if ((idx[k] || []).length || structsOf(t).some(x => ['bunker', 'fob', 'flak', 'mine', 'hq'].includes(x.type) && x.owner === o)) out.push(k);
@@ -1893,6 +1924,14 @@
       const units = (a.units || []).map(id => s.units[id]);
       if (!units.length || units.some(u => !u || u.owner !== pid || u.hex !== a.from || !canAct(s, u))) return fail('Invalid units');
       if (!rangedTargets(s, pid, a.units, a.from).includes(a.to)) return fail('Target out of range or blocked');
+      if (!Object.values(s.units).some(u => u.hex === a.to)) {
+        // shelling an undefended building: each salvo knocks a level off it
+        const infra = damageInfra(s, a.to, 1);
+        units.forEach(u => u.moved = true);
+        ev.push({ e: 'shell', pid, from: a.from, to: a.to, infra, structs: structsOf(tiles[a.to]), units: units.map(u => u.type) });
+        pushLog(s, '💥 ' + p.name + ' shelled ' + (player(s, tiles[a.to].owner) || {}).name + "'s infrastructure.");
+        return { ok: true, events: ev };
+      }
       resolveFire(s, pid, units, a.from, a.to, rng, ev);
       return { ok: true, events: ev };
     }
@@ -1952,6 +1991,11 @@
         ev.push({ ...base, units: made }); break;
       }
       case 'airstrike': {
+        if (!Object.values(s.units).some(u => u.hex === a.target)) {
+          const roll = rollDie(rng), infra = damageInfra(s, a.target, roll >= 4 ? 2 : 1);
+          ev.push({ ...base, roll, kills: [], infra, structs: structsOf(tiles[a.target]) });
+          pushLog(s, '✈ ' + p.name + ' bombed ' + (player(s, tiles[a.target].owner) || {}).name + "'s infrastructure."); break;
+        }
         const occ = Object.values(s.units).filter(u => u.hex === a.target && UNITS[u.type].ability !== 'stealth');
         const roll = rollDie(rng), n = Math.min(occ.length, roll <= 2 ? 1 : roll <= 5 ? 2 : 3);
         const pool = occ.slice(), kills = [];
@@ -1962,6 +2006,11 @@
         break;
       }
       case 'gunrun': {
+        if (!Object.values(s.units).some(u => u.hex === a.target)) {
+          const infra = damageInfra(s, a.target, 1);
+          ev.push({ ...base, roll: 6, kills: [], infra, structs: structsOf(tiles[a.target]) });
+          pushLog(s, '✈ ' + p.name + ' strafed ' + (player(s, tiles[a.target].owner) || {}).name + "'s infrastructure."); break;
+        }
         const occ = Object.values(s.units).filter(u => u.hex === a.target && u.owner !== pid && UNITS[u.type].ability !== 'stealth');
         const roll = rollDie(rng), kills = roll >= 3 && occ.length ? [occ[Math.floor(rng() * occ.length)]] : [];
         kills.forEach(kill);
@@ -1970,11 +2019,29 @@
         break;
       }
       case 'precision': {
+        if (!Object.values(s.units).some(u => u.hex === a.target)) {
+          const infra = damageInfra(s, a.target, 1, true);
+          ev.push({ ...base, roll: 6, kills: [], infra, structs: structsOf(tiles[a.target]) });
+          pushLog(s, '🎯 ' + p.name + ' destroyed a ' + (infra[0] ? STRUCTS[infra[0].type].name : 'building') + '.'); break;
+        }
         const occ = Object.values(s.units).filter(u => u.hex === a.target && u.owner !== pid && UNITS[u.type].ability !== 'stealth').sort((x, y) => UNITS[y.type].cost - UNITS[x.type].cost);
         const roll = rollDie(rng), kills = occ.slice(0, roll >= 5 ? 2 : 1);
         kills.forEach(kill);
         ev.push({ ...base, roll, kills: kills.map(u => u.id) });
         pushLog(s, '🎯 ' + p.name + ' called a precision strike: ' + kills.length + ' destroyed.');
+        break;
+      }
+      case 'strategic': {
+        // carpet the area: buildings lose a level, and the enemy land there pays nothing for 2 turns
+        const hexes = [];
+        for (const k of area(a.target, 1)) {
+          const t = tiles[k]; if (!t || !t.owner || t.owner === pid || isAlly(s, pid, t.owner) || !isLandTile(t)) continue;
+          const infra = damageInfra(s, k, 1);
+          t.ruin = 2;
+          hexes.push({ k, infra, structs: structsOf(t) });
+        }
+        ev.push({ ...base, hexes });
+        pushLog(s, '💣 ' + p.name + ' sent the bombers over ' + (player(s, tiles[a.target].owner) || {}).name + ': ' + hexes.length + ' hexes bombed out.');
         break;
       }
       case 'buster': {
@@ -2188,7 +2255,7 @@
   return {
     DIRS, key, parse, dist, neighbors, area, line, mulberry32, hashStr,
     POI, WEATHER, isAlly, recordHistory, RARITY, RARITY_ORDER, CRATES, DROP_TIERS, SCRAP_VALUE, DECK_MAX, MAX_LEVEL, TERRAIN, DIFFICULTY, UNITS, TACTICS, STRUCTS, BUILD_ORDER, UPGRADABLE, MAX_SLVL, FACTIONS, COLORS, MAX_STACK, GRUNT_STACK, stackFits, CLASS_NAME, cardDef,
-    generateMap, createGame, applyAction, spawnChoices, visionOf, startTurn, endTurn, simulateTurnStart, view, drawCards,
+    ECON, infraValue, econOf, generateMap, createGame, applyAction, spawnChoices, visionOf, startTurn, endTurn, simulateTurnStart, view, drawCards,
     player, current, buildIndex, canAct, moveAllow, ownedTiles, ownedLand, spawnPoints, musterHexes, supplySet, computeIncome, levelOf, unitAtk, unitDef,
     tsarArea, moodOf, addMood, threatOf, rerollCost, bountyValue, reachable, pathTo, rangedTargets, deployHexes, buildHexes, buildError, isSea, isWater, isCoastal, movers, combatCalc, tacticTargets, unitCost, structCost, buildCost, structsOf, MAX_STRUCTS, conquestTarget, isLandTile, flakCovered,
   };

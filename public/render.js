@@ -324,6 +324,13 @@ const Render = (() => {
     ctx.strokeStyle = 'rgba(255,255,255,.13)'; ctx.lineWidth = 1.2 * z;
     ctx.beginPath(); ctx.moveTo(cx + VERT[4][0] * s, cy + VERT[4][1] * s * TILT); ctx.lineTo(cx + VERT[5][0] * s, cy + VERT[5][1] * s * TILT); ctx.lineTo(cx + VERT[0][0] * s, cy + VERT[0][1] * s * TILT); ctx.lineTo(cx + VERT[1][0] * s, cy + VERT[1][1] * s * TILT); ctx.stroke();
 
+    // bombed out: scorched ground and smoke (pays nothing until it recovers)
+    if (tile.ruin && tile.fog !== 2) {
+      ctx.save(); hexPath(cx, cy, s); ctx.clip();
+      ctx.fillStyle = 'rgba(25,18,12,.42)'; ctx.fillRect(cx - s, cy - s, s * 2, s * 2);
+      for (const [ox, oy, rr] of [[-0.3, 0.05, 0.22], [0.25, -0.1, 0.18], [0.05, 0.25, 0.15]]) { ctx.fillStyle = 'rgba(10,8,6,.5)'; ctx.beginPath(); ctx.ellipse(cx + ox * s, cy + oy * s * TILT, rr * s, rr * s * TILT, 0, 0, Math.PI * 2); ctx.fill(); }
+      ctx.restore();
+    }
     // cut-off (unsupplied) hatch
     if (tile.owner && ov.unsupplied && ov.unsupplied.has(k)) {
       ctx.save(); hexPath(cx, cy, s); ctx.clip(); ctx.strokeStyle = 'rgba(0,0,0,.28)'; ctx.lineWidth = 3 * z;
