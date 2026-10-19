@@ -295,6 +295,9 @@ You're never just watching:
 - **Diplomacy and trades** work any time, not just on your turn.
 - **Intel ops** (fog of war): $2 to scout a 2-hex area anywhere until the end of next round, twice per round (`I`).
 - **Pings and emotes** from the bar above the chat.
+- **Overwatch.** On your turn, select a stack and press `O`: it gives up its move to watch. When an enemy ends a move next to it (or within range, for artillery), you get a few seconds to **FIRE** (+1 mult, one shot) or **HOLD**.
+- **Supply drops.** Crates parachute onto open land now and then, for everyone to see. The first unit to reach one takes the cash or card inside.
+- **Radar and alerts.** In fog of war, hidden enemies moving within 2 hexes of your land show up as radar blips. Attacks on you, contacts and drops are listed in the side panel with a LOOK button.
 - **War room.** In the Alt view, draw arrows and circles on the map that only you and your allies can see.
 - **Troop donations.** On your turn, select a stack and press **GIVE** on an ally's name card to hand it over.
 
@@ -336,6 +339,7 @@ While others play, queue moves, deploys and builds. The preview shows exactly wh
 | `Ctrl`-click, or `M` then click | Give the selected stack a march order |
 | `Delete` | Cancel the selected stack's march order |
 | `G` | Dig the selected stack in (+1 defence until it moves) |
+| `O` | Put the selected stack on overwatch |
 | `Shift`-drag | Box-select several stacks for a batch move |
 | `I` | Intel op: scout an area through the fog ($2) |
 | `Ctrl+Z` | Undo the last move, deploy or build |

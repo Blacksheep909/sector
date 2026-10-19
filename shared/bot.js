@@ -308,6 +308,7 @@ function botStep(s, pid, mem) {
       } else {
         if (t.owner !== pid) v += t.owner ? 6 : 3;
         if (t.poi === 'ruins' || t.poi === 'cache') v += 6;
+        if ((s.drops || []).some(d => d.hex === dest)) v += 8;   // supply drop: first come, first served
         if (t.poi === 'relic' && t.owner !== pid) v += 8;
         if (t.res && t.owner !== pid) v += 4;
         if (t.struct && t.owner !== pid) v += 6;
@@ -398,6 +399,14 @@ function botStep(s, pid, mem) {
     if (best) return { a: 'build', struct: 'fob', hex: best };
   }
 
+  // 5b. stacks with nothing better to do on the front line watch for enemy moves instead
+  if (!mem.owDone) {
+    mem.owDone = true;
+    for (const k in idx) {
+      const st = idx[k].filter(u => u.owner === pid && E.canAct(s, u) && E.UNITS[u.type].atk > 0 && !E.isSea(u.type));
+      if (st.length && k !== p.hq && enemyNear(k, 2) && Math.random() < 0.7) return { a: 'overwatch', from: k, units: st.map(u => u.id) };
+    }
+  }
   // 6. deploy
   const mine = Object.values(s.units).filter(u => u.owner === pid);
   const myArks = mine.filter(u => u.type === 'ark').length;

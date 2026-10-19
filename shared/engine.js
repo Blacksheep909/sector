@@ -1057,6 +1057,7 @@
     }
     if (fb && fb.owner === defPid) { const m = slvlOf(fb); def.mult += m; def.bonuses.push({ label: 'FOB Walls' + (m > 1 ? ' ' + '★'.repeat(m) : ''), mult: m }); }
     if (t.smoke && t.smoke === defPid) { def.mult += 2; def.bonuses.push({ label: 'Smoke Screen', mult: 2 }); }
+    if (ranged && units.some(u => u.ow)) { att.mult += 1; att.bonuses.push({ label: 'Overwatch', mult: 1 }); }
     if (defenders.length && defenders.every(u => u.dug)) { def.mult += 1; def.bonuses.push({ label: 'Dug In', mult: 1 }); }
     if (t.ambush && t.ambush === defPid && defenders.length) { def.chips += 2 * defenders.length; def.bonuses.push({ label: 'Ambush', chips: 2 * defenders.length }); }
     if (dp && dp.shield && t.owner === defPid) { def.mult += 3; def.bonuses.push({ label: 'Aegis Protocol', mult: 3 }); }
@@ -1372,7 +1373,7 @@
     }
     for (const id in s.units) {
       const u = s.units[id]; if (u.owner !== p.id) continue;
-      u.moved = false; u.fresh = false; u.mvBonus = 0;
+      u.moved = false; u.fresh = false; u.mvBonus = 0; u.ow = false;   // overwatch lasts until your next turn
       if (u.stun > 0) { u.moved = true; u.stun--; }
     }
     for (const k in s.map.tiles) { const t = s.map.tiles[k]; if (t.smoke === p.id) t.smoke = null; if (t.ambush === p.id) delete t.ambush; if (t.ruin && t.owner === p.id && !preview) { t.ruin--; if (!t.ruin) delete t.ruin; } }
@@ -1425,6 +1426,7 @@
       ev.push({ e: 'embargoHit', pid: p.id, left: p.embargo || 0 }); pushLog(s, '⛔ ' + p.name + "'s income is halved by an embargo" + (p.embargo ? ' (1 more turn).' : '.'));
     }
     s.turn.rerolls = 0; s.turn.crate = null;
+    if (!preview) supplyDrops(s, ev, rng);
     if (!preview) {
       // a snap decision left unanswered lapses (bots take one at random); then everyone else gets this round's
       if (p.snap) { if (p.bot) snapPick(s, p, { pick: Math.floor((rng || Math.random)() * 2) }, []); delete p.snap; }
@@ -1993,6 +1995,7 @@
         if (c.dest.kind !== 'board' && (navy ? isWater(t) : isLandTile(t)) && captureTile(s, a.to, pid)) caps.push(a.to);
         ev.push({ e: 'move', pid, units: fleet.concat(cargo).map(u => u.id), path: c.path, captures: caps });
         lootPath(s, pid, c.path, ev, rng);
+        if (!fleet.every(u => isSea(u.type))) claimDrops(s, pid, c.path, ev, rng);
       }
       return { ok: true, events: ev };
     }
@@ -2007,6 +2010,14 @@
       ev.push({ e: 'donate', pid, to: a.to, hex: a.from, units: units.map(u => u.id) });
       pushLog(s, '🎁 ' + p.name + ' gave ' + units.length + ' unit' + (units.length > 1 ? 's' : '') + ' to ' + to.name + '.');
       addMood(s, a.to, pid, 6 + 2 * units.length);
+      return { ok: true, events: ev };
+    }
+    if (a.a === 'overwatch') {
+      const units = (a.units || []).map(id => s.units[id]);
+      if (!units.length || units.some(u => !u || u.owner !== pid || u.hex !== a.from || !canAct(s, u))) return fail('Invalid units');
+      if (!units.some(u => UNITS[u.type].atk > 0)) return fail('Nothing in that stack can shoot');
+      units.forEach(u => { u.moved = true; u.ow = true; });
+      ev.push({ e: 'overwatch', pid, hex: a.from, units: units.map(u => u.id) });
       return { ok: true, events: ev };
     }
     if (a.a === 'digin') {
@@ -2417,6 +2428,51 @@
     pushLog(s, '⚡ ' + p.name + ' reacted with ' + def.name + '!');
     return { ok: true, events: ev };
   }
+  // overwatch: after a move, any enemy stack on overwatch next to where the mover stopped may open fire (one shot each)
+  function overwatchTriggers(s, moverPid, hex) {
+    const out = [], idx = buildIndex(s), movers = (idx[hex] || []).filter(u => u.owner === moverPid);
+    if (!movers.length) return out;
+    for (const n of area(hex, 3)) {
+      if (n === hex) continue;
+      const ow = (idx[n] || []).filter(u => u.ow && u.owner !== moverPid && !isAlly(s, moverPid, u.owner) && !u.stun && UNITS[u.type].atk > 0);
+      if (!ow.length) continue;
+      const reach = Math.max(1, ...ow.map(u => UNITS[u.type].range || 1));
+      if (dist(n, hex) > reach) continue;
+      out.push({ owner: ow[0].owner, from: n, units: ow.filter(u => u.owner === ow[0].owner).map(u => u.id), target: hex, defPid: moverPid });
+    }
+    return out;
+  }
+  function overwatchFire(s, owner, from, target, rng) {
+    const ev = [], units = Object.values(s.units).filter(u => u.hex === from && u.owner === owner && u.ow);
+    if (!units.length || !Object.values(s.units).some(u => u.hex === target && u.owner !== owner)) return { ok: false, err: 'Nothing to shoot at', events: [] };
+    resolveFire(s, owner, units, from, target, rng || Math.random, ev);
+    units.forEach(u => { u.ow = false; });
+    for (const e2 of ev) if (e2.e === 'combat') e2.overwatch = true;
+    return { ok: true, events: ev };
+  }
+  // supply drops: now and then a crate parachutes onto open land away from the HQs. Everyone sees it land
+  function supplyDrops(s, ev, rng) {
+    const r = rng || Math.random; s.drops = (s.drops || []).filter(d => s.turn.round - d.round < 5);
+    if (s.turn.round < 2 || s.drops.length >= 3 || r() > 0.3) return;
+    const hqs = s.players.filter(p => p.alive && p.hq).map(p => p.hq), idx = buildIndex(s);
+    const spots = Object.keys(s.map.tiles).filter(k => { const t = s.map.tiles[k]; return isLandTile(t) && t.t !== 'mountain' && !t.bridge && !t.poi && !(idx[k] || []).length && hqs.every(h => dist(h, k) >= 3) && !s.drops.some(d => d.hex === k); });
+    if (!spots.length) return;
+    const k = spots[Math.floor(r() * spots.length)], card = r() < 0.4;
+    const d = { hex: k, round: s.turn.round, kind: card ? 'card' : 'cash', amount: card ? 0 : 5 + Math.floor(r() * 6) };
+    s.drops.push(d); ev.push({ e: 'airdrop', hex: k, kind: d.kind });
+    pushLog(s, '📦 A supply drop is coming down. First to reach it takes it.');
+  }
+  function claimDrops(s, pid, path, ev, rng) {
+    if (!s.drops || !s.drops.length || s._preview) return;
+    const p = player(s, pid); if (!p) return;
+    for (const k of path.slice(1)) {
+      const i = s.drops.findIndex(d => d.hex === k); if (i < 0) continue;
+      const d = s.drops.splice(i, 1)[0];
+      if (d.kind === 'card') { const id = cacheCard(rng || Math.random); p.tactics.push({ uid: s.nextId++, id }); ev.push({ e: 'dropClaim', pid, hex: k, card: id }); }
+      else { p.cash += d.amount; ev.push({ e: 'dropClaim', pid, hex: k, amount: d.amount }); }
+      pushLog(s, '📦 ' + p.name + ' grabbed a supply drop.');
+    }
+  }
   // the hexes and defenders an attack order would hit (the server pauses for the defender's reaction)
   function attackTarget(s, pid, a) {
     if (a.a !== 'move' && a.a !== 'assault') return null;
@@ -2497,7 +2553,7 @@
   return {
     DIRS, key, parse, dist, neighbors, area, line, mulberry32, hashStr,
     POI, WEATHER, isAlly, recordHistory, RARITY, RARITY_ORDER, CRATES, DROP_TIERS, SCRAP_VALUE, DECK_MAX, MAX_LEVEL, TERRAIN, DIFFICULTY, UNITS, TACTICS, STRUCTS, BUILD_ORDER, UPGRADABLE, MAX_SLVL, FACTIONS, COLORS, MAX_STACK, GRUNT_STACK, stackFits, CLASS_NAME, cardDef,
-    SNAPS, REACTIONS, INTEL_COST, intelCost, reactTactic, attackTarget, ECON, infraValue, econOf, AIR_STRIKES, airDefenders, interceptChance, generateMap, createGame, applyAction, spawnChoices, visionOf, startTurn, endTurn, simulateTurnStart, view, drawCards,
+    SNAPS, REACTIONS, INTEL_COST, intelCost, overwatchTriggers, overwatchFire, reactTactic, attackTarget, ECON, infraValue, econOf, AIR_STRIKES, airDefenders, interceptChance, generateMap, createGame, applyAction, spawnChoices, visionOf, startTurn, endTurn, simulateTurnStart, view, drawCards,
     player, current, buildIndex, canAct, moveAllow, ownedTiles, ownedLand, spawnPoints, musterHexes, supplySet, computeIncome, levelOf, unitAtk, unitDef,
     tsarArea, moodOf, addMood, threatOf, rerollCost, bountyValue, reachable, pathTo, rangedTargets, deployHexes, buildHexes, buildError, isSea, isWater, isCoastal, movers, combatCalc, tacticTargets, unitCost, structCost, buildCost, structsOf, MAX_STRUCTS, conquestTarget, isLandTile, flakCovered,
   };

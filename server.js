@@ -212,16 +212,21 @@ function filterEvents(events, pid) {
   const pl = game && pid && game.players.find(p => p.id === pid);
   if (game && game.settings.fog === 'on' && pl && pl.alive && game.phase === 'play') {
     const vis = E.visionOf(game, pid), mine = e => e.pid === pid || (e.pid && E.isAlly(game, pid, e.pid));
+    const myLand = new Set(Object.keys(game.map.tiles).filter(k => game.map.tiles[k].owner === pid));
+    const nearMe = k => k && E.area(k, 2).some(a => myLand.has(a));
+    const radar = [];
     out = out.filter(e => {
       if (mine(e)) return true;
-      if (e.e === 'move') return (e.path || []).some(k => vis.has(k));
+      if (e.e === 'move') { const seen = (e.path || []).some(k => vis.has(k)); if (!seen && e.path && nearMe(e.path[e.path.length - 1])) radar.push({ e: 'radar', hex: e.path[e.path.length - 1] }); return seen; }
       if (e.e === 'combat') return vis.has(e.to) || (e.def && e.def.pid === pid);
       if (e.e === 'deploy' || e.e === 'build' || e.e === 'loot') return vis.has(e.hex);
       if (e.e === 'advance') return vis.has(e.to);
       if (e.e === 'income' || e.e === 'scrap') return !e.hq || vis.has(e.hq);   // a rival's income pops over their HQ: don't give it away
       if (e.e === 'shell' || e.e === 'intercept') return vis.has(e.to) || vis.has(e.from);
+      if (e.e === 'overwatch') return vis.has(e.hex);
       return true;
     });
+    out = out.concat(radar);
   }
   return out;
 }
@@ -400,6 +405,10 @@ function onMessage(c, m) {
       else if (m.op === 'clear') warNotes[pid] = [];
       return sendNotes();
     }
+    case 'ow': {
+      if (!pendingOw || !controls(c, pendingOw.owner)) return;
+      return answerOw(!!m.fire);
+    }
     case 'react': {
       if (!pendingReact || !controls(c, pendingReact.defPid)) return;
       return closeReaction(m.uid == null ? null : m.uid);
@@ -417,6 +426,7 @@ function onMessage(c, m) {
       if (!game) return;
       const actor = m.as && controls(c, m.as) ? m.as : c.pid;
       if (pendingReact) return send(c, { t: 'err', msg: 'Waiting for the defender to react…', seq: m.seq });
+      if (pendingOw) return send(c, { t: 'err', msg: 'Waiting for an overwatch decision…', seq: m.seq });
       if (game.paused && game.phase === 'play') return send(c, { t: 'err', msg: 'The game is paused', seq: m.seq });
       if (!m._reacted) { const w = reactionWindow(actor, m.action); if (w) return openReaction(w, actor, () => onMessage(c, { ...m, _reacted: true })); }
       const isCur = game.players[game.turn.idx] && game.players[game.turn.idx].id === actor;
@@ -434,7 +444,7 @@ function onMessage(c, m) {
       } else if (isCur || (m.action || {}).a === 'end') undoStack.length = 0;
       game.v++;
       broadcastState(r.events, actor, m.seq);
-      return afterChange(r.events);
+      return overwatchAfter(r.events, actor, () => afterChange(r.events));
     }
     case 'chat': {
       const p = lobby.players.find(x => x.id === c.pid);
@@ -544,6 +554,38 @@ function closeReaction(uid) {
   for (const cl of clients) send(cl, { t: 'reactDone' });
   if (uid != null && game && game.phase === 'play') { const r = E.reactTactic(game, pr.defPid, uid, pr.hex); if (r.ok) { game.v++; broadcastState(r.events, pr.defPid); } }
   pr.done();
+}
+// overwatch: after a move, stacks on overwatch next to where the mover stopped may fire. Bots decide on the spot;
+// a connected human gets a few seconds to say FIRE or HOLD while the game waits
+const OW_MS = 6000;
+let pendingOw = null;
+function overwatchAfter(events, actor, done) {
+  if (!game || game.phase !== 'play') return done();
+  const hexes = [];
+  for (const e of events || []) { if (e.pid !== actor) continue; if (e.e === 'move' && e.path && e.path.length) hexes.push(e.path[e.path.length - 1]); if (e.e === 'advance') hexes.push(e.to); }
+  if (!hexes.length) return done();
+  const trig = []; for (const h of [...new Set(hexes)]) trig.push(...E.overwatchTriggers(game, actor, h));
+  const next = () => {
+    const t = trig.shift(); if (!t || !game || game.phase !== 'play') return done();
+    if (!Object.values(game.units).some(u => u.hex === t.target && u.owner === actor) || !t.units.some(id => game.units[id] && game.units[id].ow)) return next();
+    const lp = lobby.players.find(p => p.id === t.owner);
+    const human = lp && !lp.bot && !lp.away && isConnected(lp.local ? lp.controller : lp.id);
+    if (!human) {
+      const units = t.units.map(id => game.units[id]).filter(Boolean);
+      if (units.length && E.combatCalc(game, t.owner, units, t.from, t.target, true).winProb >= 0.45) fireOw(t);
+      return next();
+    }
+    pendingOw = { ...t, next, timer: setTimeout(() => answerOw(false), OW_MS + 300) };
+    for (const cl of clients) { if (cl.left) continue; send(cl, { t: 'owPrompt', mine: controls(cl, t.owner), owner: t.owner, from: t.from, target: t.target, units: t.units, ms: OW_MS }); }
+  };
+  next();
+}
+function fireOw(t) { const r = E.overwatchFire(game, t.owner, t.from, t.target); if (r.ok) { game.v++; broadcastState(r.events, t.owner); } }
+function answerOw(fire) {
+  const p = pendingOw; if (!p) return; pendingOw = null; clearTimeout(p.timer);
+  for (const cl of clients) send(cl, { t: 'owDone' });
+  if (fire && game && game.phase === 'play') fireOw(p);
+  p.next();
 }
 // time bank: a chess clock. Each commander has minutes in the bank plus 20s added every turn
 const BANK_INC = 20000, bankLeft = {};
@@ -709,7 +751,7 @@ function forceEnd(pid) {
   if (r.ok || ev.length) { game.log.push('⏱ ' + (E.player(game, pid) || {}).name + ' ran out of time.'); game.v++; broadcastState(ev.concat(r.ok ? r.events : []), pid); afterChange(r.events); }
 }
 function runBot() {
-  if (!game || game.phase !== 'play' || game.paused) return;
+  if (!game || game.phase !== 'play' || game.paused || pendingOw) return;
   const cur = E.current(game);
   const mem = botMem[cur.id + ':' + game.turn.round] || (botMem = {}, botMem[cur.id + ':' + game.turn.round] = { n: 0 });
   let a = mem.n++ > 60 ? { a: 'end' } : botStep(game, cur.id, mem);
@@ -724,7 +766,7 @@ function applyBot(cur, a) {
   if (!r.ok) { if (a.a === 'end') return; return void (botTimer = setTimeout(runBot, 10)); }
   game.v++;
   broadcastState(r.events, cur.id);
-  afterChange(r.events);
+  overwatchAfter(r.events, cur.id, () => afterChange(r.events));
 }
 
 // ───────────────────────── host panel (this computer only) ─────────────────────────
