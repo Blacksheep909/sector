@@ -132,7 +132,15 @@ function botStep(s, pid, mem) {
     return { a: 'pick', idx: c.idx, replace: c.replace };
   }
   mem.tried = mem.tried || new Set();
-  const tryOnce = (act) => { const k = JSON.stringify(act); if (mem.tried.has(k)) return null; mem.tried.add(k); return act; };
+  const tryOnce = (act) => { if (act && act.a === 'move') act = keepTogether(act); const k = JSON.stringify(act); if (mem.tried.has(k)) return null; mem.tried.add(k); return act; };
+  // a carrier doesn't drive off and strand more Grunts than the hex can hold: take them along, or leave the carrier
+  const keepTogether = (act) => {
+    const here = (idx[act.from] || []).filter(u => u.owner === pid), ids = new Set(act.units), left = () => here.filter(u => !ids.has(u.id));
+    if (!left().length || E.stackFits(left(), [])) return act;
+    for (const u of left()) if (u.type === 'grunt' && E.canAct(s, u)) ids.add(u.id);
+    if (!E.stackFits(left(), [])) for (const u of here) if (ids.has(u.id) && E.UNITS[u.type].lift) ids.delete(u.id);
+    return ids.size ? { ...act, units: [...ids] } : act;
+  };
   const idx = E.buildIndex(s);
   const tiles = s.map.tiles;
   const enemyNear = (k, r) => E.area(k, r).some(a => (idx[a] || []).some(u => u.owner !== pid));

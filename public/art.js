@@ -750,6 +750,128 @@ const Art = (() => {
       c.save(); c.fillStyle = 'rgba(255,255,255,.3)'; c.beginPath(); c.moveTo(-0.08, -0.12); c.lineTo(0.08, -0.12); c.lineTo(0.06, 0.42); c.lineTo(-0.06, 0.42); c.closePath(); c.fill(); c.fillRect(-0.24, 0.04, 0.48, 0.12); c.restore();
     },
   });
+  // ── helicopters, side-on, nose to the right ──
+  const blur = (c, f) => { c.save(); c.globalAlpha *= 0.5; f(); c.restore(); };
+  const tailRotor = (c, x, y, r) => { blur(c, () => { circ(c, x, y, r); c.fill(); }); rr(c, x - 0.02, y - r, 0.04, r * 2, 0.01); c.fill(); };
+  Object.assign(UNIT, {
+    // UH-60 Black Hawk: long cabin with a sliding door, sloped nose, engine hump, tail boom up to a canted fin, fixed wheels
+    stormcrow(c) {
+      blur(c, () => { rr(c, -1.02, -0.74, 1.86, 0.06, 0.03); c.fill(); });
+      rr(c, -0.2, -0.72, 0.08, 0.24, 0.02); c.fill();
+      rr(c, -0.5, -0.54, 0.66, 0.16, 0.07); c.fill();
+      c.beginPath(); c.moveTo(-0.58, -0.4); c.lineTo(0.42, -0.4); c.quadraticCurveTo(0.78, -0.36, 0.94, -0.08); c.lineTo(0.96, 0.1); c.quadraticCurveTo(0.9, 0.2, 0.72, 0.2); c.lineTo(-0.5, 0.2); c.lineTo(-0.64, -0.02); c.closePath(); c.fill();
+      poly(c, [-0.62, -0.34, -1.02, -0.26, -1.02, -0.18, -0.6, 0.0]); c.fill();
+      poly(c, [-0.98, -0.22, -1.1, -0.66, -0.96, -0.66, -0.86, -0.24]); c.fill();
+      rr(c, -1.12, -0.12, 0.3, 0.05, 0.02); c.fill();
+      tailRotor(c, -1.05, -0.52, 0.16);
+      c.lineWidth = 0.06; c.strokeStyle = c.fillStyle; c.beginPath(); c.moveTo(0.58, 0.18); c.lineTo(0.62, 0.34); c.moveTo(-0.24, 0.18); c.lineTo(-0.26, 0.34); c.stroke();
+      hub(c, 0.62, 0.38, 0.1); hub(c, -0.26, 0.38, 0.1);
+      rr(c, 0.02, 0.0, 0.08, 0.2, 0.02); c.fill(); rr(c, 0.06, 0.04, 0.34, 0.05, 0.02); c.fill();   // door gun
+      sh(c, () => {
+        poly(c, [0.46, -0.34, 0.76, -0.3, 0.86, -0.08, 0.5, -0.08]); c.fill();            // cockpit glass
+        rr(c, -0.3, -0.3, 0.36, 0.26, 0.03); c.fill();                                  // open cabin door
+        rr(c, -0.5, -0.04, 1.4, 0.05, 0.02); c.fill(); circ(c, -0.12, -0.46, 0.05); c.fill();
+      }, SH2);
+    },
+    // MH-6 Little Bird: egg-shaped bubble cabin, thin boom, T-tail, skids, troop benches
+    wren(c) {
+      blur(c, () => { rr(c, -0.86, -0.64, 1.58, 0.06, 0.03); c.fill(); });
+      rr(c, -0.02, -0.62, 0.08, 0.2, 0.02); c.fill();
+      c.beginPath(); c.ellipse(0.16, -0.14, 0.52, 0.36, 0, 0, P * 2); c.fill();
+      poly(c, [-0.3, -0.22, -1.0, -0.15, -1.0, -0.08, -0.3, 0.06]); c.fill();
+      poly(c, [-0.98, -0.12, -1.06, -0.46, -0.92, -0.46, -0.86, -0.12]); c.fill(); rr(c, -1.12, -0.5, 0.3, 0.05, 0.02); c.fill();
+      tailRotor(c, -1.0, -0.26, 0.12);
+      rr(c, -0.42, 0.44, 1.14, 0.06, 0.03); c.fill(); rr(c, 0.66, 0.38, 0.1, 0.08, 0.03); c.fill();
+      c.lineWidth = 0.06; c.strokeStyle = c.fillStyle; c.beginPath(); c.moveTo(-0.18, 0.18); c.lineTo(-0.22, 0.44); c.moveTo(0.42, 0.18); c.lineTo(0.48, 0.44); c.stroke();
+      rr(c, -0.24, 0.16, 0.86, 0.08, 0.03); c.fill();                                   // outboard bench
+      for (const x of [-0.1, 0.2]) { circ(c, x, 0.02, 0.09); c.fill(); }                  // troopers riding on it
+      sh(c, () => { c.beginPath(); c.ellipse(0.36, -0.2, 0.3, 0.22, 0, 0, P * 2); c.fill(); }, SH2);
+    },
+    // AH-64 Apache: slim body, stepped tandem cockpit, stub wings with Hellfire racks, chin gun, tailwheel
+    banshee(c) {
+      blur(c, () => { rr(c, -1.0, -0.78, 1.82, 0.06, 0.03); c.fill(); });
+      rr(c, -0.14, -0.76, 0.08, 0.22, 0.02); c.fill(); circ(c, -0.1, -0.78, 0.07); c.fill();   // mast-top radar dome
+      rr(c, -0.5, -0.56, 0.62, 0.18, 0.08); c.fill();
+      c.beginPath(); c.moveTo(-0.62, -0.32); c.lineTo(0.06, -0.38); c.lineTo(0.12, -0.56); c.lineTo(0.36, -0.56); c.lineTo(0.44, -0.42); c.lineTo(0.62, -0.42); c.lineTo(0.9, -0.16); c.lineTo(0.92, 0.0); c.lineTo(0.56, 0.08); c.lineTo(-0.5, 0.08); c.closePath(); c.fill();
+      poly(c, [-0.62, -0.3, -1.02, -0.22, -1.02, -0.14, -0.56, 0.04]); c.fill();
+      poly(c, [-0.98, -0.18, -1.1, -0.66, -0.96, -0.66, -0.86, -0.2]); c.fill(); rr(c, -1.1, -0.16, 0.28, 0.05, 0.02); c.fill();
+      tailRotor(c, -1.04, -0.5, 0.15);
+      rr(c, -0.3, 0.02, 0.68, 0.08, 0.03); c.fill();                                    // stub wing
+      for (const x of [-0.26, 0.1]) { rr(c, x, 0.1, 0.26, 0.14, 0.03); c.fill(); }       // missile racks
+      rr(c, 0.56, 0.06, 0.08, 0.12, 0.02); c.fill(); rr(c, 0.58, 0.14, 0.32, 0.05, 0.02); c.fill();   // chin gun
+      c.lineWidth = 0.06; c.strokeStyle = c.fillStyle; c.beginPath(); c.moveTo(0.42, 0.06); c.lineTo(0.48, 0.32); c.moveTo(-0.9, -0.14); c.lineTo(-0.9, 0.0); c.stroke();
+      hub(c, 0.48, 0.36, 0.1); hub(c, -0.9, 0.04, 0.06);
+      sh(c, () => {
+        poly(c, [0.46, -0.38, 0.6, -0.38, 0.82, -0.18, 0.48, -0.18]); c.fill();          // gunner's glass
+        poly(c, [0.14, -0.52, 0.34, -0.52, 0.4, -0.4, 0.12, -0.38]); c.fill();           // pilot's glass, higher
+        for (const x of [-0.22, 0.14]) c.fillRect(x, 0.16, 0.22, 0.03);
+        circ(c, -0.16, -0.46, 0.06); c.fill();                                            // engine intake
+      }, SH2);
+    },
+    // Mi-28: heavier, drooping armoured nose with a sensor ball, big chin cannon, rocket pods under the wings
+    ravager(c) {
+      blur(c, () => { rr(c, -1.0, -0.76, 1.8, 0.06, 0.03); c.fill(); });
+      rr(c, -0.16, -0.74, 0.08, 0.22, 0.02); c.fill();
+      rr(c, -0.52, -0.56, 0.7, 0.2, 0.08); c.fill(); rr(c, -0.6, -0.5, 0.12, 0.1, 0.03); c.fill();   // exhausts turned down
+      c.beginPath(); c.moveTo(-0.62, -0.32); c.lineTo(0.04, -0.38); c.lineTo(0.12, -0.6); c.lineTo(0.42, -0.6); c.lineTo(0.5, -0.44); c.lineTo(0.66, -0.42); c.quadraticCurveTo(0.92, -0.3, 0.9, 0.0); c.quadraticCurveTo(0.86, 0.14, 0.66, 0.12); c.lineTo(-0.5, 0.1); c.closePath(); c.fill();
+      circ(c, 0.86, 0.1, 0.1); c.fill();                                                  // nose sensor ball
+      poly(c, [-0.62, -0.3, -1.02, -0.22, -1.02, -0.14, -0.56, 0.04]); c.fill();
+      poly(c, [-0.98, -0.18, -1.08, -0.64, -0.94, -0.64, -0.86, -0.2]); c.fill(); rr(c, -1.08, -0.16, 0.26, 0.05, 0.02); c.fill();
+      tailRotor(c, -1.02, -0.48, 0.15);
+      rr(c, -0.32, 0.02, 0.66, 0.08, 0.03); c.fill();
+      for (const x of [-0.18, 0.18]) { c.beginPath(); c.ellipse(x, 0.18, 0.15, 0.08, 0, 0, P * 2); c.fill(); }   // rocket pods
+      rr(c, 0.6, 0.1, 0.12, 0.14, 0.03); c.fill(); rr(c, 0.62, 0.2, 0.36, 0.07, 0.02); c.fill();               // 30mm cannon
+      c.lineWidth = 0.06; c.strokeStyle = c.fillStyle; c.beginPath(); c.moveTo(0.36, 0.1); c.lineTo(0.42, 0.34); c.moveTo(-0.9, -0.14); c.lineTo(-0.9, 0.0); c.stroke();
+      hub(c, 0.42, 0.38, 0.1); hub(c, -0.9, 0.04, 0.06);
+      sh(c, () => {
+        poly(c, [0.5, -0.4, 0.64, -0.4, 0.76, -0.22, 0.52, -0.22]); c.fill();
+        poly(c, [0.14, -0.56, 0.38, -0.56, 0.44, -0.44, 0.12, -0.4]); c.fill();
+        for (const x of [-0.18, 0.18]) { circ(c, x + 0.12, 0.18, 0.04); c.fill(); }
+      }, SH2);
+    },
+  });
+  Object.assign(UNIT, {
+    // E-3 Sentry from above: a swept-wing four-engine airliner with the striped rotodome over the rear fuselage
+    warden(c) {
+      c.beginPath(); c.moveTo(0, -0.98); c.quadraticCurveTo(0.12, -0.92, 0.12, -0.7); c.lineTo(0.11, 0.7); c.lineTo(0.04, 0.95); c.lineTo(-0.04, 0.95); c.lineTo(-0.11, 0.7); c.lineTo(-0.12, -0.7); c.quadraticCurveTo(-0.12, -0.92, 0, -0.98); c.fill();
+      for (const s of [1, -1]) {
+        poly(c, [s * 0.1, -0.32, s * 0.98, 0.18, s * 0.98, 0.28, s * 0.1, 0.04]); c.fill();
+        poly(c, [s * 0.08, 0.62, s * 0.42, 0.84, s * 0.42, 0.92, s * 0.06, 0.8]); c.fill();
+        for (const x of [0.4, 0.7]) { const y = -0.32 + (x - 0.1) * 0.57; rr(c, s * x - 0.05, y - 0.1, 0.1, 0.24, 0.04); c.fill(); }
+      }
+      circ(c, 0, 0.36, 0.34); c.fill();
+      sh(c, () => { rr(c, -0.34, 0.31, 0.68, 0.1, 0.02); c.fill(); }, SH2);
+      sh(c, () => { c.beginPath(); c.ellipse(0, -0.82, 0.07, 0.1, 0, 0, P * 2); c.fill(); });
+    },
+    // V-22 Osprey, side-on: nacelles tilted up with the proprotors turning above, high wing, rear ramp, H-tail
+    valkyrie(c) {
+      c.beginPath(); c.moveTo(-0.86, -0.24); c.lineTo(0.5, -0.26); c.quadraticCurveTo(0.9, -0.22, 0.96, 0.0); c.quadraticCurveTo(0.92, 0.18, 0.7, 0.2); c.lineTo(-0.55, 0.2); c.lineTo(-0.96, -0.06); c.closePath(); c.fill();
+      poly(c, [-0.94, -0.12, -1.06, -0.6, -0.9, -0.6, -0.78, -0.22]); c.fill(); rr(c, -1.08, -0.64, 0.32, 0.06, 0.02); c.fill();
+      rr(c, -0.32, -0.36, 0.7, 0.11, 0.04); c.fill();
+      rr(c, 0.62, -0.32, 0.4, 0.04, 0.02); c.fill();                                       // refuelling probe
+      rr(c, -0.02, -0.74, 0.18, 0.5, 0.07); c.fill();                                     // nacelle, tilted up
+      blur(c, () => { c.beginPath(); c.ellipse(0.07, -0.78, 0.8, 0.09, 0, 0, P * 2); c.fill(); });
+      for (const a2 of [-0.3, 0.5]) { c.save(); c.translate(0.07, -0.78); c.scale(1, 0.12); c.rotate(a2); rr(c, -0.8, -0.05, 1.6, 0.1, 0.05); c.fill(); c.restore(); }
+      rr(c, -0.16, 0.1, 0.56, 0.14, 0.05); c.fill();                                      // sponson
+      hub(c, -0.04, 0.32, 0.09); hub(c, 0.26, 0.32, 0.09); hub(c, 0.74, 0.3, 0.07);
+      sh(c, () => {
+        poly(c, [0.56, -0.2, 0.8, -0.18, 0.88, -0.02, 0.58, -0.02]); c.fill();          // cockpit glass
+        for (const x of [-0.5, -0.32, 0.38]) { rr(c, x, -0.14, 0.1, 0.08, 0.02); c.fill(); }
+        c.beginPath(); c.moveTo(-0.55, 0.2); c.lineTo(-0.9, -0.02); c.lineTo(-0.86, -0.06); c.lineTo(-0.52, 0.14); c.closePath(); c.fill();   // ramp
+      }, SH2);
+    },
+  });
+  // M18 Claymore on its scissor legs, curved face toward the enemy, firing wire trailing off
+  Object.assign(TACTIC, {
+    ambush(c) {
+      c.beginPath(); c.moveTo(-0.72, -0.36); c.quadraticCurveTo(0, -0.52, 0.72, -0.36); c.lineTo(0.72, 0.24); c.quadraticCurveTo(0, 0.08, -0.72, 0.24); c.closePath(); c.fill();
+      rr(c, -0.38, -0.64, 0.16, 0.2, 0.03); c.fill(); rr(c, 0.22, -0.64, 0.16, 0.2, 0.03); c.fill();
+      c.lineWidth = 0.09; c.lineCap = 'round'; c.strokeStyle = c.fillStyle;
+      c.beginPath(); c.moveTo(-0.52, 0.18); c.lineTo(-0.72, 0.78); c.moveTo(-0.32, 0.16); c.lineTo(-0.14, 0.78); c.moveTo(0.32, 0.16); c.lineTo(0.14, 0.78); c.moveTo(0.52, 0.18); c.lineTo(0.72, 0.78); c.stroke();
+      c.lineWidth = 0.05; c.beginPath(); c.moveTo(0.3, -0.64); c.bezierCurveTo(0.45, -0.95, 0.75, -0.6, 0.98, -0.88); c.stroke();
+      sh(c, () => { rr(c, -0.5, -0.24, 1.0, 0.07, 0.02); c.fill(); rr(c, -0.4, -0.1, 0.8, 0.06, 0.02); c.fill(); }, SH2);
+    },
+  });
   // Carrier: a flat-deck legendary airbase
   Object.assign(UNIT, {
     carrier(c) {

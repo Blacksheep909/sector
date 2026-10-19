@@ -106,7 +106,7 @@
   function reportLosses(before, next, events) {
     if (!before.length || !next || !next.units) return;
     const lost = before.filter(u => !next.units[u.id]); if (!lost.length) return;
-    const why = events.some(e => e.e === 'drown') ? 'lost at sea' : events.some(e => e.e === 'evicted') ? 'cut off when a pact ended' : events.some(e => e.e === 'tactic') ? 'hit by an enemy strike' : events.some(e => e.e === 'combat' || e.e === 'fogstop') ? 'killed in battle' : events.some(e => e.e === 'eliminate') ? 'lost with your HQ' : 'destroyed';
+    const why = events.some(e => e.e === 'drown') ? 'lost at sea' : events.some(e => e.e === 'evicted') ? 'cut off when a pact ended' : events.some(e => e.e === 'crash') ? 'went down with their transport' : events.some(e => e.e === 'tactic') ? 'hit by an enemy strike' : events.some(e => e.e === 'combat' || e.e === 'fogstop') ? 'killed in battle' : events.some(e => e.e === 'eliminate') ? 'lost with your HQ' : 'destroyed';
     const names = {}; for (const u of lost) names[E.UNITS[u.type].name] = (names[E.UNITS[u.type].name] || 0) + 1;
     toast('💀 Lost ' + Object.entries(names).map(([n, c]) => (c > 1 ? c + '× ' : '') + n).join(', ') + ' — ' + why, 'err');
     const at = lost[0].hex; if (at && S && S.map.tiles[at]) Render.ring(at, '#ff4f5e', 50, 0.8, 4);
@@ -1299,6 +1299,7 @@
     if (units.length) {
       const mine = units[0].owner === you;
       h += `<div class="hp-sec">${mine ? 'Your units' + (canCommand() ? ' — click to toggle' : '') : 'Enemy units'}</div>`;
+      { const seats = units.reduce((a, u) => a + (E.UNITS[u.type].lift || 0), 0); if (seats) { const g = units.filter(u => u.type === 'grunt').length; h += `<div class="hp-tag" style="color:#9fdcff;margin:2px 0 4px">🚁 Seats for ${seats} Grunt${seats > 1 ? 's' : ''}${g ? ` · ${Math.min(g, seats)} aboard${g > seats ? ' (too many: they walk)' : ''}` : ''}</div>`; } }
       for (const u of units) {
         const d = E.UNITS[u.type], ready = E.canAct(ds, u);
         const status = u.stun ? 'FROZEN' : u.fresh && !ready ? 'just deployed' : u.moved ? 'done' : ready ? 'ready' : '';
@@ -2132,6 +2133,7 @@
         }
         case 'tactic': if (ev.target) { follow(ev.target); await sleep(200); } await animTactic(ev); break;
         case 'undo': if (ev.pid === you) toast('↶ Undone'); break;
+        case 'crash': { const at = ev.units.map(id => S.units[id]).find(Boolean); if (at) Render.float(at.hex, '🚁 WENT DOWN', '#ffb03a', 16); killUnits(ev.units, true); await sleep(300); break; }
         case 'bridgeRot': { const tt = S.map.tiles[ev.hex]; if (tt) tt.bridgeRot = ev.rot; Render.invalidate(); SFX.click(); break; }
         case 'overwatch': { for (const id of ev.units) if (S.units[id]) { S.units[id].ow = true; S.units[id].moved = true; } Render.ring(ev.hex, pColor(ev.pid), 45, 0.6, 3); if (ev.pid === you) toast('🎯 On overwatch: they will fire on enemies that stop next to them'); break; }
         case 'airdrop': {
@@ -2246,17 +2248,47 @@
     }
   }
 
+  // how a moving group travels, judged by the biggest piece of kit in it (Grunts riding along don't count)
+  const TRACKED = new Set(['mauler', 'hellcat', 'scorpion', 'goliath', 'leviathan', 'titan', 'hailstorm']);
+  function moveStyle(ids) {
+    const us = ids.map(id => S.units[id]).filter(Boolean); if (!us.length) return 'foot';
+    const ride = E.riders(us), lead = us.filter(u => !ride.includes(u));
+    const top = lead.slice().sort((a, b) => E.UNITS[b.type].cost - E.UNITS[a.type].cost)[0], d = E.UNITS[top.type];
+    if (d.cls === 'sea') return 'sea';
+    if (d.cls === 'air') return d.heli || top.type === 'valkyrie' ? 'heli' : 'jet';
+    if (TRACKED.has(top.type)) return 'tracks';
+    if (d.cls === 'veh' || ['basilisk', 'sentinel', 'oracle'].includes(top.type)) return 'wheels';
+    return 'foot';
+  }
   async function animMove(ev, quick) {
     const ids = ev.units.filter(id => S.units[id]);
     const caps = new Set(ev.captures);
+    const style = moveStyle(ids), dust = 'rgba(150,130,100,';
     let ci = 0;
+    ({ heli: () => SFX.rotor(Math.min(10, 3 + ev.path.length * 2)), jet: () => SFX.jet(), tracks: () => SFX.tracks(), wheels: () => SFX.engine(), sea: () => SFX.wake(), foot: () => {} })[style]();
+    // aircraft climb out at the start and settle at the end; everything else follows the ground
+    const n = ev.path.length - 1, alt = style === 'heli' ? 16 : style === 'jet' ? 24 : 0;
+    const per = style === 'jet' ? 85 : style === 'heli' ? 150 : style === 'tracks' ? 165 : style === 'wheels' ? 110 : style === 'sea' ? 150 : 130;
     for (let i = 1; i < ev.path.length; i++) {
       const [ax, ay] = Render.topOf(ev.path[i - 1]), [bx, by] = Render.topOf(ev.path[i]);
-      await tween(quick ? 160 : 130, p => {
-        const e = ease(p);
-        for (const id of ids) Render.unitPos[id] = { x: ax + (bx - ax) * e, y: ay + (by - ay) * e - Math.sin(p * Math.PI) * 8 };
+      await tween(quick ? 160 : per, p => {
+        const e = style === 'jet' || style === 'heli' ? p : ease(p), g = (i - 1 + p) / n;
+        let lift;
+        if (alt) lift = alt * Math.min(1, g * 3, (1 - g) * 3 + (i === n ? 0 : 1)) + (style === 'heli' ? Math.sin((i + p) * 5) * 1.5 : 0);
+        else if (style === 'foot') lift = Math.sin(p * Math.PI) * 8;
+        else if (style === 'tracks') lift = Math.abs(Math.sin(p * Math.PI * 4)) * 1.4;   // a heavy, juddering crawl
+        else if (style === 'sea') lift = Math.sin(p * Math.PI * 2) * 1.5;
+        else lift = Math.sin(p * Math.PI) * 2.5;
+        const sx = style === 'heli' ? Math.sin((i + p) * 3.3) * 1.5 : 0;
+        for (const id of ids) Render.unitPos[id] = { x: ax + (bx - ax) * e + sx, y: ay + (by - ay) * e - lift, s: alt ? 1 + lift / 160 : 1 };
       });
-      SFX.step();
+      const k = ev.path[i];
+      if (style === 'foot') SFX.step();
+      else if (style === 'tracks') { SFX.clank(); Render.smoke(k, 3, dust); if (!fastForward) Render.shake(1.5); }
+      else if (style === 'wheels') Render.smoke(k, 2, dust);
+      else if (style === 'sea') Render.ring(k, '#bfeeff', 26, 0.6, 2);
+      else if (style === 'heli' && (i === 1 || i === n)) Render.ring(k, 'rgba(220,240,255,.7)', 34, 0.5, 2);   // rotor wash on take-off and landing
+      else if (style === 'jet') Render.smoke(ev.path[i - 1], 1, 'rgba(235,240,245,');
       if (caps.has(ev.path[i])) flipTile(ev.path[i], ev.pid, ci++);
     }
     const last = ev.path[ev.path.length - 1];

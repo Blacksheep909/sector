@@ -2,6 +2,34 @@
 
 Every release, newest first. Each version also has its own post on the [Releases page](https://github.com/Blacksheep909/sector/releases).
 
+## v0.9.19
+
+**Helicopters, troop carriers, and vehicles that sound like vehicles.**
+
+- **🚁 Four new helicopters:**
+  - **Wren** (rare): a light assault helicopter, like the Little Bird. Fast (5 move), with 2 Grunts riding on its benches.
+  - **Ravager** (rare): an armoured attack helicopter with a chin cannon and rocket pods, like the Mi-28. Strafing Run.
+  - **Stormcrow** (epic): a utility helicopter with door guns, like the Black Hawk. Carries 6 Grunts.
+  - **Banshee** (legendary): a tank-killing attack helicopter, like the Apache. **Hellfire** gives +4 chips against vehicles, on top of Strafing Run.
+- **🪖 Troop carriers:** Grunts moving with a carrier ride along at the carrier's speed and over its terrain. Helicopters fly them over mountains and water; APCs drive them.
+  - Seats: Wren 2, Bulwark 4, Outrider 4, Stormcrow 6, Valkyrie 8.
+  - It's all or nothing: with more Grunts than seats, nobody rides and the group walks.
+  - Grunts aboard don't take stack space.
+  - A helicopter carrying troops can't stop or launch an attack over water.
+  - If a carrier is shot down, passengers who no longer fit in the stack go down with it.
+  - The hex panel shows a stack's seats and how many Grunts are aboard.
+- **🔊 Every kind of kit moves its own way:**
+  - Helicopters climb out with a rotor chop, sway in flight, and kick up rotor wash. Their map tokens have a spinning rotor.
+  - Jets streak across with a roar and a contrail.
+  - Tanks crawl with a rumble, track clank, dust and a little camera judder.
+  - Wheeled vehicles glide with an engine note and dust.
+  - Ships bob along with a wake.
+  - Infantry still march hex by hex.
+- **🎨 Icons closer to the real thing:**
+  - The Warden is now a proper E-3 Sentry, with swept wings and the striped radar dome.
+  - The Valkyrie is a side-on V-22 Osprey with its nacelles up.
+  - The **Ambush** card, which had no picture at all, now shows an M18 Claymore mine.
+
 ## v0.9.18
 
 **Turn your bridges, claim old bases, and bots that actually march.**
