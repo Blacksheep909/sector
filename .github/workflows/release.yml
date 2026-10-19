@@ -35,6 +35,7 @@ jobs:
           node tools/test-v07.js
           node tools/test-v08.js
           node tools/test-v09.js
+          node tools/test-save.js
       - name: Build Sector.exe
         run: node tools/build-exe.js
       - name: Sign Sector.exe (Azure Trusted Signing)

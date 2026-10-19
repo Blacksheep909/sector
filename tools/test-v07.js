@@ -13,7 +13,7 @@ const play = (s, a) => E.applyAction(s, me(s).id, a);
 { // Goliath crawls one hex through rough ground
   const s = game(); const p = me(s); const hq = p.hq;
   const n = E.neighbors(hq).find(k => s.map.tiles[k] && E.isLandTile(s.map.tiles[k]) && s.map.tiles[k].t !== 'mountain');
-  s.map.tiles[n].t = 'hills';
+  s.map.tiles[n].t = 'hills'; s.map.tiles[n].river = false;   // a river would need a bridge for vehicles
   const u = { id: 'g1', type: 'goliath', owner: p.id, hex: hq, moved: false, fresh: false }; s.units.g1 = u;
   for (const id in s.units) if (id !== 'g1' && s.units[id].hex === hq) delete s.units[id];
   const r = E.reachable(s, p.id, ['g1'], hq); ok(r[n] && r[n].kind !== 'pass', 'goliath can step onto highlands');
@@ -22,7 +22,7 @@ const play = (s, a) => E.applyAction(s, me(s).id, a);
   const s = game(); const p = me(s); const hq = p.hq; s.weather = { id: 'blizzard', round: 3 };
   for (const id in s.units) if (s.units[id].hex === hq) delete s.units[id];
   const ns = E.neighbors(hq).filter(k => s.map.tiles[k] && E.isLandTile(s.map.tiles[k]) && s.map.tiles[k].t !== 'mountain');
-  ns.forEach(k => { s.map.tiles[k].t = 'tundra'; });
+  ns.forEach(k => { s.map.tiles[k].t = 'tundra'; s.map.tiles[k].river = false; });
   for (const type of ['goliath', 'titan', 'grunt']) {
     s.units.t1 = { id: 't1', type, owner: p.id, hex: hq, moved: false, fresh: false };
     const r = E.reachable(s, p.id, ['t1'], hq); ok(ns.every(k => r[k] && r[k].kind !== 'pass'), type + ' can step onto snow in a blizzard');

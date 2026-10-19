@@ -161,7 +161,7 @@ const autoPids = new Set(); // dev: humans driven by the bot AI (SECTOR_DEV=1)
 function lobbyView() {
   return {
     players: lobby.players.map(p => ({ id: p.id, name: p.name, color: p.color, faction: p.faction, bot: p.bot, diff: p.diff, local: !!p.local, controller: p.controller || null, spectator: !!p.spectator, team: p.team || 0, ready: isReady(p), away: !!p.away, afk: !!p.afk, connected: p.bot || isConnected(p.id) })),
-    hostId: lobby.hostId, settings: lobby.settings, inGame: !!game, version: VERSION, lan: lanAddresses().map(a => 'http://' + a + ':' + PORT), port: PORT,
+    hostId: lobby.hostId, settings: lobby.settings, inGame: !!game, saves: game ? [] : listSaves(), version: VERSION, lan: lanAddresses().map(a => 'http://' + a + ':' + PORT), port: PORT,
   };
 }
 // ready-up: every human commander (not bots, spectators or pass-and-play seats, whose device owner readies for them) must be ready
@@ -376,6 +376,7 @@ function onMessage(c, m) {
       for (const k in bankLeft) delete bankLeft[k]; bankKey = ''; bankPid = null;
       const r = E.createGame(s, roster);
       game = r.state; botMem = {}; fogMem = {};
+      game.saveId = 'g' + Date.now().toString(36) + crypto.randomBytes(2).toString('hex');
       console.log('[game] started: ' + lobby.players.length + ' players, ' + s.mode + ', map ' + s.mapSize);
       broadcastLobby();
       broadcastState(r.events, null);
@@ -464,6 +465,14 @@ function onMessage(c, m) {
       if (game) { game.v++; broadcastState([], null); afterChange(); }
       return;
     }
+    case 'saveGame': {
+      if (!game || game.phase !== 'play' || c.pid !== lobby.hostId) return;
+      const d = writeSave();
+      send(c, d ? { t: 'saved', title: d.title } : { t: 'err', msg: 'Could not save the game' });
+      return;
+    }
+    case 'loadSave': if (c.pid !== lobby.hostId || game) return; return loadSave(c, m.id);
+    case 'dropSave': if (c.pid !== lobby.hostId || game) return; dropSave(m.id); return broadcastLobby();
     case 'toLobby': if (c.pid !== lobby.hostId || !game) return; console.log('[game] host ' + c.pid + ' ended the game'); endGame(); return;
     case 'ping': return send(c, { t: 'pong' });
     case 'alive': {
@@ -505,11 +514,101 @@ function pick(o, keys) { const r = {}; for (const k of keys) if (o && k in o) r[
 
 function endGame() {
   console.log('[game] returned to lobby');
+  // ending a war early keeps it saved, so it can be resumed from the lobby
+  if (game && game.phase === 'play') writeSave(); else clearTimeout(saveTimer);
   for (const k in warNotes) delete warNotes[k];
   game = null; clearTimeout(botTimer); clearTimeout(turnTimer); clearTimeout(idleTimer);
   for (const p of lobby.players) p.ready = false;   // everyone readies up again for the next war
   for (const c of clients) send(c, { t: 'state', state: null, events: [] });
   broadcastLobby();
+}
+
+// ───────────── saved games: every war in progress autosaves to its own file, and the host can resume it from the lobby ─────────────
+const SAVE_DIR = process.env.SECTOR_SAVES || path.join(process.env.APPDATA || os.homedir(), 'Sector', 'saves');
+const SAVE_KEEP = 20;
+let saveTimer = null, saveList = null;
+const savePath = id => path.join(SAVE_DIR, String(id).replace(/[^a-z0-9_-]/gi, '') + '.json');
+function saveTitle(g) {
+  const mode = { domination: 'Domination', conquest: 'Conquest', koth: 'Beacon', worldwar: 'World War' }[g.settings.mode] || g.settings.mode;
+  return mode + ' · round ' + g.turn.round + ' · ' + g.players.filter(p => p.alive).map(p => p.name.replace(/ \(bot\)$/, '')).join(', ');
+}
+function writeSave() {
+  clearTimeout(saveTimer); saveTimer = null;
+  if (!game || game.phase !== 'play' || !game.saveId) return null;
+  const fog = {}; for (const k in fogMem) fog[k] = { explored: [...fogMem[k].explored], seen: fogMem[k].seen };
+  const seats = lobby.players.filter(p => game.players.some(g => g.id === p.id)).map(p => pick(p, ['id', 'name', 'color', 'faction', 'bot', 'diff', 'local', 'controller', 'team']));
+  const data = { v: 1, version: VERSION, id: game.saveId, savedAt: Date.now(), title: saveTitle(game), round: game.turn.round, mode: game.settings.mode, game, fog, seats, bank: bankLeft };
+  try {
+    fs.mkdirSync(SAVE_DIR, { recursive: true });
+    const f = savePath(game.saveId); fs.writeFileSync(f + '.tmp', JSON.stringify(data)); fs.renameSync(f + '.tmp', f);
+    saveList = null;
+    // keep the newest few
+    const old = listSaves().slice(SAVE_KEEP); for (const o of old) try { fs.unlinkSync(savePath(o.id)); } catch (e) {}
+    if (old.length) saveList = null;
+    return data;
+  } catch (e) { console.log('[save] failed: ' + e.message); return null; }
+}
+function scheduleSave() { if (!saveTimer && game && game.phase === 'play' && game.saveId) saveTimer = setTimeout(writeSave, 3000); }
+function dropSave(id) { try { fs.unlinkSync(savePath(id)); } catch (e) {} saveList = null; }
+function listSaves() {
+  if (saveList) return saveList;
+  let files = []; try { files = fs.readdirSync(SAVE_DIR).filter(f => f.endsWith('.json')); } catch (e) {}
+  const out = [];
+  for (const f of files) {
+    try {
+      const d = JSON.parse(fs.readFileSync(path.join(SAVE_DIR, f), 'utf8'));
+      if (!d || !d.game || !d.id) continue;
+      out.push({ id: d.id, title: d.title, round: d.round, mode: d.mode, savedAt: d.savedAt, humans: (d.seats || []).filter(p => !p.bot).map(p => p.name) });
+    } catch (e) {}
+  }
+  return (saveList = out.sort((a, b) => b.savedAt - a.savedAt));
+}
+function loadSave(c, id) {
+  let d; try { d = JSON.parse(fs.readFileSync(savePath(id), 'utf8')); } catch (e) { return send(c, { t: 'err', msg: 'That save could not be read' }); }
+  if (!d || !d.game || !d.game.players) return send(c, { t: 'err', msg: 'That save is damaged' });
+  const g = d.game, seats = d.seats || [];
+  const num = id => +(String(id).match(/\d+/) || [0])[0];
+  nextPid = Math.max(nextPid, ...g.players.map(p => num(p.id) + 1), ...lobby.players.map(p => num(p.id) + 1));
+  // people in the lobby take back the seat with their name; everyone else watches and can take over a bot
+  const base = n => String(n || '').replace(/ \(bot\)$/, '').trim().toLowerCase();
+  const humans = lobby.players.filter(p => !p.bot && !p.local), taken = new Set(), remap = new Map();
+  const players = [];
+  for (const gp of g.players) {
+    const sv = seats.find(x => x.id === gp.id) || { id: gp.id, name: gp.name, bot: gp.bot };
+    const h = !sv.bot && !sv.local && gp.alive && humans.find(x => !taken.has(x) && base(x.name) === base(sv.name));
+    if (h) {
+      taken.add(h); remap.set(h.id, gp.id);
+      players.push({ ...h, id: gp.id, name: gp.name, color: gp.color, faction: gp.faction, team: gp.team || 0, spectator: false, ready: true, away: false, afk: false });
+      gp.bot = false; gp.away = false; gp.afk = false;
+      continue;
+    }
+    players.push({ id: gp.id, name: gp.name, color: gp.color, faction: gp.faction, team: gp.team || 0, bot: true, diff: gp.diff || sv.diff || 'medium', local: false, controller: null, token: null, _local: sv.local ? sv.controller : null });
+  }
+  // pass & play seats come back if the person who held the device is here
+  for (const p of players) {
+    if (p._local && players.some(x => x.id === p._local && !x.bot)) { p.bot = false; p.local = true; p.controller = p._local; p.diff = null; const gp = g.players.find(x => x.id === p.id); if (gp) { gp.bot = false; gp.away = false; } }
+    delete p._local;
+  }
+  for (const p of players) { const gp = g.players.find(x => x.id === p.id); if (p.bot && gp && !gp.bot) { gp.bot = true; gp.diff = gp.diff || 'medium'; gp.away = false; } }
+  for (const h of humans) if (!taken.has(h)) { const nid = 'p' + nextPid++; remap.set(h.id, nid); players.push({ ...h, id: nid, spectator: true, ready: true }); }
+  for (const cl of clients) if (cl.pid && remap.has(cl.pid)) cl.pid = remap.get(cl.pid);
+  lobby.hostId = remap.get(lobby.hostId) || lobby.hostId;
+  lobby.players = players;
+  Object.assign(lobby.settings, pick(g.settings, ['mode', 'mapSize', 'mapType', 'spawns', 'fog', 'events', 'timer', 'maxRounds', 'conquestPct', 'teams', 'speed', 'bank']));
+  // clocks were wall-clock times when saved: restart this turn's
+  g.turn.pausedAt = 0; g.paused = false;
+  g.turn.deadline = g.settings.timer ? Date.now() + g.settings.timer * 1000 : 0; g.turn.prevDeadline = 0;
+  game = g; game.v = (game.v || 0) + 1; botMem = {}; undoStack.length = 0; undoStack.owner = null;
+  fogMem = {}; for (const k in d.fog || {}) fogMem[k] = { explored: new Set(d.fog[k].explored || []), seen: d.fog[k].seen || {} };
+  for (const k in bankLeft) delete bankLeft[k]; Object.assign(bankLeft, d.bank || {}); bankKey = ''; bankPid = null; turnKey = '';
+  for (const k in warNotes) delete warNotes[k];
+  pendingReact = null; pendingOw = null;
+  game.log.push('💾 Resumed from a save (round ' + game.turn.round + ').');
+  console.log('[game] resumed save ' + d.id + ' (round ' + game.turn.round + ')');
+  note('Resumed a saved game: ' + d.title);
+  for (const cl of clients) { const p = cl.pid && lobby.players.find(x => x.id === cl.pid); if (p) send(cl, { t: 'welcome', you: p.id, token: p.token, spectator: !!p.spectator }); }
+  broadcastLobby(); broadcastState([], null);
+  afterChange();
 }
 
 // a player who dropped out (or went AFK) takes their seats back from the covering bot
@@ -635,6 +734,8 @@ function onDisconnect(c) {
 let tradeTimer = null, draftTimer = null, allyTimer = null;
 function afterChange(events) {
   clearTimeout(botTimer); clearTimeout(turnTimer); clearTimeout(idleTimer);
+  if (game && game.phase === 'play') scheduleSave();
+  else if (game && game.phase === 'over' && game.saveId) { clearTimeout(saveTimer); saveTimer = null; dropSave(game.saveId); game.saveId = null; }   // a finished war can't be resumed
   if (game && game.phase === 'spawn') {
     // bots pick their HQ quickly; humans get 60 seconds before one is chosen for them
     clearTimeout(draftTimer);

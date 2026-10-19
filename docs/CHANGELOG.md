@@ -2,6 +2,20 @@
 
 Every release, newest first. Each version also has its own post on the [Releases page](https://github.com/Blacksheep909/sector/releases).
 
+## v0.9.13
+
+**Save your wars and pick them up later.**
+
+- **💾 Saved games:**
+  - Every war in progress saves itself a few seconds after each move.
+  - The host can also save from the Esc menu (**SAVE GAME**).
+  - Pressing **END GAME FOR EVERYONE** keeps the war saved too.
+- **Resume from the lobby:** the host sees a **SAVED WARS** list with **RESUME** and delete buttons.
+  - Anyone in the lobby with the same callsign as a commander in the save gets their seat back: same army, cash and cards.
+  - Seats with nobody back yet are played by bots. Newcomers watch and can **TAKE OVER** any bot.
+- Saves are stored in `%APPDATA%\Sector\saves`. The 20 newest are kept, and a war that finishes is removed from the list.
+- **💥 One-hit wins land in one go:** on a sure-win attack, your troops now drive straight onto the hex and it goes up in a single blast as they land. Before, they stopped next to it, an explosion played, a second one played, then they stepped in.
+
 ## v0.9.12
 
 **The hex count on name cards now matches what wins.**
