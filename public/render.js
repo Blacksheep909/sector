@@ -745,6 +745,13 @@ const Render = (() => {
       ctx.fillStyle = '#0b1a22'; ctx.beginPath(); ctx.arc(bx, by, 7 * z, 0, Math.PI * 2); ctx.fill(); ctx.strokeStyle = '#7ff3ff'; ctx.lineWidth = 1.5 * z; ctx.stroke();
       ctx.fillStyle = '#7ff3ff'; ctx.beginPath(); ctx.moveTo(bx + 1 * z, by - 5 * z); ctx.lineTo(bx - 3 * z, by + 1 * z); ctx.lineTo(bx, by + 1 * z); ctx.lineTo(bx - 1 * z, by + 5 * z); ctx.lineTo(bx + 3 * z, by - 1 * z); ctx.lineTo(bx, by - 1 * z); ctx.closePath(); ctx.fill();
     }
+    if (units.some(u => u.ow) && !opts.ghost) {
+      // overwatch: a gold eye above the token
+      const ex = x, ey = ty - r - 10 * z;
+      ctx.fillStyle = '#0b0f13'; ctx.beginPath(); ctx.ellipse(ex, ey, 9 * z, 6 * z, 0, 0, Math.PI * 2); ctx.fill();
+      ctx.strokeStyle = '#ffc53d'; ctx.lineWidth = 1.6 * z; ctx.beginPath(); ctx.ellipse(ex, ey, 8 * z, 5 * z, 0, 0, Math.PI * 2); ctx.stroke();
+      ctx.fillStyle = '#ffc53d'; ctx.beginPath(); ctx.arc(ex, ey, 2.4 * z, 0, Math.PI * 2); ctx.fill();
+    }
     if (units.every(u => u.dug) && !opts.ghost) {
       // dug in: a sandbag arc under the token
       ctx.fillStyle = '#b8a27a'; ctx.strokeStyle = '#0a0e12'; ctx.lineWidth = 1.5 * z;
@@ -836,6 +843,20 @@ const Render = (() => {
     for (const kk in moving) { const m = moving[kk]; const [x, y] = toScreen(m.p.x, m.p.y); drawToken(x, y, m.units, m.owner, z, { scale: m.p.s || 1 }); }
   }
 
+  // supply drops: a crate under a parachute, bobbing
+  function drawDrops() {
+    if (!S_ || !S_.drops) return; const z = cam.z;
+    for (const d of S_.drops) {
+      if (!tc[d.hex]) continue; const [x, y0] = screenOf(d.hex), y = y0 - 18 * z + Math.sin(t * 2 + x) * 2 * z;
+      ctx.save();
+      ctx.fillStyle = 'rgba(0,0,0,.3)'; ctx.beginPath(); ctx.ellipse(x, y0 + 2 * z, 9 * z, 3.5 * z, 0, 0, Math.PI * 2); ctx.fill();
+      ctx.strokeStyle = 'rgba(240,240,240,.85)'; ctx.lineWidth = 1 * z; ctx.beginPath(); ctx.moveTo(x - 10 * z, y - 14 * z); ctx.lineTo(x - 4 * z, y); ctx.moveTo(x + 10 * z, y - 14 * z); ctx.lineTo(x + 4 * z, y); ctx.stroke();
+      ctx.fillStyle = '#e9edf2'; ctx.beginPath(); ctx.arc(x, y - 14 * z, 11 * z, Math.PI, 0); ctx.fill(); ctx.fillStyle = '#ff4f5e'; ctx.beginPath(); ctx.arc(x, y - 14 * z, 11 * z, Math.PI * 1.33, Math.PI * 1.66); ctx.lineTo(x, y - 14 * z); ctx.fill();
+      ctx.fillStyle = '#b8863b'; ctx.strokeStyle = '#3d2a12'; ctx.lineWidth = 1.5 * z; ctx.fillRect(x - 6 * z, y - 2 * z, 12 * z, 10 * z); ctx.strokeRect(x - 6 * z, y - 2 * z, 12 * z, 10 * z);
+      ctx.fillStyle = '#ffc53d'; ctx.fillRect(x - 6 * z, y + 2 * z, 12 * z, 2 * z);
+      ctx.restore();
+    }
+  }
   // ally war-room marks: arrows and circles, only in the Alt view
   function drawNotes() {
     const z = cam.z, all = (ov.notes || []).concat(ov.notePreview ? [ov.notePreview] : []);
@@ -1035,6 +1056,7 @@ const Render = (() => {
       // hold Alt: everything but the armies fades out
       ctx.fillStyle = 'rgba(6,10,16,.74)'; ctx.fillRect(-sx - 20, -sy - 20, W + 40, H + 40);
     }
+    drawDrops();
     drawUnits();
     if (ov.troops) drawNotes();
     const p3 = performance.now();

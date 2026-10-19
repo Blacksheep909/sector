@@ -121,6 +121,35 @@ const idle = (s, pid) => s.players.find(p => p.id !== pid && p.id !== me(s).id) 
   const r = E.applyAction(s, p.id, { a: 'tactic', uid: 3132, targetPid: o.id });
   ok(r.ok && p.tactics.some(c => c.id === 'smoke' || c.uid === 3131) || (r.ok && r.events.length), 'spy ring works when aimed at a commander' + (r.err ? ': ' + r.err : ''));
 }
+{ // overwatch: a watching stack can fire on an enemy that stops next to it
+  const s = game(); const p = me(s); E.applyAction(s, p.id, { a: 'choose', pick: 'income' });
+  const o = s.players.find(q => q.id !== p.id);
+  const ids = Object.values(s.units).filter(u => u.owner === p.id && u.hex === p.hq).map(u => u.id);
+  const r = E.applyAction(s, p.id, { a: 'overwatch', from: p.hq, units: ids });
+  ok(r.ok && ids.every(id => s.units[id].ow), 'a stack goes on overwatch');
+  const k = E.neighbors(p.hq).find(n => s.map.tiles[n] && E.isLandTile(s.map.tiles[n]) && s.map.tiles[n].t !== 'mountain');
+  for (const id in s.units) if (s.units[id].hex === k) delete s.units[id];
+  s.units.en = { id: 'en', type: 'grunt', owner: o.id, hex: k, moved: true, fresh: false };
+  const tr = E.overwatchTriggers(s, o.id, k);
+  ok(tr.length === 1 && tr[0].owner === p.id, 'an enemy stopping next to it triggers overwatch');
+  const f = E.overwatchFire(s, p.id, tr[0].from, k, () => 0.99);
+  ok(f.ok && f.events.some(e => e.e === 'combat' && e.overwatch) && ids.every(id => !s.units[id] || !s.units[id].ow), 'overwatch fires once, then it is spent');
+}
+{ // supply drops land on open ground and go to the first unit there
+  const s = game(); let tries = 0;
+  while (!(s.drops && s.drops.length) && tries++ < 60) endTurn(s);
+  ok(s.drops && s.drops.length > 0, 'a supply drop lands within a few rounds');
+  if (s.drops && s.drops.length) {
+    const d = s.drops[0]; const p = me(s); if (s.turn.stage === 'choose') E.applyAction(s, p.id, { a: 'choose', pick: 'income' });
+    const from = E.neighbors(d.hex).find(n => s.map.tiles[n] && E.isLandTile(s.map.tiles[n]) && s.map.tiles[n].t !== 'mountain' && !Object.values(s.units).some(u => u.hex === n));
+    if (from) {
+      s.units.dr = { id: 'dr', type: 'skitter', owner: p.id, hex: from, moved: false, fresh: false };
+      const cash = p.cash, cards = p.tactics.length;
+      const r = E.applyAction(s, p.id, { a: 'move', from, units: ['dr'], to: d.hex });
+      ok(r.ok && !s.drops.some(x => x.hex === d.hex) && (p.cash > cash || p.tactics.length > cards), 'the first unit there claims the drop');
+    }
+  }
+}
 { // bots play with all of this switched on, to the end
   const s = game({ mapSize: 'small', maxRounds: 10 }, 3); s.players.forEach(p => { p.bot = true; });
   let n = 0;

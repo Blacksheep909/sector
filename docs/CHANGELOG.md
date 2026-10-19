@@ -2,6 +2,16 @@
 
 Every release, newest first. Each version also has its own post on the [Releases page](https://github.com/Blacksheep909/sector/releases).
 
+## v0.9.6
+
+**Reasons to keep watching the board when it isn't your turn.**
+
+- **🎯 Overwatch:** on your turn, select a stack and press **O**. It gives up its move to watch the hexes around it. If an enemy ends a move next to it (or within range, for artillery), you get a few seconds to choose **FIRE** or **HOLD**, with the hit chance shown. Overwatch fire gets +1 mult, and it's spent after one shot. Bots use overwatch too.
+- **📦 Supply drops:** now and then a crate parachutes onto open land, away from the HQs, and everyone sees where it lands. The first unit to reach it grabs cash or a card. Drops last 5 rounds.
+- **📡 Radar contacts** (fog of war): when hidden enemy troops move within 2 hexes of your land, a blip shows where they were last seen.
+- **⚠ Alerts while you wait:** attacks on you, radar contacts and supply drops are listed in the side panel, each with a **LOOK** button that jumps the camera there.
+- **🏁 Conquest progress:** in Conquest and World War, the top-left box shows your hexes against the target, how many you still need, and who's leading.
+
 ## v0.9.5
 
 **Know who you're hitting.**

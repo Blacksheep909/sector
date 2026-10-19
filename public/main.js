@@ -58,6 +58,8 @@
       case 'serverClosed': serverClosed(m); break;
       case 'skipFx': if (curFight && curFight.att === m.att && curFight.to === m.to) fastForward = true; break;
       case 'react': showReaction(m); break;
+      case 'owPrompt': showOwPrompt(m); break;
+      case 'owDone': { const r = $('#owPop'); if (r) r.remove(); break; }
       case 'notes': Render.ov.notes = (m.notes || []).flatMap(n => n.shapes.map(sh => ({ ...sh, pid: n.pid, color: pColor(n.pid) }))); Render.invalidate(); break;
       case 'reactDone': { const r = $('#reactPop'); if (r) r.remove(); break; }
       case 'ping': showPing(m); break;
@@ -418,10 +420,13 @@
     const box = $('#waitBox'); const me = myP();
     if (!S || S.phase !== 'play' || !me || !me.alive || isMyTurn()) { box.hidden = true; return; }
     const parts = [];
+    const recent = alerts.filter(a => Date.now() - a.t < 90000);
+    if (recent.length) parts.push(`<div class="wb-h">⚠ ALERTS</div>` + recent.map((a, i) => `<div class="wb-row wb-alert"><span>${esc(a.text)}</span>${a.hex ? `<button class="btn tiny" data-look="${i}">LOOK</button>` : ''}</div>`).join(''));
     if (me.nextOffer && me.nextOffer.length) parts.push(`<div class="wb-h">🎴 NEXT RESUPPLY</div><div class="wb-row"><button class="btn tiny" id="prepBtn">${me.prePick ? '✔ ' + (me.prePick.pick === 'income' ? 'Full income' : esc(E.cardDef(me.nextOffer[me.prePick.idx]).name)) + ' · change' : 'Pick it now'}</button></div>`);
     if (S.fogOn) { const ic = E.intelCost(S, you); parts.push(`<div class="wb-h">🛰 INTEL</div><div class="wb-row"><button class="btn tiny" id="intelBtn"${me.cash < ic ? ' disabled' : ''}>Scout through the fog · $${ic} (I)</button>${me.cash < ic ? `<span class="sub">you have $${me.cash} until your turn</span>` : ''}</div>`); }
     box.hidden = !parts.length; box.innerHTML = parts.join('');
     const pb = $('#prepBtn'); if (pb) pb.onclick = openPrep;
+    box.querySelectorAll('[data-look]').forEach(b => b.onclick = () => { const a = recent[+b.dataset.look]; if (a && a.hex) { Render.focus(a.hex); Render.ring(a.hex, '#ffc53d', 60, 0.8, 4); } });
     const ib = $('#intelBtn'); if (ib) ib.onclick = () => { mode = { type: 'intel' }; refreshAll(); };
   }
   // quick decisions: pop up at a random moment while you wait, for about 6 seconds. Grab one or it's gone
@@ -462,6 +467,23 @@
       $('#rpPass').onclick = () => { send({ t: 'react', uid: null }); p.remove(); };
     }
   }
+  // overwatch: an enemy stopped next to your watching stack. FIRE or HOLD, with the odds
+  function showOwPrompt(m) {
+    let p = $('#owPop'); if (p) p.remove();
+    p = el('div', '', ''); p.id = 'owPop'; document.body.appendChild(p);
+    if (m.mine) {
+      const units = m.units.map(id => S.units[id]).filter(Boolean);
+      const calc = units.length ? E.combatCalc(S, you, units, m.from, m.target, true) : null;
+      p.innerHTML = `<div class="rp-h">🎯 OVERWATCH</div><div class="sub">${esc(pName(S.units && Object.values(S.units).find(u => u.hex === m.target && u.owner !== you) ? Object.values(S.units).find(u => u.hex === m.target && u.owner !== you).owner : null) || 'An enemy')} stopped in your sights.${calc ? ` Hit chance <b>${Math.round(calc.winProb * 100)}%</b>` : ''}</div><div class="rp-cards"><button class="btn red" id="owFire">FIRE</button><button class="btn" id="owHold">HOLD</button></div><div class="rp-bar"><i></i></div>`;
+      SFX.alarm(); Render.ring(m.target, '#ff4f5e', 70, 0.8, 5); Render.ring(m.from, pColor(you), 50, 0.6, 4);
+      $('#owFire').onclick = () => { send({ t: 'ow', fire: true }); p.remove(); SFX.shot(); };
+      $('#owHold').onclick = () => { send({ t: 'ow', fire: false }); p.remove(); };
+    } else p.innerHTML = `<div class="rp-h">🎯 ${esc(pName(m.owner)).toUpperCase()} HAS OVERWATCH…</div><div class="rp-bar"><i></i></div>`;
+    p.querySelector('.rp-bar i').style.animationDuration = (m.ms / 1000) + 's';
+  }
+  // alerts while you wait: attacks on you and radar contacts, each with a LOOK button
+  const alerts = [];
+  function pushAlert(text, hex) { alerts.unshift({ text, hex, t: Date.now() }); alerts.length = Math.min(alerts.length, 4); renderWait(); }
   // map pings and taunts
   let pingArm = null;
   $('#pingBar').querySelectorAll('[data-ping]').forEach(b => b.onclick = () => { pingArm = b.dataset.ping; toast('Click a hex to ping it'); SFX.click(); });
@@ -758,6 +780,8 @@
     }
     if (e.key.toLowerCase() === 't' && S) { $('#chatIn').focus(); e.preventDefault(); }
     if (e.key.toLowerCase() === 'f' && myP()) Render.focus(myP().hq);
+    // O: put the selected stack on overwatch
+    if (e.key.toLowerCase() === 'o' && !e.ctrlKey && sel && sel.units.size && isMyTurn()) { const a = { a: 'overwatch', from: sel.hex, units: [...sel.units] }; sel = null; refreshAll(); doAction(a); e.preventDefault(); return; }
     // I: intel op (fog of war) · G: dig the selected stack in
     if (e.key.toLowerCase() === 'i' && !e.ctrlKey && S && S.fogOn && myP() && myP().alive) { mode = { type: 'intel' }; refreshAll(); e.preventDefault(); return; }
     if (e.key.toLowerCase() === 'g' && !e.ctrlKey && sel && sel.units.size && (isMyTurn() || planning())) { const a = { a: 'digin', from: sel.hex, units: [...sel.units] }; sel = null; refreshAll(); doAction(a).then(ok => ok && toast('⛏ Dug in: +1 defence until they move')); e.preventDefault(); return; }
@@ -1089,7 +1113,14 @@
       }
       box.appendChild(c);
     }
-    const modeTxt = S.settings.mode === 'conquest' ? `Conquest · first to <b style="display:inline;font-size:12px;color:var(--gold)">${E.conquestTarget(S)}</b> hexes` : S.settings.mode === 'koth' ? 'Beacon · hold the centre for 3 turns' : 'Domination · capture every HQ';
+    let modeTxt = S.settings.mode === 'conquest' ? `Conquest · first to <b style="display:inline;font-size:12px;color:var(--gold)">${E.conquestTarget(S)}</b> hexes` : S.settings.mode === 'koth' ? 'Beacon · hold the centre for 3 turns' : S.settings.mode === 'worldwar' ? `World War · first to <b style="display:inline;font-size:12px;color:var(--gold)">${E.conquestTarget(S)}</b> hexes` : 'Domination · capture every HQ';
+    if (S.settings.mode === 'conquest' || S.settings.mode === 'worldwar') {
+      // how close everyone is: your land, what's left to win, and the leader
+      const need = E.conquestTarget(S), land = id => E.ownedLand(S, id).length;
+      const lead = S.players.filter(p => p.alive).sort((a, b) => land(b.id) - land(a.id))[0];
+      const mine = myP() ? land(you) : 0;
+      modeTxt += `<div class="cq">${myP() ? `You <b>${mine}</b>/${need} · <b>${Math.max(0, need - mine)}</b> to go` : ''}${lead && lead.id !== you ? `<span> · leader ${esc(lead.name)} ${land(lead.id)}</span>` : ''}</div>`;
+    }
     $('#roundBox').innerHTML = `<b>ROUND ${S.turn.round}${S.settings.maxRounds ? '/' + S.settings.maxRounds : ''}</b>${modeTxt}`;
   }
 
@@ -1962,6 +1993,8 @@
         case 'move': if (watch) { follow(ev.path[ev.path.length - 1]); await sleep(150); } await animMove(ev); break;
         case 'combat': {
           follow(ev.to);
+          if (ev.def && ev.def.pid === you && ev.att.pid !== you) pushAlert(`⚔ ${pName(ev.att.pid)} ${ev.overwatch ? 'fired on' : 'attacked'} you${ev.attWin ? ' — you lost the fight' : ' — you held'}`, ev.to);
+          if (ev.overwatch) { Render.float(ev.from, '🎯 OVERWATCH', '#ffc53d', 15); }
           if (ev.ranged) {
             if (ev.att.units && ev.att.units.includes('trident')) {
               // the missile breaks the surface, climbs, and falls on the target
@@ -2015,6 +2048,20 @@
         }
         case 'tactic': if (ev.target) { follow(ev.target); await sleep(200); } await animTactic(ev); break;
         case 'undo': if (ev.pid === you) toast('↶ Undone'); break;
+        case 'overwatch': { for (const id of ev.units) if (S.units[id]) { S.units[id].ow = true; S.units[id].moved = true; } Render.ring(ev.hex, pColor(ev.pid), 45, 0.6, 3); if (ev.pid === you) toast('🎯 On overwatch: they will fire on enemies that stop next to them'); break; }
+        case 'airdrop': {
+          // a crate parachutes in: everyone sees it
+          S.drops = (S.drops || []).concat([{ hex: ev.hex, kind: ev.kind }]);
+          Render.ring(ev.hex, '#ffc53d', 80, 1, 5); Render.float(ev.hex, '📦 SUPPLY DROP', '#ffc53d', 18); SFX.whoosh();
+          toast('📦 A supply drop is landing — first unit there takes it'); pushAlert('📦 Supply drop landed', ev.hex);
+          await sleep(400); break;
+        }
+        case 'dropClaim': {
+          S.drops = (S.drops || []).filter(d => d.hex !== ev.hex);
+          Render.burst(ev.hex, ['#ffc53d', '#fff'], 24, { up: 140, square: true }); Render.float(ev.hex, ev.card ? '📦 ' + E.cardDef(ev.card).name : '📦 +$' + ev.amount, '#ffc53d', 16); SFX.coin(4);
+          if (ev.pid !== you) toast(`📦 ${pName(ev.pid)} grabbed the supply drop`); break;
+        }
+        case 'radar': { Render.ring(ev.hex, '#59f08a', 60, 1.2, 3); Render.float(ev.hex, '📡 CONTACT', '#59f08a', 14); pushAlert('📡 Enemy contact near your land', ev.hex); break; }
         case 'donate': {
           for (const id of ev.units) if (S.units[id]) S.units[id].owner = ev.to;
           Render.ring(ev.hex, pColor(ev.to), 60, 0.6, 4); Render.float(ev.hex, '🎁 ' + pName(ev.to).toUpperCase(), pColor(ev.to), 15); SFX.select();
