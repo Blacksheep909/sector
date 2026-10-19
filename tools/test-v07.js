@@ -95,10 +95,11 @@ const play = (s, a) => E.applyAction(s, me(s).id, a);
   for (const id in s.units) if (s.units[id].hex === hq) delete s.units[id];
   s.units.h1 = { id: 'h1', type: 'hornet', owner: p.id, hex: hq, moved: false, fresh: false };
   const reach = E.reachable(s, p.id, ['h1'], hq); const far = Object.keys(reach).filter(k => reach[k].kind === 'move' && !s.map.tiles[k].owner && reach[k].c >= 3 && E.isLandTile(s.map.tiles[k]))[0];
-  const before = Object.values(s.map.tiles).filter(t => t.owner === p.id).length;
+  // only the hexes it flew over matter: landing can legitimately close an encirclement pocket somewhere nearby
+  const over = E.pathTo(reach, far).slice(1, -1).filter(k => s.map.tiles[k].owner !== p.id);
   const r = play(s, { a: 'move', from: hq, units: ['h1'], to: far });
-  const gained = Object.values(s.map.tiles).filter(t => t.owner === p.id).length - before;
-  ok(r.ok && gained === 1, 'hornet flying 3+ hexes takes only its landing hex (gained ' + gained + ')');
+  const took = over.filter(k => s.map.tiles[k].owner === p.id).length;
+  ok(r.ok && s.map.tiles[far].owner === p.id && took === 0, 'hornet flying 3+ hexes takes only its landing hex (took ' + took + ' on the way)');
 }
 { // shield blocks enemy tactics
   const s = game('continent', 2); const p = me(s), o = s.players.find(q => q.id !== p.id); o.shield = true; p.cash = 99;

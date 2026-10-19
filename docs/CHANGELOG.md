@@ -2,6 +2,12 @@
 
 Every release, newest first. Each version also has its own post on the [Releases page](https://github.com/Blacksheep909/sector/releases).
 
+## v0.9.16
+
+**Grunts are easier to dig out.**
+
+- **⚖ Balance:** Grunts' defence drops from 2 to 1. They still cost $1 and attack at 2, but a hex held only by Grunts is now much easier to break.
+
 ## v0.9.15
 
 **No more ping-pong pockets.**
