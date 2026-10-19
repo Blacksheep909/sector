@@ -1243,6 +1243,9 @@
 
   function eliminate(s, loser, by, ev) {
     const lp = player(s, loser); if (!lp || !lp.alive) return;
+    // spoils of war scale with the game: a base sum that grows each round, their treasury, a turn of their income, and 2 of their cards
+    const spoilsCash = 10 + 2 * (s.turn ? s.turn.round : 0) + Math.max(0, lp.cash) + Math.max(0, computeIncome(s, loser).total);
+    const spoilsCards = lp.tactics.slice().sort(() => Math.random() - 0.5).slice(0, 2);
     lp.alive = false; lp.tactics = []; lp.cash = 0;
     const hexes = [];
     for (const k in s.map.tiles) {
@@ -1262,11 +1265,11 @@
     const dead = [];
     for (const id in s.units) if (s.units[id].owner === loser) { dead.push(+id); delete s.units[id]; }
     const bp = player(s, by);
-    if (bp) bp.cash += 10;
+    if (bp) { bp.cash += spoilsCash; for (const c of spoilsCards) bp.tactics.push(c); }
     if (s.trade && (s.trade.from === loser || s.trade.to === loser)) s.trade = null;
     const taken = hexes.filter(k => s.map.tiles[k].owner === by);
-    ev.push({ e: 'eliminate', pid: loser, by, hexes, taken, units: dead, hq: lp.hq });
-    pushLog(s, '☠ ' + lp.name + ' has fallen' + (bp ? ' to ' + bp.name + ' (+$10 plunder, ' + taken.length + ' heartland hexes)' : '') + '. The rest of their empire collapses into neutral land.');
+    ev.push({ e: 'eliminate', pid: loser, by, hexes, taken, units: dead, hq: lp.hq, plunder: bp ? spoilsCash : 0, cards: bp ? spoilsCards.length : 0 });
+    pushLog(s, '☠ ' + lp.name + ' has fallen' + (bp ? ' to ' + bp.name + ' (+$' + spoilsCash + ' plunder' + (spoilsCards.length ? ', ' + spoilsCards.length + ' card' + (spoilsCards.length > 1 ? 's' : '') : '') + ', ' + taken.length + ' heartland hexes)' : '') + '. The rest of their empire collapses into neutral land.');
   }
 
   // ───────────────────────── cards, crates & the draft ─────────────────────────

@@ -259,7 +259,7 @@ Ports and bridges don't upgrade. **Sabotage** knocks a level off a structure, an
 
 ## Eliminations
 
-When a commander falls, the conqueror takes their **heartland** (hexes within 2 of the fallen HQ) and $10 plunder. The rest of the fallen empire **collapses into neutral land** for anyone to claim, and the buildings out there are wrecked (bridges remain, unowned).
+When a commander falls, the conqueror takes their **heartland** (hexes within 2 of the fallen HQ) and the **spoils of war**: $10 + $2 per round played, the fallen commander's whole treasury, one turn of their income, and up to 2 of their tactic cards. The later the war, the richer the prize. The rest of the fallen empire **collapses into neutral land** for anyone to claim, and the buildings out there are wrecked (bridges remain, unowned).
 
 ## HQ sieges
 
