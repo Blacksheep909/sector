@@ -2,6 +2,16 @@
 
 Every release, newest first. Each version also has its own post on the [Releases page](https://github.com/Blacksheep909/sector/releases).
 
+## v0.9.7
+
+**See your friends' land, and tidier bridges.**
+
+- **🤝 Allied land stands out:** every hex your allies hold has a dashed green line just inside its border, so you can see all your friends' territory at a glance. In fog of war, allying with someone also reveals their whole territory and their HQ.
+- **🌉 Bridge fixes:**
+  - You can't build a bridge on top of an oil rig.
+  - The "no bridges side by side" rule now covers river bridges too.
+  - If you see bridges sprawling across neighbouring hexes, that's the old bridge model from before v0.9.4. Update (press **U** in the server window) to get the new one, which stays inside its own hex.
+
 ## v0.9.6
 
 **Reasons to keep watching the board when it isn't your turn.**

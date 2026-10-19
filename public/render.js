@@ -369,6 +369,16 @@ const Render = (() => {
       }
       ctx.strokeStyle = c.oc; ctx.globalAlpha = 0.28; ctx.lineWidth = 10 * z; ctx.stroke();
       ctx.globalAlpha = 1; ctx.lineWidth = 4.5 * z; ctx.stroke();
+      // your allies' land: a dashed green line just inside their border, so you can see every friendly hex at a glance
+      if (ov.me && tile.owner !== ov.me && E.isAlly(S_, ov.me, tile.owner)) {
+        ctx.beginPath();
+        for (let i = 0; i < 6; i++) {
+          const n = S_.map.tiles[nb[EDGE_DIR[i]]]; if (n && n.owner === tile.owner) continue;
+          const a = VERT[i], b = VERT[(i + 1) % 6], ss = s * 0.8;
+          ctx.moveTo(cx + a[0] * ss, cy + a[1] * ss * TILT); ctx.lineTo(cx + b[0] * ss, cy + b[1] * ss * TILT);
+        }
+        ctx.strokeStyle = '#9cf0b4'; ctx.lineWidth = 2.2 * z; ctx.setLineDash([5 * z, 4 * z]); ctx.stroke(); ctx.setLineDash([]);
+      }
     }
     if (tile.struct && tile.struct.type !== 'bridge') {
       drawStruct(tile, cx, cy, z, k);
