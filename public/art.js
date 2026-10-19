@@ -451,12 +451,151 @@ const Art = (() => {
     },
   });
 
+  // ── real-world counterparts: every vehicle and aircraft is drawn after a real machine ──
+  Object.assign(UNIT, {
+    // FIM-92 Stinger team: soldier with a launch tube on the shoulder
+    stinger(c) {
+      c.save(); c.translate(-0.22, 0.06); c.scale(0.86, 0.86); soldier(c); c.restore();
+      c.save(); c.translate(0.3, 0.16); c.rotate(-0.62);
+      rr(c, -0.62, -0.09, 1.36, 0.18, 0.06); c.fill();
+      rr(c, -0.72, -0.13, 0.13, 0.26, 0.03); c.fill(); rr(c, 0.64, -0.13, 0.13, 0.26, 0.03); c.fill();
+      rr(c, -0.06, -0.34, 0.24, 0.2, 0.03); c.fill(); rr(c, 0.02, 0.08, 0.1, 0.22, 0.03); c.fill();
+      shade(c, () => { rrp(c, -0.5, -0.02, 1.1, 0.05, 0.02); rrp(c, -0.02, -0.3, 0.16, 0.06, 0.02); }, 'rgba(0,0,0,.42)');
+      c.restore();
+    },
+    // Gepard: tracked flak tank, twin 35mm cannons, search radar behind, tracking dish in front
+    scorpion(c) {
+      tracks(c, -0.92, 0.2, 1.84, 0.32, 5);
+      poly(c, [-0.95, 0.22, -0.85, -0.05, 0.85, -0.05, 0.95, 0.22]); c.fill();
+      rr(c, -0.42, -0.42, 0.78, 0.4, 0.07); c.fill();
+      c.save(); c.translate(0.18, -0.3); c.rotate(-0.55); rr(c, 0, -0.08, 0.85, 0.07, 0.02); c.fill(); rr(c, 0, 0.04, 0.85, 0.07, 0.02); c.fill(); c.restore();
+      rr(c, -0.36, -0.7, 0.06, 0.3, 0.02); c.fill(); c.beginPath(); c.ellipse(-0.33, -0.76, 0.3, 0.08, 0, 0, P * 2); c.fill();
+      circ(c, 0.28, -0.5, 0.13); c.fill();
+      sh(c, () => { rr(c, -0.35, -0.3, 0.55, 0.07, 0.02); c.fill(); circ(c, 0.28, -0.5, 0.06); c.fill(); c.fillRect(-0.85, 0.06, 1.7, 0.05); });
+    },
+    // Pantsir: 8x8 truck with a gun-missile turret and search radar
+    skyguard(c) {
+      rr(c, -0.95, 0.1, 1.86, 0.26, 0.06); c.fill();
+      poly(c, [0.48, 0.1, 0.53, -0.24, 0.85, -0.24, 0.96, -0.02, 0.96, 0.1]); c.fill();
+      rr(c, -0.72, -0.24, 0.98, 0.36, 0.06); c.fill();
+      c.save(); c.translate(-0.62, -0.3); c.rotate(-0.32); for (const y of [-0.13, -0.01]) { rr(c, 0, y, 0.62, 0.1, 0.04); c.fill(); } c.restore();
+      c.save(); c.translate(0.08, -0.26); c.rotate(-0.32); rr(c, 0, -0.07, 0.62, 0.05, 0.02); c.fill(); rr(c, 0, 0.02, 0.62, 0.05, 0.02); c.fill(); c.restore();
+      rr(c, -0.2, -0.66, 0.06, 0.42, 0.02); c.fill(); rr(c, -0.44, -0.74, 0.54, 0.14, 0.05); c.fill();
+      for (const x of [-0.75, -0.47, 0.3, 0.68]) hub(c, x, 0.4, 0.15);
+      sh(c, () => { rr(c, 0.6, -0.18, 0.2, 0.12, 0.02); c.fill(); c.fillRect(-0.9, 0.2, 1.76, 0.05); rr(c, -0.62, -0.12, 0.78, 0.06, 0.02); c.fill(); });
+    },
+    // Patriot: truck-mounted launcher, canister box raised
+    sentinel(c) {
+      rr(c, -0.95, 0.12, 1.86, 0.24, 0.06); c.fill();
+      poly(c, [0.48, 0.12, 0.52, -0.25, 0.86, -0.25, 0.96, -0.02, 0.96, 0.12]); c.fill();
+      c.save(); c.translate(0.08, 0.1); c.rotate(-1.1); rr(c, 0, -0.04, 0.44, 0.08, 0.02); c.fill(); c.restore();
+      c.save(); c.translate(-0.62, 0.02); c.rotate(-0.6);
+      rr(c, 0, -0.36, 1.05, 0.46, 0.04); c.fill();
+      sh(c, () => { c.fillRect(0.04, -0.14, 0.97, 0.03); c.fillRect(0.52, -0.36, 0.03, 0.46); c.fillRect(0.95, -0.33, 0.06, 0.4); });
+      c.restore();
+      for (const x of [-0.72, -0.42, 0.64]) hub(c, x, 0.4, 0.16);
+      sh(c, () => { rr(c, 0.58, -0.19, 0.22, 0.12, 0.02); c.fill(); c.fillRect(-0.9, 0.22, 1.76, 0.05); });
+    },
+    // HIMARS: 6x6 truck with a rocket pod
+    basilisk(c) {
+      rr(c, -0.95, 0.1, 1.86, 0.26, 0.06); c.fill();
+      poly(c, [0.42, 0.1, 0.46, -0.3, 0.84, -0.3, 0.96, -0.05, 0.96, 0.1]); c.fill();
+      c.save(); c.translate(-0.78, 0.04); c.rotate(-0.48);
+      rr(c, 0, -0.44, 1.02, 0.46, 0.04); c.fill();
+      sh(c, () => { c.fillRect(0.04, -0.3, 0.94, 0.03); c.fillRect(0.04, -0.16, 0.94, 0.03); for (let i = 0; i < 3; i++) { circ(c, 0.92, -0.37 + i * 0.14, 0.04); c.fill(); } });
+      c.restore();
+      for (const x of [-0.72, -0.4, 0.62]) hub(c, x, 0.4, 0.16);
+      sh(c, () => { rr(c, 0.5, -0.24, 0.26, 0.14, 0.02); c.fill(); c.fillRect(-0.9, 0.2, 1.76, 0.05); });
+    },
+    // LCAC: armed hovercraft on its skirt, ducted fans at the back
+    wraith(c) {
+      rr(c, -0.98, 0.1, 1.96, 0.36, 0.18); c.fill();
+      sh(c, () => { for (let i = 0; i < 7; i++) { rr(c, -0.86 + i * 0.26, 0.17, 0.06, 0.24, 0.03); c.fill(); } });
+      rr(c, -0.86, -0.08, 1.72, 0.22, 0.05); c.fill();
+      rr(c, 0.45, -0.34, 0.32, 0.28, 0.05); c.fill();
+      for (const x of [-0.7, -0.34]) { circ(c, x, -0.36, 0.2); c.fill(); sh(c, () => { circ(c, x, -0.36, 0.13); c.fill(); }, SH2); rr(c, x - 0.02, -0.5, 0.04, 0.28, 0.01); c.fill(); }
+      rr(c, 0.0, -0.28, 0.3, 0.2, 0.05); c.fill(); rr(c, 0.26, -0.24, 0.46, 0.06, 0.02); c.fill();
+      sh(c, () => { rr(c, 0.5, -0.28, 0.22, 0.08, 0.02); c.fill(); c.fillRect(-0.8, 0.0, 1.6, 0.04); });
+    },
+    // Sturmtiger: siege mortar in a boxy casemate on a heavy tank hull
+    goliath(c) {
+      tracks(c, -0.95, 0.16, 1.9, 0.36, 6);
+      poly(c, [-0.95, 0.18, -0.9, -0.08, 0.9, -0.08, 0.98, 0.18]); c.fill();
+      poly(c, [-0.55, -0.08, -0.5, -0.56, 0.45, -0.56, 0.62, -0.08]); c.fill();
+      rr(c, 0.46, -0.44, 0.4, 0.26, 0.1); c.fill(); circ(c, 0.86, -0.31, 0.13); c.fill();
+      c.save(); c.translate(-0.46, -0.56); c.rotate(-0.95); rr(c, 0, -0.03, 0.36, 0.06, 0.02); c.fill(); c.restore();
+      sh(c, () => { circ(c, 0.86, -0.31, 0.06); c.fill(); rr(c, -0.4, -0.46, 0.7, 0.06, 0.02); c.fill(); rr(c, -0.85, 0.0, 1.7, 0.05, 0.02); c.fill(); });
+    },
+    // Ratte: a landship with naval guns, a rear turret and AA mount
+    titan(c) {
+      tracks(c, -1.02, 0.2, 2.04, 0.34, 7);
+      poly(c, [-1.0, 0.22, -0.95, -0.1, 0.95, -0.1, 1.02, 0.22]); c.fill();
+      poly(c, [-0.35, -0.1, -0.3, -0.52, 0.35, -0.52, 0.45, -0.1]); c.fill();
+      rr(c, 0.3, -0.44, 0.74, 0.08, 0.03); c.fill(); rr(c, 0.3, -0.31, 0.74, 0.08, 0.03); c.fill();
+      rr(c, -0.86, -0.33, 0.36, 0.23, 0.05); c.fill(); rr(c, -1.04, -0.27, 0.22, 0.05, 0.02); c.fill();
+      rr(c, -0.14, -0.7, 0.18, 0.18, 0.04); c.fill(); rr(c, -0.06, -0.84, 0.04, 0.16, 0.01); c.fill();
+      sh(c, () => { rr(c, -0.25, -0.42, 0.55, 0.07, 0.02); c.fill(); rr(c, -0.92, 0.02, 1.84, 0.05, 0.02); c.fill(); });
+    },
+    // V-22 Osprey from above: tiltrotor nacelles on the wingtips
+    valkyrie(c) {
+      c.beginPath(); c.moveTo(0, -0.9); c.quadraticCurveTo(0.16, -0.85, 0.15, -0.55); c.lineTo(0.13, 0.6); c.lineTo(-0.13, 0.6); c.lineTo(-0.15, -0.55); c.quadraticCurveTo(-0.16, -0.85, 0, -0.9); c.fill();
+      rr(c, -0.66, -0.14, 1.32, 0.16, 0.05); c.fill();
+      poly(c, [-0.4, 0.55, 0.4, 0.55, 0.4, 0.66, -0.4, 0.66]); c.fill();
+      for (const x of [-0.4, 0.4]) { rr(c, x - 0.04, 0.48, 0.08, 0.26, 0.02); c.fill(); }
+      for (const x of [-0.68, 0.68]) {
+        rr(c, x - 0.09, -0.3, 0.18, 0.38, 0.06); c.fill();
+        c.save(); c.globalAlpha *= 0.4; circ(c, x, -0.36, 0.3); c.fill(); c.restore();
+        for (let i = 0; i < 3; i++) { c.save(); c.translate(x, -0.36); c.rotate(i * P * 2 / 3 + 0.3); rr(c, -0.03, -0.3, 0.06, 0.3, 0.02); c.fill(); c.restore(); }
+      }
+      shade(c, () => { c.ellipse(0, -0.68, 0.07, 0.13, 0, 0, P * 2); }, 'rgba(0,0,0,.4)');
+    },
+    // AC-130 gunship from above: four turboprops, guns down the port side
+    seraph(c) {
+      c.beginPath(); c.moveTo(0, -0.96); c.quadraticCurveTo(0.17, -0.9, 0.16, -0.6); c.lineTo(0.13, 0.55); c.lineTo(0.05, 0.86); c.lineTo(-0.05, 0.86); c.lineTo(-0.13, 0.55); c.lineTo(-0.16, -0.6); c.quadraticCurveTo(-0.17, -0.9, 0, -0.96); c.fill();
+      poly(c, [-1.02, -0.24, 1.02, -0.24, 1.0, -0.1, -1.0, -0.1]); c.fill();
+      poly(c, [-0.44, 0.62, 0.44, 0.62, 0.4, 0.74, -0.4, 0.74]); c.fill();
+      for (const x of [-0.72, -0.38, 0.38, 0.72]) { rr(c, x - 0.06, -0.38, 0.12, 0.34, 0.05); c.fill(); rr(c, x - 0.2, -0.42, 0.4, 0.04, 0.02); c.fill(); }
+      for (const y of [-0.36, 0.04, 0.3]) { rr(c, -0.33, y, 0.2, 0.05, 0.02); c.fill(); }
+      shade(c, () => { c.ellipse(0, -0.8, 0.08, 0.1, 0, 0, P * 2); rrp(c, -0.02, -0.5, 0.04, 1.0, 0.02); }, 'rgba(0,0,0,.35)');
+    },
+    // E-2 Hawkeye from above: radar rotodome over the fuselage
+    warden(c) {
+      c.beginPath(); c.moveTo(0, -0.9); c.quadraticCurveTo(0.15, -0.85, 0.14, -0.55); c.lineTo(0.11, 0.7); c.lineTo(-0.11, 0.7); c.lineTo(-0.14, -0.55); c.quadraticCurveTo(-0.15, -0.85, 0, -0.9); c.fill();
+      poly(c, [-0.95, -0.34, 0.95, -0.34, 0.9, -0.2, -0.9, -0.2]); c.fill();
+      for (const x of [-0.4, 0.4]) { rr(c, x - 0.07, -0.52, 0.14, 0.34, 0.05); c.fill(); rr(c, x - 0.22, -0.54, 0.44, 0.04, 0.02); c.fill(); }
+      poly(c, [-0.46, 0.58, 0.46, 0.58, 0.46, 0.68, -0.46, 0.68]); c.fill();
+      for (const x of [-0.46, -0.16, 0.16, 0.46]) { rr(c, x - 0.03, 0.52, 0.06, 0.22, 0.02); c.fill(); }
+      circ(c, 0, 0.1, 0.36); c.fill();
+      shade(c, () => { c.ellipse(0, 0.1, 0.36, 0.09, 0, 0, P * 2); }, 'rgba(0,0,0,.35)');
+      sh(c, () => { c.lineWidth = 0.05; circ(c, 0, 0.1, 0.36); c.stroke(); });
+    },
+  });
   const TACTIC = {
     cache(c) { rr(c, -0.75, -0.45, 1.5, 1.05, 0.08); c.fill(); c.save(); c.fillStyle = 'rgba(0,0,0,.35)'; c.fillRect(-0.75, -0.12, 1.5, 0.14); c.fillRect(-0.08, -0.45, 0.16, 1.05); c.restore(); poly(c, [-0.3, -0.45, 0, -0.85, 0.3, -0.45]); c.fill(); },
     smoke(c) { for (const [x, y, r] of [[-0.45, 0.2, 0.38], [0.1, -0.05, 0.5], [0.55, 0.25, 0.33], [-0.05, 0.4, 0.35], [-0.3, -0.35, 0.3]]) { circ(c, x, y, r); c.fill(); } },
     march(c) { for (let i = 0; i < 3; i++) { poly(c, [-0.9 + i * 0.55, -0.6, -0.55 + i * 0.55, -0.6, -0.15 + i * 0.55, 0, -0.55 + i * 0.55, 0.6, -0.9 + i * 0.55, 0.6, -0.5 + i * 0.55, 0]); c.fill(); } },
     conscript(c) { c.save(); c.translate(-0.15, 0.1); c.scale(0.8, 0.8); UNIT.grunt(c); c.restore(); rr(c, 0.45, -0.75, 0.16, 0.6, 0.04); c.fill(); rr(c, 0.23, -0.53, 0.6, 0.16, 0.04); c.fill(); },
     airstrike(c) { poly(c, [-0.9, -0.55, 0.6, -0.75, 0.95, -0.62, 0.6, -0.48, -0.9, -0.45]); c.fill(); poly(c, [-0.2, -0.6, 0.15, -0.95, 0.35, -0.95, 0.2, -0.6]); c.fill(); for (const [x, y] of [[-0.4, 0.05], [0.05, 0.3], [0.45, 0.6]]) { c.beginPath(); c.ellipse(x, y, 0.12, 0.22, -0.3, 0, P * 2); c.fill(); } },
+    gunrun(c) { // A-10 style attack jet, top-down, with a strafing line
+      poly(c, [0, -0.9, 0.12, -0.55, 0.12, -0.1, 0.95, 0.05, 0.95, 0.2, 0.12, 0.2, 0.1, 0.55, 0.42, 0.7, 0.42, 0.82, -0.42, 0.82, -0.42, 0.7, -0.1, 0.55, -0.12, 0.2, -0.95, 0.2, -0.95, 0.05, -0.12, -0.1, -0.12, -0.55]); c.fill();
+      for (const x of [-0.28, 0.28]) { c.beginPath(); c.ellipse(x, 0.45, 0.12, 0.2, 0, 0, P * 2); c.fill(); }
+      c.save(); c.globalAlpha *= 0.7; for (let i = 0; i < 4; i++) { rr(c, -0.03, -1.0 - i * 0.0, 0.06, 0.08, 0.02); } c.restore();
+      c.save(); c.fillStyle = 'rgba(0,0,0,.35)'; c.beginPath(); c.ellipse(0, -0.55, 0.06, 0.13, 0, 0, P * 2); c.fill(); c.restore();
+    },
+    precision(c) { // guided bomb on a crosshair
+      c.lineWidth = 0.08; c.strokeStyle = c.fillStyle; c.beginPath(); c.arc(0, 0, 0.78, 0, P * 2); c.stroke();
+      for (const [x, y, w, h] of [[-0.04, -1, 0.08, 0.35], [-0.04, 0.65, 0.08, 0.35], [-1, -0.04, 0.35, 0.08], [0.65, -0.04, 0.35, 0.08]]) { c.fillRect(x, y, w, h); }
+      c.save(); c.rotate(0.7);
+      rr(c, -0.14, -0.55, 0.28, 0.9, 0.14); c.fill(); poly(c, [-0.14, 0.25, -0.3, 0.5, 0.3, 0.5, 0.14, 0.25]); c.fill(); poly(c, [-0.14, -0.2, -0.28, -0.05, -0.14, -0.05]); c.fill(); poly(c, [0.14, -0.2, 0.28, -0.05, 0.14, -0.05]); c.fill();
+      c.fillStyle = 'rgba(0,0,0,.4)'; c.fillRect(-0.14, -0.3, 0.28, 0.06); c.restore();
+    },
+    buster(c) { // massive penetrator bomb punching into a bunker
+      c.beginPath(); c.arc(0, 0.85, 0.85, P, 0); c.closePath(); c.fill();
+      c.save(); c.fillStyle = 'rgba(0,0,0,.5)'; c.fillRect(-0.45, 0.42, 0.9, 0.1); c.restore();
+      rr(c, -0.17, -0.95, 0.34, 1.15, 0.16); c.fill(); poly(c, [-0.17, -0.65, -0.36, -0.95, 0.36, -0.95, 0.17, -0.65]); c.fill();
+      c.save(); c.fillStyle = 'rgba(0,0,0,.4)'; c.fillRect(-0.17, -0.35, 0.34, 0.06); c.fillRect(-0.17, -0.1, 0.34, 0.06); c.restore();
+      for (const [x, y] of [[-0.55, 0.05], [0.55, 0.05], [-0.38, -0.25], [0.4, -0.22]]) { c.save(); c.translate(x, y); c.rotate(x); rr(c, -0.04, -0.12, 0.08, 0.24, 0.03); c.fill(); c.restore(); }
+    },
     heli(c) { c.beginPath(); c.ellipse(-0.1, 0.1, 0.55, 0.32, 0, 0, P * 2); c.fill(); rr(c, 0.35, 0.02, 0.7, 0.12, 0.04); c.fill(); rr(c, 0.9, -0.15, 0.1, 0.4, 0.03); c.fill(); rr(c, -1, -0.45, 1.8, 0.08, 0.03); c.fill(); rr(c, -0.14, -0.45, 0.08, 0.25, 0.02); c.fill(); c.lineWidth = 0.08; c.strokeStyle = c.fillStyle; c.beginPath(); c.moveTo(-0.5, 0.55); c.lineTo(0.3, 0.55); c.stroke(); },
     sabotage(c) { for (let i = -1; i <= 1; i++) { rr(c, i * 0.32 - 0.13, -0.3, 0.26, 0.95, 0.06); c.fill(); } c.lineWidth = 0.07; c.strokeStyle = c.fillStyle; c.beginPath(); c.moveTo(0, -0.3); c.quadraticCurveTo(0.2, -0.75, 0.55, -0.7); c.stroke(); circ(c, 0.62, -0.72, 0.12); c.fill(); },
     bonds(c) { for (let i = 0; i < 4; i++) { c.beginPath(); c.ellipse(-0.25 + (i % 2) * 0.1, 0.55 - i * 0.28, 0.55, 0.2, 0, 0, P * 2); c.fill(); } c.save(); c.fillStyle = 'rgba(0,0,0,.4)'; c.font = 'bold 0.5px sans-serif'; c.textAlign = 'center'; c.fillText('$', -0.15, -0.15); c.restore(); },
@@ -568,7 +707,11 @@ const Art = (() => {
     flak(c) { rr(c, -0.65, 0.3, 1.3, 0.45, 0.1); c.fill(); circ(c, 0, 0.2, 0.35); c.fill(); c.save(); c.rotate(-0.7); rr(c, -0.2, -0.95, 0.12, 0.9, 0.03); c.fill(); rr(c, 0.08, -0.95, 0.12, 0.9, 0.03); c.fill(); c.restore(); },
     bridge(c) { c.lineWidth = 0.16; c.strokeStyle = c.fillStyle; c.beginPath(); c.arc(0, 0.75, 0.7, Math.PI, 0); c.stroke(); rr(c, -1, -0.15, 2, 0.18, 0.04); c.fill(); for (const x of [-0.55, 0, 0.55]) { rr(c, x - 0.05, -0.15, 0.1, 0.9, 0.02); c.fill(); } rr(c, -1, -0.45, 0.12, 1.2, 0.03); c.fill(); rr(c, 0.88, -0.45, 0.12, 1.2, 0.03); c.fill(); },
     port(c) { c.lineWidth = 0.16; c.strokeStyle = c.fillStyle; c.beginPath(); c.arc(0, -0.05, 0.62, 0.15, Math.PI - 0.15); c.stroke(); rr(c, -0.08, -0.85, 0.16, 1.4, 0.04); c.fill(); rr(c, -0.42, -0.55, 0.84, 0.15, 0.04); c.fill(); circ(c, 0, -0.85, 0.16); c.fill(); poly(c, [-0.75, 0.05, -0.5, -0.15, -0.5, 0.25]); c.fill(); poly(c, [0.75, 0.05, 0.5, -0.15, 0.5, 0.25]); c.fill(); },
-    market(c) { poly(c, [-0.85, -0.2, -0.6, -0.75, 0.6, -0.75, 0.85, -0.2]); c.fill(); rr(c, -0.7, -0.15, 1.4, 0.9, 0.06); c.fill(); c.save(); c.fillStyle = 'rgba(0,0,0,.45)'; for (let i = 0; i < 4; i++) c.fillRect(-0.85 + i * 0.425, -0.24, 0.21, 0.12); c.fillRect(-0.25, 0.25, 0.5, 0.5); c.restore(); },
+    warehouse(c) { // gabled storage shed with a roller door and a pallet of crates
+      poly(c, [-0.9, -0.15, 0, -0.75, 0.9, -0.15, 0.9, 0.75, -0.9, 0.75]); c.fill();
+      c.save(); c.fillStyle = 'rgba(0,0,0,.45)'; rr(c, -0.5, 0.05, 0.6, 0.7, 0.03); c.fill(); c.fillStyle = 'rgba(0,0,0,.25)'; for (let i = 0; i < 4; i++) c.fillRect(-0.5, 0.14 + i * 0.15, 0.6, 0.04); c.fillRect(-0.9, -0.2, 1.8, 0.07); c.restore();
+      rr(c, 0.28, 0.32, 0.42, 0.42, 0.03); c.fill(); c.save(); c.fillStyle = 'rgba(0,0,0,.35)'; c.fillRect(0.28, 0.5, 0.42, 0.04); c.fillRect(0.47, 0.32, 0.04, 0.42); c.restore();
+    },
     depot(c) { rr(c, -0.85, -0.1, 0.8, 0.75, 0.05); c.fill(); rr(c, 0.05, 0.15, 0.8, 0.5, 0.05); c.fill(); rr(c, -0.4, -0.75, 0.8, 0.6, 0.05); c.fill(); c.save(); c.fillStyle = 'rgba(0,0,0,.4)'; c.fillRect(-0.85, 0.2, 0.8, 0.08); c.fillRect(-0.4, -0.5, 0.8, 0.08); c.fillRect(0.05, 0.36, 0.8, 0.08); c.restore(); },
   };
 

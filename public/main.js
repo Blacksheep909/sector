@@ -6,7 +6,9 @@
   const sleep = ms => new Promise(r => setTimeout(r, ms * speed()));
   let fastForward = false;
   // World War: other commanders' turns play at double speed so the huge map keeps moving
-  const speed = () => document.hidden ? 0.02 : fastForward ? 0.12 : (S && S.settings && S.settings.mode === 'worldwar' && evBy !== you) ? 0.5 : 1;
+  const gameSpeed = () => { if (!S || !S.settings) return 'fast'; if (S.players.filter(p => p.alive).every(p => p.bot)) return S.settings.botSpeed || 'super'; return S.settings.speed || 'fast'; };
+  const PACE = { normal: 1, fast: 0.7, super: 0.25, max: 0.06 };
+  const speed = () => document.hidden ? 0.02 : fastForward ? 0.12 : evBy !== you ? Math.min(S && S.settings && S.settings.mode === 'worldwar' ? 0.5 : 1, PACE[gameSpeed()] || 1) : 1;
   const esc = s => String(s).replace(/[&<>"]/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;' }[c]));
 
   // ───────────── app state ─────────────
@@ -16,6 +18,9 @@
   let sel = null;            // { hex, units:Set }
   let mode = null;           // {type:'deploy', unit} | {type:'tactic', uid, id, from}
   let plan = []; let planState = null; let planAuto = true; let executing = false;
+  // march orders: standing multi-turn moves. Each turn the stack advances toward its objective by itself,
+  // and halts on contact or on arrival (so a big army doesn't need every stack moved by hand)
+  let marches = {}, marchKey = '';
   let undoCount = 0;
   let enterArm = 0, lastAnimEnd = 0, localDeadline = 0, lastTick = 0, clockPaused = false, pausedLeft = 0;
   const plans = {}; // pass & play: every local seat keeps its own blueprint
@@ -173,7 +178,7 @@
       cl.appendChild(d);
     }
     const st = lobby.settings;
-    for (const [id, k] of [['#setMode', 'mode'], ['#setType', 'mapType'], ['#setSize', 'mapSize'], ['#setSpawns', 'spawns'], ['#setFog', 'fog'], ['#setEvents', 'events'], ['#setTimer', 'timer'], ['#setRounds', 'maxRounds'], ['#setSeed', 'seed'], ['#setTeams', 'teams']]) {
+    for (const [id, k] of [['#setMode', 'mode'], ['#setType', 'mapType'], ['#setSize', 'mapSize'], ['#setSpawns', 'spawns'], ['#setFog', 'fog'], ['#setEvents', 'events'], ['#setTimer', 'timer'], ['#setRounds', 'maxRounds'], ['#setSeed', 'seed'], ['#setTeams', 'teams'], ['#setSpeed', 'speed']]) {
       const e = $(id); if (document.activeElement !== e) e.value = st[k] ?? ''; e.disabled = !host;
     }
     $('#startBtn').hidden = !host; $('#waitHost').hidden = host;
@@ -188,7 +193,7 @@
     $('#startBtn').title = waiting.length ? 'Not ready: ' + waiting.map(p => p.name).join(', ') : '';
     $('#waitHost').textContent = meRow && meRow.ready ? 'Ready! Waiting for the host to start…' : 'Ready up so the host can start.';
   }
-  for (const [id, k] of [['#setMode', 'mode'], ['#setType', 'mapType'], ['#setSize', 'mapSize'], ['#setSpawns', 'spawns'], ['#setFog', 'fog'], ['#setEvents', 'events'], ['#setTimer', 'timer'], ['#setRounds', 'maxRounds'], ['#setSeed', 'seed'], ['#setTeams', 'teams']])
+  for (const [id, k] of [['#setMode', 'mode'], ['#setType', 'mapType'], ['#setSize', 'mapSize'], ['#setSpawns', 'spawns'], ['#setFog', 'fog'], ['#setEvents', 'events'], ['#setTimer', 'timer'], ['#setRounds', 'maxRounds'], ['#setSeed', 'seed'], ['#setTeams', 'teams'], ['#setSpeed', 'speed']])
     $(id).addEventListener('change', e => send({ t: 'settings', settings: { [k]: e.target.value } }));
   $('#addBot').onclick = () => { SFX.click(); send({ t: 'addBot' }); };
   $('#addLocal').onclick = () => { SFX.click(); send({ t: 'addLocal' }); };
@@ -225,7 +230,7 @@
 
   // ───────────── game entry / state ─────────────
   function enterGame(state) {
-    S = state; plan = []; for (const k in plans) delete plans[k]; sel = null; mode = null; lastTurnKey = '';
+    S = state; plan = []; for (const k in plans) delete plans[k]; sel = null; mode = null; lastTurnKey = ''; marches = {}; marchKey = '';
     SFX.music.stop();
     if (state.settings && state.settings.mapType === 'random' && (state.phase === 'draft' || state.phase === 'spawn')) showMapReel(state);
     $('#menu').hidden = true; $('#hud').hidden = false; $('#victory').hidden = true;
@@ -244,7 +249,8 @@
   const draftPhase = () => !!S && S.phase === 'draft';
   const canPlace = () => planning() || (isMyTurn() && S.turn.stage === 'act' && !executing);
   const canCommand = () => (isMyTurn() && S.turn.stage === 'act' && !animating && !executing) || planning();
-  const dispState = () => planning() && planState ? planState : S;
+  const BP_BLUE = '#8fdcff';   // blueprint orders
+  const dispState = () => planning() && planState && !animating ? planState : S;
   const pName = id => { const p = S.players.find(x => x.id === id); return p ? p.name : '?'; };
   const pColor = id => { const p = S.players.find(x => x.id === id); return p ? p.color : '#aaa'; };
 
@@ -273,6 +279,7 @@
       lastTurnKey = tk;
       if (isMyTurn()) onMyTurn();
     }
+    if (isMyTurn() && S.turn.stage === 'act' && marchKey !== tk && !executing && !plan.length && Object.keys(marches).length) { marchKey = tk; setTimeout(runMarches, 400); }
     renderSpawnPick();
     if (S.phase === 'draft') Cards.showDraft(S, you, (idx, replace) => act({ a: 'draftPick', idx, replace })); else Cards.hideDraft();
     const me2 = myP();
@@ -328,6 +335,39 @@
     recomputePlan(); refreshAll();
   }
 
+  function marchOrder(hex, units, to) {
+    const ids = [...units]; if (!ids.length || hex === to) return;
+    for (const k in marches) if (marches[k].units.some(id => ids.includes(id))) delete marches[k];
+    marches[ids[0]] = { units: ids, to, at: hex };
+    const t = S.map.tiles[to];
+    toast(`⚑ March order: ${ids.length} unit${ids.length > 1 ? 's' : ''} → ${t ? E.TERRAIN[t.t].name : 'objective'} · advances every turn, halts on contact`, 'good'); SFX.select();
+    sel = null; mode = null; refreshAll();
+    if (isMyTurn() && S.turn.stage === 'act') runMarches();
+  }
+  async function runMarches() {
+    if (executing || !isMyTurn() || S.turn.stage !== 'act' || animating) { if (isMyTurn()) setTimeout(() => { if (!executing && !animating) runMarches(); }, 800); return; }
+    executing = true; let moved = 0;
+    for (const key of Object.keys(marches)) {
+      const o = marches[key]; if (!isMyTurn() || S.turn.stage !== 'act') break;
+      const units = o.units.filter(id => S.units[id] && S.units[id].owner === you);
+      if (!units.length) { delete marches[key]; continue; }
+      const hex = S.units[units[0]].hex, ids = units.filter(id => S.units[id].hex === hex && E.canAct(S, S.units[id]));
+      if (!ids.length) continue;
+      if (hex === o.to) { delete marches[key]; toast('⚑ March complete: troops reached their objective', 'good'); continue; }
+      const idx = E.buildIndex(S), r = E.reachable(S, you, ids, hex, idx);
+      // contact: an enemy next to us or on the route ahead stops the march (you decide the fight)
+      if (Object.keys(r).some(k => r[k].kind === 'attack' && E.dist(k, hex) <= 1)) { delete marches[key]; toast('⚑ March halted: enemy contact', 'err'); Render.ring(hex, '#ff4f5e', 50, 0.6, 4); continue; }
+      let best = null, bd = E.dist(hex, o.to);
+      for (const k in r) { if (r[k].kind !== 'move' && r[k].kind !== 'capture') continue; const d = E.dist(k, o.to); if (d < bd || (d === bd && best && r[k].c < r[best].c)) { bd = d; best = k; } }
+      if (!best) { toast('⚑ March blocked — pick a new objective', 'err'); delete marches[key]; continue; }
+      const a = { a: 'move', from: hex, units: ids, to: best }; if (S.fogOn) a.path = E.pathTo(r, best);
+      const ok = await act(a);
+      if (ok) { moved++; if (best === o.to) { delete marches[key]; toast('⚑ March complete: troops reached their objective', 'good'); } }
+    }
+    executing = false;
+    if (moved) toast('⚑ ' + moved + ' march order' + (moved > 1 ? 's' : '') + ' advanced');
+    refreshAll();
+  }
   // ───────────── planning (blueprint) ─────────────
   function recomputePlan() {
     if (!planning()) { planState = null; return; }
@@ -460,10 +500,15 @@
       if (fire.length) { ov.fire = new Set(fire); for (const k of fire) ov.probs[k] = E.combatCalc(ds, you, units, sel.hex, k, true, idx).winProb; }
     }
     // blueprint arrows & ghosts
-    ov.planArrows = []; ov.planGhost = null;
+    ov.planArrows = []; ov.planGhost = null; ov.planHexes = null;
+    ov.marches = Object.values(marches).map(o => { const u = S.units[o.units.find(id => S.units[id])]; return u ? { from: u.hex, to: o.to } : null; }).filter(Boolean);
     if (planning()) {
-      const col = pColor(you);
-      for (const it of plan) if (it.a.a === 'move' && it.ok) ov.planArrows.push({ path: it.path || [it.a.from, it.a.to], color: col });
+      // blueprint orders are drawn in light blue: planned routes, and every stack or drop the queue has placed
+      ov.planHexes = new Set();
+      for (const it of plan) if (it.ok) {
+        if (it.a.a === 'move') { ov.planArrows.push({ path: it.path || [it.a.from, it.a.to], color: BP_BLUE }); ov.planHexes.add(it.a.to); }
+        else if (it.a.a === 'deploy' || it.a.a === 'build') ov.planHexes.add(it.a.hex);
+      }
     }
     if (hoverK) hoverPath(hoverK);
   }
@@ -471,12 +516,12 @@
     const ov = Render.ov; ov.path = null;
     if (!ov.reach || !ov.reach[k]) return;
     const r = ov.reach[k]; if (r.kind === 'start' || r.kind === 'pass') return;
-    ov.path = E.pathTo(ov.reach, k); ov.pathColor = r.kind === 'attack' ? '#ff4f5e' : pColor(you);
+    ov.path = E.pathTo(ov.reach, k); ov.pathColor = r.kind === 'attack' ? '#ff4f5e' : planning() ? BP_BLUE : pColor(you);
   }
 
   // ───────────── input ─────────────
   const cvs = $('#map');
-  let down = null, shiftDown = false;
+  let down = null, shiftDown = false, ctrlDown = false, marchArm = false;
   cvs.addEventListener('pointerdown', e => { down = { x: e.clientX, y: e.clientY, b: e.button, moved: false }; cvs.setPointerCapture(e.pointerId); });
   cvs.addEventListener('pointermove', e => {
     if (down) {
@@ -491,17 +536,37 @@
     cvs.style.cursor = 'default';
     if (down && !down.moved) {
       if (down.b === 2) cancel();
-      else if (down.b === 0) { shiftDown = e.shiftKey; onHexClick(Render.hexAt(e.clientX, e.clientY)); }
+      else if (down.b === 0) { shiftDown = e.shiftKey; ctrlDown = e.ctrlKey || e.metaKey; onHexClick(Render.hexAt(e.clientX, e.clientY)); }
     }
     down = null;
   });
   cvs.addEventListener('pointerleave', () => { hideTip(); });
   cvs.addEventListener('contextmenu', e => e.preventDefault());
   cvs.addEventListener('wheel', e => { e.preventDefault(); Render.zoomAt(e.clientX, e.clientY, e.deltaY < 0 ? 1.12 : 1 / 1.12); }, { passive: false });
+  // sign of life for the server's AFK check (throttled); while a bot covers your AFK seat, any input takes it back
+  let aliveAt = 0;
+  const imAfk = () => !!(lobby && S && lobby.players.some(p => (p.id === realId || (p.local && p.controller === realId)) && p.afk));
+  function alive() { if (!S || !ws) return; const now = Date.now(); if (now - aliveAt < 8000 && !imAfk()) return; aliveAt = now; send({ t: 'alive' }); }
+  for (const ev of ['pointerdown', 'keydown', 'wheel']) addEventListener(ev, alive, { passive: true, capture: true });
+  addEventListener('pointermove', () => { if (Date.now() - aliveAt > 20000) alive(); }, { passive: true });
+  function renderAfk() {
+    let b = $('#afkCover');
+    if (!imAfk()) { if (b) b.remove(); return; }
+    if (!b) { b = el('div', '', '<div class="panel"><h2>💤 YOU WERE AFK</h2><div class="sub">A bot played your last turns. Click anywhere or press any key to take back command.</div></div>'); b.id = 'afkCover'; document.body.appendChild(b); b.onclick = () => { aliveAt = 0; alive(); }; }
+  }
   const keys = new Set();
   addEventListener('keydown', e => {
-    if (e.target.tagName === 'INPUT' || e.target.tagName === 'SELECT') { if (e.key === 'Escape') e.target.blur(); return; }
-    if ((e.ctrlKey || e.metaKey) && e.key.toLowerCase() === 'z') { e.preventDefault(); doUndo(); return; }
+    const isUndo = (e.ctrlKey || e.metaKey) && !e.shiftKey && (e.code === 'KeyZ' || e.key.toLowerCase() === 'z');
+    if (e.target.tagName === 'INPUT' || e.target.tagName === 'SELECT' || e.target.tagName === 'TEXTAREA') {
+      if (e.key === 'Escape') e.target.blur();
+      // an empty chat box doesn't swallow Ctrl+Z
+      if (isUndo && S && e.target.id === 'chatIn' && !e.target.value) { e.preventDefault(); e.target.blur(); doUndo(); }
+      return;
+    }
+    if (isUndo) { e.preventDefault(); doUndo(); return; }
+    // Tab / Shift+Tab: jump to the next stack that can still act
+    if (e.key === 'Tab' && S && S.phase === 'play') { e.preventDefault(); cycleReady(e.shiftKey ? -1 : 1); return; }
+    if (e.key.toLowerCase() === 'e' && !e.ctrlKey && S && S.phase === 'play' && isMyTurn()) { e.preventDefault(); cycleReady(1); return; }
     keys.add(e.key.toLowerCase());
     if (e.key === 'Escape') {
       if (!$('#hostPanel').hidden) closeHost();
@@ -525,6 +590,9 @@
     }
     if (e.key.toLowerCase() === 't' && S) { $('#chatIn').focus(); e.preventDefault(); }
     if (e.key.toLowerCase() === 'f' && myP()) Render.focus(myP().hq);
+    // M: march order for the selected stack (then click the objective) · Delete: cancel its march
+    if (e.key.toLowerCase() === 'm' && !e.ctrlKey && sel && sel.units.size) { marchArm = !marchArm; toast(marchArm ? '⚑ Click the objective for this march order' : 'March order cancelled'); e.preventDefault(); return; }
+    if ((e.key === 'Delete' || e.key === 'Backspace') && sel) { let n = 0; for (const k in marches) if (marches[k].units.some(id => sel.units.has(id))) { delete marches[k]; n++; } if (n) { toast('⚑ March order cancelled'); refreshAll(); } }
     if (e.key === ' ') {
       // space flips cards / throws dice when those are up; otherwise it skips the animation playing (never ends the turn)
       e.preventDefault();
@@ -547,7 +615,7 @@
     if (dx || dy) Render.pan(dx, dy);
   })();
 
-  function cancel() { if (mode) { mode = null; } else sel = null; refreshAll(); hideTip(); }
+  function cancel() { marchArm = false; if (mode) { mode = null; } else sel = null; refreshAll(); hideTip(); }
   // ───────────── esc menu ─────────────
   function openEsc() {
     if (!S) return;
@@ -556,6 +624,7 @@
     $('#escEnd').hidden = !host;
     $('#escInfo').textContent = (S.phase === 'over' ? 'Game over' : 'Round ' + S.turn.round) + ' · ' + (lobby ? lobby.players.length : S.players.length) + ' commanders' + (host ? ' · you are the host' : '');
     $('#escSound').textContent = 'SOUND: ' + (SFX.muted ? 'OFF' : 'ON');
+    $('#escAuto').textContent = 'AUTO-END TURN: ' + (autoEndOff ? 'OFF' : 'ON');
     $('#escLeave').textContent = spectator || !myP() ? 'BACK TO MENU' : 'LEAVE GAME';
   }
   function closeEsc() { $('#escMenu').hidden = true; }
@@ -733,6 +802,7 @@
       burnCard(mode.el); mode = null; refreshAll();
       await doAction(a); return;
     }
+    if (sel && sel.units.size && k && k !== sel.hex && (ctrlDown || marchArm) && (isMyTurn() || planning())) { marchArm = false; marchOrder(sel.hex, sel.units, k); return; }
     if (sel && sel.units.size && canCommand() && k && k !== sel.hex) {
       const ov = Render.ov;
       if (ov.fire && ov.fire.has(k)) { const a = { a: 'fire', from: sel.hex, units: [...sel.units], to: k }; sel = null; refreshAll(); await doAction(a); return; }
@@ -745,6 +815,7 @@
       if (r && r.kind !== 'start' && r.kind !== 'pass' && !r.extra) {
         const ids = r.cargo ? [...sel.units].filter(id => ds.units[id] && !E.isSea(ds.units[id].type)) : [...sel.units];
         const a = { a: 'move', from: sel.hex, units: ids, to: k };
+        if (ds.fogOn) a.path = E.pathTo(ov.reach, k);   // lets the server follow the route as far as the fog allows
         sel = null; refreshAll();
         await doAction(a); return;
       }
@@ -759,7 +830,15 @@
     const P = window.__refreshPerf || (window.__refreshPerf = {}), tm = (n, f) => { const t0 = performance.now(); f(); const d = performance.now() - t0; P[n] = +((P[n] || 0) * 0.8 + d * 0.2).toFixed(2); if (d > (P[n + '^'] || 0)) P[n + '^'] = +d.toFixed(1); };
     tm('state', () => Render.setState(dispState()));
     tm('overlays', updateOverlays);
-    tm('top', renderTop); tm('cash', renderCash); renderSiege(); renderUndo(); renderWeather(); tm('ally', renderAlly); tm('plan', renderPlan); tm('hex', renderHexPanel); tm('hand', renderHand); renderEnd(); renderModeHint(); renderOffer();
+    tm('top', renderTop); tm('cash', renderCash); renderSiege(); renderUndo(); renderWeather(); tm('ally', renderAlly); tm('plan', renderPlan); tm('hex', renderHexPanel); tm('hand', renderHand); renderEnd(); renderModeHint(); renderOffer(); renderTurnPill(); renderAfk(); renderSpeed(); checkAutoEnd();
+  }
+  // game speed button: the host sets the pace; anyone may once only bots are left
+  function renderSpeed() {
+    const b = $('#speedBtn'); if (!b || !S) return;
+    const botsOnly = S.players.filter(p => p.alive).every(p => p.bot), host = lobby && lobby.hostId === realId;
+    b.hidden = !(host || botsOnly);
+    const sp = gameSpeed(); b.textContent = { normal: '▶', fast: '⏩', super: '⏭', max: '🚀' }[sp] || '⏩';
+    b.title = 'Game speed: ' + { normal: 'Normal', fast: 'Fast', super: 'Superspeed', max: 'Max (bots only)' }[sp] + ' — click to change';
   }
 
   // how a bot feels about you
@@ -782,7 +861,12 @@
       c.title = f ? f.name + ' — ' + f.perk + ': ' + f.desc : '';
       c.onclick = () => Render.focus(p.hq);
       const allied = E.isAlly(S, you, p.id), pact = allied && (S.allies || []).find(x => (x.a === p.id || x.b === p.id) && (x.a === you || x.b === you));
-      if (allied) { c.classList.add('allied'); c.appendChild(el('span', 'allybadge' + (pact && pact.ending ? ' ending' : ''), pact && pact.ending ? '💔' : '🤝')); }
+      if (allied) {
+        const left = pact && pact.until ? pact.until - S.turn.round : 0;
+        const badge = el('span', 'allybadge' + (pact && pact.ending ? ' ending' : left && left <= 2 ? ' expiring' : ''), pact && pact.ending ? '💔' : '🤝' + (left ? `<small>${left}</small>` : ''));
+        badge.title = pact && pact.team ? 'Teammate' : pact && pact.ending ? 'Breaking up' : left ? `Alliance: ${left} round${left > 1 ? 's' : ''} left` + (left <= 2 ? ' — both of you press RENEW to extend it 5 rounds' : '') : 'Allied';
+        c.classList.add('allied'); c.appendChild(badge);
+      }
       const lp = lobby && lobby.players.find(x => x.id === p.id);
       if (p.away) c.querySelector('.pn').insertAdjacentHTML('beforeend', ' <span class="out" title="Disconnected: a bot is covering until they return">📡 AWAY</span>');
       if (lobby && lobby.hostId === realId && p.id !== you && !p.bot && lp && !(lp.local && lp.controller === realId) && S.phase !== 'over') {
@@ -800,6 +884,13 @@
         const box = el('div', 'chipbtns');
         if (!S.trade) { const tb = el('button', 'tradebtn', 'TRADE'); tb.onclick = e => { e.stopPropagation(); SFX.select(); openTrade(p.id); }; box.appendChild(tb); }
         if (!allied && !S.allyOffer && myP() && myP().alive && S.settings.teams !== 'on') { const ab = el('button', 'tradebtn ally', 'ALLY'); ab.title = 'Propose an alliance'; ab.onclick = e => { e.stopPropagation(); SFX.select(); act({ a: 'allyOffer', to: p.id }); }; box.appendChild(ab); }
+        if (allied && pact && !pact.ending && !pact.team && pact.until && pact.until - S.turn.round <= 2) {
+          const mine = pact.renew && pact.renew[you], theirs = pact.renew && pact.renew[p.id];
+          const rb = el('button', 'tradebtn ally', mine ? 'RENEWED ✔' : theirs ? 'RENEW ⚡' : 'RENEW');
+          rb.title = mine ? 'Waiting for your ally to renew' : theirs ? 'Your ally wants to renew — press to extend 5 rounds' : 'Offer to extend the alliance 5 rounds (both sides must renew)';
+          rb.disabled = !!mine; rb.onclick = e => { e.stopPropagation(); SFX.select(); act({ a: 'allyRenew', with: p.id }); };
+          box.appendChild(rb);
+        }
         if (allied && pact && !pact.ending && !pact.team) {
           const bb = el('button', 'tradebtn betray', 'BREAK'); bb.title = 'Break the alliance (takes effect at the start of your next turn)';
           bb.onclick = e => { e.stopPropagation(); if (bb.dataset.armed !== '1') { bb.dataset.armed = '1'; bb.textContent = 'SURE?'; setTimeout(() => { bb.dataset.armed = ''; bb.textContent = 'BREAK'; }, 2500); return; } SFX.alarm(); act({ a: 'allyBreak', with: p.id }); };
@@ -827,8 +918,32 @@
     b.hidden = !(isMyTurn() && S.turn.stage === 'act' && undoCount > 0 && !executing);
     b.innerHTML = '↶ UNDO' + (undoCount > 1 ? ` <small>${undoCount}</small>` : '');
   }
-  function doUndo() { if (!isMyTurn() || !undoCount || animating || executing) return; SFX.click(); sel = null; mode = null; send({ t: 'undo', seq: seq++ }); }
+  function doUndo() {
+    // blueprint: Ctrl+Z takes back the last queued order
+    if (planning()) { if (!plan.length) { toast('Blueprint is empty'); return; } plan.pop(); recomputePlan(); sel = null; refreshAll(); SFX.click(); toast('↶ Removed the last blueprint order'); return; }
+    if (!isMyTurn() || executing) return;
+    if (mode) { mode = null; refreshAll(); }
+    // the server knows best what can be undone (it answers with a reason when nothing can); a click mid-animation still counts
+    SFX.click(); sel = null; send({ t: 'undo', seq: seq++ });
+  }
+  // the next of your stacks that can still move or fire, in a stable order
+  let cycleIdx = -1;
+  function cycleReady(dir) {
+    const ds = dispState(); if (!ds || (!isMyTurn() && !planning())) return;
+    const hexes = [...new Set(Object.values(ds.units).filter(u => u.owner === you && E.canAct(ds, u) && (E.moveAllow(ds, u) > 0 || E.UNITS[u.type].range)).map(u => u.hex))].sort();
+    if (!hexes.length) { toast('Every stack has acted — nothing left to move'); SFX.error(); return; }
+    const cur = sel ? hexes.indexOf(sel.hex) : -1;
+    cycleIdx = ((cur >= 0 ? cur : cycleIdx) + dir + hexes.length) % hexes.length;
+    const k = hexes[cycleIdx]; mode = null; selectHex(k); Render.focus(k);
+  }
   $('#undoBtn').onclick = doUndo;
+  $('#escAuto').onclick = () => { autoEndOff = !autoEndOff; try { localStorage.setItem('sector.autoEnd', autoEndOff ? 'off' : 'on'); } catch (e) {} $('#escAuto').textContent = 'AUTO-END TURN: ' + (autoEndOff ? 'OFF' : 'ON'); SFX.click(); autoEndKey = ''; };
+  $('#speedBtn').onclick = () => {
+    const botsOnly = S && S.players.filter(p => p.alive).every(p => p.bot);
+    const steps = botsOnly ? ['normal', 'fast', 'super', 'max'] : ['normal', 'fast', 'super'];
+    const nx = steps[(steps.indexOf(gameSpeed()) + 1) % steps.length];
+    send({ t: 'speed', v: nx }); SFX.click(); toast('Game speed: ' + { normal: 'Normal', fast: 'Fast', super: 'Superspeed', max: 'Max' }[nx]);
+  };
   // world events: a chip under the round counter and a weather layer over the map
   function renderWeather() {
     const w = S && S.weather && E.WEATHER[S.weather.id];
@@ -836,7 +951,9 @@
     let chip = $('#wxChip');
     if (!w || S.phase !== 'play') { if (chip) chip.remove(); return; }
     if (!chip) { chip = el('div', '', ''); chip.id = 'wxChip'; $('#leftCol').insertBefore(chip, $('#leftCol').firstChild.nextSibling); }
-    chip.innerHTML = `<b>${w.icon} ${w.name.toUpperCase()}</b><span>${w.desc}</span>`;
+    if (chip.dataset.wx !== S.weather.id) { chip.classList.remove('fresh'); void chip.offsetWidth; chip.classList.add('fresh'); }
+    chip.dataset.wx = S.weather.id;
+    chip.innerHTML = `<small>World event · this round</small><b>${w.icon} ${w.name.toUpperCase()}</b><span>${w.desc}</span>`;
   }
   // alliances: incoming offers and pending ones
   function renderAlly() {
@@ -845,7 +962,7 @@
     const k = o.from + '>' + o.to; if (pop.dataset.k === k && !pop.hidden) return; pop.dataset.k = k;
     const from = S.players.find(p => p.id === o.from), to = S.players.find(p => p.id === o.to);
     if (o.to === you) {
-      pop.innerHTML = `<div class="op-h">🤝 ALLIANCE OFFER</div><div><b style="color:${from.color}">${esc(from.name)}</b> proposes an alliance.</div><div class="sub">You can't attack each other, you share vision in fog of war, and if only allies are left standing you win together. Either side can break it later (it ends at the start of their next turn).</div><div class="row"><button class="btn green" id="alYes">ACCEPT</button><button class="btn red" id="alNo">DECLINE</button></div>`;
+      pop.innerHTML = `<div class="op-h">🤝 ALLIANCE OFFER</div><div><b style="color:${from.color}">${esc(from.name)}</b> proposes an alliance.</div><div class="sub">You can't attack each other, you share vision in fog of war, and if only allies are left standing you win together (in Conquest your land counts together). It lasts 5 rounds; renew it together to keep it going. Breaking it early makes you a traitor.</div><div class="row"><button class="btn green" id="alYes">ACCEPT</button><button class="btn red" id="alNo">DECLINE</button></div>`;
       $('#alYes').onclick = () => { SFX.select(); pop.hidden = true; act({ a: 'allyReply', accept: true }); };
       $('#alNo').onclick = () => { SFX.click(); pop.hidden = true; act({ a: 'allyReply', accept: false }); };
       SFX.alarm();
@@ -862,7 +979,7 @@
     else if (!countCash.running) $('#cash').textContent = me.cash;
     const inc = E.computeIncome(S, you);
     $('#incomeLine').innerHTML = `Income <b>+$${inc.total}</b> /turn` + (inc.pact ? ` · <span style="color:#7fe0a0">🤝 +$${inc.pact}</span>` : '') + (inc.traitor ? ` · <span style="color:#ff9aa3">🗡 traitor ${inc.traitor}</span>` : '') + (planning() ? ' · <span style="color:var(--blue)">blueprint view</span>' : '');
-    $('#incomeLine').title = `Base $${inc.base} + $${inc.fromHex} land (${inc.hexes} hexes, 1 per 3) + $${inc.fromSea} sea (${inc.sea} hexes, 1 per 4) + $${inc.fromRes} resources/rigs + $${inc.fish || 0} fishing + $${inc.lanes || 0} shipping lanes + $${inc.ref} refineries + $${inc.trade} markets + $${inc.poi || 0} villages/relics + $${inc.fromRiver || 0} river valleys (${inc.river || 0} river hexes, 1 per 3)` + (inc.pact ? ` + $${inc.pact} alliance dividend` : '') + (inc.traitor ? ` − $${-inc.traitor} traitor penalty (${me.traitor} turn${me.traitor > 1 ? 's' : ''} left)` : '');
+    $('#incomeLine').title = `Base $${inc.base} + $${inc.fromHex} land (${inc.hexes} hexes, 1 per 3) + $${inc.fromSea} sea (${inc.sea} hexes, 1 per 4) + $${inc.fromRes} resources/rigs + $${inc.fish || 0} fishing + $${inc.lanes || 0} shipping lanes + $${inc.ref} refineries + $${inc.ware || 0} warehouses + $${inc.poi || 0} villages/relics + $${inc.fromRiver || 0} river valleys (${inc.river || 0} river hexes, 1 per 3)` + (inc.taper ? ` − $${-inc.taper} building taper (over $8)` : '') + (inc.pact ? ` + $${inc.pact} alliance dividend` : '') + (inc.cap ? ` − $${-inc.cap} war-chest cap (over $50)` : '') + (inc.traitor ? ` − $${-inc.traitor} traitor penalty (${me.traitor} turn${me.traitor > 1 ? 's' : ''} left)` : '');
     $('#hexLine').innerHTML = `⬢ ${inc.hexes} land · ≈ ${inc.sea} sea` + (inc.cut ? ` · <span style="color:#ff9aa3">${inc.cut} cut off</span>` : '');
 
   }
@@ -947,7 +1064,7 @@
     const name = id === 'hq' ? 'Fortify' : E.STRUCTS[id].name;
     const s = el('div', 'slot k-build');
     s.dataset.kind = 'build'; s.dataset.id = id;
-    s.innerHTML = `<span class="sk">${key.toUpperCase()}</span><img src="${Art.iconURL('struct', id, '#1b1712', 72)}"><span class="bname">${name}</span><span class="sc">$${cost}</span>` + (ups.length && id !== 'hq' ? `<span class="up" title="${ups.length} can be upgraded">▲${ups.length}</span>` : '');
+    s.innerHTML = `<span class="sk">${key.toUpperCase()}</span><img src="${Art.iconURL('struct', id, '#1b1712', 72)}"><span class="bname${name.length > 8 ? ' long' : ''}">${name}</span><span class="sc">$${cost}</span>` + (ups.length && id !== 'hq' ? `<span class="up" title="${ups.length} can be upgraded">▲${ups.length}</span>` : '');
     if (me.cash < cost) s.classList.add('poor');
     if (!spots.length) s.classList.add('nowhere');
     if (mode && mode.type === 'build' && mode.struct === id) s.classList.add('on');
@@ -1128,6 +1245,50 @@
   }
   $('#endBtn').onclick = async () => { if (!isMyTurn() || animating) return; mode = null; sel = null; SFX.click(); await act({ a: 'end' }); };
 
+  let titleBlink = null;
+  function renderTurnPill() {
+    let pill = $('#turnPill');
+    if (!pill) { pill = el('div', '', ''); pill.id = 'turnPill'; $('#hud').appendChild(pill); pill.onclick = () => { const c = curP(); if (c && c.hq) Render.focus(c.hq); }; }
+    const c = S && S.phase === 'play' && curP();
+    const mine = isMyTurn();
+    document.body.classList.toggle('my-turn', !!(c && mine));
+    if (mine) document.body.style.setProperty('--myc', pColor(you));
+    if (!c) { pill.hidden = true; document.title = 'SECTOR'; return; }
+    pill.hidden = false;
+    pill.style.setProperty('--pc', c.color);
+    pill.className = mine ? 'mine' : '';
+    const order = S.players.filter(p => p.alive), i = order.findIndex(p => p.id === c.id);
+    const next = order[(i + 1) % order.length];
+    const meNext = !mine && myP() && myP().alive && next && next.id === you;
+    if (mine) pill.innerHTML = `<b>▶ YOUR TURN</b><span>${S.turn.stage === 'choose' ? 'pick your resupply' : 'move, deploy, build — then END TURN'}</span>`;
+    else pill.innerHTML = `<b>⏳ ${esc(c.name.toUpperCase())}'S TURN</b><span>${meNext ? '⚡ you\'re up next — plan with the Blueprint' : myP() && myP().alive ? 'plan your next turn with the Blueprint' : 'spectating'}${c.bot ? ' · bot' : ''}</span>`;
+    // tab title: blink while it's your turn and the tab is in the background
+    clearInterval(titleBlink); document.title = mine ? '▶ YOUR TURN · SECTOR' : 'SECTOR';
+    if (mine && document.hidden) { let on = false; titleBlink = setInterval(() => { document.title = (on = !on) ? '▶ YOUR TURN · SECTOR' : '⚔ SECTOR'; if (!document.hidden) { clearInterval(titleBlink); document.title = '▶ YOUR TURN · SECTOR'; } }, 900); }
+  }
+  // auto-finish: when nothing is left to do (no stack can act, nothing affordable to deploy or build, no tactic to play), end the turn after a short countdown
+  let autoEndT = null, autoEndKey = '', autoEndOff = false;
+  try { autoEndOff = localStorage.getItem('sector.autoEnd') === 'off'; } catch (e) {}
+  function nothingLeft() {
+    const ds = S, me = myP(); if (!me) return false;
+    if (S.turn.stage !== 'act' || S.trade || S.allyOffer || plan.length) return false;
+    if (Object.values(ds.units).some(u => u.owner === you && E.canAct(ds, u) && (E.moveAllow(ds, u) > 0 || E.UNITS[u.type].range))) return false;
+    if (me.arsenal.some(t => E.unitCost(me, t) <= me.cash && E.deployHexes(ds, you, t).length)) return false;
+    if (Object.keys(E.STRUCTS).some(st => E.buildHexes(ds, you, st).some(k => E.buildCost(ds, me, st, k) <= me.cash))) return false;
+    if (me.tactics.some(c => { const d = E.TACTICS[c.id]; return d && d.cost <= me.cash && (d.target === 'none' || E.tacticTargets(ds, you, c.id).length); })) return false;
+    return true;
+  }
+  function checkAutoEnd() {
+    const key = S ? [S.turn.round, S.turn.idx, S.v, S.turn.stage, !!mode, animating, executing, plan.length].join(':') : '';
+    if (autoEndKey === key) return; autoEndKey = key;
+    clearTimeout(autoEndT); autoEndT = null; const old = $('#autoEnd'); if (old) old.remove();
+    if (autoEndOff || !isMyTurn() || animating || executing || mode || !nothingLeft()) return;
+    const box = el('div', '', 'Nothing left to do — ending your turn in <b>3</b>… <button class="btn tiny">STAY</button>'); box.id = 'autoEnd'; $('#hud').appendChild(box);
+    let n = 3;
+    const tick = () => { n--; if (n <= 0) { box.remove(); autoEndT = null; if (isMyTurn() && !animating && !executing && nothingLeft()) $('#endBtn').click(); return; } box.querySelector('b').textContent = n; autoEndT = setTimeout(tick, 1000); };
+    autoEndT = setTimeout(tick, 1000);
+    box.querySelector('button').onclick = () => { clearTimeout(autoEndT); autoEndT = null; box.remove(); toast('Staying — press END TURN when you\'re done'); };
+  }
   function renderModeHint() {
     const h = $('#modeHint'); let txt = '';
     if (mode && mode.type === 'deploy') txt = `Deploy ${E.UNITS[mode.unit].name} — click a glowing ${E.isSea(mode.unit) ? 'sea hex by your Port' : 'HQ / FOB'} · right-click to stop`;
@@ -1395,7 +1556,9 @@
         for (let s = 0; s < sub; s++) for (const d of dice) {
           if (!d.thrown || d.settled) continue;
           d.x += d.vx * dt; d.y += d.vy * dt; d.a += d.va * dt;
-          const fr = Math.pow(0.35, dt); d.vx *= fr; d.vy *= fr; d.va *= Math.pow(0.4, dt);
+          // heavier felt: dice slow quickly, and never tumble for more than ~1.4s
+          d.rollT = (d.rollT || 0) + dt;
+          const fr = Math.pow(d.rollT > 0.8 ? 0.06 : 0.16, dt); d.vx *= fr; d.vy *= fr; d.va *= Math.pow(0.18, dt);
           d.travel += Math.hypot(d.vx, d.vy) * dt;
           if (d.travel > 26) { d.travel = 0; d.face = 1 + Math.floor(Math.random() * 6); }
           let hit = 0;
@@ -1404,7 +1567,7 @@
           if (d.y < SZ / 2) { d.y = SZ / 2; d.vy = Math.abs(d.vy) * 0.7; hit = Math.abs(d.vy); }
           if (d.y > H - SZ / 2) { d.y = H - SZ / 2; d.vy = -Math.abs(d.vy) * 0.7; hit = Math.abs(d.vy); }
           if (hit > 80) { d.va += (Math.random() - 0.5) * 20; SFX.step(); if (hit > 300) Render.shake(2); for (let i = 0; i < 5; i++) parts.push({ x: d.x, y: d.y, vx: (Math.random() - 0.5) * 160, vy: (Math.random() - 0.5) * 160, life: 0, max: 0.3, col: 'rgba(255,255,255,.7)' }); }
-          if (Math.hypot(d.vx, d.vy) < 28 && Math.abs(d.va) < 2.5) settle(d);
+          if ((Math.hypot(d.vx, d.vy) < 55 && Math.abs(d.va) < 4) || d.rollT > 1.4) settle(d);
         }
         // dice knock into each other
         const [p, q] = dice;
@@ -1646,6 +1809,7 @@
         }
         case 'tactic': if (ev.target) { follow(ev.target); await sleep(200); } await animTactic(ev); break;
         case 'undo': if (ev.pid === you) toast('↶ Undone'); break;
+        case 'fogstop': if (ev.pid === you) { toast(ev.ambush ? '🌫 Ambush! Hidden enemies in the fog' : '🌫 The fog hid an obstacle: your troops stopped short', 'err'); Render.float(ev.hex, ev.ambush ? 'AMBUSH!' : 'STOPPED', '#cfe3ff', 16); } break;
         case 'razed': {
           Render.burst(ev.hex, ['#ffb03a', '#ff5a2a', '#8a8a8a', '#3a3a3a'], 40, { speed: 1.8, size: 4, up: 160 });
           Render.ring(ev.hex, '#ff6a2a', 70, 0.5, 5); Render.smoke(ev.hex, 14, 'rgba(90,85,80,');
@@ -1663,6 +1827,9 @@
           else if (ev.status === 'offer' && !meIn) toast(`🤝 ${a} offered ${b} an alliance`);
           else if (ev.status === 'breaking') { if (ev.to === you) { banner('🗡 BETRAYAL INCOMING', a + ' is breaking your alliance next turn', '#7a1f2b'); SFX.alarm(); } else toast(`🗡 ${a} is breaking the alliance with ${b}`); }
           else if (ev.status === 'broken') { toast(`💔 ${a} broke the alliance with ${b}`, 'err'); }
+          else if (ev.status === 'renewed') { banner('🤝 ALLIANCE RENEWED', a + ' & ' + b + ' · 5 more rounds', '#2f6b4a'); SFX.rare(); await sleep(700); }
+          else if (ev.status === 'renewing' && ev.to === you) { toast(`🤝 ${a} wants to renew your alliance — press RENEW on their name`); SFX.select(); }
+          else if (ev.status === 'expired') { toast(meIn ? `🕊 Your alliance with ${ev.from === you ? b : a} ran out` : `🕊 ${a} & ${b}'s alliance ran out`); }
           break;
         }
         case 'spawnPicked': {
@@ -1749,13 +1916,22 @@
         Render.float(ev.target, ev.kills.length + ' DESTROYED', '#ff4f5e', 20); killUnits(ev.kills); await sleep(300); break;
       }
       case 'jackpot': SFX.coin(8); Render.flash(0.2, '#ffc53d'); break;
-      case 'airstrike': {
+      case 'buster': {
+        // a heavy bomber, a long fall, then the fortifications crumble
+        SFX.whoosh(); Render.flyover([ev.target, ev.target], { color: pColor(ev.pid), dur: 1.9, onBomb: () => { SFX.boom(1); Render.shake(16); Render.flash(0.25, '#ffb03a'); } });
+        await sleep(1700);
+        { const tt = S.map.tiles[ev.target]; if (tt && ev.structs) { tt.structs = ev.structs; tt.struct = ev.structs.find(x => x.type === 'hq') || ev.structs[0] || null; } }
+        Render.burst(ev.target, ['#ffb03a', '#8a8a8a', '#3a3a3a'], 40, { speed: 1.8, size: 4, up: 160 }); Render.smoke(ev.target, 16, 'rgba(90,85,80,');
+        Render.float(ev.target, (ev.hit ? ev.hit + ' FORT' + (ev.hit > 1 ? 'S' : '') + ' WRECKED · ' : '') + ev.kills.length + ' DESTROYED', '#ff8a5a', 18);
+        killUnits(ev.kills); await sleep(300); break;
+      }
+      case 'gunrun': case 'precision': case 'airstrike': {
         // a jet in the striker's colour makes a bombing run over the target
         SFX.whoosh();
         { const [x, y] = Render.topOf(ev.target); const k1 = ev.target, sp = n => { const [q, r] = E.parse(k1); return E.key(q + n, r); };
           Render.flyover([k1, sp(-1), sp(1)].filter(k2 => S.map.tiles[k2]).slice(0, 1).concat([k1, k1]), { color: pColor(ev.pid), dur: 1.6, onBomb: () => { SFX.boom(0.7); Render.shake(9); } }); }
         await sleep(1500);
-        Render.float(ev.target, ev.kills.length + ' DESTROYED', '#ff4f5e', 20);
+        Render.float(ev.target, ev.kills.length ? ev.kills.length + ' DESTROYED' : 'MISSED', ev.kills.length ? '#ff4f5e' : '#cfd8df', 20);
         killUnits(ev.kills); await sleep(300); break;
       }
       case 'heli': {
@@ -1880,7 +2056,7 @@
   }
 
   // ── random map type: a slot reel of battlefield thumbnails that lands on the real map ──
-  const ARCH_NAME = { continent: 'Continent', pangaea: 'Supercontinent', twin: 'Twin Continents', archipelago: 'Archipelago', inland: 'Inland Sea', crescent: 'Crescent Isles', ocean: 'Open Ocean' };
+  const ARCH_NAME = { continent: 'Continent', pangaea: 'Supercontinent', twin: 'Twin Continents', archipelago: 'Archipelago', inland: 'Inland Sea', crescent: 'Crescent Isles', ocean: 'Open Ocean', rings: 'Rings', spiral: 'Spiral Galaxy', shattered: 'Shattered Plates', maze: 'Maze', mirror: 'Mirror', lattice: 'Lattice' };
   const thumbCache = {};
   function mapThumb(tiles, w = 150, h = 96) {
     const cv = document.createElement('canvas'); cv.width = w * 2; cv.height = h * 2; const c = cv.getContext('2d'); c.scale(2, 2);
@@ -2041,7 +2217,7 @@
     <b>2. Act</b> — deploy (hotbar <kbd>1</kbd>–<kbd>0</kbd>), build (<kbd>Z</kbd>–<kbd>M</kbd>), move, attack, play tactics, trade — any order.<br>
     <b>3. End turn.</b>
     <h4>INCOME</h4>
-    $3 base + $1 per 3 hexes + $2 per resource node ◆ + refineries & markets. Hexes <b>cut off</b> from your HQ / FOB / Port network (hatched) pay nothing — protect your supply lines.
+    $3 base + $1 per 3 hexes + $2 per resource node ◆ + refineries & warehouses (building income tapers past $8, total income past $50). Hexes <b>cut off</b> from your HQ / FOB / Port network (hatched) pay nothing — protect your supply lines.
     <h4>ENCIRCLEMENT</h4>
     Completely surround a pocket of land (≤10 hexes, no enemy troops or bases inside) and it's <b>annexed</b> automatically.
     <h4>MOVING</h4>

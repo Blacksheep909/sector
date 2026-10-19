@@ -152,7 +152,7 @@ setInterval(() => {
 }, 6000);
 
 // ───────────────────────── lobby / game ─────────────────────────
-const lobby = { players: [], hostId: null, settings: { mode: 'domination', mapSize: 'medium', mapType: 'random', spawns: 'random', fog: 'off', events: 'on', timer: 0, maxRounds: 0, conquestPct: 60, seed: '', teams: 'off' } };
+const lobby = { players: [], hostId: null, settings: { mode: 'domination', mapSize: 'medium', mapType: 'random', spawns: 'random', fog: 'off', events: 'on', timer: 0, maxRounds: 0, conquestPct: 60, seed: '', teams: 'off', speed: 'fast' } };
 let game = null;           // engine state
 let botMem = {}, botTimer = null, turnTimer = null, idleTimer = null;
 let nextPid = 1;
@@ -160,7 +160,7 @@ const autoPids = new Set(); // dev: humans driven by the bot AI (SECTOR_DEV=1)
 
 function lobbyView() {
   return {
-    players: lobby.players.map(p => ({ id: p.id, name: p.name, color: p.color, faction: p.faction, bot: p.bot, diff: p.diff, local: !!p.local, controller: p.controller || null, spectator: !!p.spectator, team: p.team || 0, ready: isReady(p), away: !!p.away, connected: p.bot || isConnected(p.id) })),
+    players: lobby.players.map(p => ({ id: p.id, name: p.name, color: p.color, faction: p.faction, bot: p.bot, diff: p.diff, local: !!p.local, controller: p.controller || null, spectator: !!p.spectator, team: p.team || 0, ready: isReady(p), away: !!p.away, afk: !!p.afk, connected: p.bot || isConnected(p.id) })),
     hostId: lobby.hostId, settings: lobby.settings, inGame: !!game, version: VERSION, lan: lanAddresses().map(a => 'http://' + a + ':' + PORT), port: PORT,
   };
 }
@@ -226,14 +226,7 @@ function onMessage(c, m) {
         lobby.players.push(p);
         note(p.name + ' joined from ' + addrOf(c));
       } else if (!isConnected(p.id)) note(p.name + ' reconnected');
-      if (p.away && game) {
-        for (const lp of lobby.players.filter(x => x.id === p.id || (x.local && x.controller === p.id))) {
-          lp.away = false; const gp = game.players.find(g => g.id === lp.id);
-          if (gp && gp.away) { gp.bot = false; gp.away = false; }
-        }
-        game.log.push('📡 ' + p.name + ' is back in command.'); game.v++;
-        c.pid = p.id; broadcastState([], null);   // everyone sees the seat handed back
-      }
+      if (p.away && game) { c.pid = p.id; returnSeats(p); }
       c.pid = p.id;
       if (!lobby.hostId || !lobby.players.some(x => x.id === lobby.hostId && !x.bot)) lobby.hostId = p.id;
       send(c, { t: 'welcome', you: p.id, token: p.token });
@@ -285,7 +278,7 @@ function onMessage(c, m) {
       }
       return broadcastLobby();
     }
-    case 'settings': if (c.pid !== lobby.hostId || game) return; Object.assign(lobby.settings, pick(m.settings, ['mode', 'mapSize', 'mapType', 'spawns', 'fog', 'events', 'timer', 'maxRounds', 'conquestPct', 'seed', 'teams'])); for (const p of lobby.players) if (p.id !== lobby.hostId) p.ready = false; return broadcastLobby();
+    case 'settings': if (c.pid !== lobby.hostId || game) return; Object.assign(lobby.settings, pick(m.settings, ['mode', 'mapSize', 'mapType', 'spawns', 'fog', 'events', 'timer', 'maxRounds', 'conquestPct', 'seed', 'teams', 'speed'])); for (const p of lobby.players) if (p.id !== lobby.hostId) p.ready = false; return broadcastLobby();
     case 'addLocal': {
       if (game || !c.pid || lobby.players.length >= 8) return;
       const n = lobby.players.filter(p => p.local).length + 2;
@@ -374,9 +367,10 @@ function onMessage(c, m) {
       resumeClock(); broadcastState([], null); return afterChange();
     }
     case 'undo': {
-      if (!game || !undoStack.length || game.phase !== 'play') return;
+      if (!game || game.phase !== 'play') return;
       const cur = game.players[game.turn.idx];
-      if (!cur || !controls(c, cur.id) || undoStack.owner !== cur.id) return;
+      if (!cur || !controls(c, cur.id)) return;
+      if (!undoStack.length || undoStack.owner !== cur.id) return send(c, { t: 'err', msg: 'Nothing to undo: fights, loot, cards and newly scouted fog can\'t be taken back', seq: m.seq });
       game = JSON.parse(undoStack.pop()); game.v++;
       broadcastState([{ e: 'undo', pid: cur.id }], cur.id, m.seq);
       return afterChange();
@@ -388,6 +382,7 @@ function onMessage(c, m) {
       const snap = isCur && ['move', 'deploy', 'build'].includes((m.action || {}).a) ? JSON.stringify(game) : null;
       const r = E.applyAction(game, actor, m.action || {});
       if (!r.ok) return send(c, { t: 'err', msg: r.err, seq: m.seq });
+      { const lp = lobby.players.find(x => x.id === actor); if (lp) { lp.seenAt = Date.now(); lp.idle = 0; } if (isCur) actedKey = turnKey; }
       if (game.turn.deadline && !game.turn.pausedAt && r.events.some(e => e.e === 'combat' || e.e === 'crate')) game.turn.pausedAt = Date.now();
       // undo: only for moves/deploys/builds that revealed nothing random (no fights, loot or cards)
       // fog of war: a move that showed you anything new can't be taken back (no free scouting)
@@ -420,6 +415,23 @@ function onMessage(c, m) {
     }
     case 'toLobby': if (c.pid !== lobby.hostId || !game) return; console.log('[game] host ' + c.pid + ' ended the game'); endGame(); return;
     case 'ping': return send(c, { t: 'pong' });
+    case 'alive': {
+      // any input from the player: they're at the keyboard. If a bot was covering an AFK seat, hand it back
+      if (!c.pid) return;
+      const p = lobby.players.find(x => x.id === c.pid); if (!p) return;
+      p.seenAt = Date.now();
+      if (game && p.away && p.afk && isConnected(p.id)) returnSeats(p);
+      return;
+    }
+    case 'speed': {
+      // the host sets the pace; when only bots are left playing, anyone watching may speed it up
+      const botsOnly = game && game.players.filter(p => p.alive).every(p => p.bot);
+      if ((c.pid !== lobby.hostId && !botsOnly) || !['normal', 'fast', 'super', 'max'].includes(m.v) || (m.v === 'max' && !botsOnly)) return;
+      if (botsOnly) game.settings.botSpeed = m.v;
+      else { lobby.settings.speed = m.v; if (game) game.settings.speed = m.v; }
+      if (game) { game.v++; broadcastState([], null); }
+      broadcastLobby(); return afterChange();
+    }
     case 'autoplay': if (!process.env.SECTOR_DEV || !c.pid) return; m.on ? autoPids.add(c.pid) : autoPids.delete(c.pid); return afterChange();
   }
 }
@@ -437,6 +449,26 @@ function endGame() {
   broadcastLobby();
 }
 
+// a player who dropped out (or went AFK) takes their seats back from the covering bot
+function returnSeats(p) {
+  for (const lp of lobby.players.filter(x => x.id === p.id || (x.local && x.controller === p.id))) {
+    lp.away = false; lp.afk = false; lp.idle = 0; lp.seenAt = Date.now();
+    const gp = game.players.find(g => g.id === lp.id);
+    if (gp && gp.away) { gp.bot = false; gp.away = false; gp.afk = false; }
+  }
+  game.log.push('📡 ' + p.name + ' is back in command.'); game.v++;
+  broadcastLobby(); broadcastState([], null);   // everyone sees the seat handed back
+  afterChange();
+}
+// game speed: bots act faster on Fast, and much faster on Superspeed (always on once only bots are left)
+function speedOf() {
+  if (!game) return lobby.settings.speed || 'fast';
+  if (game.players.filter(p => p.alive).every(p => p.bot)) return game.settings.botSpeed || 'super';
+  return game.settings.speed || 'fast';
+}
+const BOT_PACE = { normal: 1, fast: 0.6, super: 0.12, max: 0.02 };
+const AFK_MS = +process.env.SECTOR_AFK_MS || 120000;   // no turn timer: a turn with no sign of life ends after this
+let turnKey = '', turnStartAt = 0, actedKey = '';
 const addrOf = c => { const a = (c.socket.remoteAddress || '').replace('::ffff:', ''); return a === '127.0.0.1' || a === '::1' ? 'this PC' : a; };
 const AWAY_GRACE = +process.env.SECTOR_AWAY_MS || 30000;
 // seats of a commander who dropped out: a bot plays them until they reconnect (temporary) or for good (left / kicked)
@@ -535,6 +567,7 @@ function afterChange(events) {
   }
   const cur = E.current(game);
   const lp = lobby.players.find(p => p.id === cur.id);
+  { const k = game.turn.round + ':' + game.turn.idx; if (k !== turnKey) { turnKey = k; turnStartAt = Date.now(); } }
   if ((lp && lp.bot) || autoPids.has(cur.id)) {
     let delay = 450;
     if (events) for (const e of events) {
@@ -545,7 +578,7 @@ function afterChange(events) {
       else if (e.e === 'turn') delay = Math.max(delay, 1500);
       else if (e.e === 'card') delay = Math.max(delay, 1200);
     }
-    botTimer = setTimeout(runBot, delay * (process.env.SECTOR_FAST ? 0.25 : 1));
+    botTimer = setTimeout(runBot, Math.max(40, delay * (process.env.SECTOR_FAST ? 0.25 : 1) * BOT_PACE[speedOf()]));
     return;
   }
   if (game.turn.deadline && game.turn.pausedAt) {
@@ -555,10 +588,26 @@ function afterChange(events) {
     turnTimer = setTimeout(() => forceEnd(cur.id), Math.max(0, game.turn.deadline - Date.now()) + 300);
   }
   if (!isConnected(cur.id)) idleTimer = setTimeout(() => { if (!isConnected(cur.id)) forceEnd(cur.id); }, 30000);
+  else if (!game.turn.deadline && lp && !lp.local) {
+    // no turn timer: a connected player who shows no sign of life for a couple of minutes has their turn ended
+    const quiet = () => Date.now() - Math.max(turnStartAt, lp.seenAt || 0);
+    const check = () => { if (!game || E.current(game).id !== cur.id) return; if (quiet() >= AFK_MS) forceEnd(cur.id); else idleTimer = setTimeout(check, AFK_MS - quiet() + 200); };
+    idleTimer = setTimeout(check, Math.max(1000, AFK_MS - quiet() + 200));
+  }
 }
 function resumeClock() { if (game && game.turn.pausedAt) { game.turn.deadline += Date.now() - game.turn.pausedAt; game.turn.pausedAt = 0; } }
 function forceEnd(pid) {
   if (!game || game.phase !== 'play' || E.current(game).id !== pid) return;
+  // a whole turn without acting counts as idle; two in a row and a bot covers until the player is back
+  { const lp = lobby.players.find(p => p.id === pid);
+    if (lp && !lp.bot && isConnected(lp.local ? lp.controller : lp.id)) {
+      lp.idle = actedKey === turnKey ? 0 : (lp.idle || 0) + 1;
+      if (lp.idle >= 2) {
+        botifySeats([pid], false); lp.afk = true; const gp = game.players.find(g => g.id === pid); if (gp) gp.afk = true;
+        game.log.push('💤 ' + lp.name + ' is AFK — a bot is covering until they are back.'); note(lp.name + ' is AFK: a bot took over');
+        broadcastLobby();
+      }
+    } }
   // out of time mid-menu: take the income / scrap the crate, then end
   const ev = [];
   if (game.turn.stage === 'choose') { const r0 = E.applyAction(game, pid, { a: 'choose', pick: 'income' }); if (r0.ok) ev.push(...r0.events); }
@@ -669,7 +718,7 @@ function applyUpdate() {
 let lastClientAt = Date.now(), lastPanelAt = 0;
 if (process.env.SECTOR_IDLE_EXIT) setInterval(() => {
   // the host dashboard polls every 1.5s, so an open dashboard keeps the server alive too
-  if ([...clients].some(c => !c.left) || Date.now() - lastPanelAt < 10000) { lastClientAt = Date.now(); return; }
+  if ([...clients].some(c => !c.left) || Date.now() - lastPanelAt < 10000 || (game && game.phase === 'play')) { lastClientAt = Date.now(); return; }
   if (Date.now() - lastClientAt > (+process.env.SECTOR_IDLE_EXIT || 60) * 1000) shutdown('Nobody is connected.');
 }, 5000);
 
