@@ -56,6 +56,7 @@
         if (m.seq && pending.has(m.seq)) { pending.get(m.seq)(false); pending.delete(m.seq); }
         toast(m.msg, 'err'); SFX.error(); break;
       case 'serverClosed': serverClosed(m); break;
+      case 'saved': toast('💾 Game saved. Resume it any time from the lobby.'); SFX.select(); break;
       case 'skipFx': if (curFight && curFight.att === m.att && curFight.to === m.to) fastForward = true; break;
       case 'react': showReaction(m); break;
       case 'owPrompt': showOwPrompt(m); break;
@@ -202,6 +203,7 @@
       const e = $(id); if (document.activeElement !== e) e.value = st[k] ?? ''; e.disabled = !host;
     }
     $('#startBtn').hidden = !host; $('#waitHost').hidden = host;
+    renderSaves(host);
     // ready-up: guests toggle READY; the host's DEPLOY waits until every guest is ready
     const meRow = lobby.players.find(p => p.id === realId);
     const waiting = lobby.players.filter(p => !p.bot && !p.local && !p.spectator && !p.ready && p.id !== lobby.hostId);
@@ -212,6 +214,20 @@
     $('#startBtn').textContent = waiting.length ? 'WAITING FOR ' + waiting.length + ' TO READY' : 'DEPLOY';
     $('#startBtn').title = waiting.length ? 'Not ready: ' + waiting.map(p => p.name).join(', ') : '';
     $('#waitHost').textContent = meRow && meRow.ready ? 'Ready! Waiting for the host to start…' : 'Ready up so the host can start.';
+  }
+  // saved wars: the host can resume one; whoever's here with a matching name gets their seat back
+  function renderSaves(host) {
+    const box = $('#saveBox'), list = lobby.saves || [];
+    box.hidden = !host || !list.length; if (box.hidden) return;
+    const ago = t => { const m = Math.round((Date.now() - t) / 60000); return m < 1 ? 'just now' : m < 60 ? m + 'm ago' : m < 1440 ? Math.round(m / 60) + 'h ago' : Math.round(m / 1440) + 'd ago'; };
+    const key = JSON.stringify(list.map(s => [s.id, s.savedAt]));
+    if (box.dataset.key === key) return; box.dataset.key = key;
+    $('#saveList').innerHTML = list.slice(0, 8).map(s => `<div class="save-row"><div class="sv-t"><b>${esc(s.title)}</b><div class="sub">${ago(s.savedAt)}${s.humans.length ? ' · players: ' + esc(s.humans.join(', ')) : ''}</div></div><button class="btn tiny green" data-load="${esc(s.id)}">RESUME</button><button class="btn tiny x" data-drop="${esc(s.id)}" title="Delete this save">✕</button></div>`).join('');
+    $('#saveList').querySelectorAll('[data-load]').forEach(b => b.onclick = () => { SFX.select(); send({ t: 'loadSave', id: b.dataset.load }); });
+    $('#saveList').querySelectorAll('[data-drop]').forEach(b => b.onclick = () => {
+      if (b.dataset.armed !== '1') { b.dataset.armed = '1'; b.textContent = 'DELETE?'; setTimeout(() => { b.dataset.armed = ''; b.textContent = '✕'; }, 2500); return; }
+      SFX.click(); send({ t: 'dropSave', id: b.dataset.drop });
+    });
   }
   for (const [id, k] of [['#setMode', 'mode'], ['#setType', 'mapType'], ['#setSize', 'mapSize'], ['#setSpawns', 'spawns'], ['#setFog', 'fog'], ['#setEvents', 'events'], ['#setTimer', 'timer'], ['#setRounds', 'maxRounds'], ['#setSeed', 'seed'], ['#setTeams', 'teams'], ['#setSpeed', 'speed'], ['#setBank', 'bank']])
     $(id).addEventListener('change', e => send({ t: 'settings', settings: { [k]: e.target.value } }));
@@ -819,6 +835,7 @@
     const m = $('#escMenu'); m.hidden = false; SFX.select();
     const host = lobby && lobby.hostId === realId;
     $('#escEnd').hidden = !host;
+    $('#escSave').hidden = !host || S.phase !== 'play';
     $('#escInfo').textContent = (S.phase === 'over' ? 'Game over' : 'Round ' + S.turn.round) + ' · ' + (lobby ? lobby.players.length : S.players.length) + ' commanders' + (host ? ' · you are the host' : '');
     $('#escSound').textContent = 'SOUND: ' + (SFX.muted ? 'OFF' : 'ON');
     $('#escAuto').textContent = 'AUTO-END TURN: ' + (autoEndOff ? 'OFF' : 'ON');
@@ -903,6 +920,7 @@
   $('#escRules').onclick = () => { closeEsc(); showRules(); };
   $('#escIndex').onclick = () => { closeEsc(); Cards.showIndex(); };
   $('#escSound').onclick = () => { const m = SFX.toggle(); setTimeout(menuMusic, 50); $('#escSound').textContent = 'SOUND: ' + (m ? 'OFF' : 'ON'); $('#muteBtn').textContent = m ? '✕' : '♪'; };
+  $('#escSave').onclick = () => { SFX.click(); send({ t: 'saveGame' }); };
   $('#escLeave').onclick = () => {
     if ($('#escLeave').dataset.armed !== '1' && myP() && S.phase === 'play') { $('#escLeave').dataset.armed = '1'; $('#escLeave').textContent = 'CLICK AGAIN TO LEAVE'; setTimeout(() => { $('#escLeave').dataset.armed = ''; if (!$('#escMenu').hidden) openEsc(); }, 2500); return; }
     $('#escLeave').dataset.armed = '';
@@ -1619,9 +1637,9 @@
     const word = ev.ranged && !all ? 'DIRECT HIT!' : 'OBLITERATED!';
     const [x, y] = Render.screenOf(ev.to);
     const ff = fastForward ? 0.4 : 1;
-    // wind-up: attacker stacks lunge in
-    if (!ev.ranged) for (const st of ev.stages || [ev.from]) Render.beam(st, ev.to, pColor(ev.att.pid), 0.25, 40);
-    SFX.whoosh(); await sleep(180 * ff);
+    // wind-up: attacker stacks lunge in (unless they already drove onto the hex)
+    if (!ev.landed) { if (!ev.ranged) for (const st of ev.stages || [ev.from]) Render.beam(st, ev.to, pColor(ev.att.pid), 0.25, 40); SFX.whoosh(); await sleep(180 * ff); }
+    else for (const id of ev.killed.concat(ev.pyrrhic || [])) if (S.units[id] && S.units[id].owner !== ev.att.pid) delete S.units[id];   // the defenders vanish in the blast
     // impact
     Render.flash(0.35, '#ffffff'); Render.shake(20);
     Render.ring(ev.to, '#ffffff', 90, 0.45, 8); Render.ring(ev.to, '#ff4f5e', 140, 0.7, 7); Render.ring(ev.to, '#ffc53d', 190, 0.95, 5);
@@ -1949,6 +1967,12 @@
     const [x, y] = Render.screenOf(k);
     if (x < innerWidth * 0.18 || x > innerWidth * 0.82 || y < innerHeight * 0.2 || y > innerHeight * 0.72) Render.focus(k);
   }
+  // is this move the run-up to a fight that plays as a one-hit obliteration?
+  const oblitPlays = e => e.e === 'combat' && !e.ranged && e.attWin && (e.crush || e.winProb >= 0.95) && humanIn(e) && gameSpeed() !== 'max';
+  function oblitAfter(events, ev) {
+    for (let j = events.indexOf(ev) + 1; j < events.length; j++) { const e = events[j]; if (e.e === 'move') continue; return oblitPlays(e) ? e : null; }
+    return null;
+  }
   async function playEvents(events, by) {
     Render.setState(S); evBy = by;
     const watch = by !== you;
@@ -2010,7 +2034,14 @@
           Render.pop(ev.hex); SFX.build(); Render.burst(ev.hex, [pColor(ev.pid), '#fff', '#ffc53d'], 22, { square: true, up: 140 }); Render.float(ev.hex, E.STRUCTS[ev.struct].name.toUpperCase(), '#fff', 16);
           if (ev.pid === you) continue; await sleep(350); break;
         }
-        case 'move': if (watch) { follow(ev.path[ev.path.length - 1]); await sleep(150); } await animMove(ev); break;
+        case 'move': {
+          if (watch) { follow(ev.path[ev.path.length - 1]); await sleep(150); }
+          // a sure win: the troops roll straight onto the target and it goes up as they land, instead of stopping short first
+          const ob = oblitAfter(events, ev);
+          if (ob && E.dist(ev.path[ev.path.length - 1], ob.to) === 1) { await animMove({ ...ev, path: ev.path.concat([ob.to]) }); ob.landed = true; }
+          else await animMove(ev);
+          break;
+        }
         case 'combat': {
           follow(ev.to);
           if (ev.def && ev.def.pid === you && ev.att.pid !== you) pushAlert(`⚔ ${pName(ev.att.pid)} ${ev.overwatch ? 'fired on' : 'attacked'} you${ev.attWin ? ' — you lost the fight' : ' — you held'}`, ev.to);
@@ -2036,6 +2067,7 @@
           // at max speed nothing waits on the dice tray either
           if (!humanIn(ev) || gameSpeed() === 'max') await quickClash(ev);
           else if (ev.crush || (ev.attWin && ev.winProb >= 0.95)) await obliterate(ev); else await showCombat(ev);
+          if (ev.landed) { for (const id of ev.killed.concat(ev.pyrrhic || [])) delete S.units[id]; ev.killed = []; ev.pyrrhic = []; }   // already blown up on landing
           if (ev.splash && ev.splash.length) {
             // MLRS salvo: rockets rain on the stacks around the target
             for (const id of ev.splash) { const u = S.units[id]; if (u) { Render.burst(u.hex, ['#ffcf5a', '#ff5a2a', '#fff'], 18, { speed: 1.3 }); Render.float(u.hex, 'SALVO', '#ffb03a', 14); } }
@@ -2046,7 +2078,8 @@
         }
         case 'advance': {
           const path = [ev.from, ev.to];
-          await animMove({ pid: ev.pid, units: ev.units, path, captures: [] }, true);
+          const landed = events.some(e => e.e === 'combat' && e.landed && e.to === ev.to);
+          if (landed) for (const id of ev.units) { if (S.units[id]) S.units[id].hex = ev.to; } else await animMove({ pid: ev.pid, units: ev.units, path, captures: [] }, true);
           flipTile(ev.to, ev.pid, 6); Render.ring(ev.to, pColor(ev.pid), 70, 0.6, 5);
           await sleep(200); break;
         }

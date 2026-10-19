@@ -162,7 +162,7 @@ const idle = (s, pid) => s.players.find(p => p.id !== pid && p.id !== me(s).id) 
     s.units.sk = { id: 'sk', type: 'skitter', owner: p.id, hex: a, moved: false, fresh: false };
     const reach = E.reachable(s, p.id, ['sk'], a);
     ok(reach[d] && reach[d].c === 3, 'a buggy drives 3 hexes deep into undefended enemy land');
-    s.units.en = { id: 'en', type: 'grunt', owner: foe.id, hex: E.neighbors(c).find(k => ![b, c, d].includes(k) && T[k] && E.isLandTile(T[k])) || d, moved: false, fresh: false };
+    s.units.en = { id: 'en', type: 'grunt', owner: foe.id, hex: E.neighbors(c).find(k => ![b, c, d].includes(k) && T[k] && E.isLandTile(T[k]) && E.dist(k, b) > 1) || d, moved: false, fresh: false };
     const r2 = E.reachable(s, p.id, ['sk'], a);
     ok(r2[c] && r2[c].kind === 'capture' && !(r2[d] && r2[d].prev === c), 'it stops on contact with enemy troops');
     delete s.units.en;

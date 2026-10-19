@@ -76,6 +76,12 @@ input:focus, select:focus { border-color: var(--blue); }
 .set select, .set input { width: 100%; padding: 6px 8px; font-size: 13px; }
 .lobby-settings #startBtn { width: 100%; margin-top: 10px; }
 .lobby-settings .btn.ghost { width: 100%; margin-top: 10px; }
+.saves { margin-top: 12px; }
+.saves h3 { margin-bottom: 6px; }
+.save-row { display: flex; align-items: center; gap: 6px; padding: 6px 0; border-top: 1px solid rgba(255,255,255,.08); }
+.save-row .sv-t { flex: 1; min-width: 0; font-size: 12px; }
+.save-row .sv-t b { display: block; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.save-row .sub { font-size: 11px; opacity: .7; }
 @keyframes popIn { from { transform: scale(.8); opacity: 0; } to { transform: scale(1); opacity: 1; } }
 
 /* ───── HUD ───── */
