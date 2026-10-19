@@ -21,8 +21,8 @@ const idle = (s, pid) => s.players.find(p => p.id !== pid && p.id !== me(s).id) 
   ok(t.ok, 'trade actions work off-turn');
 }
 { // snap decisions arrive while others play, and pay out
-  const s = game(); endTurn(s); endTurn(s); endTurn(s); endTurn(s);   // into round 2
-  const waiting = s.players.find(p => p.id !== me(s).id && p.snap);
+  const s = game(); let waiting = null;
+  for (let i = 0; i < 40 && !waiting; i++) { endTurn(s); waiting = s.players.find(p => p.id !== me(s).id && p.snap); }   // they're random: keep playing until one turns up
   ok(!!waiting, 'someone waiting has a snap decision');
   if (waiting) {
     const cash = waiting.cash, opts = waiting.snap.opts;
