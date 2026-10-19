@@ -173,6 +173,7 @@ Maps have climate. It's colder toward the top and bottom edges and hotter in the
 - Mountains block movement except for air units. Open water blocks land units unless they're aboard an Ark; aircraft fly across it, and can end their move over it.
 - A hex holds at most 5 units, and mixed types share a stack freely. A hex of nothing but Grunts can hold 10.
 - Entering an empty enemy hex captures it. Entering an occupied hex starts a fight.
+- **Sweeping advance:** undefended enemy land doesn't slow you down. Troops keep moving at full speed through empty enemy hexes and capture every one on the way. They stop when they take a fortified hex (FOB or Flak), when they come next to enemy troops, or at a river. Bunkers and HQs still have to be attacked.
 
 ## Combined assaults (pincers)
 

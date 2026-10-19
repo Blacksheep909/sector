@@ -888,10 +888,14 @@
     out[from] = { c: 0, prev: null, kind: 'start' };
     const open = [from];
     const set = (n, c, prev, kind) => { if (!out[n] || out[n].c > c) { out[n] = { c, prev, kind }; if (!open.includes(n)) open.push(n); } };
+    // undefended enemy land doesn't slow an advance: troops sweep through, taking it as they go.
+    // They stop to take a fortified hex (FOB, flak) or when they come into contact with enemy troops
+    const hostile = k => { const o = idx[k] || []; return !!(o.length && o[0].owner !== pid && !isAlly(s, pid, o[0].owner)); };
+    const sweep = k => { const t = s.map.tiles[k]; if (!isLandTile(t) || getS(t, 'fob') || getS(t, 'flak')) return false; return !neighbors(k).some(hostile); };
     while (open.length) {
       open.sort((a, b) => out[a].c - out[b].c);
       const cur = open.shift(), cn = out[cur];
-      const expand = cn.kind === 'start' || cn.kind === 'move' || cn.kind === 'pass' || (cn.kind === 'capture' && (strafe || navy));
+      const expand = cn.kind === 'start' || cn.kind === 'move' || cn.kind === 'pass' || (cn.kind === 'capture' && (strafe || navy || (!allAir && sweep(cur))));
       if (!expand) continue;
       // fording a river ends the move: troops wade in this turn and climb out next turn (bridges excepted, aircraft fly over)
       { const ct = s.map.tiles[cur]; if (cn.kind !== 'start' && ct && ct.river && !ct.bridge && !allAir && !navy) continue; }

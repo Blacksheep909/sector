@@ -2,6 +2,19 @@
 
 Every release, newest first. Each version also has its own post on the [Releases page](https://github.com/Blacksheep909/sector/releases).
 
+## v0.9.11
+
+**Blitz through empty land, and a clean exit.**
+
+- **⚡ Sweeping advance:** troops used to stop on every enemy hex they captured, so clearing out a beaten rival took forever. Now undefended enemy land doesn't slow you down. Your troops move at full speed through empty enemy hexes and capture every one on the way. They stop when:
+  - they take a fortified hex (FOB or Flak)
+  - they come next to enemy troops
+  - they reach a river
+
+  Bunkers and HQs still have to be attacked. Bots blitz too.
+- **🚀 Max speed skips the dice:** on max speed, every fight (even the close ones, and crushing wins) plays as a quick flash on the map. The dice screen never stops the game.
+- **Fix:** leaving a game while a move was still animating could paint the old board back behind the main menu. The menu now stays clean.
+
 ## v0.9.10
 
 **Artillery moves when it can.**
