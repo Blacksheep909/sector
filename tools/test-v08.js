@@ -148,5 +148,30 @@ const land = (s, from, d) => Object.keys(s.map.tiles).find(k => E.dist(k, from) 
     const tg = E.rangedTargets(s, p.id, ['art'], from); ok(tg.includes(k) || E.dist(from, k) > 2, 'artillery can target undefended buildings in range');
     if (tg.includes(k)) { const r = E.applyAction(s, p.id, { a: 'fire', from, units: ['art'], to: k }); ok(r.ok && r.events.some(e => e.e === 'shell') && E.structsOf(t).find(x => x.type === 'warehouse').lvl === 1, 'a shell knocks a level off'); } }
 }
+{ // air defence shoots down air strikes (not nukes); the Trident's missile can only be stopped by Sentinels
+  const s = game(); const p = me(s); const o = s.players.find(q => q.id !== p.id); p.cash = 99;
+  const k = land(s, p.hq, 3); s.map.tiles[k].owner = o.id;
+  s.units.m = { id: 'm', type: 'mauler', owner: o.id, hex: k, moved: false, fresh: false };
+  ok(E.interceptChance(s, p.id, k, 'airstrike') === 0, 'no air defence, no interception');
+  s.units.sg = { id: 'sg', type: 'skyguard', owner: o.id, hex: k, moved: false, fresh: false };
+  ok(Math.abs(E.interceptChance(s, p.id, k, 'airstrike') - 0.5) < 1e-9, 'a Skyguard gives a 50% shoot-down chance');
+  ok(E.tacticTargets(s, p.id, 'airstrike').includes(k), 'defended hexes can still be targeted');
+  p.tactics.push({ uid: 801, id: 'airstrike' });
+  const r = E.applyAction(s, p.id, { a: 'tactic', uid: 801, target: k }, () => 0.1);
+  ok(r.ok && r.events.some(e => e.intercepted) && s.units.m && !p.tactics.some(c => c.uid === 801), 'an intercepted strike does nothing and the card is spent');
+  ok(E.interceptChance(s, p.id, k, 'precision') < E.interceptChance(s, p.id, k, 'airstrike'), 'precision strikes are harder to catch');
+  s.map.tiles[k].structs = [{ type: 'flak', owner: o.id, lvl: 3 }]; s.map.tiles[k].struct = s.map.tiles[k].structs[0];
+  const nk = Object.keys(s.map.tiles).filter(x => E.dist(x, k) <= 1);
+  ok(E.tacticTargets(s, p.id, 'nuke').some(x => nk.includes(x)) || !E.tacticTargets(s, p.id, 'nuke').length, 'flak does not block nukes');
+  // Trident
+  const sea = Object.keys(s.map.tiles).find(x => E.isWater(s.map.tiles[x]) && E.dist(x, k) <= 8 && !Object.values(s.units).some(u => u.hex === x));
+  if (sea) {
+    s.units.tr = { id: 'tr', type: 'trident', owner: p.id, hex: sea, moved: false, fresh: false };
+    ok(E.rangedTargets(s, p.id, ['tr'], sea).includes(k), 'the Trident can reach a target 8 hexes away');
+    s.units.sn = { id: 'sn', type: 'sentinel', owner: o.id, hex: k, moved: false, fresh: false };
+    const r2 = E.applyAction(s, p.id, { a: 'fire', from: sea, units: ['tr'], to: k }, () => 0.1);
+    ok(r2.ok && r2.events.some(e => e.e === 'intercept'), 'a Sentinel can intercept the missile');
+  }
+}
 console.log(fails ? fails + ' FAILED' : 'all passed');
 process.exit(fails ? 1 : 0);

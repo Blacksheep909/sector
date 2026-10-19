@@ -496,7 +496,11 @@
     if (me && me.alive) { const sup = E.supplySet(ds, you); const un = new Set(); for (const k in ds.map.tiles) if (ds.map.tiles[k].owner === you && !sup.has(k)) un.add(k); ov.unsupplied = un; }
     if (mode && mode.type === 'deploy') ov.spawn = new Set(E.deployHexes(ds, you, mode.unit));
     else if (mode && mode.type === 'build') ov.spawn = new Set(E.buildHexes(ds, you, mode.struct));
-    else if (mode && mode.type === 'tactic') ov.targets = new Set(E.tacticTargets(ds, you, mode.id, mode.from));
+    else if (mode && mode.type === 'tactic') {
+      ov.targets = new Set(E.tacticTargets(ds, you, mode.id, mode.from));
+      // air strikes: on hexes under enemy air defence, show the chance the strike gets through
+      if (E.AIR_STRIKES.includes(mode.id)) { ov.probs = {}; for (const k of ov.targets) { const ch = E.interceptChance(ds, you, k, mode.id); if (ch > 0) ov.probs[k] = 1 - ch; } }
+    }
     else if (sel && sel.units.size && canCommand()) {
       const ids = [...sel.units];
       const idx = E.buildIndex(ds);
@@ -1796,7 +1800,12 @@
         case 'combat': {
           follow(ev.to);
           if (ev.ranged) {
-            if (ev.att.units && ev.att.units.includes('oracle')) {
+            if (ev.att.units && ev.att.units.includes('trident')) {
+              // the missile breaks the surface, climbs, and falls on the target
+              SFX.whoosh(); Render.smoke(ev.from, 14, 'rgba(220,220,220,'); Render.burst(ev.from, ['#ffd27a', '#fff'], 18, { up: 200 });
+              Render.beam(ev.from, ev.to, '#ffb03a', 0.9 * speed(), 260); await sleep(900 * speed());
+              Render.flash(0.3, '#ffd9a0'); Render.shake(14); Render.burst(ev.to, ['#fff', '#ffb03a', '#ff5a2a'], 50, { speed: 2 }); SFX.boom(1.2); await sleep(300);
+            } else if (ev.att.units && ev.att.units.includes('oracle')) {
               // the Oracle calls its strike down from orbit, not out of its dish
               SFX.zap(); Render.ring(ev.from, '#7ff3ff', 40, 0.5, 3); await sleep(250);
               Render.lance(ev.to, '#7ff3ff', 0.9 * speed()); await sleep(260 * speed());
@@ -1837,6 +1846,15 @@
         }
         case 'tactic': if (ev.target) { follow(ev.target); await sleep(200); } await animTactic(ev); break;
         case 'undo': if (ev.pid === you) toast('↶ Undone'); break;
+        case 'intercept': {
+          // a Sentinel battery swats the missile out of the sky
+          SFX.whoosh(); Render.beam(ev.from, ev.to, '#ffb03a', 0.7 * speed(), 260); await sleep(550 * speed());
+          flakFire(ev.by || [], ev.to); await sleep(200);
+          Render.burst(ev.to, ['#ffb03a', '#fff', '#7ff3ff'], 40, { up: 260, speed: 1.6 }); SFX.boom(0.8);
+          Render.float(ev.to, '🛡 MISSILE INTERCEPTED', '#7ff3ff', 18);
+          if (S.units) for (const id in S.units) { const u = S.units[id]; if (u.owner === ev.pid && u.hex === ev.from) u.moved = true; }
+          await sleep(300); break;
+        }
         case 'shell': {
           // artillery or warships shelling an undefended building
           SFX.shot(); Render.beam(ev.from, ev.to, '#ffcf5a', 0.45 * speed(), 70); await sleep(420);
@@ -1941,10 +1959,23 @@
     Render.burst(k, ['#ffb03a', '#8a8a8a', '#3a3a3a'], 30, { speed: 1.6, size: 4, up: 140 }); Render.smoke(k, 12, 'rgba(90,85,80,');
     Render.invalidate && Render.invalidate();
   }
+  // air defence fire: tracer bursts climbing from each defender toward the target
+  function flakFire(from, to) {
+    for (const k of from) { Render.beam(k, to, '#ffd27a', 0.35, 40); Render.burst(k, ['#ffd27a', '#fff'], 8, { up: 120 }); }
+    SFX.shot();
+  }
   async function animTactic(ev) {
     const d = E.TACTICS[ev.id];
     const who = pName(ev.pid);
     toast(`${who} played ${d.name}`, d.rarity === 'legendary' ? 'leg' : '');
+    if (ev.intercepted) {
+      SFX.whoosh(); Render.flyover([ev.target, ev.target], { color: pColor(ev.pid), dur: 1.4 });
+      await sleep(700); flakFire(ev.by || [], ev.target); await sleep(250);
+      Render.burst(ev.target, ['#ffb03a', '#ff5a2a', '#fff'], 40, { up: 220, speed: 1.6 }); SFX.boom(0.7); Render.shake(6);
+      Render.float(ev.target, '🛡 SHOT DOWN', '#7ff3ff', 20);
+      if (ev.pid === you) toast(`🛡 Your ${d.name} was shot down by air defences`, 'err');
+      await sleep(500); return;
+    }
     const me = S.players.find(p => p.id === ev.pid);
     switch (ev.id) {
       case 'cache': case 'bonds': Render.float(me.hq, '+$' + ev.amount, '#ffc53d', 28); SFX.coin(6); break;
@@ -1957,7 +1988,9 @@
         SFX.whoosh();
         Render.flyover(ev.area.filter(k2 => S.map.tiles[k2]), { count: 3, color: pColor(ev.pid), dur: 2.1, onBomb: () => { SFX.boom(0.5); Render.shake(6); } });
         await sleep(2000);
-        Render.float(ev.target, ev.kills.length + ' DESTROYED', '#ff4f5e', 20); killUnits(ev.kills); await sleep(300); break;
+        Render.float(ev.target, ev.kills.length + ' DESTROYED', '#ff4f5e', 20); killUnits(ev.kills);
+        for (const k of ev.shot || []) { Render.burst(k, ['#ffb03a', '#fff'], 20, { up: 200 }); Render.float(k, '🛡 SHOT DOWN', '#7ff3ff', 14); }
+        await sleep(300); break;
       }
       case 'jackpot': SFX.coin(8); Render.flash(0.2, '#ffc53d'); break;
       case 'strategic': {
@@ -1967,6 +2000,7 @@
         await sleep(1900);
         for (const h of ev.hexes) { const tt = S.map.tiles[h.k]; if (tt) tt.ruin = 2; if (h.infra.length) infraHit(h.k, h.infra, h.structs); else { Render.burst(h.k, ['#ffb03a', '#5a5a5a'], 14, { up: 90 }); Render.smoke(h.k, 8, 'rgba(70,65,60,'); } }
         Render.recolor(); Render.invalidate();
+        for (const k of ev.shot || []) { Render.burst(k, ['#ffb03a', '#fff'], 20, { up: 200 }); Render.float(k, '🛡 SHOT DOWN', '#7ff3ff', 14); }
         Render.float(ev.target, 'BOMBED OUT · NO INCOME 2 TURNS', '#ff8a5a', 18);
         await sleep(500); break;
       }

@@ -106,12 +106,12 @@
     skitter: { name: 'Skitter', cls: 'veh', cost: 3, atk: 2, def: 1, mv: 4, rarity: 'common', desc: 'Raider buggy. Grabs land fast.' },
     thumper: { name: 'Thumper', cls: 'art', cost: 4, atk: 3, def: 1, mv: 1, range: 2, rarity: 'common', desc: 'Mortar crew. Fires 2 hexes instead of moving.' },
     barracuda: { name: 'Barracuda', cls: 'sea', cost: 4, atk: 3, def: 2, mv: 4, rarity: 'common', desc: 'Fast gunboat. Claims sea lanes, raids coasts.' },
-    stinger: { name: 'Stinger', cls: 'inf', cost: 3, atk: 1, def: 2, mv: 2, rarity: 'common', ability: 'aa', aa: 3, desc: 'MANPADS team. Anti-air: +3 Chips in any fight involving enemy aircraft.' },
+    stinger: { name: 'Stinger', cls: 'inf', cost: 3, atk: 1, def: 2, mv: 2, rarity: 'common', ability: 'aa', aa: 3, desc: 'MANPADS team. +3 Chips vs aircraft, and a 25% chance to shoot down air strikes on its hex.' },
     corpsman: { name: 'Corpsman', cls: 'inf', cost: 3, atk: 1, def: 3, mv: 2, rarity: 'common', ability: 'medic', desc: 'Medic squad. Its stack never suffers pyrrhic losses.' },
     lancer: { name: 'Lancer', cls: 'inf', cost: 4, atk: 3, def: 2, mv: 2, rarity: 'uncommon', ability: 'hunter', desc: 'Tank Hunter: +3 Chips when fighting vehicles.' },
     warden: { name: 'Warden', cls: 'air', cost: 4, atk: 1, def: 3, mv: 3, rarity: 'uncommon', ability: 'aegis', desc: 'Airborne radar plane. Aegis: +1 Mult when its hex defends.' },
     sapper: { name: 'Sapper', cls: 'inf', cost: 4, atk: 2, def: 2, mv: 2, rarity: 'uncommon', ability: 'sapper', desc: 'Demolitions: +3 Chips attacking a hex with buildings.' },
-    scorpion: { name: 'Scorpion', cls: 'veh', cost: 5, atk: 2, def: 3, mv: 3, rarity: 'uncommon', ability: 'aa', aa: 4, desc: 'Flak tank. Anti-air: +4 Chips in any fight involving enemy aircraft.' },
+    scorpion: { name: 'Scorpion', cls: 'veh', cost: 5, atk: 2, def: 3, mv: 3, rarity: 'uncommon', ability: 'aa', aa: 4, desc: 'Flak tank. +4 Chips vs aircraft; 35% to shoot down air strikes within 1.' },
     bulwark: { name: 'Bulwark', cls: 'veh', cost: 6, atk: 3, def: 5, mv: 3, rarity: 'uncommon', desc: 'Armoured carrier. Holds the line.' },
     hornet: { name: 'Hornet', cls: 'air', cost: 5, atk: 4, def: 1, mv: 4, rarity: 'uncommon', desc: 'Strike drone. Flies over mountains and water.' },
     mauler: { name: 'Mauler', cls: 'veh', cost: 6, atk: 5, def: 4, mv: 2, rarity: 'uncommon', desc: 'Main battle tank.' },
@@ -119,20 +119,21 @@
     marlin: { name: 'Marlin', cls: 'sea', cost: 7, atk: 5, def: 4, mv: 4, range: 2, rarity: 'rare', desc: 'Destroyer. Shells coasts and ships 2 hexes away.' },
     basilisk: { name: 'Basilisk', cls: 'art', cost: 7, atk: 7, def: 2, mv: 1, range: 3, rarity: 'rare', desc: 'Rocket artillery truck. Fires 3 hexes.' },
     ranger: { name: 'Ranger', cls: 'inf', cost: 6, atk: 4, def: 3, mv: 3, rarity: 'rare', ability: 'pathfinder', desc: 'Pathfinders: rough terrain costs only 1 move.' },
-    skyguard: { name: 'Skyguard', cls: 'veh', cost: 7, atk: 3, def: 4, mv: 3, rarity: 'rare', ability: 'aa', aa: 6, desc: 'Gun-missile air defence truck. Anti-air: +6 Chips in any fight involving enemy aircraft.' },
+    skyguard: { name: 'Skyguard', cls: 'veh', cost: 7, atk: 3, def: 4, mv: 3, rarity: 'rare', ability: 'aa', aa: 6, desc: 'Air defence truck. +6 Chips vs aircraft; 50% to shoot down air strikes within 2.' },
     hellcat: { name: 'Hellcat', cls: 'veh', cost: 7, atk: 6, def: 2, mv: 3, rarity: 'rare', ability: 'blitzer', desc: 'Strike tank. Can act on the turn it is deployed.' },
     wraith: { name: 'Wraith', cls: 'veh', cost: 8, atk: 6, def: 3, mv: 4, rarity: 'rare', ability: 'hover', desc: 'Armed hovercraft. Glides across water.' },
     kraken: { name: 'Kraken', cls: 'sea', cost: 8, atk: 7, def: 2, mv: 4, rarity: 'rare', ability: 'torpedo', desc: 'Submarine. Torpedoes: +4 Chips vs ships.' },
     goliath: { name: 'Goliath', cls: 'veh', cost: 10, atk: 7, def: 6, mv: 1, rarity: 'epic', ability: 'siege', desc: 'Siege mortar tank. +2 Mult vs fortified hexes.' },
     valkyrie: { name: 'Valkyrie', cls: 'air', cost: 10, atk: 6, def: 4, mv: 4, rarity: 'epic', ability: 'strafe', desc: 'Tiltrotor assault transport. Strafing Run: +2 Mult attacking ground targets.' },
     phantom: { name: 'Phantom', cls: 'air', cost: 10, atk: 7, def: 3, mv: 5, rarity: 'epic', ability: 'stealth', desc: 'Stealth bomber. Immune to artillery, airstrikes and bombardment.' },
-    sentinel: { name: 'Sentinel', cls: 'art', cost: 9, atk: 6, def: 3, mv: 1, range: 3, rarity: 'epic', ability: 'sam', aa: 4, desc: 'SAM battery. Shoots down aircraft up to 3 hexes away (air targets only). +4 Chips vs aircraft.' },
+    sentinel: { name: 'Sentinel', cls: 'art', cost: 9, atk: 6, def: 3, mv: 1, range: 3, rarity: 'epic', ability: 'sam', aa: 4, desc: 'SAM battery. Fires at aircraft 3 hexes away; 60% to shoot down air strikes within 3.' },
     bastion: { name: 'Bastion', cls: 'sea', cost: 11, atk: 8, def: 8, mv: 3, range: 3, rarity: 'epic', desc: 'Battleship. Long guns, range 3.' },
     leviathan: { name: 'Leviathan', cls: 'veh', cost: 14, atk: 12, def: 10, mv: 1, rarity: 'legendary', ability: 'juggernaut', desc: 'Land dreadnought. Never suffers pyrrhic losses.' },
     titan: { name: 'Titan', cls: 'veh', cost: 16, atk: 13, def: 12, mv: 1, rarity: 'legendary', ability: 'titan', desc: 'Landship with naval guns. Siege Breaker and never suffers pyrrhic losses.' },
     seraph: { name: 'Seraph', cls: 'air', cost: 12, atk: 9, def: 4, mv: 5, rarity: 'legendary', ability: 'strafe', desc: 'Heavy gunship. Strafing Run: +2 Mult attacking ground targets.' },
     carrier: { name: 'Carrier', cls: 'sea', cost: 13, atk: 3, def: 9, mv: 3, rarity: 'legendary', ability: 'carrier', desc: 'Floating airbase: deploy aircraft onto it and fly them off it. Holds 4.' },
     oracle: { name: 'Oracle', cls: 'art', cost: 11, atk: 8, def: 3, mv: 2, range: 4, rarity: 'legendary', ability: 'orbital', desc: 'Orbital uplink. Range 4, ignores mountains.' },
+    trident: { name: 'Trident', cls: 'sea', cost: 16, atk: 10, def: 6, mv: 3, range: 8, rarity: 'legendary', ability: 'ballistic', desc: 'Missile submarine. Fires at any troops or buildings within 8, over mountains; a hit kills one extra unit. Only a Sentinel can intercept.' },
     abyssal: { name: 'Abyssal', cls: 'sea', cost: 15, atk: 12, def: 10, mv: 3, range: 4, rarity: 'legendary', ability: 'juggernaut', desc: 'Sea dreadnought. Range 4. Never suffers pyrrhic losses.' },
   };
 
@@ -180,7 +181,7 @@
     bridge: { name: 'Bridge', cost: 6, desc: 'Span a 1-hex sea gap between two shores. Land units cross; ships cannot pass.' },
     bunker: { name: 'Bunker', cost: 4, desc: 'Strongpoint with its own garrison: +3 Chips per level even when empty, so enemies must attack it. +2 Mult defence (+1 per extra level). ★★+ also gives your neighbouring hexes +1 Mult. Digs in against big attacks: +40% of the attacker chip lead (up to 4 per level). ★★★ Citadel: 14 garrison Chips, +5 Mult, +2 Mult to neighbours, and holds 60% of the lead (up to 20). Destroyed if an enemy captures it.' },
     mine: { name: 'Sea Mine', cost: 4, desc: 'A minefield on one of your sea hexes: the naval Bunker. +3 Chips per level even when empty, so enemy ships must fight their way through instead of sailing past. +2 Mult defence (+1 per extra level). Cleared if an enemy captures the hex.' },
-    flak: { name: 'Flak', cost: 5, desc: 'Blocks enemy air tactics nearby (range = level). +2 Mult vs air.' },
+    flak: { name: 'Flak', cost: 5, desc: 'Air defence: can shoot down enemy air strikes nearby (range = level, 35% +10% per level). Blocks Heli Drops and EMPs (nukes cannot be stopped). +2 Mult vs air.' },
   };
   const BUILD_ORDER = ['hq', 'fob', 'warehouse', 'refinery', 'depot', 'port', 'bridge', 'bunker', 'mine', 'flak'];
   // structures can be stacked up to level 3 by building the same thing on the same hex
@@ -828,6 +829,19 @@
     for (const a of area(k, r)) { const t = s.map.tiles[a]; if (t && t.owner === pid) return true; }
     return false;
   }
+  // ── air defence: Flak and anti-air units can shoot down air strikes aimed near them, the way a bunker defends its hex ──
+  const AIR_STRIKES = ['gunrun', 'airstrike', 'precision', 'buster', 'strategic', 'carpet'];
+  const AA_COVER = { stinger: [0, 0.25], scorpion: [1, 0.35], skyguard: [2, 0.5], sentinel: [3, 0.6] };   // [reach, shoot-down chance]
+  function airDefenders(s, pid, k) {
+    const out = [];
+    for (const a of area(k, MAX_SLVL)) { const f = getS(s.map.tiles[a], 'flak'); if (f && f.owner && f.owner !== pid && !isAlly(s, pid, f.owner) && dist(a, k) <= slvlOf(f)) out.push({ kind: 'flak', hex: a, p: 0.25 + 0.1 * slvlOf(f) }); }
+    for (const id in s.units) { const u = s.units[id], c = AA_COVER[u.type]; if (c && !u.stun && u.owner !== pid && !isAlly(s, pid, u.owner) && dist(u.hex, k) <= c[0]) out.push({ kind: u.type, hex: u.hex, p: c[1] }); }
+    return out;
+  }
+  function interceptChance(s, pid, k, id) {
+    let miss = 1; for (const d of airDefenders(s, pid, k)) miss *= 1 - d.p;
+    return Math.min(0.9, 1 - miss) * (id === 'precision' ? 0.6 : 1);   // the stealth jet is harder to catch
+  }
   function flakCovered(s, pid, k) {
     for (const a of area(k, MAX_SLVL)) { const f = getS(s.map.tiles[a], 'flak'); if (f && f.owner !== pid && dist(a, k) <= slvlOf(f)) return true; }
     return false;
@@ -922,7 +936,7 @@
     const units = unitIds.map(id => s.units[id]).filter(Boolean);
     if (!units.length || !units.every(u => UNITS[u.type].range)) return [];
     const range = Math.min(...units.map(u => UNITS[u.type].range || 0));
-    const orbital = units.every(u => UNITS[u.type].ability === 'orbital');
+    const orbital = units.every(u => ['orbital', 'ballistic'].includes(UNITS[u.type].ability));   // fired from orbit or on a ballistic arc: mountains don't matter
     const sam = units.some(u => UNITS[u.type].ability === 'sam');   // SAM batteries only engage aircraft
     const out = [];
     for (const k of area(from, range)) {
@@ -1114,7 +1128,7 @@
     if (attWin) {
       const sam = units.some(u => UNITS[u.type].ability === 'sam');
       const pool = defenders.filter(u => UNITS[u.type].ability !== 'stealth' && (!sam || UNITS[u.type].cls === 'air'));
-      const n = aScore >= 2 * dScore ? 2 : 1;
+      const n = (aScore >= 2 * dScore ? 2 : 1) + (units.some(u => UNITS[u.type].ability === 'ballistic') ? 1 : 0);
       for (let i = 0; i < n && pool.length; i++) killed.push(pool.splice(Math.floor(rng() * pool.length), 1)[0]);
     }
     units.forEach(u => u.moved = true);
@@ -1584,16 +1598,16 @@
       case 'enemyUnits': for (const k in tiles) {
         const occ = idx[k] || [];
         if (!(occ.length ? occ[0].owner !== pid && !isAlly(s, pid, occ[0].owner) : isEnemyInfra(s, pid, k))) continue;   // troops, or undefended buildings
-        if (nearOwned(s, pid, k, def.range) && !flakCovered(s, pid, k)) out.push(k);
+        if (nearOwned(s, pid, k, def.range)) out.push(k);
       } return out;
       case 'precision': for (const k in tiles) {
         const occ = idx[k] || [];
         if (!(occ.length ? occ[0].owner !== pid && !isAlly(s, pid, occ[0].owner) && occ.some(u => UNITS[u.type].ability !== 'stealth') : isEnemyInfra(s, pid, k))) continue;
         if (nearOwned(s, pid, k, def.range)) out.push(k);
       } return out;
-      case 'infra': for (const k in tiles) { const t = tiles[k]; if (t.owner && t.owner !== pid && !isAlly(s, pid, t.owner) && isLandTile(t) && nearOwned(s, pid, k, def.range) && !flakCovered(s, pid, k)) out.push(k); } return out;
+      case 'infra': for (const k in tiles) { const t = tiles[k]; if (t.owner && t.owner !== pid && !isAlly(s, pid, t.owner) && isLandTile(t) && nearOwned(s, pid, k, def.range)) out.push(k); } return out;
       case 'buster': for (const k in tiles) {
-        const t = tiles[k], o = t.owner || ((idx[k] || [])[0] || {}).owner; if (!o || o === pid || isAlly(s, pid, o) || !nearOwned(s, pid, k, def.range) || flakCovered(s, pid, k)) continue;
+        const t = tiles[k], o = t.owner || ((idx[k] || [])[0] || {}).owner; if (!o || o === pid || isAlly(s, pid, o) || !nearOwned(s, pid, k, def.range)) continue;
         if ((idx[k] || []).length || structsOf(t).some(x => ['bunker', 'fob', 'flak', 'mine', 'hq'].includes(x.type) && x.owner === o)) out.push(k);
       } return out;
       case 'heli':
@@ -1613,17 +1627,17 @@
       case 'enemyHex': { for (const k in tiles) { const o = tiles[k].owner; if (o && o !== pid && isLandTile(tiles[k])) { const op = player(s, o); if (op && op.alive && !op.embargo) out.push(k); } } return out; }
       case 'orbital': for (const k in idx) if (idx[k][0].owner !== pid && !getS(tiles[k], 'hq') && nearOwned(s, pid, k, def.range) && idx[k].some(u => UNITS[u.type].ability !== 'stealth')) out.push(k); return out;
       case 'enemyStruct': for (const k in tiles) { const t = tiles[k]; if (structsOf(t).some(x => x.type !== 'hq' && x.owner !== pid) && nearOwned(s, pid, k, def.range)) out.push(k); } return out;
-      case 'area': for (const k in tiles) if (nearOwned(s, pid, k, def.range) && !flakCovered(s, pid, k)) out.push(k); return out;
+      case 'area': for (const k in tiles) if (nearOwned(s, pid, k, def.range) && (AIR_STRIKES.includes(id) || !flakCovered(s, pid, k))) out.push(k); return out;
       case 'nuke':
         for (const k in tiles) {
-          if (!nearOwned(s, pid, k, def.range) || flakCovered(s, pid, k)) continue;
+          if (!nearOwned(s, pid, k, def.range)) continue;   // nukes can't be stopped by air defence
           if (area(k, 1).some(a => getS(tiles[a], 'hq'))) continue;
           out.push(k);
         }
         return out;
       case 'mountain': for (const k in tiles) if (tiles[k].t === 'mountain' && nearOwned(s, pid, k, def.range)) out.push(k); return out;
       case 'enemyHand': { for (const k in tiles) { const o = tiles[k].owner; if (o && o !== pid && isLandTile(tiles[k])) { const op = player(s, o); if (op && op.alive && ((op.tacticCount ?? op.tactics.length) || stealableUnits(op).length)) out.push(k); } } return out; }   // players only see a rival's hand size
-      case 'tsar': for (const k in tiles) if (nearOwned(s, pid, k, def.range) && !flakCovered(s, pid, k)) out.push(k); return out;
+      case 'tsar': for (const k in tiles) if (nearOwned(s, pid, k, def.range)) out.push(k); return out;
       case 'regime':
         for (const k in tiles) {
           const t = tiles[k], o = t.owner; if (!o || o === pid || !isLandTile(t) || getS(t, 'hq')) continue;
@@ -1924,6 +1938,16 @@
       const units = (a.units || []).map(id => s.units[id]);
       if (!units.length || units.some(u => !u || u.owner !== pid || u.hex !== a.from || !canAct(s, u))) return fail('Invalid units');
       if (!rangedTargets(s, pid, a.units, a.from).includes(a.to)) return fail('Target out of range or blocked');
+      if (units.some(u => UNITS[u.type].ability === 'ballistic')) {
+        // a ballistic missile: only Sentinel SAM batteries within 3 of the target can try to intercept it
+        const sams = Object.values(s.units).filter(u => u.type === 'sentinel' && !u.stun && u.owner !== pid && !isAlly(s, pid, u.owner) && dist(u.hex, a.to) <= 3);
+        if (sams.length && rng() < 1 - Math.pow(0.4, sams.length)) {
+          units.forEach(u => u.moved = true);
+          ev.push({ e: 'intercept', pid, from: a.from, to: a.to, by: [...new Set(sams.map(u => u.hex))] });
+          pushLog(s, '🛡 A Sentinel battery intercepted ' + p.name + "'s missile.");
+          return { ok: true, events: ev };
+        }
+      }
       if (!Object.values(s.units).some(u => u.hex === a.to)) {
         // shelling an undefended building: each salvo knocks a level off it
         const infra = damageInfra(s, a.to, 1);
@@ -1954,6 +1978,15 @@
     const def = TACTICS[id], pid = p.id, tiles = s.map.tiles;
     if (def.target !== 'none' && def.target !== 'heli' && !tacticTargets(s, pid, id).includes(a.target)) return 'Invalid target';
     const base = { e: 'tactic', pid, id, target: a.target };
+    if (AIR_STRIKES.includes(id) && id !== 'strategic' && id !== 'carpet') {
+      const ch = interceptChance(s, pid, a.target, id);
+      if (ch > 0 && rng() < ch) {
+        const by = airDefenders(s, pid, a.target);
+        ev.push({ ...base, intercepted: true, by: [...new Set(by.map(d => d.hex))] });
+        pushLog(s, '🛡 ' + p.name + "'s " + def.name + ' was shot down by air defences.');
+        return;   // the card is spent
+      }
+    }
     const kill = (u) => { const o = player(s, u.owner); if (o) o.stats.lost++; if (u.owner !== pid) { p.stats.kills++; if (p.bounty) p.cash += p.bounty === true ? 2 : p.bounty; } delete s.units[u.id]; };
     switch (id) {
       case 'bonds': { const n = Math.floor(ownedLand(s, pid).length / 2); p.cash += n; ev.push({ ...base, amount: n }); break; }
@@ -2034,13 +2067,15 @@
       case 'strategic': {
         // carpet the area: buildings lose a level, and the enemy land there pays nothing for 2 turns
         const hexes = [];
+        const shot = [];
         for (const k of area(a.target, 1)) {
           const t = tiles[k]; if (!t || !t.owner || t.owner === pid || isAlly(s, pid, t.owner) || !isLandTile(t)) continue;
+          { const ch = interceptChance(s, pid, k, id); if (ch > 0 && rng() < ch) { shot.push(k); continue; } }   // that bomber was shot down
           const infra = damageInfra(s, k, 1);
           t.ruin = 2;
           hexes.push({ k, infra, structs: structsOf(t) });
         }
-        ev.push({ ...base, hexes });
+        ev.push({ ...base, hexes, shot });
         pushLog(s, '💣 ' + p.name + ' sent the bombers over ' + (player(s, tiles[a.target].owner) || {}).name + ': ' + hexes.length + ' hexes bombed out.');
         break;
       }
@@ -2061,10 +2096,11 @@
         break;
       }
       case 'carpet': {
-        const ar = area(a.target, 1), kills = [];
-        for (const u of Object.values(s.units)) if (ar.includes(u.hex) && u.owner !== pid && UNITS[u.type].ability !== 'stealth' && rng() < 0.5) kills.push(u);
+        // each hex under the bomber stream gets its own interception roll
+        const ar = area(a.target, 1), kills = [], shot = ar.filter(k => { const ch = interceptChance(s, pid, k, id); return ch > 0 && rng() < ch; });
+        for (const u of Object.values(s.units)) if (ar.includes(u.hex) && !shot.includes(u.hex) && u.owner !== pid && UNITS[u.type].ability !== 'stealth' && rng() < 0.5) kills.push(u);
         kills.forEach(kill);
-        ev.push({ ...base, area: ar, kills: kills.map(u => u.id) });
+        ev.push({ ...base, area: ar, kills: kills.map(u => u.id), shot });
         pushLog(s, '💣 ' + p.name + ' carpet-bombed: ' + kills.length + ' destroyed.');
         break;
       }
@@ -2255,7 +2291,7 @@
   return {
     DIRS, key, parse, dist, neighbors, area, line, mulberry32, hashStr,
     POI, WEATHER, isAlly, recordHistory, RARITY, RARITY_ORDER, CRATES, DROP_TIERS, SCRAP_VALUE, DECK_MAX, MAX_LEVEL, TERRAIN, DIFFICULTY, UNITS, TACTICS, STRUCTS, BUILD_ORDER, UPGRADABLE, MAX_SLVL, FACTIONS, COLORS, MAX_STACK, GRUNT_STACK, stackFits, CLASS_NAME, cardDef,
-    ECON, infraValue, econOf, generateMap, createGame, applyAction, spawnChoices, visionOf, startTurn, endTurn, simulateTurnStart, view, drawCards,
+    ECON, infraValue, econOf, AIR_STRIKES, airDefenders, interceptChance, generateMap, createGame, applyAction, spawnChoices, visionOf, startTurn, endTurn, simulateTurnStart, view, drawCards,
     player, current, buildIndex, canAct, moveAllow, ownedTiles, ownedLand, spawnPoints, musterHexes, supplySet, computeIncome, levelOf, unitAtk, unitDef,
     tsarArea, moodOf, addMood, threatOf, rerollCost, bountyValue, reachable, pathTo, rangedTargets, deployHexes, buildHexes, buildError, isSea, isWater, isCoastal, movers, combatCalc, tacticTargets, unitCost, structCost, buildCost, structsOf, MAX_STRUCTS, conquestTarget, isLandTile, flakCovered,
   };

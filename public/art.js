@@ -558,6 +558,19 @@ const Art = (() => {
       for (const y of [-0.36, 0.04, 0.3]) { rr(c, -0.33, y, 0.2, 0.05, 0.02); c.fill(); }
       shade(c, () => { c.ellipse(0, -0.8, 0.08, 0.1, 0, 0, P * 2); rrp(c, -0.02, -0.5, 0.04, 1.0, 0.02); }, 'rgba(0,0,0,.35)');
     },
+    // Ohio-class missile submarine: a long hull with the missile deck hump, one missile leaving its tube
+    trident(c) {
+      c.beginPath(); c.ellipse(0, 0.2, 1.0, 0.24, 0, 0, P * 2); c.fill();
+      rr(c, -0.5, -0.08, 0.95, 0.16, 0.06); c.fill();
+      poly(c, [0.4, 0.02, 0.48, -0.32, 0.72, -0.32, 0.78, 0.02]); c.fill(); rr(c, 0.4, -0.22, 0.46, 0.05, 0.02); c.fill();
+      poly(c, [-0.94, 0.2, -1.12, -0.05, -1.04, 0.2, -1.12, 0.45]); c.fill();
+      c.save(); c.translate(-0.15, -0.2); c.rotate(-0.12);
+      rr(c, -0.06, -0.75, 0.12, 0.6, 0.05); c.fill(); poly(c, [-0.06, -0.75, 0, -0.92, 0.06, -0.75]); c.fill();
+      poly(c, [-0.06, -0.22, -0.14, -0.12, -0.06, -0.15]); c.fill(); poly(c, [0.06, -0.22, 0.14, -0.12, 0.06, -0.15]); c.fill();
+      c.save(); c.globalAlpha *= 0.5; c.beginPath(); c.ellipse(0, -0.06, 0.16, 0.08, 0, 0, P * 2); c.fill(); c.restore();
+      c.restore();
+      sh(c, () => { for (let i = 0; i < 6; i++) { rr(c, -0.45 + i * 0.14, -0.06, 0.08, 0.05, 0.02); c.fill(); } c.beginPath(); c.ellipse(0, 0.3, 0.92, 0.1, 0, 0, P); c.fill(); });
+    },
     // E-2 Hawkeye from above: radar rotodome over the fuselage
     warden(c) {
       c.beginPath(); c.moveTo(0, -0.9); c.quadraticCurveTo(0.15, -0.85, 0.14, -0.55); c.lineTo(0.11, 0.7); c.lineTo(-0.11, 0.7); c.lineTo(-0.14, -0.55); c.quadraticCurveTo(-0.15, -0.85, 0, -0.9); c.fill();
