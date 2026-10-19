@@ -2,6 +2,12 @@
 
 Every release, newest first. Each version also has its own post on the [Releases page](https://github.com/Blacksheep909/sector/releases).
 
+## v0.9.17
+
+**Bots go for the crates.**
+
+- **Fix: bots ignored supply drops:** a bot only took a crate if a stack's best move happened to land on it, so crates behind their lines sat untouched until they expired. Now, if any bot unit can reach a crate this turn, the bot sends its cheapest one to grab it, without pulling a whole stack off the front. Bots also value crates they'd pass over on the way somewhere.
+
 ## v0.9.16
 
 **Grunts are easier to dig out.**
