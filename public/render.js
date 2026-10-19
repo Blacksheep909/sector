@@ -764,6 +764,14 @@ const Render = (() => {
     const ty = y - r * 0.95 + bob;
     const spr = tokenSprite(top.type, units.length, col, !!exhausted, r, z);
     { const a0 = ctx.globalAlpha; if (exhausted) ctx.globalAlpha = a0 * 0.6; ctx.drawImage(spr.cv, x - spr.ox, ty - spr.oy, spr.w, spr.h); ctx.globalAlpha = a0; }
+    if (d.heli) {
+      // a helicopter's main rotor, spinning above the token
+      const ry = ty - r * 1.08, spin = t * (exhausted ? 6 : 22), w = r * 1.25;
+      ctx.save(); ctx.globalAlpha *= 0.22; ctx.fillStyle = '#e8f6ff'; ctx.beginPath(); ctx.ellipse(x, ry, w, w * 0.22, 0, 0, Math.PI * 2); ctx.fill(); ctx.restore();
+      ctx.save(); ctx.strokeStyle = 'rgba(20,24,30,.85)'; ctx.lineWidth = 2 * z; ctx.lineCap = 'round';
+      for (let i = 0; i < 2; i++) { const a = spin + i * Math.PI / 2, dx = Math.cos(a) * w, dy = Math.sin(a) * w * 0.22; ctx.beginPath(); ctx.moveTo(x - dx, ry - dy); ctx.lineTo(x + dx, ry + dy); ctx.stroke(); }
+      ctx.restore();
+    }
     if (units.some(u => u.stun)) {
       // stunned: a slow cyan pulse and a lightning badge
       const pz = 0.5 + 0.5 * Math.sin(t * 3);

@@ -228,6 +228,41 @@ const idle = (s, pid) => s.players.find(p => p.id !== pid && p.id !== me(s).id) 
     ok(res.ok && T[k].owner === p.id && fob && fob.owner === p.id && !T[k].poi, 'it becomes your FOB');
   }
 }
+{ // carriers: Grunts ride along at the carrier's pace and over its terrain
+  const s = game({ fog: 'off' }); if (s.turn.stage === 'choose') E.applyAction(s, me(s).id, { a: 'choose', pick: 'income' });
+  const p = me(s), T = s.map.tiles, hq = p.hq;
+  for (const id in s.units) if (s.units[id].owner === p.id) delete s.units[id];
+  const put = (id, type, hex) => { s.units[id] = { id, type, owner: p.id, hex, moved: false, fresh: false }; return id; };
+  const g = [1, 2, 3, 4].map(i => put(900 + i, 'grunt', hq)); put(950, 'stormcrow', hq);
+  ok(E.stackFits(Object.values(s.units).filter(u => u.hex === hq), ['grunt']), 'Grunts aboard a helicopter take no stack space');
+  const walk = E.reachable(s, p.id, g, hq), fly = E.reachable(s, p.id, g.concat([950]), hq);
+  const far = Object.keys(fly).filter(k => fly[k].kind !== 'start' && fly[k].kind !== 'pass' && !walk[k]);
+  ok(far.length > 0, 'with a helicopter, Grunts reach hexes they could not walk to (' + far.length + ' more)');
+  ok(Object.keys(fly).every(k => fly[k].kind === 'start' || !E.isWater(T[k]) || fly[k].kind === 'pass' || fly[k].kind === 'attack'), 'a helicopter with troops aboard never stops over water');
+  const dest = Object.keys(fly).filter(k => ['move', 'capture'].includes(fly[k].kind) && E.isLandTile(T[k])).sort((a, b) => fly[b].c - fly[a].c)[0];
+  const path = E.pathTo(fly, dest), over = path.slice(1, -1).filter(k => E.isLandTile(T[k]) && T[k].owner !== p.id);
+  const r = E.applyAction(s, p.id, { a: 'move', from: hq, units: g.concat([950]), to: dest });
+  ok(r.ok && g.every(id => s.units[id].hex === dest) && s.units[950].hex === dest, 'the Grunts land with the helicopter');
+  ok(over.every(k => T[k].owner !== p.id), 'riding troops do not seize the land they fly over');
+  // too many to carry: nobody rides
+  const s2 = game({ fog: 'off' }); if (s2.turn.stage === 'choose') E.applyAction(s2, me(s2).id, { a: 'choose', pick: 'income' });
+  const p2 = me(s2); for (const id in s2.units) if (s2.units[id].owner === p2.id) delete s2.units[id];
+  const many = []; for (let i = 0; i < 3; i++) { const id = 800 + i; s2.units[id] = { id, type: 'grunt', owner: p2.id, hex: p2.hq, moved: false, fresh: false }; many.push(id); }
+  s2.units[850] = { id: 850, type: 'wren', owner: p2.id, hex: p2.hq, moved: false, fresh: false };
+  ok(E.riders(many.concat([850]).map(id => s2.units[id])).length === 0, 'a Wren seats 2: with 3 Grunts nobody rides');
+  ok(E.riders(many.slice(0, 2).concat([850]).map(id => s2.units[id])).length === 2, 'a Wren carries 2 Grunts');
+}
+{ // Hellfire: the attack helicopter's missiles bite on armour
+  const s = game({ fog: 'off' }); if (s.turn.stage === 'choose') E.applyAction(s, me(s).id, { a: 'choose', pick: 'income' });
+  const p = me(s), foe = s.players.find(x => x.id !== p.id), T = s.map.tiles;
+  const k = Object.keys(T).find(k => E.isLandTile(T[k]) && T[k].t !== 'mountain' && !T[k].owner && E.neighbors(k).some(n => T[n] && E.isLandTile(T[n]) && T[n].t !== 'mountain' && !T[n].owner));
+  const st = E.neighbors(k).find(n => T[n] && E.isLandTile(T[n]) && T[n].t !== 'mountain' && !T[n].owner);
+  T[k].owner = foe.id; T[st].owner = p.id;
+  s.units[700] = { id: 700, type: 'mauler', owner: foe.id, hex: k, moved: false, fresh: false };
+  s.units[701] = { id: 701, type: 'banshee', owner: p.id, hex: st, moved: false, fresh: false };
+  const c = E.combatCalc(s, p.id, [s.units[701]], st, k);
+  ok(c.att.bonuses.some(b => b.label === 'Hellfire') && c.att.bonuses.some(b => b.label === 'Strafing Run'), 'Banshee gets Hellfire and Strafing Run against a tank');
+}
 { // bots play with all of this switched on, to the end
   const s = game({ mapSize: 'small', maxRounds: 10 }, 3); s.players.forEach(p => { p.bot = true; });
   let n = 0;

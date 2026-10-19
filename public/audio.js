@@ -127,6 +127,13 @@ const SFX = (() => {
     deploy() { noise(0.18, { vol: 0.35, freq: 300, sweep: -200 }); tone(90, 0.2, { type: 'sine', vol: 0.4, slide: -40 }); },
     build() { for (let i = 0; i < 3; i++) { noise(0.06, { vol: 0.25, freq: 2400, type: 'bandpass', q: 3, delay: i * 0.09 }); tone(300 + i * 40, 0.05, { vol: 0.08, delay: i * 0.09 }); } },
     step() { noise(0.05, { vol: 0.12, freq: 700, type: 'bandpass', q: 1.5 }); },
+    // how each kind of kit sounds on the move
+    rotor(n = 6) { for (let i = 0; i < n; i++) { noise(0.06, { vol: 0.2 * (1 - i / (n * 1.6)), freq: 260, type: 'lowpass', delay: i * 0.085 }); tone(52, 0.07, { type: 'sine', vol: 0.18 * (1 - i / (n * 1.6)), delay: i * 0.085 }); } },
+    jet() { noise(0.8, { vol: 0.22, freq: 500, sweep: 2600, type: 'bandpass', q: 0.7 }); tone(160, 0.7, { type: 'sawtooth', vol: 0.04, slide: 520 }); },
+    tracks() { tone(46, 0.45, { type: 'sawtooth', vol: 0.14, slide: 14 }); noise(0.4, { vol: 0.1, freq: 260, type: 'lowpass' }); for (let i = 0; i < 5; i++) noise(0.03, { vol: 0.12, freq: 2600, type: 'bandpass', q: 6, delay: i * 0.08 }); },
+    clank() { noise(0.03, { vol: 0.1, freq: 2400, type: 'bandpass', q: 6 }); tone(70, 0.06, { type: 'square', vol: 0.05 }); },
+    engine() { tone(95, 0.4, { type: 'sawtooth', vol: 0.07, slide: 110 }); tone(190, 0.35, { type: 'square', vol: 0.025, slide: 160 }); noise(0.3, { vol: 0.07, freq: 500 }); },
+    wake() { noise(0.6, { vol: 0.16, freq: 650, sweep: -380, type: 'lowpass' }); tone(80, 0.5, { type: 'sine', vol: 0.08, slide: -20 }); },
     dice() { for (let i = 0; i < 6; i++) noise(0.04, { vol: 0.2, freq: 3000 + Math.random() * 2000, type: 'bandpass', q: 4, delay: i * 0.05 + Math.random() * 0.02 }); },
     diceLand() { tone(220, 0.08, { type: 'square', vol: 0.16 }); noise(0.08, { vol: 0.25, freq: 1800, type: 'bandpass', q: 2 }); },
     boom(big = 1) { noise(0.5 * big + 0.2, { vol: 0.55, freq: 900, sweep: -800 }); tone(70, 0.4 * big + 0.1, { type: 'sine', vol: 0.5, slide: -45 }); },

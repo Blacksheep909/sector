@@ -166,7 +166,8 @@ Maps have climate. It's colder toward the top and bottom edges and hotter in the
 
 ## Moving
 
-- Ground units and ships **seize every unclaimed hex they pass through**. Aircraft can't hold ground they fly over: **every aircraft only takes the hex it lands on.** Valkyrie and Seraph gunships can fly over enemy land, and get **Strafing Run** (+2 mult attacking ground targets).
+- Ground units and ships **seize every unclaimed hex they pass through**. Aircraft can't hold ground they fly over: **every aircraft only takes the hex it lands on.** Gunships (Valkyrie, Seraph, and the Wren, Ravager and Banshee helicopters) can fly over enemy land, and get **Strafing Run** (+2 mult attacking ground targets).
+- **Troop carriers.** Grunts moving together with a carrier ride along at its speed and over its terrain: helicopters and the Valkyrie fly them over mountains and water, and APCs drive them. Seats: Wren 2, Bulwark 4, Outrider 4, Stormcrow 6, Valkyrie 8. It's all or nothing: with more Grunts than seats, nobody rides and the group walks. Grunts aboard don't take up stack space, a helicopter carrying troops can't stop over water, and if a carrier is destroyed, passengers who no longer fit in the stack go down with it.
 - **Fog of war:** if something hidden blocks the route you planned, your troops go as far as they can, or run into the hidden enemy (an ambush).
 - **March orders:** Ctrl+click a hex (or select a stack, press `M`, then click) to give the stack a standing order. At the start of each of your turns it advances toward the objective by itself, and it halts on enemy contact or when it arrives. Select it and press `Delete` to cancel.
 - Highlands, jungle, tundra, swamp and canyons cost 2 move. Fording a **river** ends an infantry unit's move (vehicles need a bridge). Rangers ignore this. **A unit can always move at least one hex**, so slow units like the Goliath never get stuck in rough ground (and a Blizzard never takes a unit below 1 move).
@@ -206,7 +207,8 @@ You **throw your own die**: drag and fling it in the dice tray, or press `Space`
 | Smoke Screen | +2 defender mult |
 | Tank Hunter / Torpedoes | +3 chips vs vehicles / +4 chips vs ships |
 | Anti-Air | Stinger +3, Scorpion +4, Skyguard +6, Sentinel +4 chips in any fight involving enemy aircraft |
-| Strafing Run | +2 mult when Valkyries or Seraphs attack ground targets |
+| Strafing Run | +2 mult when gunships (Valkyrie, Seraph, Wren, Ravager, Banshee) attack ground targets |
+| Hellfire | +4 chips per Banshee against vehicles |
 | Siege Breaker | +2 mult vs fortified hexes |
 | Aegis / Flak | +1 defender mult / +2 vs air |
 | Shore Assault | −1 mult when ships alone attack a land hex |
