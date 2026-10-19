@@ -58,6 +58,7 @@
       case 'serverClosed': serverClosed(m); break;
       case 'skipFx': if (curFight && curFight.att === m.att && curFight.to === m.to) fastForward = true; break;
       case 'react': showReaction(m); break;
+      case 'notes': Render.ov.notes = (m.notes || []).flatMap(n => n.shapes.map(sh => ({ ...sh, pid: n.pid, color: pColor(n.pid) }))); Render.invalidate(); break;
       case 'reactDone': { const r = $('#reactPop'); if (r) r.remove(); break; }
       case 'ping': showPing(m); break;
       case 'emote': showEmote(m); break;
@@ -639,6 +640,25 @@
   // ───────────── input ─────────────
   const cvs = $('#map');
   let down = null, shiftDown = false, ctrlDown = false, marchArm = false;
+  // war-room drawing: only while the Alt view is on
+  let warDraw = null;
+  cvs.addEventListener('pointerdown', e => {
+    if (!Render.ov.troops || !S || S.phase !== 'play' || !myP()) return;
+    e.stopImmediatePropagation();
+    const k = Render.hexAt(e.clientX, e.clientY); if (!k) return;
+    if (e.button === 2) { send({ t: 'draw', op: 'remove', hex: k, as: you }); SFX.click(); return; }
+    if (e.button !== 0) return;
+    warDraw = { a: k }; cvs.setPointerCapture(e.pointerId);
+  }, true);
+  cvs.addEventListener('pointermove', e => {
+    if (!warDraw) return; e.stopImmediatePropagation();
+    const k = Render.hexAt(e.clientX, e.clientY); Render.ov.notePreview = k && k !== warDraw.a ? { type: 'arrow', a: warDraw.a, b: k, color: pColor(you) } : null; Render.invalidate();
+  }, true);
+  cvs.addEventListener('pointerup', e => {
+    if (!warDraw) return; e.stopImmediatePropagation();
+    const k = Render.hexAt(e.clientX, e.clientY), a = warDraw.a; warDraw = null; Render.ov.notePreview = null;
+    send({ t: 'draw', op: 'add', shape: k && k !== a ? { type: 'arrow', a, b: k } : { type: 'circle', a }, as: you }); SFX.select();
+  }, true);
   let boxSel = null;
   cvs.addEventListener('pointerdown', e => {
     down = { x: e.clientX, y: e.clientY, b: e.button, moved: false }; cvs.setPointerCapture(e.pointerId);
@@ -739,15 +759,14 @@
       e.preventDefault();
       if (!e.repeat && (animating || curFight) && $('#supply').hidden && $('#crate').hidden && $('#draft').hidden) skipAnim();
     }
-    if (e.key === 'Alt') { e.preventDefault(); if (!Render.ov.troops) { Render.ov.troops = true; Render.invalidate(); } }
+    if (e.key === 'Alt' && !e.repeat) { e.preventDefault(); Render.ov.troops = !Render.ov.troops; Render.invalidate(); if (Render.ov.troops) toast('🗺 War room on (Alt to close): drag hex→hex for an arrow, click to circle, right-click to erase — only allies see it'); }
     if (S && S.phase === 'play') {
       const kk = e.key.toLowerCase(), items = hotbarItems();
       const ui = UNIT_KEYS.indexOf(kk); if (ui >= 0 && items.units[ui]) { armSlot('unit', items.units[ui]); keys.delete(kk); }
       const bi = BUILD_KEYS.indexOf(kk); if (bi >= 0 && items.builds[bi]) { armSlot('build', items.builds[bi]); keys.delete(kk); }
     }
   });
-  addEventListener('keyup', e => { keys.delete(e.key.toLowerCase()); if (e.key === 'Alt') { e.preventDefault(); Render.ov.troops = false; Render.invalidate(); } });
-  addEventListener('blur', () => { if (Render.ov.troops) { Render.ov.troops = false; Render.invalidate(); } });
+  addEventListener('keyup', e => { keys.delete(e.key.toLowerCase()); if (e.key === 'Alt') e.preventDefault(); });
   (function panLoop() {
     requestAnimationFrame(panLoop);
     const v = 12; let dx = 0, dy = 0;
@@ -1034,6 +1053,11 @@
           rb.title = mine ? 'Waiting for your ally to renew' : theirs ? 'Your ally wants to renew — press to extend 5 rounds' : 'Offer to extend the alliance 5 rounds (both sides must renew)';
           rb.disabled = !!mine; rb.onclick = e => { e.stopPropagation(); SFX.select(); act({ a: 'allyRenew', with: p.id }); };
           box.appendChild(rb);
+        }
+        if (allied && isMyTurn() && S.turn.stage === 'act' && sel && sel.units.size) {
+          const gb = el('button', 'tradebtn ally', 'GIVE ⬢' + sel.units.size); gb.title = 'Give the selected stack to ' + p.name;
+          gb.onclick = e => { e.stopPropagation(); const a = { a: 'donate', from: sel.hex, units: [...sel.units], to: p.id }; sel = null; refreshAll(); SFX.select(); act(a); };
+          box.appendChild(gb);
         }
         if (allied && pact && !pact.ending && !pact.team) {
           const bb = el('button', 'tradebtn betray', 'BREAK'); bb.title = 'Break the alliance (takes effect at the start of your next turn)';
@@ -1966,6 +1990,12 @@
         }
         case 'tactic': if (ev.target) { follow(ev.target); await sleep(200); } await animTactic(ev); break;
         case 'undo': if (ev.pid === you) toast('↶ Undone'); break;
+        case 'donate': {
+          for (const id of ev.units) if (S.units[id]) S.units[id].owner = ev.to;
+          Render.ring(ev.hex, pColor(ev.to), 60, 0.6, 4); Render.float(ev.hex, '🎁 ' + pName(ev.to).toUpperCase(), pColor(ev.to), 15); SFX.select();
+          if (ev.to === you) toast(`🎁 ${pName(ev.pid)} gave you ${ev.units.length} unit${ev.units.length > 1 ? 's' : ''}`, 'good');
+          break;
+        }
         case 'evicted': {
           // the pact ended with troops still across the border
           for (const id of ev.units) { const u = S.units[id]; if (u) { Render.burst(u.hex, ['#ff4f5e', '#fff'], 18, { up: 120 }); Render.float(u.hex, 'CUT OFF', '#ff8a5a', 14); } }
