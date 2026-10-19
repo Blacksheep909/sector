@@ -2,6 +2,12 @@
 
 Every release, newest first. Each version also has its own post on the [Releases page](https://github.com/Blacksheep909/sector/releases).
 
+## v0.9.15
+
+**No more ping-pong pockets.**
+
+- **Fix: endless encirclement:** a hex walled in entirely by mountains counted as "surrounded" for every commander. Whoever was taking their turn annexed it, so it flipped owners every turn with an ENCIRCLED +1 flash each time. Now a pocket only counts as encircled if it touches your land: hold the ground around it, or the only way in, and it's yours. The same rule applies to sea pockets.
+
 ## v0.9.14
 
 **The blueprint holds still.**

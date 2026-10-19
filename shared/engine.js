@@ -1747,16 +1747,17 @@
       const t = tiles[k];
       if (seen.has(k) || !isLandTile(t) || t.owner === pid) continue;
       const comp = [k]; seen.add(k);
-      let enclosed = true;
+      let enclosed = true, touches = false;
       for (let i = 0; i < comp.length; i++) for (const n of neighbors(comp[i])) {
         const nt = tiles[n];
         if (!nt) { enclosed = false; continue; }
         if (nt.t === 'mountain') continue;
         if (isWater(nt)) { enclosed = false; continue; }
-        if (nt.owner === pid) continue;
+        if (nt.owner === pid) { touches = true; continue; }
         if (!seen.has(n)) { seen.add(n); comp.push(n); }
       }
-      if (!enclosed || comp.length > 10) continue;
+      // a pocket walled in only by mountains belongs to nobody: you have to actually hold ground around it
+      if (!enclosed || !touches || comp.length > 10) continue;
       if (comp.some(c => (idx[c] || []).some(u => u.owner !== pid))) continue;
       if (comp.some(c => isAlly(s, pid, tiles[c].owner))) continue;
       if (comp.some(c => structsOf(tiles[c]).some(x => ['hq', 'fob', 'port'].includes(x.type) || (x.type === 'bunker' && x.owner && x.owner === tiles[c].owner)) || (!tiles[c].owner && GARRISONED.includes(tiles[c].poi)))) continue;
@@ -1767,15 +1768,16 @@
       const t = tiles[k];
       if (seen.has(k) || !isWater(t) || t.owner === pid) continue;
       const comp = [k]; seen.add(k);
-      let enclosed = true;
+      let enclosed = true, touches = false;
       for (let i = 0; i < comp.length && enclosed; i++) for (const n of neighbors(comp[i])) {
         const nt = tiles[n];
         if (!nt) { enclosed = false; break; }
-        if (nt.t === 'mountain' || nt.owner === pid) continue;
+        if (nt.owner === pid) { touches = true; continue; }
+        if (nt.t === 'mountain') continue;
         if (!isWater(nt)) { enclosed = false; break; }
         if (!seen.has(n)) { seen.add(n); comp.push(n); }
       }
-      if (!enclosed || comp.length > 12) continue;
+      if (!enclosed || !touches || comp.length > 12) continue;
       if (comp.some(c => (idx[c] || []).some(u => u.owner !== pid))) continue;
       for (const c of comp) if (tiles[c].owner !== pid) { tiles[c].owner = pid; flipped.push(c); }
     }

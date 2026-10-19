@@ -170,6 +170,21 @@ const idle = (s, pid) => s.players.find(p => p.id !== pid && p.id !== me(s).id) 
     ok(r.ok && [b, c, d].every(k => T[k].owner === p.id), 'every hex on the way is captured' + (r.err ? ': ' + r.err : ''));
   }
 }
+{ // a pocket walled in only by mountains belongs to nobody; it flips only to whoever holds ground around it
+  const s = game({ fog: 'off' }); if (s.turn.stage === 'choose') E.applyAction(s, me(s).id, { a: 'choose', pick: 'income' });
+  const p = me(s), foe = s.players.find(x => x.id !== p.id), T = s.map.tiles;
+  const far = k => s.players.every(q => !q.hq || E.dist(q.hq, k) > 4) && !Object.values(s.units).some(u => E.dist(u.hex, k) <= 2);
+  const k = Object.keys(T).find(k => E.isLandTile(T[k]) && T[k].t !== 'mountain' && far(k) && E.neighbors(k).every(n => T[n]));
+  ok(!!k, 'found an open hex to wall in');
+  if (k) {
+    Object.assign(T[k], { owner: foe.id, structs: [], struct: null, river: false }); delete T[k].poi;
+    for (const n of E.neighbors(k)) Object.assign(T[n], { t: 'mountain', owner: null, structs: [], struct: null, river: false });
+    const step = () => { const st = Object.values(s.units).find(u => u.owner === p.id && E.canAct(s, u)); if (!st) return false; const r = E.reachable(s, p.id, [st.id], st.hex); const to = Object.keys(r).find(x => r[x].kind === 'move' || r[x].kind === 'capture'); return !!to && E.applyAction(s, p.id, { a: 'move', from: st.hex, units: [st.id], to }).ok; };
+    ok(step() && T[k].owner === foe.id, 'a hex ringed by mountains is not annexed by someone who does not touch it');
+    const gap = E.neighbors(k)[0]; Object.assign(T[gap], { t: 'plains', owner: p.id });
+    ok(step() && T[k].owner === p.id, 'holding the only way in does encircle it');
+  }
+}
 { // bots play with all of this switched on, to the end
   const s = game({ mapSize: 'small', maxRounds: 10 }, 3); s.players.forEach(p => { p.bot = true; });
   let n = 0;

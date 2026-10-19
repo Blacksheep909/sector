@@ -279,7 +279,7 @@ Taking an enemy HQ doesn't knock them out straight away: it puts their HQ **unde
 
 ## Encirclement
 
-If your territory completely surrounds a land pocket of 10 hexes or fewer, the pocket is **annexed** automatically. This works on neutral land, and on enemy hexes with no troops and no HQ, FOB or Port.
+If your territory completely surrounds a land pocket of 10 hexes or fewer, the pocket is **annexed** automatically. This works on neutral land, and on enemy hexes with no troops and no HQ, FOB or Port. Mountains count as walls, but the pocket must touch your land somewhere: a hex ringed only by mountains belongs to nobody.
 
 The same goes for water: a pocket of 12 or fewer sea hexes walled in by your coast and your own sea, with no enemy ships inside, becomes yours.
 
