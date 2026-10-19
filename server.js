@@ -152,7 +152,7 @@ setInterval(() => {
 }, 6000);
 
 // ───────────────────────── lobby / game ─────────────────────────
-const lobby = { players: [], hostId: null, settings: { mode: 'domination', mapSize: 'medium', mapType: 'random', spawns: 'random', fog: 'off', events: 'on', timer: 0, maxRounds: 0, conquestPct: 60, seed: '', teams: 'off', speed: 'fast' } };
+const lobby = { players: [], hostId: null, settings: { mode: 'domination', mapSize: 'medium', mapType: 'random', spawns: 'random', fog: 'off', events: 'on', timer: 0, maxRounds: 0, conquestPct: 60, seed: '', teams: 'off', speed: 'fast', bank: 'off' } };
 let game = null;           // engine state
 let botMem = {}, botTimer = null, turnTimer = null, idleTimer = null;
 let nextPid = 1;
@@ -207,6 +207,8 @@ function filterEvents(events, pid) {
       if (e.e === 'combat') return vis.has(e.to) || (e.def && e.def.pid === pid);
       if (e.e === 'deploy' || e.e === 'build' || e.e === 'loot') return vis.has(e.hex);
       if (e.e === 'advance') return vis.has(e.to);
+      if (e.e === 'income' || e.e === 'scrap') return !e.hq || vis.has(e.hq);   // a rival's income pops over their HQ: don't give it away
+      if (e.e === 'shell' || e.e === 'intercept') return vis.has(e.to) || vis.has(e.from);
       return true;
     });
   }
@@ -278,7 +280,7 @@ function onMessage(c, m) {
       }
       return broadcastLobby();
     }
-    case 'settings': if (c.pid !== lobby.hostId || game) return; Object.assign(lobby.settings, pick(m.settings, ['mode', 'mapSize', 'mapType', 'spawns', 'fog', 'events', 'timer', 'maxRounds', 'conquestPct', 'seed', 'teams', 'speed'])); for (const p of lobby.players) if (p.id !== lobby.hostId) p.ready = false; return broadcastLobby();
+    case 'settings': if (c.pid !== lobby.hostId || game) return; Object.assign(lobby.settings, pick(m.settings, ['mode', 'mapSize', 'mapType', 'spawns', 'fog', 'events', 'timer', 'maxRounds', 'conquestPct', 'seed', 'teams', 'speed', 'bank'])); for (const p of lobby.players) if (p.id !== lobby.hostId) p.ready = false; return broadcastLobby();
     case 'addLocal': {
       if (game || !c.pid || lobby.players.length >= 8) return;
       const n = lobby.players.filter(p => p.local).length + 2;
@@ -354,6 +356,8 @@ function onMessage(c, m) {
       const waiting = notReady();
       if (waiting.length) return send(c, { t: 'err', msg: 'Waiting for ' + waiting.map(p => p.name).join(', ') + ' to ready up' });
       const s = { ...lobby.settings, timer: +lobby.settings.timer || 0, maxRounds: +lobby.settings.maxRounds || 0, conquestPct: +lobby.settings.conquestPct || 60 };
+      if (s.bank && s.bank !== 'off') s.timer = 0;   // the time bank replaces the per-turn timer
+      for (const k in bankLeft) delete bankLeft[k]; bankKey = ''; bankPid = null;
       const r = E.createGame(s, roster);
       game = r.state; botMem = {}; fogMem = {};
       console.log('[game] started: ' + lobby.players.length + ' players, ' + s.mode + ', map ' + s.mapSize);
@@ -375,9 +379,24 @@ function onMessage(c, m) {
       broadcastState([{ e: 'undo', pid: cur.id }], cur.id, m.seq);
       return afterChange();
     }
+    case 'react': {
+      if (!pendingReact || !controls(c, pendingReact.defPid)) return;
+      return closeReaction(m.uid == null ? null : m.uid);
+    }
+    case 'ping': case 'emote': {
+      // map pings and taunts (rate-limited), relayed to everyone
+      if (!game || !c.pid || Date.now() - (c.lastPing || 0) < 700) return; c.lastPing = Date.now();
+      const p = lobby.players.find(x => x.id === (m.as && controls(c, m.as) ? m.as : c.pid)); if (!p) return;
+      const EMOTES = ['👊', '😂', '😱', '🏳️', '💀', '🔥', '🤝', '😈'], PINGS = ['attack', 'help', 'look'];
+      if (m.t === 'ping') { if (!game.map.tiles[m.hex] || !PINGS.includes(m.kind)) return; for (const cl of clients) send(cl, { t: 'ping', pid: p.id, hex: m.hex, kind: m.kind }); }
+      else { if (!EMOTES.includes(m.emote)) return; for (const cl of clients) send(cl, { t: 'emote', pid: p.id, emote: m.emote }); }
+      return;
+    }
     case 'act': {
       if (!game) return;
       const actor = m.as && controls(c, m.as) ? m.as : c.pid;
+      if (pendingReact) return send(c, { t: 'err', msg: 'Waiting for the defender to react…', seq: m.seq });
+      if (!m._reacted) { const w = reactionWindow(actor, m.action); if (w) return openReaction(w, actor, () => onMessage(c, { ...m, _reacted: true })); }
       const isCur = game.players[game.turn.idx] && game.players[game.turn.idx].id === actor;
       const snap = isCur && ['move', 'deploy', 'build'].includes((m.action || {}).a) ? JSON.stringify(game) : null;
       const r = E.applyAction(game, actor, m.action || {});
@@ -467,6 +486,34 @@ function speedOf() {
   return game.settings.speed || 'fast';
 }
 const BOT_PACE = { normal: 1, fast: 0.6, super: 0.12, max: 0.02 };
+// ── reactions: when an attack is about to hit a human who holds a reaction card, it waits up to 7s for their answer ──
+const REACT_MS = 7000;
+let pendingReact = null;
+function reactionWindow(actor, action) {
+  if (!game || game.phase !== 'play' || !action || (action.a !== 'move' && action.a !== 'assault')) return null;
+  const tgt = E.attackTarget(game, actor, action); if (!tgt || tgt.defPid === actor) return null;
+  const lp = lobby.players.find(x => x.id === tgt.defPid); if (!lp || lp.bot || lp.away) return null;
+  if (!isConnected(lp.local ? lp.controller : lp.id)) return null;
+  const dp = E.player(game, tgt.defPid); if (!dp || !dp.alive) return null;
+  const t = game.map.tiles[tgt.hex], ownHex = t && t.owner === tgt.defPid && E.isLandTile(t);
+  const cards = dp.tactics.filter(c => E.REACTIONS.includes(c.id) && E.TACTICS[c.id].cost <= dp.cash && (E.TACTICS[c.id].target === 'none' || ownHex));
+  if (!cards.length) return null;
+  return { ...tgt, cards: cards.map(c => ({ uid: c.uid, id: c.id })) };
+}
+function openReaction(w, actor, done) {
+  pendingReact = { ...w, actor, done, until: Date.now() + REACT_MS };
+  for (const cl of clients) { if (cl.left) continue; send(cl, { t: 'react', defPid: w.defPid, hex: w.hex, attacker: actor, ms: REACT_MS, cards: controls(cl, w.defPid) ? w.cards : [] }); }
+  pendingReact.timer = setTimeout(() => closeReaction(null), REACT_MS + 300);
+}
+function closeReaction(uid) {
+  const pr = pendingReact; if (!pr) return; pendingReact = null; clearTimeout(pr.timer);
+  for (const cl of clients) send(cl, { t: 'reactDone' });
+  if (uid != null && game && game.phase === 'play') { const r = E.reactTactic(game, pr.defPid, uid, pr.hex); if (r.ok) { game.v++; broadcastState(r.events, pr.defPid); } }
+  pr.done();
+}
+// time bank: a chess clock. Each commander has minutes in the bank plus 20s added every turn
+const BANK_INC = 20000, bankLeft = {};
+let bankKey = '', bankPid = null;
 const AFK_MS = +process.env.SECTOR_AFK_MS || 120000;   // no turn timer: a turn with no sign of life ends after this
 let turnKey = '', turnStartAt = 0, actedKey = '';
 const addrOf = c => { const a = (c.socket.remoteAddress || '').replace('::ffff:', ''); return a === '127.0.0.1' || a === '::1' ? 'this PC' : a; };
@@ -568,6 +615,17 @@ function afterChange(events) {
   const cur = E.current(game);
   const lp = lobby.players.find(p => p.id === cur.id);
   { const k = game.turn.round + ':' + game.turn.idx; if (k !== turnKey) { turnKey = k; turnStartAt = Date.now(); } }
+  if (game.settings.bank && game.settings.bank !== 'off' && bankKey !== turnKey) {
+    // close the last player's clock, then open this one's with its bank plus the per-turn increment
+    if (bankPid && game.turn.prevDeadline) bankLeft[bankPid] = Math.max(0, game.turn.prevDeadline - Date.now());
+    bankKey = turnKey; bankPid = cur.id;
+    const lpb = lobby.players.find(p => p.id === cur.id);
+    if (lpb && !lpb.bot && !autoPids.has(cur.id)) {
+      if (bankLeft[cur.id] == null) bankLeft[cur.id] = (+game.settings.bank || 3) * 60000;
+      game.turn.deadline = Date.now() + bankLeft[cur.id] + BANK_INC; game.turn.prevDeadline = game.turn.deadline;
+    } else { game.turn.deadline = 0; game.turn.prevDeadline = 0; bankPid = null; }
+  }
+  if (game.turn.deadline && game.settings.bank && game.settings.bank !== 'off') game.turn.prevDeadline = game.turn.pausedAt ? game.turn.deadline + (Date.now() - game.turn.pausedAt) : game.turn.deadline;
   if ((lp && lp.bot) || autoPids.has(cur.id)) {
     let delay = 450;
     if (events) for (const e of events) {
@@ -620,6 +678,13 @@ function runBot() {
   const cur = E.current(game);
   const mem = botMem[cur.id + ':' + game.turn.round] || (botMem = {}, botMem[cur.id + ':' + game.turn.round] = { n: 0 });
   let a = mem.n++ > 60 ? { a: 'end' } : botStep(game, cur.id, mem);
+  // a bot attacking a human who holds a reaction card waits for their answer too
+  if (!pendingReact) { const w = reactionWindow(cur.id, a); if (w) return openReaction(w, cur.id, () => applyBot(cur, a)); }
+  else return;
+  applyBot(cur, a);
+}
+function applyBot(cur, a) {
+  if (!game || game.phase !== 'play' || E.current(game).id !== cur.id) return afterChange();
   let r = E.applyAction(game, cur.id, a);
   if (!r.ok) { if (a.a === 'end') return; return void (botTimer = setTimeout(runBot, 10)); }
   game.v++;

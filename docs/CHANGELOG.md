@@ -2,6 +2,35 @@
 
 Every release, newest first. Each version also has its own post on the [Releases page](https://github.com/Blacksheep909/sector/releases).
 
+## v0.9.0
+
+**Something to do on every turn, not just yours.**
+
+**While you wait**
+- **⚡ Reaction cards:** when someone attacks you, you get 7 seconds to answer with **Smoke Screen**, **Fortify**, **Aegis Protocol** or the new **Ambush** card (Common, $1: your defenders get +2 Chips each in that fight). The attack waits for your answer, whether it comes from a human or a bot.
+- **🎴 Pick your next resupply early:** your next resupply is dealt as your turn ends, so you can choose a card or full income while the others play. Your next turn starts straight in the action.
+- **⚡ Quick decisions:** once a round, while someone else is playing, you get an either/or choice. The options are:
+  - +$3 now
+  - +1 move for all your units next turn
+  - a free Grunt at your HQ
+  - +$1 per 4 hexes you hold
+  - 4 resupply cards instead of 3
+  - every bot warming to you
+- **🤝 Diplomacy any time:** propose, accept, renew or break alliances, and trade, even when it isn't your turn.
+- **🛰 Intel ops** (fog of war): $2 to scout a 2-hex area anywhere until the end of next round, twice per round. Press **I** or use the panel.
+- **📍 Pings and emotes:** ping a hex (⚔ attack, ❗ help, 👁 look) or throw a taunt (👊😂😱🔥💀🏳️) from the bar above the chat.
+- **🎲 The defender's die is yours:** when you're attacked, you throw your own die.
+
+**Faster turns**
+- **⏱ Time bank** (lobby option): a chess clock instead of a turn timer. 3 or 6 minutes in the bank, plus 20 seconds every turn. Quick turns save time for the big ones.
+- **⚡ Auto-resolve:** a fight with 95%+ odds that goes the expected way skips the dice and the long animation.
+- **Batch moves:** Shift+drag a box around several stacks, then click a hex to send them all there (each goes as far as it can), or click a red target to attack together.
+- **⛏ Dig in:** select a stack and press **G**. It gives up its move for +1 defence until it moves again. It can be queued in the blueprint too, and dug-in stacks show sandbags.
+
+**Fixes**
+- **Fog of war hides rival HQs** until you've explored them. Their income pop-ups no longer give them away either.
+- The TRADE / ALLY / TAKE OVER buttons sit on their own row and no longer cover a commander's cash.
+
 ## v0.8.4
 
 **Bridges you can bomb, fast wheels, rocket artillery, and every icon drawn from the real thing.**

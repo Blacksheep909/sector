@@ -710,6 +710,11 @@ const Render = (() => {
       ctx.fillStyle = '#0b1a22'; ctx.beginPath(); ctx.arc(bx, by, 7 * z, 0, Math.PI * 2); ctx.fill(); ctx.strokeStyle = '#7ff3ff'; ctx.lineWidth = 1.5 * z; ctx.stroke();
       ctx.fillStyle = '#7ff3ff'; ctx.beginPath(); ctx.moveTo(bx + 1 * z, by - 5 * z); ctx.lineTo(bx - 3 * z, by + 1 * z); ctx.lineTo(bx, by + 1 * z); ctx.lineTo(bx - 1 * z, by + 5 * z); ctx.lineTo(bx + 3 * z, by - 1 * z); ctx.lineTo(bx, by - 1 * z); ctx.closePath(); ctx.fill();
     }
+    if (units.every(u => u.dug) && !opts.ghost) {
+      // dug in: a sandbag arc under the token
+      ctx.fillStyle = '#b8a27a'; ctx.strokeStyle = '#0a0e12'; ctx.lineWidth = 1.5 * z;
+      for (let i = -2; i <= 2; i++) { ctx.beginPath(); ctx.ellipse(x + i * 6 * z, y + 3 * z - Math.abs(i) * 1.2 * z, 4 * z, 2.6 * z, 0, 0, Math.PI * 2); ctx.fill(); ctx.stroke(); }
+    }
     if (exhausted && !opts.ghost) {
       // spent: no unit in this stack can move or fire again this turn
       const bx = x - r * 0.95, by = ty + r * 0.55;

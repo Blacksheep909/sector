@@ -12,7 +12,7 @@ Grab land, build an economy, crush your rivals. **Every hex you hold pays you**,
 
 ## Fog of war, events and alliances
 
-- **Fog of war** (lobby option). You see one hex past your borders, two hexes around your units (three for aircraft), and everything your allies see. **Unexplored** hexes are completely hidden (only HQ locations are known). Hexes you've explored but can't see right now show what you **last saw** there, without units. March into a hex that hides enemies and you'll fight them: an ambush.
+- **Fog of war** (lobby option). You see one hex past your borders, two hexes around your units (three for aircraft), and everything your allies see. **Unexplored** hexes are completely hidden, rival HQs included: you have to find them. Hexes you've explored but can't see right now show what you **last saw** there, without units. March into a hex that hides enemies and you'll fight them: an ambush.
 - **World events** (on by default). From round 3, most rounds roll an event that lasts the whole round:
 
 | Event | Effect |
@@ -288,6 +288,16 @@ The same goes for water: a pocket of 12 or fewer sea hexes walled in by your coa
 
 On your turn, click **TRADE** under a rival's name. You can offer cash and tactic cards in exchange for cash. They accept or decline. Bots weigh offers by value, are greedier on higher difficulties, and won't feed a runaway leader.
 
+## Between turns
+
+You're never just watching:
+- **Reactions.** When an enemy attacks one of your hexes and you hold a reaction card (Smoke Screen, Fortify, Aegis Protocol, Ambush) you can afford, the attack waits up to 7 seconds while you decide whether to play it.
+- **Next resupply.** Your next resupply is dealt when your turn ends. Pick a card or full income from the panel while you wait, and your next turn starts straight in the action.
+- **Quick decisions.** Once a round, while someone else plays, you get an either/or bonus to pick (cash now, extra move, a free Grunt, a bigger resupply and so on). Unanswered ones lapse when your turn starts.
+- **Diplomacy and trades** work any time, not just on your turn.
+- **Intel ops** (fog of war): $2 to scout a 2-hex area anywhere until the end of next round, twice per round (`I`).
+- **Pings and emotes** from the bar above the chat.
+
 ## Blueprint
 
 While others play, queue moves, deploys and builds. The preview shows exactly what your turn will look like, including income, Depot move bonuses and newly online bases. When your turn starts, income is collected automatically and the queue runs. Untick *auto-collect income* if you'd rather choose from the resupply first; the queue then runs right after your pick. You can queue a move from the spot an earlier queued move left your units. Attacks and tactics are live-only, and any order the board no longer allows is skipped with a note.
@@ -300,6 +310,10 @@ While others play, queue moves, deploys and builds. The preview shows exactly wh
 - **Whose turn:** a pill under the top bar always shows whose turn it is (and when you're next). On your turn the screen edge glows in your colour.
 - **Game speed:** Normal, Fast or Superspeed (lobby setting, or the speed button for the host). Faster speeds make bot turns and other players' animations quicker. When only bots are left, anyone can change it, up to 🚀 Max.
 - **AFK:** a connected player who sits idle through 2 turns gets a bot covering for them until they press any key or click. Without a turn timer, a turn with no sign of life ends after 2 minutes.
+- **Time bank** (lobby option): instead of a per-turn timer, each commander gets a chess clock: 3 or 6 minutes in the bank, plus 20 seconds every turn.
+- **Auto-resolve:** a fight at 95%+ odds that goes the expected way skips the dice and the long animation.
+- **Batch moves:** Shift+drag a box around several stacks, then click a hex to send them all there (each as far as it can), or a red target to attack together.
+- **Dig in:** select a stack and press `G`. It gives up its move for +1 defence Mult until it moves again.
 - **Fast placing.** In deploy or build mode you can click as fast as you like: each click is sent straight away, even while the last drop is still landing.
 
 ## Controls
@@ -321,6 +335,9 @@ While others play, queue moves, deploys and builds. The preview shows exactly wh
 | `Tab` / `Shift+Tab` / `E` | Select the next stack that can still act |
 | `Ctrl`-click, or `M` then click | Give the selected stack a march order |
 | `Delete` | Cancel the selected stack's march order |
+| `G` | Dig the selected stack in (+1 defence until it moves) |
+| `Shift`-drag | Box-select several stacks for a batch move |
+| `I` | Intel op: scout an area through the fog ($2) |
 | `Ctrl+Z` | Undo the last move, deploy or build |
 | `Enter` ×2 | **End your turn** (press twice; opens chat when it isn't your turn) |
 | `T` | Chat |

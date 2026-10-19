@@ -57,6 +57,10 @@
         toast(m.msg, 'err'); SFX.error(); break;
       case 'serverClosed': serverClosed(m); break;
       case 'skipFx': if (curFight && curFight.att === m.att && curFight.to === m.to) fastForward = true; break;
+      case 'react': showReaction(m); break;
+      case 'reactDone': { const r = $('#reactPop'); if (r) r.remove(); break; }
+      case 'ping': showPing(m); break;
+      case 'emote': showEmote(m); break;
       case 'chat': addLog(`<b style="--c:${m.color}">${esc(m.from)}:</b> ${esc(m.text)}`, 'chat'); SFX.click(); break;
       case 'left': leftGame = true; token = null; try { localStorage.removeItem('sector.token'); } catch (e) {} you = null; realId = null; joinedOnce = false; backToMenu(); toast('You left the game'); break;
       case 'kicked': token = null; try { localStorage.removeItem('sector.token'); } catch (e) {}
@@ -178,7 +182,7 @@
       cl.appendChild(d);
     }
     const st = lobby.settings;
-    for (const [id, k] of [['#setMode', 'mode'], ['#setType', 'mapType'], ['#setSize', 'mapSize'], ['#setSpawns', 'spawns'], ['#setFog', 'fog'], ['#setEvents', 'events'], ['#setTimer', 'timer'], ['#setRounds', 'maxRounds'], ['#setSeed', 'seed'], ['#setTeams', 'teams'], ['#setSpeed', 'speed']]) {
+    for (const [id, k] of [['#setMode', 'mode'], ['#setType', 'mapType'], ['#setSize', 'mapSize'], ['#setSpawns', 'spawns'], ['#setFog', 'fog'], ['#setEvents', 'events'], ['#setTimer', 'timer'], ['#setRounds', 'maxRounds'], ['#setSeed', 'seed'], ['#setTeams', 'teams'], ['#setSpeed', 'speed'], ['#setBank', 'bank']]) {
       const e = $(id); if (document.activeElement !== e) e.value = st[k] ?? ''; e.disabled = !host;
     }
     $('#startBtn').hidden = !host; $('#waitHost').hidden = host;
@@ -193,7 +197,7 @@
     $('#startBtn').title = waiting.length ? 'Not ready: ' + waiting.map(p => p.name).join(', ') : '';
     $('#waitHost').textContent = meRow && meRow.ready ? 'Ready! Waiting for the host to start…' : 'Ready up so the host can start.';
   }
-  for (const [id, k] of [['#setMode', 'mode'], ['#setType', 'mapType'], ['#setSize', 'mapSize'], ['#setSpawns', 'spawns'], ['#setFog', 'fog'], ['#setEvents', 'events'], ['#setTimer', 'timer'], ['#setRounds', 'maxRounds'], ['#setSeed', 'seed'], ['#setTeams', 'teams'], ['#setSpeed', 'speed']])
+  for (const [id, k] of [['#setMode', 'mode'], ['#setType', 'mapType'], ['#setSize', 'mapSize'], ['#setSpawns', 'spawns'], ['#setFog', 'fog'], ['#setEvents', 'events'], ['#setTimer', 'timer'], ['#setRounds', 'maxRounds'], ['#setSeed', 'seed'], ['#setTeams', 'teams'], ['#setSpeed', 'speed'], ['#setBank', 'bank']])
     $(id).addEventListener('change', e => send({ t: 'settings', settings: { [k]: e.target.value } }));
   $('#addBot').onclick = () => { SFX.click(); send({ t: 'addBot' }); };
   $('#addLocal').onclick = () => { SFX.click(); send({ t: 'addLocal' }); };
@@ -283,10 +287,11 @@
     renderSpawnPick();
     if (S.phase === 'draft') Cards.showDraft(S, you, (idx, replace) => act({ a: 'draftPick', idx, replace })); else Cards.hideDraft();
     const me2 = myP();
+    if (isMyTurn() && prepOpen) prepOpen = false;   // your turn started: the real resupply takes over
     if (isMyTurn() && S.turn.stage === 'choose' && me2 && !executing && !(plan.length && planAuto) && passReady())
       Cards.openSupply({ me: me2, offer: S.turn.offer, income: S.turn.income, round: S.turn.round, rerollCost: E.rerollCost(S), key: S.turn.round + ':' + S.turn.idx + ':' + S.turn.rerolls,
         onPick: pickFromSupply, onIncome: async () => { const ok = await act({ a: 'choose', pick: 'income' }); if (ok && plan.length) runPlan(); return ok; }, onReroll: () => act({ a: 'reroll' }) });
-    else Cards.closeSupply();
+    else if (!prepOpen || isMyTurn()) { prepOpen = false; Cards.closeSupply(); }
     if (isMyTurn() && S.turn.stage === 'crate' && S.turn.crate && !S.turn.crate.hidden && me2 && passReady())
       Cards.openCrate({ crate: S.turn.crate, me: me2, serial: S.turn.round + ':' + S.turn.idx + ':' + me2.stats.crates, onPick: pickFromCrate, onScrap: scrapCrate });
     else Cards.closeCrate();
@@ -395,6 +400,73 @@
   }
   addEventListener('resize', () => layoutHud());
   if (window.ResizeObserver) { const ro = new ResizeObserver(() => layoutHud()); for (const id of ['#topbar', '#dock', '#centerStack', '#hand', '#deckBar', '#buildBar']) ro.observe($(id)); }
+  // ───────────── between turns: next resupply, snap decision, intel ─────────────
+  let prepOpen = false;
+  function renderWait() {
+    const box = $('#waitBox'); const me = myP();
+    if (!S || S.phase !== 'play' || !me || !me.alive || isMyTurn()) { box.hidden = true; return; }
+    const parts = [];
+    if (me.snap) parts.push(`<div class="wb-h">⚡ QUICK DECISION</div><div class="wb-row">${me.snap.opts.map((id, i) => `<button class="btn tiny snapbtn" data-i="${i}">${esc(E.SNAPS[id].text)}</button>`).join('')}</div>`);
+    if (me.nextOffer && me.nextOffer.length) parts.push(`<div class="wb-h">🎴 NEXT RESUPPLY</div><div class="wb-row"><button class="btn tiny" id="prepBtn">${me.prePick ? '✔ ' + (me.prePick.pick === 'income' ? 'Full income' : esc(E.cardDef(me.nextOffer[me.prePick.idx]).name)) + ' · change' : 'Pick it now'}</button></div>`);
+    if (S.fogOn) parts.push(`<div class="wb-h">🛰 INTEL</div><div class="wb-row"><button class="btn tiny" id="intelBtn">Scout through the fog · $${E.INTEL_COST} (I)</button></div>`);
+    box.hidden = !parts.length; box.innerHTML = parts.join('');
+    box.querySelectorAll('.snapbtn').forEach(b => b.onclick = () => { SFX.select(); act({ a: 'snap', pick: +b.dataset.i }).then(ok => ok && toast('⚡ ' + b.textContent, 'good')); });
+    const pb = $('#prepBtn'); if (pb) pb.onclick = openPrep;
+    const ib = $('#intelBtn'); if (ib) ib.onclick = () => { mode = { type: 'intel' }; refreshAll(); };
+  }
+  function openPrep() {
+    const me = myP(); if (!me || !me.nextOffer) return;
+    prepOpen = true;
+    const done = ok => { const was = prepOpen; prepOpen = false; if (was && !isMyTurn()) Cards.closeSupply(); if (ok) toast('🎴 Saved for your next turn', 'good'); refreshAll(); return ok; };
+    Cards.openSupply({ me, offer: me.nextOffer, income: E.computeIncome(S, you).total, round: S.turn.round + 1, rerollCost: 0, prep: true, key: 'prep:' + S.turn.round + ':' + me.nextOffer.join(','),
+      onPick: async (idx, replace) => done(await act({ a: 'prepick', pick: 'card', idx, replace })), onIncome: async () => done(await act({ a: 'prepick', pick: 'income' })), onReroll: async () => false });
+  }
+  // a reaction window: the defender sees their reaction cards and a countdown; everyone else sees who's deciding
+  function showReaction(m) {
+    let p = $('#reactPop'); if (p) p.remove();
+    p = el('div', '', ''); p.id = 'reactPop'; document.body.appendChild(p);
+    const mine = m.cards && m.cards.length;
+    p.innerHTML = mine ? `<div class="rp-h">⚡ YOU'RE UNDER ATTACK</div><div class="sub">${esc(pName(m.attacker))} is attacking. React?</div><div class="rp-cards"></div><div class="rp-bar"><i></i></div><button class="btn tiny" id="rpPass">TAKE IT</button>`
+      : `<div class="rp-h">⚡ ${esc(pName(m.defPid))} IS REACTING…</div><div class="rp-bar"><i></i></div>`;
+    p.querySelector('.rp-bar i').style.animationDuration = (m.ms / 1000) + 's';
+    if (mine) {
+      SFX.alarm(); Render.focus(m.hex); Render.ring(m.hex, '#ff4f5e', 70, 0.8, 5);
+      const row = p.querySelector('.rp-cards');
+      for (const cd of m.cards) { const b = el('button', 'btn', `${esc(E.TACTICS[cd.id].name)} <small>$${E.TACTICS[cd.id].cost}</small>`); b.onclick = () => { SFX.select(); send({ t: 'react', uid: cd.uid }); p.remove(); }; row.appendChild(b); }
+      $('#rpPass').onclick = () => { send({ t: 'react', uid: null }); p.remove(); };
+    }
+  }
+  // map pings and taunts
+  let pingArm = null;
+  $('#pingBar').querySelectorAll('[data-ping]').forEach(b => b.onclick = () => { pingArm = b.dataset.ping; toast('Click a hex to ping it'); SFX.click(); });
+  $('#pingBar').querySelectorAll('[data-emote]').forEach(b => b.onclick = () => { send({ t: 'emote', emote: b.dataset.emote, as: you }); SFX.click(); });
+  function showPing(m) {
+    const icon = { attack: '⚔', help: '❗', look: '👁' }[m.kind] || '❗', col = pColor(m.pid);
+    Render.ring(m.hex, col, 70, 0.9, 5); setTimeout(() => Render.ring(m.hex, col, 70, 0.9, 5), 300);
+    Render.float(m.hex, icon + ' ' + pName(m.pid).toUpperCase(), col, 16); SFX.select();
+    addLog(`<b style="--c:${col}">${esc(pName(m.pid))}</b> pinged ${icon}`, 'chat');
+  }
+  function showEmote(m) {
+    const p = S && S.players.find(x => x.id === m.pid); if (!p) return;
+    if (p.hq) Render.float(p.hq, m.emote, '#ffffff', 34);
+    const chip = [...document.querySelectorAll('#players .pchip')].find(c => c.dataset.pid === m.pid);
+    if (chip) { const b = el('span', 'emote-pop', m.emote); chip.appendChild(b); setTimeout(() => b.remove(), 2200); }
+  }
+  // batch moves: send every selected stack toward one hex (each goes as far as it can)
+  async function batchMove(k) {
+    const ds = S, groups = [{ hex: sel.hex, units: [...sel.units] }, ...(sel.extra || []).map(g => ({ hex: g.hex, units: [...g.units] }))];
+    sel = null; refreshAll(); let n = 0;
+    for (const g of groups) {
+      const ids = g.units.filter(id => S.units[id] && S.units[id].hex === g.hex && E.canAct(S, S.units[id])); if (!ids.length) continue;
+      const r = E.reachable(S, you, ids, g.hex);
+      let best = r[k] && ['move', 'capture'].includes(r[k].kind) ? k : null, bd = E.dist(g.hex, k);
+      if (!best) for (const h in r) { if (!['move', 'capture'].includes(r[h].kind)) continue; const d = E.dist(h, k); if (d < bd || (d === bd && best && r[h].c < r[best].c)) { bd = d; best = h; } }
+      if (!best) continue;
+      const a = { a: 'move', from: g.hex, units: ids, to: best }; if (S.fogOn) a.path = E.pathTo(r, best);
+      if (await act(a)) n++;
+    }
+    if (n) toast(`➜ ${n} stack${n > 1 ? 's' : ''} moved`);
+  }
   // ───────────── planning (blueprint) ─────────────
   function recomputePlan() {
     if (!planning()) { planState = null; return; }
@@ -553,7 +625,28 @@
   // ───────────── input ─────────────
   const cvs = $('#map');
   let down = null, shiftDown = false, ctrlDown = false, marchArm = false;
-  cvs.addEventListener('pointerdown', e => { down = { x: e.clientX, y: e.clientY, b: e.button, moved: false }; cvs.setPointerCapture(e.pointerId); });
+  let boxSel = null;
+  cvs.addEventListener('pointerdown', e => {
+    down = { x: e.clientX, y: e.clientY, b: e.button, moved: false }; cvs.setPointerCapture(e.pointerId);
+    if (e.shiftKey && e.button === 0 && canCommand()) { boxSel = { x: e.clientX, y: e.clientY, el: el('div', '', '') }; boxSel.el.id = 'boxSel'; document.body.appendChild(boxSel.el); }
+  });
+  cvs.addEventListener('pointermove', e => {
+    if (!boxSel) return;
+    const x0 = Math.min(boxSel.x, e.clientX), y0 = Math.min(boxSel.y, e.clientY), b = boxSel.el.style;
+    b.left = x0 + 'px'; b.top = y0 + 'px'; b.width = Math.abs(e.clientX - boxSel.x) + 'px'; b.height = Math.abs(e.clientY - boxSel.y) + 'px';
+    if (down) down.boxing = true;
+  }, true);
+  cvs.addEventListener('pointerup', e => {
+    if (!boxSel) return; const bs = boxSel; boxSel = null; bs.el.remove();
+    if (!down || !down.boxing) return;
+    const x0 = Math.min(bs.x, e.clientX), x1 = Math.max(bs.x, e.clientX), y0 = Math.min(bs.y, e.clientY), y1 = Math.max(bs.y, e.clientY);
+    const ds = dispState(), hexes = [...new Set(Object.values(ds.units).filter(u => u.owner === you && E.canAct(ds, u)).map(u => u.hex))].filter(k => { const [x, y] = Render.screenOf(k); return x >= x0 && x <= x1 && y >= y0 && y <= y1; });
+    down = null;
+    if (!hexes.length) return;
+    const grp = k => new Set(Object.values(ds.units).filter(u => u.hex === k && u.owner === you && E.canAct(ds, u)).map(u => u.id));
+    sel = { hex: hexes[0], units: grp(hexes[0]), extra: hexes.slice(1).map(k => ({ hex: k, units: grp(k) })) };
+    SFX.select(); toast(`${hexes.length} stack${hexes.length > 1 ? 's' : ''} selected — click a hex to send them all, or a red target to attack together`); refreshAll();
+  }, true);
   cvs.addEventListener('pointermove', e => {
     if (down) {
       const dx = e.clientX - down.x, dy = e.clientY - down.y;
@@ -621,6 +714,9 @@
     }
     if (e.key.toLowerCase() === 't' && S) { $('#chatIn').focus(); e.preventDefault(); }
     if (e.key.toLowerCase() === 'f' && myP()) Render.focus(myP().hq);
+    // I: intel op (fog of war) · G: dig the selected stack in
+    if (e.key.toLowerCase() === 'i' && !e.ctrlKey && S && S.fogOn && myP() && myP().alive) { mode = { type: 'intel' }; refreshAll(); e.preventDefault(); return; }
+    if (e.key.toLowerCase() === 'g' && !e.ctrlKey && sel && sel.units.size && (isMyTurn() || planning())) { const a = { a: 'digin', from: sel.hex, units: [...sel.units] }; sel = null; refreshAll(); doAction(a).then(ok => ok && toast('⛏ Dug in: +1 defence until they move')); e.preventDefault(); return; }
     // M: march order for the selected stack (then click the objective) · Delete: cancel its march
     if (e.key.toLowerCase() === 'm' && !e.ctrlKey && sel && sel.units.size) { marchArm = !marchArm; toast(marchArm ? '⚑ Click the objective for this march order' : 'March order cancelled'); e.preventDefault(); return; }
     if ((e.key === 'Delete' || e.key === 'Backspace') && sel) { let n = 0; for (const k in marches) if (marches[k].units.some(id => sel.units.has(id))) { delete marches[k]; n++; } if (n) { toast('⚑ March order cancelled'); refreshAll(); } }
@@ -800,6 +896,8 @@
     }
     if (!S || S.phase !== 'play') return;
     const ds = dispState();
+    if (pingArm && k) { send({ t: 'ping', hex: k, kind: pingArm, as: you }); pingArm = null; return; }
+    if (mode && mode.type === 'intel') { mode = null; if (k) { SFX.select(); act({ a: 'intel', target: k }).then(ok => ok && toast('🛰 Scouting that area until the end of next round', 'good')); } refreshAll(); return; }
     if (mode && mode.type === 'deploy') {
       if (!k || !Render.ov.spawn || !Render.ov.spawn.has(k)) { if (!k) cancel(); else { toast(E.isSea(mode.unit) ? 'Launch ships into the sea next to your Port' : 'Deploy at a highlighted HQ / FOB', 'err'); SFX.error(); } return; }
       if (!canPlace()) return;
@@ -843,6 +941,7 @@
         if (gs.length > 1) { const a = { a: 'assault', to: k, groups: gs.map(g => ({ from: g.from, units: g.units })) }; sel = null; refreshAll(); await doAction(a); return; }
         if (gs.length === 1) { const a = { a: 'move', from: gs[0].from, units: gs[0].units, to: k }; sel = null; refreshAll(); await doAction(a); return; }
       }
+      if (sel.extra && sel.extra.length && isMyTurn() && (!r || r.kind !== 'attack')) { await batchMove(k); return; }
       if (r && r.kind !== 'start' && r.kind !== 'pass' && !r.extra) {
         const ids = r.cargo ? [...sel.units].filter(id => ds.units[id] && !E.isSea(ds.units[id].type)) : [...sel.units];
         const a = { a: 'move', from: sel.hex, units: ids, to: k };
@@ -861,7 +960,7 @@
     const P = window.__refreshPerf || (window.__refreshPerf = {}), tm = (n, f) => { const t0 = performance.now(); f(); const d = performance.now() - t0; P[n] = +((P[n] || 0) * 0.8 + d * 0.2).toFixed(2); if (d > (P[n + '^'] || 0)) P[n + '^'] = +d.toFixed(1); };
     tm('state', () => Render.setState(dispState()));
     tm('overlays', updateOverlays);
-    tm('top', renderTop); tm('cash', renderCash); renderSiege(); renderUndo(); renderWeather(); tm('ally', renderAlly); tm('plan', renderPlan); tm('hex', renderHexPanel); tm('hand', renderHand); renderEnd(); renderModeHint(); renderOffer(); renderTurnPill(); renderAfk(); renderSpeed(); checkAutoEnd(); layoutHud();
+    tm('top', renderTop); tm('cash', renderCash); renderSiege(); renderUndo(); renderWeather(); tm('ally', renderAlly); tm('plan', renderPlan); tm('hex', renderHexPanel); tm('hand', renderHand); renderEnd(); renderModeHint(); renderOffer(); renderTurnPill(); renderAfk(); renderSpeed(); renderWait(); checkAutoEnd(); layoutHud();
   }
   // game speed button: the host sets the pace; anyone may once only bots are left
   function renderSpeed() {
@@ -884,13 +983,13 @@
     const counts = {}; for (const k in S.map.tiles) { const o = S.map.tiles[k].owner; if (o) counts[o] = (counts[o] || 0) + 1; }
     for (const p of S.players) {
       const f = E.FACTIONS[p.faction];
-      const c = el('div', 'pchip' + (curP().id === p.id && S.phase === 'play' ? ' cur' : '') + (p.alive ? '' : ' dead') + (p.id === you ? ' me' : ''));
+      const c = el('div', 'pchip' + (curP().id === p.id && S.phase === 'play' ? ' cur' : '') + (p.alive ? '' : ' dead') + (p.id === you ? ' me' : '')); c.dataset.pid = p.id;
       c.style.setProperty('--pc', p.color);
       const extra = S.map.beacon ? ` · ◆${p.koth}/3` : '';
       if (!p.alive) c.style.setProperty('--pc', '#5b6670');
       c.innerHTML = `<div class="av"><img src="${Art.iconURL('glyph', f ? f.glyph : 'shield', '#0b0f13', 48)}"></div><div><div class="pn">${esc(p.name)}${p.alive ? '' : ' <span class="out">☠ OUT</span>'}${p.team ? ` <span class="teamchip t${p.team}">${'ABCD'[p.team - 1]}</span>` : ''}${p.traitor ? ' <span class="out" title="Broke an alliance: -40% income and no new pacts">🗡 TRAITOR</span>' : ''}${moodTag(p)}</div><div class="ps"><span>⬢ <b>${counts[p.id] || 0}</b></span><span>$<b>${p.cash}</b></span><span>🂠 <b>${p.tacticCount ?? p.tactics.length}</b></span>${extra}</div></div>`;
       c.title = f ? f.name + ' — ' + f.perk + ': ' + f.desc : '';
-      c.onclick = () => Render.focus(p.hq);
+      c.onclick = () => { if (p.hq) Render.focus(p.hq); };
       const allied = E.isAlly(S, you, p.id), pact = allied && (S.allies || []).find(x => (x.a === p.id || x.b === p.id) && (x.a === you || x.b === you));
       if (allied) {
         const left = pact && pact.until ? pact.until - S.turn.round : 0;
@@ -911,7 +1010,7 @@
         tb.onclick = e => { e.stopPropagation(); SFX.select(); send({ t: 'takeover', id: p.id, name: savedName() || 'Commander' }); };
         box.appendChild(tb); c.appendChild(box);
       }
-      if (isMyTurn() && S.turn.stage === 'act' && p.id !== you && p.alive) {
+      if (S.phase === 'play' && myP() && myP().alive && p.id !== you && p.alive) {   // diplomacy and trade any time, not just on your turn
         const box = el('div', 'chipbtns');
         if (!S.trade) { const tb = el('button', 'tradebtn', 'TRADE'); tb.onclick = e => { e.stopPropagation(); SFX.select(); openTrade(p.id); }; box.appendChild(tb); }
         if (!allied && !S.allyOffer && myP() && myP().alive && S.settings.teams !== 'on') { const ab = el('button', 'tradebtn ally', 'ALLY'); ab.title = 'Propose an alliance'; ab.onclick = e => { e.stopPropagation(); SFX.select(); act({ a: 'allyOffer', to: p.id }); }; box.appendChild(ab); }
@@ -1259,7 +1358,7 @@
     const draw = () => {
       if (clockPaused) localDeadline = Date.now() + pausedLeft;   // frozen while a fight or crate plays out
       const left = localDeadline ? Math.max(0, localDeadline - Date.now()) : 0, s = Math.ceil(left / 1000);
-      b.innerHTML = 'END TURN' + (localDeadline && mine ? `<span class="tmr">${s}s left</span>` : '');
+      b.innerHTML = 'END TURN' + (localDeadline && mine ? `<span class="tmr">${s >= 60 ? Math.floor(s / 60) + ':' + String(s % 60).padStart(2, '0') : s + 's'} left</span>` : '');
       clock.hidden = !(localDeadline && S.phase === 'play');
       if (clock.hidden) return;
       const cp = curP();
@@ -1326,6 +1425,8 @@
     if (mode && mode.type === 'deploy') txt = `Deploy ${E.UNITS[mode.unit].name} — click a glowing ${E.isSea(mode.unit) ? 'sea hex by your Port' : 'HQ / FOB'} · right-click to stop`;
     else if (mode && mode.type === 'build') txt = mode.struct === 'hq' ? 'Fortify HQ — click your HQ' : `Build or upgrade ${E.STRUCTS[mode.struct].name} — click a glowing hex · right-click to stop`;
     else if (mode && mode.type === 'tactic') { const d = E.TACTICS[mode.id]; txt = d.target === 'heli' && !mode.from ? 'Heli Drop — pick the stack to fly' : `${d.name} — pick a target · right-click to cancel`; }
+    else if (mode && mode.type === 'intel') txt = `Intel op — click any hex to scout 2 hexes around it ($${E.INTEL_COST}) · right-click to cancel`;
+    else if (pingArm) txt = 'Click a hex to ping it';
     else if (planning() && sel && sel.units.size) txt = 'Blueprint — click a hex to queue this move';
     else if (!isMyTurn() && S.phase === 'play' && curP()) txt = '';
     h.hidden = !txt; h.textContent = txt;
@@ -1815,7 +1916,8 @@
               Render.burst(ev.to, ['#ffcf5a', '#fff'], 14, { speed: 1.2 }); SFX.boom(0.6);
             }
           }
-          if (ev.crush) await obliterate(ev); else await showCombat(ev);
+          // a 95%+ fight that went the expected way skips the dice and the long animation
+          if (ev.crush || (ev.attWin && ev.winProb >= 0.95)) await obliterate(ev); else await showCombat(ev);
           if (ev.splash && ev.splash.length) {
             // MLRS salvo: rockets rain on the stacks around the target
             for (const id of ev.splash) { const u = S.units[id]; if (u) { Render.burst(u.hex, ['#ffcf5a', '#ff5a2a', '#fff'], 18, { speed: 1.3 }); Render.float(u.hex, 'SALVO', '#ffb03a', 14); } }

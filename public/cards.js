@@ -244,6 +244,7 @@ const Cards = (() => {
     const col = el('button', 'btn big green', 'COLLECT $' + income);
     const rr = el('button', 'btn big gold', 'REROLL $' + ctx.rerollCost);
     rr.disabled = me.cash < ctx.rerollCost;
+    if (ctx.prep) rr.hidden = true;   // picking ahead for next turn: no rerolls
     const look = el('button', 'btn big', 'PEEK MAP');
     look.onmousedown = () => { box.style.opacity = 0.06; }; look.onmouseup = look.onmouseleave = () => { box.style.opacity = 1; };
     bar.append(col, rr, look); box.appendChild(bar);

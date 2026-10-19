@@ -47,6 +47,7 @@ Single-use cards from your hand.
 
 | Tactic | Rarity | Cost | Effect |
 |---|---|---|---|
+| **Ambush** | Common | $1 | Reaction: play it when you are attacked (or on your own turn). Your defenders on that hex get +2 Chips each in the next fight there. |
 | **Smoke Screen** | Common | $1 | A hex you own gets +2 Mult on defence until your next turn. |
 | **Forced March** | Common | $1 | Units on one hex may act again, with +2 move. |
 | **Rally** | Common | $1 | Your next attack this turn gets +2 Mult. |
