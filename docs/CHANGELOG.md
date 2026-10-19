@@ -2,6 +2,13 @@
 
 Every release, newest first. Each version also has its own post on the [Releases page](https://github.com/Blacksheep909/sector/releases).
 
+## v0.9.5
+
+**Know who you're hitting.**
+
+- **⚔ The attack tooltip names the defender:** it shows the commander you'd be fighting by name and colour, with a clear "you are not allied" warning. No more mistaking a rival's land for an ally's. (Attacking an actual ally was never possible: allied land and troops can only be passed through.)
+- **Emotes are visible again:** taunts pop up under a commander's name card instead of above it, where they got cut off at the top of the screen.
+
 ## v0.9.4
 
 **Speed controls, real rivers, better bridges, and a big bug sweep.**
