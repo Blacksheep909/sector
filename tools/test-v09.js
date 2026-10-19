@@ -150,6 +150,26 @@ const idle = (s, pid) => s.players.find(p => p.id !== pid && p.id !== me(s).id) 
     }
   }
 }
+{ // undefended enemy land: troops sweep through at full speed, capturing as they go, and stop on contact
+  const s = game({ fog: 'off' }); if (s.turn.stage === 'choose') E.applyAction(s, me(s).id, { a: 'choose', pick: 'income' }); const p = me(s), foe = s.players.find(x => x.id !== p.id);
+  for (const id in s.units) delete s.units[id];
+  const T = s.map.tiles, clear = k => T[k] && E.isLandTile(T[k]) && !T[k].river && !T[k].poi && !E.structsOf(T[k]).length && !E.TERRAIN[T[k].t].moveCost && T[k].t !== 'mountain';
+  let line = null;
+  for (const a in T) { if (!clear(a)) continue; for (const b of E.neighbors(a)) { if (!clear(b)) continue; const [qa, ra] = E.parse(a), [qb, rb] = E.parse(b); const c = (2 * qb - qa) + ',' + (2 * rb - ra), d = (3 * qb - 2 * qa) + ',' + (3 * rb - 2 * ra); if (clear(c) && clear(d)) { line = [a, b, c, d]; break; } } if (line) break; }
+  ok(!!line, 'found a straight run of open land');
+  if (line) {
+    const [a, b, c, d] = line; T[a].owner = p.id; for (const k of [b, c, d]) T[k].owner = foe.id;
+    s.units.sk = { id: 'sk', type: 'skitter', owner: p.id, hex: a, moved: false, fresh: false };
+    const reach = E.reachable(s, p.id, ['sk'], a);
+    ok(reach[d] && reach[d].c === 3, 'a buggy drives 3 hexes deep into undefended enemy land');
+    s.units.en = { id: 'en', type: 'grunt', owner: foe.id, hex: E.neighbors(c).find(k => ![b, c, d].includes(k) && T[k] && E.isLandTile(T[k])) || d, moved: false, fresh: false };
+    const r2 = E.reachable(s, p.id, ['sk'], a);
+    ok(r2[c] && r2[c].kind === 'capture' && !(r2[d] && r2[d].prev === c), 'it stops on contact with enemy troops');
+    delete s.units.en;
+    const r = E.applyAction(s, p.id, { a: 'move', from: a, units: ['sk'], to: d });
+    ok(r.ok && [b, c, d].every(k => T[k].owner === p.id), 'every hex on the way is captured' + (r.err ? ': ' + r.err : ''));
+  }
+}
 { // bots play with all of this switched on, to the end
   const s = game({ mapSize: 'small', maxRounds: 10 }, 3); s.players.forEach(p => { p.bot = true; });
   let n = 0;

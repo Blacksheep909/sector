@@ -88,8 +88,10 @@
       else {
         animating = true; fastForward = msgQ.length > 3;
         const mineBefore = S && S.units ? Object.values(S.units).filter(u => u.owner === you).map(u => ({ id: u.id, type: u.type, hex: u.hex })) : [];
+        const gen = menuGen;
         try { await playEvents(m.events || [], m.by); } catch (e) { console.error(e); }
         animating = false; fastForward = false; lastAnimEnd = Date.now();
+        if (gen !== menuGen || leftGame) continue;   // left the game mid-animation: don't paint the old board back under the menu
         reportLosses(mineBefore, m.state, m.events || []);
         if (m.paused && m.by && (m.by === you || m.mine)) send({ t: 'clockResume' });   // my fight finished playing: restart the turn clock
         applyState(m.state);
@@ -824,7 +826,9 @@
   }
   function closeEsc() { $('#escMenu').hidden = true; }
   // tear down every in-game overlay and return to the title screen
+  let menuGen = 0;
   function backToMenu() {
+    menuGen++; Render.ov.notes = []; Render.extraUnits.length = 0;
     S = null; Render.setState(null); msgQ = []; plan = []; sel = null; mode = null; passTo = null; unlocked = null; lastTurnKey = '';
     for (const k in plans) delete plans[k];
     Cards.hideDraft(); Cards.closeSupply(); Cards.closeCrate();
@@ -1602,12 +1606,12 @@
   }
   // a fight between bots: a short flash on the map, the result in a float, no dice tray
   async function quickClash(ev) {
-    const col = pColor(ev.att.pid);
+    const col = pColor(ev.att.pid), k = gameSpeed() === 'max' ? 0.3 : 1;
     if (!ev.ranged) for (const st of ev.stages || [ev.from]) if (st) Render.beam(st, ev.to, col, 0.25 * speed(), 30);
-    await sleep(180);
+    await sleep(180 * k);
     Render.burst(ev.to, ['#ffcf5a', '#ff5a2a', '#fff'], ev.attWin ? 26 : 14, { speed: 1.4 }); SFX.boom(ev.attWin ? 0.7 : 0.45); Render.shake(ev.attWin ? 5 : 3);
     Render.float(ev.to, ev.attWin ? '⚔ ' + pName(ev.att.pid).toUpperCase() + ' WINS' : '🛡 HELD', ev.attWin ? col : (ev.def.pid ? pColor(ev.def.pid) : '#cfd8df'), 14);
-    await sleep(320);
+    await sleep(320 * k);
   }
   async function obliterate(ev) {
     const all = ev.killed.length >= ev.def.units.length;
@@ -2028,7 +2032,8 @@
           }
           // the dice tray is for fights a human is in: bot-vs-bot (or bot-vs-garrison) plays a quick clash on the map.
           // A 95%+ fight that went the expected way skips the dice and the long animation too
-          if (!humanIn(ev)) await quickClash(ev);
+          // at max speed nothing waits on the dice tray either
+          if (!humanIn(ev) || gameSpeed() === 'max') await quickClash(ev);
           else if (ev.crush || (ev.attWin && ev.winProb >= 0.95)) await obliterate(ev); else await showCombat(ev);
           if (ev.splash && ev.splash.length) {
             // MLRS salvo: rockets rain on the stacks around the target
