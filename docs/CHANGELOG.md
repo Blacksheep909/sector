@@ -2,6 +2,20 @@
 
 Every release, newest first. Each version also has its own post on the [Releases page](https://github.com/Blacksheep909/sector/releases).
 
+## v0.8.1
+
+**A HUD where nothing overlaps, livelier natural maps, and a stronger Quarry Blast.**
+
+- **🧩 Panels can't overlap any more.** The HUD is now split into fixed regions: the top bar, a centre stack under it (turn pill, hints, turn clock, siege and HQ-pick banners), a left column (cash, world event, log and chat), a right column (hex info, blueprint, offers) and a bottom dock (build bar, deck, hand, undo and end turn). Each region is measured live, so a taller top bar or a fuller dock pushes the others out of the way.
+- **The hand fits itself.** The more cards you hold, the more they overlap, so the hand always fits between your deck and the buttons. On narrow windows the whole dock shrinks to fit.
+- **Fixed:** the cash panel no longer slides down over the log, and long card texts (Precision Strike, Bunker Buster) fit their cards.
+- **🗺 Livelier natural maps** (the abstract layouts from v0.8.0 are gone):
+  - **About twice as many rivers.** Later rivers join earlier ones, so you get branching tributaries.
+  - **Lakes:** a few small inland lakes in the lowlands, which rivers can drain into.
+  - **Mountain spurs:** short highland ridges branching off the ranges.
+  - All of this stays clear of every HQ.
+- **⛏ Quarry Blast brings down two mountains:** the one you target and the one behind it, opening a 2-hex pass.
+
 ## v0.8.0
 
 **Faster turns, clearer turns, smarter bots, an economy that can't run away, and a lot of new toys.**

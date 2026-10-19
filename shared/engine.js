@@ -149,15 +149,15 @@
     sabotage: { name: 'Sabotage', rarity: 'uncommon', cost: 3, target: 'enemyStruct', range: 3, desc: 'Destroy an enemy structure (or bridge) within 3 of your land.' },
     embargo: { name: 'Embargo', rarity: 'uncommon', cost: 3, target: 'enemyHex', desc: 'Click any enemy territory: that commander earns half income for their next 2 turns and cannot trade.' },
     bounty: { name: 'Bounty', rarity: 'uncommon', cost: 1, target: 'none', desc: 'This turn, every enemy unit you destroy pays a fifth of your income (min $2).' },
-    precision: { name: 'Precision Strike', rarity: 'rare', cost: 5, target: 'precision', range: 5, desc: 'A stealth jet drops a guided bomb within 5 of your land: always destroys the strongest enemy unit there (2 on a roll of 5+). Ignores Flak.' },
-    quarry: { name: 'Quarry Blast', rarity: 'rare', cost: 3, target: 'mountain', range: 3, desc: 'Blast a mountain within 3 of your land down into Highlands, opening a new pass.' },
+    precision: { name: 'Precision Strike', rarity: 'rare', cost: 5, target: 'precision', range: 5, desc: 'Guided bomb within 5 of your land: always kills the strongest enemy unit (2 on a 5+). Ignores Flak.' },
+    quarry: { name: 'Quarry Blast', rarity: 'rare', cost: 3, target: 'mountain', range: 3, desc: 'Blast a mountain within 3 of your land, and the mountain behind it, down into Highlands: a 2-hex pass.' },
     spy: { name: 'Spy Ring', rarity: 'epic', cost: 3, target: 'enemyHand', desc: 'Click any enemy territory: steal a random card that commander has earned (a tactic or a unit, never their starting cards).' },
     bonds: { name: 'War Bonds', rarity: 'rare', cost: 0, target: 'none', desc: 'Gain $1 for every 2 hexes you own.' },
     blitz: { name: 'Blitz Doctrine', rarity: 'rare', cost: 3, target: 'none', desc: 'This turn: all units +1 move, fresh units may act.' },
     drop_rare: { name: 'Supply Drop', rarity: 'rare', cost: 0, target: 'none', desc: 'Spin the reel for a crate (60% Standard · 32% Gilded · 8% Mythic), then keep 1 of 3 cards.' },
     emp: { name: 'EMP Burst', rarity: 'epic', cost: 4, target: 'area', range: 5, desc: 'Enemy units in a 1-hex radius are frozen for their next turn.' },
     drop_epic: { name: 'Supply Drop', rarity: 'epic', cost: 0, target: 'none', desc: 'Spin the reel for a crate (15% Standard · 55% Gilded · 30% Mythic), then keep 1 of 3 cards.' },
-    buster: { name: 'Bunker Buster', rarity: 'epic', cost: 6, target: 'buster', range: 5, desc: 'A heavy bomber hits an enemy hex within 5 of your land: knocks 2 levels off its fortifications (Bunker, FOB, Flak, Sea Mine; the HQ only to ★) and destroys up to 2 units.' },
+    buster: { name: 'Bunker Buster', rarity: 'epic', cost: 6, target: 'buster', range: 5, desc: 'Enemy hex within 5 of your land: knocks 2 levels off its Bunker, FOB, Flak or Mines (HQ to ★ at most) and kills up to 2 units.' },
     carpet: { name: 'Carpet Bombing', rarity: 'epic', cost: 7, target: 'area', range: 4, desc: 'Bomb a hex and its neighbours: each enemy unit there has a 50% chance to be destroyed.' },
     orbital: { name: 'Orbital Strike', rarity: 'epic', cost: 8, target: 'orbital', range: 6, desc: 'Erase every enemy unit on one hex within 6 of your land. Ignores Flak.' },
     nuke: { name: 'Tactical Nuke', rarity: 'legendary', cost: 10, target: 'nuke', range: 6, desc: 'Erase everything in a 1-hex radius. Leaves a fallout zone for 4 rounds.' },
@@ -244,8 +244,7 @@
   // ───────────────────────── map generation ─────────────────────────
   // Every map picks a layout archetype, warps it with noise, then trims the board to the
   // coastline plus a band of sea, so the outline is different every game.
-  const ARCHETYPES = ['continent', 'twin', 'archipelago', 'inland', 'crescent', 'pangaea', 'ocean', 'rings', 'spiral', 'shattered', 'maze', 'mirror', 'lattice'];
-  const ABSTRACT = ['rings', 'spiral', 'shattered', 'maze', 'mirror', 'lattice'];   // bold geometric layouts
+  const ARCHETYPES = ['continent', 'twin', 'archipelago', 'inland', 'crescent', 'pangaea', 'ocean'];
   function generateMap(opts) {
     for (let attempt = 0; attempt < 80; attempt++) {
       const seed = (opts.seed + attempt * 7919) >>> 0;
@@ -262,7 +261,7 @@
     const sizeMul = { small: 0.7, medium: 1, large: 1.8, huge: 2.6, colossal: 3.8 }[size] || 1;
     const tempN = makeNoise((seed * 11 + 3) % 100000);
     const landTarget = Math.round((70 + nP * 38) * sizeMul);
-    const landFrac = arch === 'ocean' ? 0.24 : arch === 'archipelago' ? 0.36 : arch === 'pangaea' ? 0.55 : arch === 'maze' ? 0.47 : arch === 'shattered' ? 0.4 : arch === 'lattice' ? 0.4 : 0.45;
+    const landFrac = arch === 'ocean' ? 0.24 : arch === 'archipelago' ? 0.36 : arch === 'pangaea' ? 0.55 : 0.45;
     const total = landTarget / landFrac;
     let aspect = 1 + rng() * 0.7; if (rng() < 0.3) aspect = 1 / aspect;
     const cols = Math.max(10, Math.round(Math.sqrt(total * aspect * 1.15)));
@@ -287,43 +286,8 @@
       }
     }
     if (arch === 'crescent') { const a0 = rng() * Math.PI * 2; for (let i = 0; i < 6; i++) { const a = a0 + i * 0.75; blobs.push([Math.cos(a) * .55, Math.sin(a) * .55, 0.36]); } }
-    // abstract layouts
-    const rot = rng() * Math.PI * 2, arms = nP >= 5 ? 3 : 2, twist = R(2.4, 3.6) * (rng() < 0.5 ? -1 : 1);
-    const plates = []; if (arch === 'shattered') for (let i = 0, n = 6 + nP; i < n; i++) plates.push([R(-.8, .8), R(-.8, .8)]);
-    const chN = makeNoise((seed * 13 + 29) % 100000);
-    if (arch === 'mirror') { for (let i = 0; i < 3; i++) { const y = R(-.6, .6), x = -R(.15, .65), r = R(.3, .45); blobs.push([x, y, r], [-x, y, r]); } }
-    const clamp01 = v => Math.max(0, Math.min(1, v));
-    const angDiff = (a, b) => { let d = (a - b) % (Math.PI * 2); if (d > Math.PI) d -= Math.PI * 2; if (d < -Math.PI) d += Math.PI * 2; return d; };
     const mask = (x, y) => {
       if (arch === 'inland') { const d = Math.hypot(x, y); return Math.max(0, 1 - Math.abs(d - 0.58) / 0.38); }
-      if (arch === 'rings') {
-        // a broken outer ring with three straits, around a central island
-        const d = Math.hypot(x, y), a = Math.atan2(y, x);
-        const ring = clamp01(1 - Math.abs(d - 0.7) / 0.17) * (Math.sin(a * 3 + rot) > 0.88 ? 0.15 : 1);
-        return Math.max(ring, clamp01(1 - d / 0.3));
-      }
-      if (arch === 'spiral') {
-        // galaxy arms curling out of a central hub
-        const d = Math.hypot(x, y), a = Math.atan2(y, x); let m = clamp01(1 - d / 0.24);
-        for (let i = 0; i < arms; i++) { const target = rot + i * Math.PI * 2 / arms + d * twist; const w = 0.5 - d * 0.22; if (d < 0.95) m = Math.max(m, clamp01(1 - Math.abs(angDiff(a, target)) / w) * clamp01((0.98 - d) / 0.2)); }
-        return m;
-      }
-      if (arch === 'shattered') {
-        // tectonic plates split by narrow straits along their seams
-        let d1 = 9, d2 = 9; for (const [px, py] of plates) { const dd = Math.hypot(x - px, y - py); if (dd < d1) { d2 = d1; d1 = dd; } else if (dd < d2) d2 = dd; }
-        return clamp01((d2 - d1 - 0.06) / 0.1) * clamp01((1.08 - Math.hypot(x, y)) / 0.35);
-      }
-      if (arch === 'maze') {
-        // land threaded with winding sea channels
-        const c = Math.abs(chN(x * 2.3 + 7, y * 2.3 + 7, 2) - 0.5);
-        return clamp01((c - 0.03) / 0.06) * clamp01((1.05 - Math.max(Math.abs(x), Math.abs(y))) / 0.3);
-      }
-      if (arch === 'lattice') {
-        // a checkerboard of square islands joined at the corners
-        const u = (x * Math.cos(rot) - y * Math.sin(rot)) * 2.2, v = (x * Math.sin(rot) + y * Math.cos(rot)) * 2.2;
-        const cell = Math.cos(u * Math.PI) * Math.cos(v * Math.PI);
-        return clamp01(cell * 1.4 + 0.2) * clamp01((1.05 - Math.max(Math.abs(x), Math.abs(y))) / 0.25);
-      }
       let m = 0; for (const [bx, by, br] of blobs) m = Math.max(m, 1 - Math.hypot(x - bx, y - by) / br);
       return Math.max(0, m);
     };
@@ -333,12 +297,10 @@
       const r = row - Math.floor(rows / 2), q = col - Math.floor(cols / 2) - Math.floor(r / 2);
       const nx = (col - cols / 2) / (cols / 2), ny = (row - rows / 2) / (rows / 2);
       const px = Math.sqrt(3) * (q + r / 2), py = 1.5 * r;
-      const abstract = ABSTRACT.includes(arch);
-      const sx = arch === 'mirror' ? -Math.abs(px) : px;   // mirror maps are left-right symmetric, noise and all
-      const wa = arch === 'archipelago' || arch === 'ocean' ? 0.3 : abstract ? 0.22 : 0.7;
-      const wx = nx + (warpN(sx * 0.07 + ox, py * 0.07, 2) - 0.5) * wa * (arch === 'mirror' && nx > 0 ? -1 : 1), wy = ny + (warpN(sx * 0.07, py * 0.07 + oy, 2) - 0.5) * wa;
-      const nw = arch === 'ocean' ? 0.22 : arch === 'archipelago' ? 0.3 : abstract ? (arch === 'mirror' ? 0.45 : 0.14) : 0.6;
-      let e = mask(wx, wy) * 0.9 + noise(sx * 0.15 + ox, py * 0.15 + oy, 4) * nw;
+      const wa = arch === 'archipelago' || arch === 'ocean' ? 0.3 : 0.7;
+      const wx = nx + (warpN(px * 0.07 + ox, py * 0.07, 2) - 0.5) * wa, wy = ny + (warpN(px * 0.07, py * 0.07 + oy, 2) - 0.5) * wa;
+      const nw = arch === 'ocean' ? 0.22 : arch === 'archipelago' ? 0.3 : 0.6;
+      let e = mask(wx, wy) * 0.9 + noise(px * 0.15 + ox, py * 0.15 + oy, 4) * nw;
       const edge = Math.max(Math.abs(nx), Math.abs(ny));
       if (edge > 0.7) e -= (edge - 0.7) * 4;
       cells.push({ q, r, px, py, e });
@@ -403,16 +365,45 @@
       tiles[s].t = 'plains';
       for (const n of neighbors(s)) if (tiles[n] && ['mountain', 'swamp'].includes(tiles[n].t)) tiles[n].t = tiles[n].t === 'mountain' ? 'hills' : 'plains';
     }
-    // rivers: spring up in the highlands and wind downhill to the sea (merging where they meet)
+    const nearSpawn = (k, r) => spawns.some(s => dist(s, k) <= r);
+    // mountain spurs: short ridges of highlands branching off the ranges
+    {
+      const peaks = Object.keys(tiles).filter(k => tiles[k].t === 'mountain' && neighbors(k).some(n => tiles[n] && TERRAIN[tiles[n].t].land && tiles[n].t !== 'mountain'));
+      const nSpurs = Math.round(peaks.length / 5);
+      for (let s = 0; s < nSpurs && peaks.length; s++) {
+        let cur = peaks[Math.floor(rng() * peaks.length)]; const dir = DIRS[Math.floor(rng() * 6)], len = 2 + Math.floor(rng() * 3);
+        for (let i = 0; i < len; i++) {
+          const [q, r] = parse(cur); const d = rng() < 0.25 ? DIRS[Math.floor(rng() * 6)] : dir; cur = key(q + d[0], r + d[1]);
+          const t = tiles[cur]; if (!t || !TERRAIN[t.t].land || nearSpawn(cur, 3)) break;
+          if (t.t !== 'mountain') t.t = i === 0 && rng() < 0.35 ? 'mountain' : 'hills';
+        }
+      }
+    }
+    // lakes: a few small inland lakes in the lowlands (rivers can drain into them)
+    {
+      const lowland = Object.keys(tiles).filter(k => isLand(k) && tiles[k].t !== 'mountain' && !nearSpawn(k, 4) && area(k, 2).every(a => !tiles[a] || tiles[a].t !== 'water'))
+        .sort((a, b) => (elev[a] || 0) - (elev[b] || 0));
+      const nLakes = Math.min(4, Math.round(Object.keys(tiles).filter(isLand).length / 140 + rng()));
+      const lakes = [];
+      for (const c of lowland.slice(0, Math.max(1, Math.floor(lowland.length * 0.35))).sort(() => rng() - 0.5)) {
+        if (lakes.length >= nLakes) break;
+        if (lakes.some(l => dist(l, c) < 8)) continue;
+        const size = 2 + Math.floor(rng() * 4), body = [c];
+        for (let i = 0; i < body.length && body.length < size; i++) for (const n of neighbors(body[i])) if (body.length < size && isLand(n) && tiles[n].t !== 'mountain' && !nearSpawn(n, 4) && !body.includes(n) && rng() < 0.6) body.push(n);
+        for (const k of body) { tiles[k].t = 'water'; tiles[k].deep = false; tiles[k].lake = true; delete tiles[k].res; }
+        lakes.push(c);
+      }
+    }
+    // rivers: spring up in the highlands and wind downhill to the sea or a lake; later rivers join earlier ones as tributaries
     {
       const landK = Object.keys(tiles).filter(isLand);
-      const want = Math.max(1, Math.round(landK.length / 75));
+      const want = Math.max(2, Math.round(landK.length / 45));
       const springs = landK.filter(k => tiles[k].t !== 'mountain' && (tiles[k].t === 'hills' || neighbors(k).some(n => tiles[n] && tiles[n].t === 'mountain')))
         .sort((a, b) => (elev[b] || 0) - (elev[a] || 0) + (rng() - 0.5) * 0.08);
       const heads = [];
       for (const src of springs) {
         if (heads.length >= want) break;
-        if (tiles[src].river || heads.some(h => dist(h, src) < 5)) continue;
+        if (tiles[src].river || heads.some(h => dist(h, src) < 4)) continue;
         const path = [src], seen = new Set([src]); let cur = src, mouth = null;
         for (let step = 0; step < 45 && !mouth; step++) {
           const nb = neighbors(cur).filter(n => tiles[n] && !seen.has(n) && tiles[n].t !== 'mountain');
@@ -2041,7 +2032,14 @@
         for (const k of ar) { const t = tiles[k]; t.owner = null; t.structs = []; t.struct = null; t.smoke = null; if (t.bridge) t.bridge = false; if (isLandTile(t)) t.contam = 4; }
         ev.push({ ...base, area: ar, units: dead }); pushLog(s, '☢ ' + p.name + ' launched a TACTICAL NUKE.'); break;
       }
-      case 'quarry': { tiles[a.target].t = 'hills'; ev.push(base); pushLog(s, '⛏ ' + p.name + ' blasted a pass through the mountains.'); break; }
+      case 'quarry': {
+        // two mountains come down: the target, plus the neighbouring mountain that best extends the pass (away from your land)
+        tiles[a.target].t = 'hills';
+        const mine = k => nearOwned(s, pid, k, 1);
+        const next = neighbors(a.target).filter(n => tiles[n] && tiles[n].t === 'mountain').sort((x, y) => (mine(x) ? 1 : 0) - (mine(y) ? 1 : 0) || neighbors(y).filter(m => tiles[m] && tiles[m].t === 'mountain').length - neighbors(x).filter(m => tiles[m] && tiles[m].t === 'mountain').length)[0];
+        if (next) tiles[next].t = 'hills';
+        ev.push({ ...base, also: next || null }); pushLog(s, '⛏ ' + p.name + ' blasted a pass through the mountains.'); break;
+      }
       case 'spy': {
         // steal one random card the rival has earned: a tactic from their hand, or a unit from their deck.
         // Starting cards (Grunts, their faction unit, an Ark) can't be taken, and a unit only comes if your deck has room

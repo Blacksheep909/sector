@@ -298,7 +298,7 @@
   function renderSpawnPick() {
     let b = $('#spawnBar');
     if (!S || S.phase !== 'spawn' || !S.spawn) { if (b) b.remove(); return; }
-    if (!b) { b = el('div', '', ''); b.id = 'spawnBar'; document.body.appendChild(b); }
+    if (!b) { b = el('div', '', ''); b.id = 'spawnBar'; $('#centerStack').appendChild(b); }
     const cur = S.spawn.order[S.spawn.i], left = S.spawn.order.length - S.spawn.i;
     b.style.setProperty('--pc', pColor(cur));
     b.innerHTML = mySpawnPick()
@@ -368,6 +368,33 @@
     if (moved) toast('⚑ ' + moved + ' march order' + (moved > 1 ? 's' : '') + ' advanced');
     refreshAll();
   }
+  // ───────────── layout: regions are measured live so nothing overlaps ─────────────
+  $('#rightCol').prepend($('#allyPop'), $('#offerPop'));
+  function layoutHud() {
+    const root = document.documentElement.style, tb = $('#topbar'), dock = $('#dock'), cs = $('#centerStack');
+    if (!tb || !dock || $('#hud').hidden) return;
+    // the dock shrinks as a whole when the window is too narrow for build bar, deck, hand and buttons
+    dock.style.zoom = ''; fitHand();
+    const need = dock.scrollWidth, have = dock.clientWidth;
+    if (need > have + 2) { dock.style.zoom = Math.max(0.6, have / need).toFixed(3); fitHand(); }
+    // measurements are in screen pixels; the HUD may be scaled down (zoom) on smaller screens, so convert back
+    const z = parseFloat(getComputedStyle($('#hud')).zoom) || 1;
+    const t = tb.getBoundingClientRect(), d = dock.getBoundingClientRect();
+    root.setProperty('--topH', Math.ceil(t.bottom / z) + 'px');
+    root.setProperty('--dockH', Math.ceil((innerHeight - d.top) / z) + 'px');
+    root.setProperty('--stackB', Math.ceil(cs.getBoundingClientRect().bottom) + 'px');
+  }
+  // the hand overlaps its cards more as it fills up, so it always fits the space between the deck and the buttons
+  function fitHand() {
+    const h = $('#hand'); if (!h) return;
+    const cards = [...h.children].filter(c => c.classList.contains('card')); if (!cards.length) return;
+    h.style.setProperty('--sq', '-32px');
+    const avail = h.clientWidth, total = cards.reduce((a, c) => a + c.offsetWidth, 0), n = cards.length;
+    const fit = n > 1 ? (avail - total) / (n - 1) : 0;
+    h.style.setProperty('--sq', Math.max(-(cards[0].offsetWidth - 34), Math.min(-32, fit)) + 'px');
+  }
+  addEventListener('resize', () => layoutHud());
+  if (window.ResizeObserver) { const ro = new ResizeObserver(() => layoutHud()); for (const id of ['#topbar', '#dock', '#centerStack', '#hand', '#deckBar', '#buildBar']) ro.observe($(id)); }
   // ───────────── planning (blueprint) ─────────────
   function recomputePlan() {
     if (!planning()) { planState = null; return; }
@@ -394,7 +421,7 @@
   }
   function renderPlan() {
     const box = $('#planBox');
-    if (box.parentNode && box.parentNode.id === 'leftCol') { $('#hud').appendChild(box); box.classList.add('right'); }
+
     box.hidden = !planning();
     document.body.classList.toggle('planning', !box.hidden);
     if (box.hidden) return;
@@ -830,7 +857,7 @@
     const P = window.__refreshPerf || (window.__refreshPerf = {}), tm = (n, f) => { const t0 = performance.now(); f(); const d = performance.now() - t0; P[n] = +((P[n] || 0) * 0.8 + d * 0.2).toFixed(2); if (d > (P[n + '^'] || 0)) P[n + '^'] = +d.toFixed(1); };
     tm('state', () => Render.setState(dispState()));
     tm('overlays', updateOverlays);
-    tm('top', renderTop); tm('cash', renderCash); renderSiege(); renderUndo(); renderWeather(); tm('ally', renderAlly); tm('plan', renderPlan); tm('hex', renderHexPanel); tm('hand', renderHand); renderEnd(); renderModeHint(); renderOffer(); renderTurnPill(); renderAfk(); renderSpeed(); checkAutoEnd();
+    tm('top', renderTop); tm('cash', renderCash); renderSiege(); renderUndo(); renderWeather(); tm('ally', renderAlly); tm('plan', renderPlan); tm('hex', renderHexPanel); tm('hand', renderHand); renderEnd(); renderModeHint(); renderOffer(); renderTurnPill(); renderAfk(); renderSpeed(); checkAutoEnd(); layoutHud();
   }
   // game speed button: the host sets the pace; anyone may once only bots are left
   function renderSpeed() {
@@ -910,7 +937,7 @@
     const me = myP();
     const h = me && S.map.tiles[me.hq] && E.structsOf(S.map.tiles[me.hq]).find(x => x.type === 'hq' && x.owner === you && x.siege);
     if (!h) { if (w) w.remove(); return; }
-    if (!w) { w = el('div', '', ''); w.id = 'siegeWarn'; document.body.appendChild(w); w.onclick = () => Render.focus(me.hq); }
+    if (!w) { w = el('div', '', ''); w.id = 'siegeWarn'; $('#centerStack').appendChild(w); w.onclick = () => Render.focus(me.hq); }
     w.innerHTML = `🔥 YOUR HQ IS UNDER SIEGE by <b>${esc(pName(h.siege.by))}</b> — deploy troops next to it (they can attack right away) and retake it this turn, or you're eliminated <span>(click to look)</span>`;
   }
   function renderUndo() {
@@ -1222,7 +1249,7 @@
     clearInterval(timerInt);
     // turn clock: a draining bar in the current player's colour, red and ticking for the last 10 seconds
     let clock = $('#turnClock');
-    if (!clock) { clock = el('div', '', '<div class="tc-bar"><i></i></div><span></span>'); clock.id = 'turnClock'; $('#hud').appendChild(clock); }
+    if (!clock) { clock = el('div', '', '<div class="tc-bar"><i></i></div><span></span>'); clock.id = 'turnClock'; $('#centerStack').appendChild(clock); }
     const total = (S.settings.timer || 0) * 1000;
     const draw = () => {
       if (clockPaused) localDeadline = Date.now() + pausedLeft;   // frozen while a fight or crate plays out
@@ -1248,7 +1275,7 @@
   let titleBlink = null;
   function renderTurnPill() {
     let pill = $('#turnPill');
-    if (!pill) { pill = el('div', '', ''); pill.id = 'turnPill'; $('#hud').appendChild(pill); pill.onclick = () => { const c = curP(); if (c && c.hq) Render.focus(c.hq); }; }
+    if (!pill) { pill = el('div', '', ''); pill.id = 'turnPill'; $('#centerStack').insertBefore(pill, $('#centerStack').firstChild); pill.onclick = () => { const c = curP(); if (c && c.hq) Render.focus(c.hq); }; }
     const c = S && S.phase === 'play' && curP();
     const mine = isMyTurn();
     document.body.classList.toggle('my-turn', !!(c && mine));
@@ -1283,7 +1310,7 @@
     if (autoEndKey === key) return; autoEndKey = key;
     clearTimeout(autoEndT); autoEndT = null; const old = $('#autoEnd'); if (old) old.remove();
     if (autoEndOff || !isMyTurn() || animating || executing || mode || !nothingLeft()) return;
-    const box = el('div', '', 'Nothing left to do — ending your turn in <b>3</b>… <button class="btn tiny">STAY</button>'); box.id = 'autoEnd'; $('#hud').appendChild(box);
+    const box = el('div', '', 'Nothing left to do — ending your turn in <b>3</b>… <button class="btn tiny">STAY</button>'); box.id = 'autoEnd'; $('#actions').insertBefore(box, $('#actions').firstChild);
     let n = 3;
     const tick = () => { n--; if (n <= 0) { box.remove(); autoEndT = null; if (isMyTurn() && !animating && !executing && nothingLeft()) $('#endBtn').click(); return; } box.querySelector('b').textContent = n; autoEndT = setTimeout(tick, 1000); };
     autoEndT = setTimeout(tick, 1000);
@@ -1964,6 +1991,7 @@
         SFX.boom(1.4); Render.shake(16); Render.burst(ev.target, ['#8a7a66', '#5d5144', '#c9b78f', '#ffb03a'], 70, { speed: 2.2, size: 4, up: 160 });
         Render.smoke(ev.target, 24, 'rgba(150,135,115,');
         S.map.tiles[ev.target].t = 'hills'; Render.recolor(); Render.invalidate();
+        if (ev.also && S.map.tiles[ev.also]) { await sleep(250); Render.lance(ev.also, '#ffb03a', 0.4); SFX.boom(1.1); Render.shake(12); Render.burst(ev.also, ['#8a7a66', '#5d5144', '#c9b78f', '#ffb03a'], 50, { speed: 2, size: 4, up: 140 }); Render.smoke(ev.also, 18, 'rgba(150,135,115,'); S.map.tiles[ev.also].t = 'hills'; Render.recolor(); Render.invalidate(); }
         Render.float(ev.target, 'PASS OPENED', '#ffb03a', 18); await sleep(500); break;
       }
       case 'spy': {
@@ -2056,7 +2084,7 @@
   }
 
   // ── random map type: a slot reel of battlefield thumbnails that lands on the real map ──
-  const ARCH_NAME = { continent: 'Continent', pangaea: 'Supercontinent', twin: 'Twin Continents', archipelago: 'Archipelago', inland: 'Inland Sea', crescent: 'Crescent Isles', ocean: 'Open Ocean', rings: 'Rings', spiral: 'Spiral Galaxy', shattered: 'Shattered Plates', maze: 'Maze', mirror: 'Mirror', lattice: 'Lattice' };
+  const ARCH_NAME = { continent: 'Continent', pangaea: 'Supercontinent', twin: 'Twin Continents', archipelago: 'Archipelago', inland: 'Inland Sea', crescent: 'Crescent Isles', ocean: 'Open Ocean' };
   const thumbCache = {};
   function mapThumb(tiles, w = 150, h = 96) {
     const cv = document.createElement('canvas'); cv.width = w * 2; cv.height = h * 2; const c = cv.getContext('2d'); c.scale(2, 2);

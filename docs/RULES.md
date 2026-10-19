@@ -5,7 +5,7 @@ Grab land, build an economy, crush your rivals. **Every hex you hold pays you**,
 ## Setup and the opening draft
 
 - 2–8 commanders: humans over the network, bots (Easy, Medium, Hard, Impossible), and **pass-and-play** players sharing one device. Anyone can press 👁 in the lobby to **spectate** instead of play. A cover screen hides each player's hand between turns.
-- Every map is procedurally generated from one of thirteen layouts. Seven are natural (continent, supercontinent, twin continents, archipelago, inland sea, crescent isles, open ocean) and six are abstract (rings, spiral galaxy, shattered plates, maze, mirror, lattice). The coastline is noise-warped, so no two boards share an outline. Sizes run from Small to **Huge** (about 3.5× the land of Small).
+- Every map is procedurally generated from one of seven layouts: continent, supercontinent, twin continents, archipelago, inland sea, crescent isles or open ocean. Rivers branch into tributaries, small lakes sit in the lowlands, and mountain ranges throw out ridges of highlands. The coastline is noise-warped, so no two boards share an outline. Sizes run from Small to **Huge** (about 3.5× the land of Small).
 - **Spawns.** With *Random* spawns, HQs are placed fairly far apart. With *Pick your HQ*, commanders take turns choosing their HQ hex (whoever moves last picks first). HQs must sit a minimum distance apart, and bots pick roomy spots near resources.
 - Everyone starts with an HQ and its surrounding hexes, 2 Grunts, $6, a **Rare Supply Drop** card, and two unit cards: **Grunts** and their faction's starter unit. Commanders who start on a small island also get the **Ark** transport so they can reach the mainland.
 - **Opening draft.** Before round 1, every commander picks simultaneously. In each of 3 draft rounds you're offered 3 cards and keep 1.
@@ -129,7 +129,7 @@ $3 base
 
 **Diminishing returns.** Buildings (refineries and warehouses) pay in full up to $8 a turn, then at half rate up to $24, then a quarter. Past $50 a turn, every extra dollar of income counts as two-thirds. Holding land always pays; farming buildings alone can't run away.
 
-**Rivers** wind from the highlands down to the sea as channels of water hexes. They keep their land rules: land units ford them (2 move), a river hex defends at **+1 mult (River Crossing)**, and every 3 river hexes you hold pay **+$1** (fertile valleys). HQs, towns and other sites always sit on dry ground.
+**Rivers** wind from the highlands down to the sea (or into an inland lake) as channels of water hexes, and later rivers join earlier ones as tributaries. They keep their land rules: land units ford them (2 move), a river hex defends at **+1 mult (River Crossing)**, and every 3 river hexes you hold pay **+$1** (fertile valleys). HQs, towns and other sites always sit on dry ground.
 
 **Roads** link your buildings back to your HQ through your own land. They're for show: they break where land is captured or cut off, so you can read your supply network at a glance.
 

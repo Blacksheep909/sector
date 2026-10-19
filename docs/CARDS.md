@@ -55,8 +55,8 @@ Single-use cards from your hand.
 | **Sabotage** | Uncommon | $3 | Destroy an enemy structure (or bridge) within 3 of your land. |
 | **Embargo** | Uncommon | $3 | Click any enemy territory: that commander earns half income for their next 2 turns and cannot trade. |
 | **Bounty** | Uncommon | $1 | This turn, every enemy unit you destroy pays a fifth of your income (min $2). |
-| **Precision Strike** | Rare | $5 | A stealth jet drops a guided bomb within 5 of your land: always destroys the strongest enemy unit there (2 on a roll of 5+). Ignores Flak. |
-| **Quarry Blast** | Rare | $3 | Blast a mountain within 3 of your land down into Highlands, opening a new pass. |
+| **Precision Strike** | Rare | $5 | Guided bomb within 5 of your land: always kills the strongest enemy unit (2 on a 5+). Ignores Flak. |
+| **Quarry Blast** | Rare | $3 | Blast a mountain within 3 of your land, and the mountain behind it, down into Highlands: a 2-hex pass. |
 | **War Bonds** | Rare | $0 | Gain $1 for every 2 hexes you own. |
 | **Blitz Doctrine** | Rare | $3 | This turn: all units +1 move, fresh units may act. |
 | **Supply Drop** | Rare | $0 | Spin the reel for a crate (60% Standard · 32% Gilded · 8% Mythic), then keep 1 of 3 cards. |
