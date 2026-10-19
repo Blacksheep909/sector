@@ -1594,6 +1594,20 @@
     d.innerHTML = ''; for (let i = 0; i < 9; i++) d.appendChild(el('i', on.includes(i) ? 'on' : ''));
   }
   // a fight with a 100% win chance skips the dice: the defenders are crushed on the spot
+  // is a human commander (not a bot, not a bot covering for someone away) on either side of this fight?
+  function humanIn(ev) {
+    const human = pid => { const p = pid && S.players.find(x => x.id === pid); return !!p && !p.bot; };
+    return human(ev.att.pid) || human(ev.def.pid);
+  }
+  // a fight between bots: a short flash on the map, the result in a float, no dice tray
+  async function quickClash(ev) {
+    const col = pColor(ev.att.pid);
+    if (!ev.ranged) for (const st of ev.stages || [ev.from]) if (st) Render.beam(st, ev.to, col, 0.25 * speed(), 30);
+    await sleep(180);
+    Render.burst(ev.to, ['#ffcf5a', '#ff5a2a', '#fff'], ev.attWin ? 26 : 14, { speed: 1.4 }); SFX.boom(ev.attWin ? 0.7 : 0.45); Render.shake(ev.attWin ? 5 : 3);
+    Render.float(ev.to, ev.attWin ? '⚔ ' + pName(ev.att.pid).toUpperCase() + ' WINS' : '🛡 HELD', ev.attWin ? col : (ev.def.pid ? pColor(ev.def.pid) : '#cfd8df'), 14);
+    await sleep(320);
+  }
   async function obliterate(ev) {
     const all = ev.killed.length >= ev.def.units.length;
     const word = ev.ranged && !all ? 'DIRECT HIT!' : 'OBLITERATED!';
@@ -2011,8 +2025,10 @@
               Render.burst(ev.to, ['#ffcf5a', '#fff'], 14, { speed: 1.2 }); SFX.boom(0.6);
             }
           }
-          // a 95%+ fight that went the expected way skips the dice and the long animation
-          if (ev.crush || (ev.attWin && ev.winProb >= 0.95)) await obliterate(ev); else await showCombat(ev);
+          // the dice tray is for fights a human is in: bot-vs-bot (or bot-vs-garrison) plays a quick clash on the map.
+          // A 95%+ fight that went the expected way skips the dice and the long animation too
+          if (!humanIn(ev)) await quickClash(ev);
+          else if (ev.crush || (ev.attWin && ev.winProb >= 0.95)) await obliterate(ev); else await showCombat(ev);
           if (ev.splash && ev.splash.length) {
             // MLRS salvo: rockets rain on the stacks around the target
             for (const id of ev.splash) { const u = S.units[id]; if (u) { Render.burst(u.hex, ['#ffcf5a', '#ff5a2a', '#fff'], 18, { speed: 1.3 }); Render.float(u.hex, 'SALVO', '#ffb03a', 14); } }
