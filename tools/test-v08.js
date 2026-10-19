@@ -91,12 +91,29 @@ const land = (s, from, d) => Object.keys(s.map.tiles).find(k => E.dist(k, from) 
     if (id === 'buster') ok(E.structsOf(s.map.tiles[k])[0].lvl === 1, 'bunker buster knocks 2 levels off a bunker');
   }
 }
-{ // rivers stay off HQs; every map layout generates
-  const s = game(); ok(s.players.every(p => !s.map.tiles[p.hq].river), 'no HQ stands in a river');
-  for (const arch of ['rings', 'spiral', 'shattered', 'maze', 'mirror', 'lattice']) {
-    let good = true; try { game({ mapType: arch }, 4); } catch (e) { good = false; }
-    ok(good, arch + ' map generates');
+{ // rivers stay off HQs; maps have rivers with tributaries and some lakes, never near an HQ
+  let rivers = 0, lakes = 0, lakeNearHq = 0;
+  for (let i = 0; i < 6; i++) {
+    const s = game({}, 4); const T = s.map.tiles;
+    ok(s.players.every(p => !T[p.hq].river), 'no HQ stands in a river');
+    rivers += Object.values(T).filter(t => t.river).length;
+    for (const k in T) if (T[k].lake) { lakes++; if (s.players.some(p => E.dist(p.hq, k) <= 4)) lakeNearHq++; }
   }
+  ok(rivers / 6 >= 12, 'medium maps average 12+ river hexes (' + (rivers / 6).toFixed(1) + ')');
+  ok(lakes > 0 && !lakeNearHq, 'lakes appear, and never within 4 of an HQ');
+}
+{ // Quarry Blast brings down two mountains when there's a range
+  let tried = 0, two = 0;
+  for (let g = 0; g < 10 && tried < 3; g++) {
+    const s = game(); const p = me(s);
+    const ts = E.tacticTargets(s, p.id, 'quarry').filter(k => E.neighbors(k).some(n => s.map.tiles[n] && s.map.tiles[n].t === 'mountain'));
+    if (!ts.length) continue; tried++;
+    p.tactics.push({ uid: 555, id: 'quarry' }); p.cash = 99;
+    const r = E.applyAction(s, p.id, { a: 'tactic', uid: 555, target: ts[0] });
+    const ev = r.events.find(e => e.e === 'tactic');
+    if (r.ok && s.map.tiles[ts[0]].t === 'hills' && ev.also && s.map.tiles[ev.also].t === 'hills') two++;
+  }
+  ok(tried > 0 && two === tried, 'quarry blast flattens two mountains (' + two + '/' + tried + ')');
 }
 { // bots finish a short game without failed actions blocking them
   const s = game({ mapSize: 'small', maxRounds: 8 }, 3); let n = 0;

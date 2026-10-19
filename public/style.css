@@ -1099,3 +1099,36 @@ body.my-turn #hud::before { content: ''; position: fixed; inset: 0; pointer-even
 #crate > .chest-rays.open { animation: chestRaysIn2 .5s cubic-bezier(.2,1.4,.4,1) forwards, chestRaysSpin 14s linear infinite; }
 #crate > .chest-rays.fade { opacity: 0 !important; animation-play-state: paused, running; }
 @keyframes chestRaysIn2 { to { transform: scale(1); opacity: .55; } }
+
+/* ══ v0.8.1 HUD regions: nothing can overlap. Sizes come from live measurements (--topH, --dockH, --stackB) ══ */
+:root { --topH: 66px; --dockH: 150px; --stackB: 130px; --sideW: 300px; }
+#hud > #leftCol, #hud > #rightCol, #hud > #centerStack, #hud > #dock { pointer-events: none; }
+#leftCol { top: calc(var(--topH) + 8px) !important; bottom: calc(var(--dockH) + 8px) !important; width: var(--sideW) !important; }
+#leftCol > #logBox { width: auto !important; }
+#rightCol { position: absolute; right: 12px; top: calc(var(--topH) + 8px); bottom: calc(var(--dockH) + 8px); width: 280px; display: flex; flex-direction: column; gap: 10px; pointer-events: none; }
+#rightCol > * { position: static !important; inset: auto !important; transform: none !important; width: auto !important; pointer-events: auto; flex: 0 1 auto; min-height: 0; max-height: none !important; overflow-y: auto; }
+#rightCol > [hidden] { display: none !important; }
+#centerStack { position: absolute; top: calc(var(--topH) + 6px); left: calc(var(--sideW) + 24px); right: 304px; display: flex; flex-direction: column; align-items: center; gap: 8px; pointer-events: none; z-index: 6; }
+#centerStack > * { position: static !important; inset: auto !important; transform: none !important; pointer-events: auto; max-width: 100%; }
+#centerStack > [hidden] { display: none !important; }
+#centerStack > #turnClock { pointer-events: none; width: min(360px, 100%); }
+#turnPill.mine { animation-name: pillPulse2; }
+@keyframes pillPulse2 { 50% { box-shadow: 0 4px 0 #000, 0 0 32px var(--pc); scale: 1.04; } }
+#dock { position: absolute; left: 12px; right: 12px; bottom: 10px; display: flex; align-items: flex-end; gap: 14px; pointer-events: none; z-index: 4; }
+#dock > * { position: static !important; inset: auto !important; transform: none !important; pointer-events: auto; }
+#dock > #buildBar { flex: none; margin: 0 !important; }
+#dock > #bottom { flex: 1 1 auto; min-width: 0; display: flex; align-items: flex-end; justify-content: center; gap: 14px; pointer-events: none; }
+#dock > #bottom > * { pointer-events: auto; }
+#dock #deckBar { flex: none; margin-bottom: 0; }
+#dock #hand { flex: 1 1 0; min-width: 0; justify-content: center; padding-bottom: 4px; }
+#dock #hand .card { margin: 0 0 0 var(--sq, -32px); flex: none; }
+#dock #hand .card:first-child { margin-left: 0; }
+#dock #hand .card:hover { z-index: 5; }
+#actions { flex: none; display: flex; flex-direction: column; align-items: flex-end; gap: 8px; pointer-events: none; }
+#actions > * { position: static !important; inset: auto !important; pointer-events: auto; }
+#actions > [hidden] { display: none !important; }
+#actions #autoEnd { max-width: 220px; }
+#toasts { top: calc(var(--stackB) + 8px) !important; }
+#offerPop, #allyPop { z-index: 7; }
+@media (max-width: 1250px) { :root { --sideW: 250px; } #rightCol { width: 240px; } #centerStack { right: 262px; } }
+#leftCol > * { top: auto !important; left: auto !important; right: auto !important; bottom: auto !important; }
