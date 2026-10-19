@@ -823,6 +823,7 @@
     if (e.key.toLowerCase() === 't' && S) { $('#chatIn').focus(); e.preventDefault(); }
     if (e.key.toLowerCase() === 'f' && myP()) Render.focus(myP().hq);
     // O: put the selected stack on overwatch
+    if (e.key.toLowerCase() === 'r' && !e.ctrlKey && sel && (isMyTurn() || planning()) && rotateBridge(sel.hex)) { e.preventDefault(); return; }
     if (e.key.toLowerCase() === 'o' && !e.ctrlKey && sel && sel.units.size && isMyTurn()) { const a = { a: 'overwatch', from: sel.hex, units: [...sel.units] }; sel = null; refreshAll(); doAction(a); e.preventDefault(); return; }
     // I: intel op (fog of war) · G: dig the selected stack in
     if (e.key.toLowerCase() === 'i' && !e.ctrlKey && S && S.fogOn && myP() && myP().alive) { mode = { type: 'intel' }; refreshAll(); e.preventDefault(); return; }
@@ -1292,6 +1293,7 @@
       const flags = (st.siege ? ' <span class="hp-tag cut">UNDER SIEGE</span>' : '') + (st.lock ? ' <span class="hp-tag">online next turn</span>' : '');
       h += `<div class="urow" style="cursor:default"><img src="${Art.iconURL('struct', st.type)}"><div class="un">${sd.name} <span class="gold">${'★'.repeat(L)}</span>${flags}<div class="st">${sd.desc}${E.UPGRADABLE.includes(st.type) && L < E.MAX_SLVL && t.owner === you && st.owner === you ? '<br><b class="gold">Upgrade: $' + E.buildCost(ds, ds.players.find(p => p.id === you), st.type, k) + '</b> (build it again here)' : ''}</div></div></div>`;
     }
+    if (t.bridge && t.owner === you && canCommand() && (isMyTurn() || planning())) h += `<button class="btn tiny blue hp-rot" id="hpRotate" title="Turn the bridge to face another way (free)">↻ ROTATE BRIDGE · R</button>`;
     if (t.owner === you && !t.bridge && E.structsOf(t).length < E.MAX_STRUCTS && canCommand()) h += `<div class="hp-sec">${E.MAX_STRUCTS - E.structsOf(t).length} building slot${E.MAX_STRUCTS - E.structsOf(t).length === 1 ? '' : 's'} free on this hex</div>`;
     const units = Object.values(ds.units).filter(u => u.hex === k);
     if (units.length) {
@@ -1305,6 +1307,7 @@
     }
     if (t.owner === you && !t.struct && canCommand()) h += '<div class="hp-sec">Build here with the hotbar · keys Z–M</div>';
     box.innerHTML = h;
+    { const rb = $('#hpRotate'); if (rb) rb.onclick = () => rotateBridge(k); }
     box.querySelectorAll('.urow[data-u]').forEach(r => r.onclick = () => {
       const id = +r.dataset.u, u = ds.units[id];
       if (!u || u.owner !== you || !E.canAct(ds, u) || !canCommand()) return;
@@ -1313,6 +1316,7 @@
     });
   }
 
+  function rotateBridge(k) { const t = k && dispState().map.tiles[k]; if (!t || !t.bridge || t.owner !== you) return false; SFX.click(); doAction({ a: 'rotateBridge', hex: k }); return true; }
   function cardEl(id, opts = {}) { return Cards.make(id, opts); }
 
   // ───────────── bars: unit deck (cards, keys 1-0), build bar (Z-M), tactic hand ─────────────
@@ -2128,6 +2132,7 @@
         }
         case 'tactic': if (ev.target) { follow(ev.target); await sleep(200); } await animTactic(ev); break;
         case 'undo': if (ev.pid === you) toast('↶ Undone'); break;
+        case 'bridgeRot': { const tt = S.map.tiles[ev.hex]; if (tt) tt.bridgeRot = ev.rot; Render.invalidate(); SFX.click(); break; }
         case 'overwatch': { for (const id of ev.units) if (S.units[id]) { S.units[id].ow = true; S.units[id].moved = true; } Render.ring(ev.hex, pColor(ev.pid), 45, 0.6, 3); if (ev.pid === you) toast('🎯 On overwatch: they will fire on enemies that stop next to them'); break; }
         case 'airdrop': {
           // a crate parachutes in: everyone sees it

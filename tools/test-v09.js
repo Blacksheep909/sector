@@ -203,6 +203,31 @@ const idle = (s, pid) => s.players.find(p => p.id !== pid && p.id !== me(s).id) 
   }
   ok(tries > 0 && got === tries, 'bots grab supply drops in reach (' + got + '/' + tries + ')');
 }
+{ // bridges can be turned by their owner, through all three axes and back
+  const s = game({ fog: 'off' }); if (s.turn.stage === 'choose') E.applyAction(s, me(s).id, { a: 'choose', pick: 'income' });
+  const p = me(s), foe = s.players.find(x => x.id !== p.id), T = s.map.tiles;
+  const k = Object.keys(T).find(k => E.isWater(T[k])); Object.assign(T[k], { bridge: true, owner: p.id, structs: [{ type: 'bridge', owner: p.id, lvl: 1 }] });
+  const rots = []; for (let i = 0; i < 3; i++) { const r = E.applyAction(s, p.id, { a: 'rotateBridge', hex: k }); rots.push(r.ok ? T[k].bridgeRot : 'x'); }
+  ok(rots.join() === '1,2,0', 'rotating cycles the three axes (' + rots.join() + ')');
+  T[k].owner = foe.id;
+  ok(!E.applyAction(s, p.id, { a: 'rotateBridge', hex: k }).ok, "you can't turn someone else's bridge");
+}
+{ // abandoned FOBs: no fight, drive in and the base is yours
+  const s = game({ fog: 'off' }); if (s.turn.stage === 'choose') E.applyAction(s, me(s).id, { a: 'choose', pick: 'income' });
+  const p = me(s), idx = E.buildIndex(s), T = s.map.tiles;
+  const u = Object.values(s.units).find(u => u.owner === p.id && E.canAct(s, u) && !E.isSea(u.type));
+  const r = E.reachable(s, p.id, [u.id], u.hex, idx);
+  const k = Object.keys(r).find(k => r[k].kind === 'move' && !(idx[k] || []).length && !E.structsOf(T[k]).length);
+  ok(!!k, 'found a hex for the ruin');
+  if (k) {
+    Object.assign(T[k], { owner: null, poi: 'fort', structs: [], struct: null }); delete T[k].gar;
+    const r2 = E.reachable(s, p.id, [u.id], u.hex)[k];
+    ok(r2 && r2.kind !== 'attack', 'driving onto an abandoned FOB is a move, not a fight');
+    const res = E.applyAction(s, p.id, { a: 'move', from: u.hex, units: [u.id], to: k });
+    const fob = E.structsOf(T[k]).find(x => x.type === 'fob');
+    ok(res.ok && T[k].owner === p.id && fob && fob.owner === p.id && !T[k].poi, 'it becomes your FOB');
+  }
+}
 { // bots play with all of this switched on, to the end
   const s = game({ mapSize: 'small', maxRounds: 10 }, 3); s.players.forEach(p => { p.bot = true; });
   let n = 0;

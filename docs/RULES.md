@@ -161,7 +161,7 @@ Maps have climate. It's colder toward the top and bottom edges and hotter in the
 - **Ruins.** The first unit to pass through loots $4–10.
 - **Supply cache.** The first unit to pass through finds a tactic card (common 40%, uncommon 35%, rare 18%, epic 6%, legendary 1%).
 - **Village.** Neutral town with a militia of 3–9 chips (+1 mult, +2 from 7 chips). Conquer it for **+$2 every turn**. The pips under its marker show how strong it is.
-- **Old fort.** Garrisoned ruin (3–8 chips) with a ★ to ★★★ Bunker. Take it and the bunker is yours.
+- **Abandoned FOB.** A war-torn forward base nobody holds, with no garrison. Drive a unit onto it and it becomes your ★ FOB (a deploy point and supply source, online next turn).
 - **Ancient relic.** **+$3 every turn** while you hold it. Relics sit as far from every HQ as possible.
 
 ## Moving

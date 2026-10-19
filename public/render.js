@@ -456,10 +456,19 @@ const Render = (() => {
     const nb = E.neighbors(k).filter(n => tiles[n] && (tile.river ? bank(n) : E.TERRAIN[tiles[n].t].land));
     let a = null, b = null, best = -1;
     for (const p of nb) for (const q of nb) { const d = E.dist(p, q); if (d > best) { best = d; a = p; b = q; } }
-    if (!a || !b || !tc[a] || !tc[b] || !tc[k]) return;
+    // the owner can turn it: step from the automatic axis to the next of the hex's three axes
+    const [q0, r0] = E.parse(k), axisOf = n => { if (!n) return 0; const [q1, r1] = E.parse(n); const i = E.DIRS.findIndex(d => d[0] === q1 - q0 && d[1] === r1 - r0); return i < 0 ? 0 : i % 3; };
+    if (tile.bridgeRot || !a || !b || best < 2) {
+      const ax = (axisOf(best >= 2 ? a : null) + (tile.bridgeRot || 0)) % 3;
+      a = (q0 + E.DIRS[ax][0]) + ',' + (r0 + E.DIRS[ax][1]); b = (q0 + E.DIRS[ax + 3][0]) + ',' + (r0 + E.DIRS[ax + 3][1]);
+    }
+    if (!tc[k]) return;
+    // a span pointing off the map still needs ends: mirror the hex centre
+    const end = n => tc[n] || { wx: 2 * tc[k].wx - (tc[n === a ? b : a] || tc[k]).wx, wy: 2 * tc[k].wy - (tc[n === a ? b : a] || tc[k]).wy };
+    if (!tc[a] && !tc[b]) return;
     const c0 = tc[k], sc = S / 34;
     // deck ends sit on the hex edges toward each shore, in world space
-    const e1 = [(c0.wx + tc[a].wx) / 2, (c0.wy + tc[a].wy) / 2], e2 = [(c0.wx + tc[b].wx) / 2, (c0.wy + tc[b].wy) / 2];
+    const ea = end(a), eb = end(b), e1 = [(c0.wx + ea.wx) / 2, (c0.wy + ea.wy) / 2], e2 = [(c0.wx + eb.wx) / 2, (c0.wy + eb.wy) / 2];
     const dx = e2[0] - e1[0], dy = e2[1] - e1[1], L = Math.hypot(dx, dy) || 1, nx = -dy / L * S * 0.2, ny = dx / L * S * 0.2;
     const waterH = c0.h * sc, deckH = waterH + 9, thick = 3.2;
     const P = (wx, wy, h) => { const [x, y] = toScreen(wx, wy); return [x, y - h * z]; };
