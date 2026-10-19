@@ -1987,6 +1987,19 @@
       }
       return { ok: true, events: ev };
     }
+    if (a.a === 'donate') {
+      // hand a stack to an ally: it becomes theirs (ready on their turn)
+      const to = player(s, a.to); if (!to || !to.alive || !isAlly(s, pid, a.to)) return fail('You can only give troops to an ally');
+      const units = (a.units || []).map(id => s.units[id]);
+      if (!units.length || units.some(u => !u || u.owner !== pid || u.hex !== a.from)) return fail('Invalid units');
+      const here = Object.values(s.units).filter(u => u.hex === a.from && u.owner !== pid);
+      if (here.length && here[0].owner !== a.to) return fail('Another commander is on that hex');
+      units.forEach(u => { u.owner = a.to; u.moved = true; u.fresh = false; u.dug = false; });
+      ev.push({ e: 'donate', pid, to: a.to, hex: a.from, units: units.map(u => u.id) });
+      pushLog(s, '🎁 ' + p.name + ' gave ' + units.length + ' unit' + (units.length > 1 ? 's' : '') + ' to ' + to.name + '.');
+      addMood(s, a.to, pid, 6 + 2 * units.length);
+      return { ok: true, events: ev };
+    }
     if (a.a === 'digin') {
       // dig in: the stack gives up its move for +1 defence Mult until it moves again
       const units = (a.units || []).map(id => s.units[id]);

@@ -88,6 +88,15 @@ const idle = (s, pid) => s.players.find(p => p.id !== pid && p.id !== me(s).id) 
   for (let i = 0; i < 4 && s.units.g; i++) { const id = me(s).id; if (s.turn.stage === 'choose') E.applyAction(s, id, { a: 'choose', pick: 'income' }); E.applyAction(s, id, { a: 'end' }); }
   ok(!s.units.g, 'troops left in old allied land are lost when the pact ends');
 }
+{ // troop donations: only to allies, and the stack changes hands
+  const s = game({}, 3); const p = me(s), o = s.players.find(q => q.id !== p.id), x = s.players.find(q => q.id !== p.id && q.id !== o.id);
+  E.applyAction(s, p.id, { a: 'choose', pick: 'income' });
+  const ids = Object.values(s.units).filter(u => u.owner === p.id && u.hex === p.hq).map(u => u.id);
+  ok(!E.applyAction(s, p.id, { a: 'donate', from: p.hq, units: ids, to: x.id }).ok, 'cannot give troops to a non-ally');
+  E.applyAction(s, p.id, { a: 'allyOffer', to: o.id }); E.applyAction(s, o.id, { a: 'allyReply', accept: true });
+  const r = E.applyAction(s, p.id, { a: 'donate', from: p.hq, units: ids, to: o.id });
+  ok(r.ok && ids.every(id => s.units[id].owner === o.id && s.units[id].moved), 'an ally receives the stack');
+}
 { // bots play with all of this switched on, to the end
   const s = game({ mapSize: 'small', maxRounds: 10 }, 3); s.players.forEach(p => { p.bot = true; });
   let n = 0;

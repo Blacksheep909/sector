@@ -2,6 +2,18 @@
 
 Every release, newest first. Each version also has its own post on the [Releases page](https://github.com/Blacksheep909/sector/releases).
 
+## v0.9.3
+
+**Plan with your allies, and lend them troops.**
+
+- **🗺 Ally war room:** press **Alt** to switch the war-room view on and off (it's a toggle now, not hold-to-see). In it you can:
+  - drag from one hex to another to draw an arrow
+  - click a hex to circle it
+  - right-click to erase your marks there
+
+  Only you and your allies can see the marks, and only in this view. Use it to plan pincers, call targets and mark danger while you wait.
+- **🎁 Troop donations:** on your turn, select a stack and press **GIVE** on an ally's name card. The stack becomes theirs, ready to act on their turn, and bots like you more for it.
+
 ## v0.9.2
 
 **Quick decisions are quick, and bombing in the fog behaves.**

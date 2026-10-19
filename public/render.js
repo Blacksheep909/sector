@@ -801,6 +801,16 @@ const Render = (() => {
     for (const kk in moving) { const m = moving[kk]; const [x, y] = toScreen(m.p.x, m.p.y); drawToken(x, y, m.units, m.owner, z, { scale: m.p.s || 1 }); }
   }
 
+  // ally war-room marks: arrows and circles, only in the Alt view
+  function drawNotes() {
+    const z = cam.z, all = (ov.notes || []).concat(ov.notePreview ? [ov.notePreview] : []);
+    for (const n of all) {
+      if (n.type === 'circle') {
+        const [x, y] = screenOf(n.a); ctx.save(); ctx.strokeStyle = n.color; ctx.lineWidth = 4 * z; ctx.setLineDash([8 * z, 5 * z]);
+        ctx.beginPath(); ctx.ellipse(x, y, 30 * z, 18 * z, 0, 0, Math.PI * 2); ctx.stroke(); ctx.restore();
+      } else drawPath([n.a, n.b], n.color, false, 0.95);
+    }
+  }
   function drawPath(path, color, dashed, alpha = 1) {
     if (!path || path.length < 2) return;
     const z = cam.z;
@@ -991,6 +1001,7 @@ const Render = (() => {
       ctx.fillStyle = 'rgba(6,10,16,.74)'; ctx.fillRect(-sx - 20, -sy - 20, W + 40, H + 40);
     }
     drawUnits();
+    if (ov.troops) drawNotes();
     const p3 = performance.now();
     drawAir();
     if (ov.planGhost) for (const g of ov.planGhost) { const [x, y] = screenOf(g.hex); if (g.units) drawToken(x, y, g.units, g.owner, cam.z, { ghost: true }); if (g.struct) { ctx.save(); ctx.globalAlpha = 0.5; Art.drawIcon(ctx, 'struct', g.struct, x, y - 12 * cam.z, 10 * cam.z, '#fff'); ctx.restore(); } }

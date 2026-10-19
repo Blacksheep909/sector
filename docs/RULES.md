@@ -295,6 +295,8 @@ You're never just watching:
 - **Diplomacy and trades** work any time, not just on your turn.
 - **Intel ops** (fog of war): $2 to scout a 2-hex area anywhere until the end of next round, twice per round (`I`).
 - **Pings and emotes** from the bar above the chat.
+- **War room.** In the Alt view, draw arrows and circles on the map that only you and your allies can see.
+- **Troop donations.** On your turn, select a stack and press **GIVE** on an ally's name card to hand it over.
 
 ## Blueprint
 
@@ -327,7 +329,7 @@ While others play, queue moves, deploys and builds. The preview shows exactly wh
 | `Z`–`M` | Build |
 | `Space` | Flip the next card · throw your die · skip the animation playing (never ends your turn) |
 | Click a flipping card | Finish its reveal at once; quick clicks flip the rest at triple speed |
-| Hold `Alt` | Troops-only view: the board fades out and every stack shows its total attack and defence |
+| `Alt` (toggle) | War-room view: the board fades out, every stack shows its total attack and defence, and you can draw arrows (drag) and circles (click) that only your allies see; right-click erases |
 | Crate (Supply Drop) | Click or `Space` to burst it open |
 | `F` | Jump to your HQ |
 | `Tab` / `Shift+Tab` / `E` | Select the next stack that can still act |

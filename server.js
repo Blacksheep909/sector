@@ -194,7 +194,18 @@ let fogMem = {};   // fog of war: what each commander has explored and last seen
 const fogFor = seat => seat ? (fogMem[seat] = fogMem[seat] || { explored: new Set(), seen: {} }) : null;
 function broadcastState(events, by, seq) {
   if (game && game.players[game.turn.idx] && game.players[game.turn.idx].id !== undoStack.owner) undoStack.length = 0;
+  setTimeout(sendNotes, 0);   // alliances may have changed who sees whose war-room marks
   for (const c of clients) { if (c.left) continue; const seat = seatFor(c); send(c, { t: 'state', state: E.view(game, seat, fogFor(seat)), events: filterEvents(events, seat), by, seq, seat, mine: controls(c, by), undo: undoStack.owner === seat ? undoStack.length : 0, timeLeft: game && game.turn.deadline ? Math.max(0, game.turn.deadline - (game.turn.pausedAt || Date.now())) : 0, paused: !!(game && game.turn.pausedAt) }); }
+}
+// ally war room: arrows and circles each commander draws on the map, shown only to them and their allies
+const warNotes = {};
+function sendNotes() {
+  if (!game) return;
+  for (const c of clients) {
+    if (c.left) continue; const seat = seatFor(c); if (!seat) { send(c, { t: 'notes', notes: [] }); continue; }
+    const notes = Object.keys(warNotes).filter(pid => pid === seat || E.isAlly(game, seat, pid)).map(pid => ({ pid, shapes: warNotes[pid] }));
+    send(c, { t: 'notes', notes });
+  }
 }
 function filterEvents(events, pid) {
   let out = events.map(e => (e.e === 'card' && e.pid !== pid && e.kind === 'tactic' && e.rarity !== 'legendary') ? { ...e, id: null } : e);
@@ -379,6 +390,16 @@ function onMessage(c, m) {
       broadcastState([{ e: 'undo', pid: cur.id }], cur.id, m.seq);
       return afterChange();
     }
+    case 'draw': {
+      // war-room marks: add an arrow/circle, remove marks touching a hex, or clear all of yours
+      if (!game || !c.pid) return;
+      const pid = m.as && controls(c, m.as) ? m.as : c.pid; const list = warNotes[pid] = warNotes[pid] || [];
+      if (m.op === 'add' && m.shape && ['arrow', 'circle'].includes(m.shape.type) && game.map.tiles[m.shape.a] && (m.shape.type === 'circle' || game.map.tiles[m.shape.b])) {
+        list.push({ type: m.shape.type, a: m.shape.a, b: m.shape.type === 'arrow' ? m.shape.b : null }); if (list.length > 40) list.shift();
+      } else if (m.op === 'remove') warNotes[pid] = list.filter(sh => sh.a !== m.hex && sh.b !== m.hex);
+      else if (m.op === 'clear') warNotes[pid] = [];
+      return sendNotes();
+    }
     case 'react': {
       if (!pendingReact || !controls(c, pendingReact.defPid)) return;
       return closeReaction(m.uid == null ? null : m.uid);
@@ -462,6 +483,7 @@ function pick(o, keys) { const r = {}; for (const k of keys) if (o && k in o) r[
 
 function endGame() {
   console.log('[game] returned to lobby');
+  for (const k in warNotes) delete warNotes[k];
   game = null; clearTimeout(botTimer); clearTimeout(turnTimer); clearTimeout(idleTimer);
   for (const p of lobby.players) p.ready = false;   // everyone readies up again for the next war
   for (const c of clients) send(c, { t: 'state', state: null, events: [] });
