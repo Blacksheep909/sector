@@ -2037,7 +2037,8 @@
         case 'eliminate': {
           const p = S.players.find(x => x.id === ev.pid);
           SFX.alarm(); Render.flash(0.5, '#ff2030'); Render.shake(22);
-          banner(p.name.toUpperCase() + ' HAS FALLEN', ev.by ? 'conquered by ' + pName(ev.by) : '', '#b52b38');
+          banner(p.name.toUpperCase() + ' HAS FALLEN', ev.by ? 'conquered by ' + pName(ev.by) + (ev.plunder ? ' · +$' + ev.plunder + ' plunder' + (ev.cards ? ' + ' + ev.cards + ' card' + (ev.cards > 1 ? 's' : '') : '') : '') : '', '#b52b38');
+          if (ev.by === you && ev.plunder) { toast(`💰 Spoils of war: +$${ev.plunder}${ev.cards ? ' and ' + ev.cards + ' of their cards' : ''}`, 'good'); SFX.coin(8); }
           killUnits(ev.units.filter(id => S.units[id]), true);
           const hexes = ev.hexes.slice().sort((a, b) => E.dist(a, ev.hq) - E.dist(b, ev.hq));
           const taken = new Set(ev.taken || (ev.by ? hexes : []));

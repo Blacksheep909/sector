@@ -2,6 +2,19 @@
 
 Every release, newest first. Each version also has its own post on the [Releases page](https://github.com/Blacksheep909/sector/releases).
 
+## v0.9.8
+
+**Taking out a rival pays like it should.**
+
+- **💰 Spoils of war scale with the game:** eliminating a commander used to pay a flat $10. Now the conqueror gets all of this, on top of the heartland:
+  - $10 plus $2 per round played
+  - the fallen commander's whole treasury
+  - one turn of their income
+  - up to 2 of their tactic cards
+
+  The later the war, the bigger the prize. In testing, a round-20 elimination paid about $86 plus 2 cards.
+- The fall banner and the log show what you plundered.
+
 ## v0.9.7
 
 **See your friends' land, and tidier bridges.**

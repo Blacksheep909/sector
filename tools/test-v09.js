@@ -143,7 +143,7 @@ const idle = (s, pid) => s.players.find(p => p.id !== pid && p.id !== me(s).id) 
     const d = s.drops[0]; const p = me(s); if (s.turn.stage === 'choose') E.applyAction(s, p.id, { a: 'choose', pick: 'income' });
     const from = E.neighbors(d.hex).find(n => s.map.tiles[n] && E.isLandTile(s.map.tiles[n]) && s.map.tiles[n].t !== 'mountain' && !Object.values(s.units).some(u => u.hex === n));
     if (from) {
-      s.units.dr = { id: 'dr', type: 'skitter', owner: p.id, hex: from, moved: false, fresh: false };
+      s.units.dr = { id: 'dr', type: 'grunt', owner: p.id, hex: from, moved: false, fresh: false };   // infantry: drops can land on rivers
       const cash = p.cash, cards = p.tactics.length;
       const r = E.applyAction(s, p.id, { a: 'move', from, units: ['dr'], to: d.hex });
       ok(r.ok && !s.drops.some(x => x.hex === d.hex) && (p.cash > cash || p.tactics.length > cards), 'the first unit there claims the drop');
