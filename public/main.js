@@ -1551,7 +1551,9 @@
     const bon = b => b.filter(x => !x.note).map(x => `${x.label} ${x.chips ? '+' + x.chips + 'c' : (x.mult > 0 ? '+' : '') + x.mult + 'x'}`).join(', ');
     return `<b>${title}</b> <span class="odds" style="color:${col}">${Math.round(c.winProb * 100)}%</span><br>` +
       `You: <span style="color:var(--chips)">${c.att.chips}</span> × (d6<span style="color:var(--mult)">${c.att.mult ? '+' + c.att.mult : ''}</span>)` + (c.att.bonuses.length ? `<div class="sub">${bon(c.att.bonuses)}</div>` : '') +
-      `Them: <span style="color:var(--chips)">${c.def.chips}</span> × (d6<span style="color:var(--mult)">${c.def.mult ? '+' + c.def.mult : ''}</span>)` + (c.def.bonuses.length ? `<div class="sub">${bon(c.def.bonuses)}</div>` : '');
+      `${c.def.pid ? `<b style="color:${pColor(c.def.pid)}">${esc(pName(c.def.pid))}</b>` : 'Them'}: <span style="color:var(--chips)">${c.def.chips}</span> × (d6<span style="color:var(--mult)">${c.def.mult ? '+' + c.def.mult : ''}</span>)` + (c.def.bonuses.length ? `<div class="sub">${bon(c.def.bonuses)}</div>` : '') +
+      // say plainly who this hits, and that it means war with them
+      (c.def.pid && c.def.pid !== you ? `<div class="sub" style="color:#ff9aa3">⚔ An attack on ${esc(pName(c.def.pid))} — you are not allied</div>` : '');
   }
   function hideTip() { document.querySelectorAll('.slot.k-build .sc[data-base]').forEach(e => { e.textContent = e.dataset.base; delete e.dataset.base; e.classList.remove('upg'); }); $('#tooltip').hidden = true; }
 
