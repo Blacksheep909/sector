@@ -582,6 +582,15 @@ const Art = (() => {
       c.save(); c.globalAlpha *= 0.7; for (let i = 0; i < 4; i++) { rr(c, -0.03, -1.0 - i * 0.0, 0.06, 0.08, 0.02); } c.restore();
       c.save(); c.fillStyle = 'rgba(0,0,0,.35)'; c.beginPath(); c.ellipse(0, -0.55, 0.06, 0.13, 0, 0, P * 2); c.fill(); c.restore();
     },
+    strategic(c) { // B-52 stream from above, bombs falling in a line
+      c.save(); c.translate(0, -0.25); c.scale(0.8, 0.8);
+      c.beginPath(); c.moveTo(0, -0.9); c.quadraticCurveTo(0.12, -0.85, 0.11, -0.6); c.lineTo(0.09, 0.6); c.lineTo(-0.09, 0.6); c.lineTo(-0.11, -0.6); c.quadraticCurveTo(-0.12, -0.85, 0, -0.9); c.fill();
+      poly(c, [0, -0.35, 1.1, 0.2, 1.1, 0.3, 0, 0.0, -1.1, 0.3, -1.1, 0.2]); c.fill();
+      for (const x of [-0.75, -0.45, 0.45, 0.75]) { rr(c, x - 0.05, -0.05 + Math.abs(x) * 0.42 - 0.2, 0.1, 0.28, 0.04); c.fill(); }
+      poly(c, [-0.35, 0.55, 0.35, 0.55, 0.3, 0.66, -0.3, 0.66]); c.fill();
+      c.restore();
+      for (let i = 0; i < 5; i++) { c.save(); c.translate(-0.6 + i * 0.3, 0.55 + (i % 2) * 0.12); rr(c, -0.05, -0.1, 0.1, 0.22, 0.05); c.fill(); poly(c, [-0.08, -0.12, 0.08, -0.12, 0, -0.02]); c.fill(); c.restore(); }
+    },
     precision(c) { // guided bomb on a crosshair
       c.lineWidth = 0.08; c.strokeStyle = c.fillStyle; c.beginPath(); c.arc(0, 0, 0.78, 0, P * 2); c.stroke();
       for (const [x, y, w, h] of [[-0.04, -1, 0.08, 0.35], [-0.04, 0.65, 0.08, 0.35], [-1, -0.04, 0.35, 0.08], [0.65, -0.04, 0.35, 0.08]]) { c.fillRect(x, y, w, h); }

@@ -2,6 +2,20 @@
 
 Every release, newest first. Each version also has its own post on the [Releases page](https://github.com/Blacksheep909/sector/releases).
 
+## v0.8.2
+
+**Economic warfare: bomb the factories, not just the troops.**
+
+- **💣 Strategic Bombing** (new Rare card, B-52): bombers hit an enemy hex within 6 of your land and all its neighbours. Every Warehouse, Refinery, Depot and Port there loses a level (★ buildings and Ports are destroyed), and that land is **bombed out**: it pays nothing for its owner's next 2 turns. Supply still runs through it.
+- **Strikes hit buildings:** Gun Run, Airstrike and Precision Strike can now target an enemy hex with economic buildings and no troops.
+  - Gun Run knocks off a level.
+  - Airstrike knocks off 1–2 levels.
+  - Precision Strike destroys a building outright.
+  - Defended hexes still take the hit on their troops.
+- **🎯 Artillery and warships shell undefended buildings** in range: every salvo knocks a level off the most valuable one.
+- **Bombed-out land** is scorched on the map. Its tooltip and your income line show how long it stays bombed out.
+- **Bots wage economic war too:** they shell undefended Warehouses and Refineries, and send the bombers over their rivals' richest land.
+
 ## v0.8.1
 
 **A HUD where nothing overlaps, livelier natural maps, and a stronger Quarry Blast.**

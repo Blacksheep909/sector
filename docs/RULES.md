@@ -133,6 +133,11 @@ $3 base
 
 **Roads** link your buildings back to your HQ through your own land. They're for show: they break where land is captured or cut off, so you can read your supply network at a glance.
 
+**Economic warfare.** You can wreck a rival's economy without fighting their troops:
+- **Gun Run, Airstrike and Precision Strike** can target an enemy hex that has economic buildings (Warehouse, Refinery, Depot, Port) and no troops. Gun Run knocks a level off, Airstrike 1–2 levels, and Precision Strike destroys a building outright. A ★ building, or a Port, is destroyed when it loses its last level.
+- **Artillery and warships** can shell undefended economic buildings in range: each salvo knocks off a level.
+- **Strategic Bombing** (Rare) hits a hex and its neighbours: their economic buildings lose a level, and that land is **bombed out**, paying nothing for its owner's next 2 turns (supply still runs through it).
+
 **Supply:** a hex pays only if it connects through your own territory to your HQ or a Port. A **FOB only works while it's connected** that way too: a cut-off FOB is no deploy point and supplies nothing, and you can only build a FOB on supplied land. Owned sea counts as territory, so sea lanes carry supply to your islands. Cut-off hexes are hatched on the map and pay nothing.
 
 ## The land

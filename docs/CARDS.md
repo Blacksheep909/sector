@@ -49,13 +49,14 @@ Single-use cards from your hand.
 | **Rally** | Common | $1 | Your next attack this turn gets +2 Mult. |
 | **Fortify** | Common | $2 | Build or upgrade a Bunker on one of your hexes for free (on your HQ hex it fortifies the HQ instead). |
 | **Conscription** | Common | $1 | Deploy 2 free Grunts at a deploy point. |
-| **Gun Run** | Common | $2 | A low-flying attack jet strafes enemy units within 3 of your land. Roll 3+: destroys 1 unit. |
-| **Airstrike** | Uncommon | $4 | Bomb enemy units within 4 of your land. Roll: kills 1–3. |
+| **Gun Run** | Common | $2 | Attack jet, within 3 of your land. Troops: roll 3+ kills 1. Undefended buildings: knocks a level off one. |
+| **Airstrike** | Uncommon | $4 | Bomb a hex within 4 of your land. Troops: roll to kill 1–3. Undefended buildings: knocks 1–2 levels off them. |
 | **Heli Drop** | Uncommon | $3 | Fly a stack up to 5 hexes onto any empty land and seize it. |
 | **Sabotage** | Uncommon | $3 | Destroy an enemy structure (or bridge) within 3 of your land. |
 | **Embargo** | Uncommon | $3 | Click any enemy territory: that commander earns half income for their next 2 turns and cannot trade. |
 | **Bounty** | Uncommon | $1 | This turn, every enemy unit you destroy pays a fifth of your income (min $2). |
-| **Precision Strike** | Rare | $5 | Guided bomb within 5 of your land: always kills the strongest enemy unit (2 on a 5+). Ignores Flak. |
+| **Precision Strike** | Rare | $5 | Guided bomb within 5 of your land, ignores Flak. Kills the strongest unit (2 on a 5+), or destroys a building. |
+| **Strategic Bombing** | Rare | $5 | Bombers hit an enemy hex within 6 and its neighbours: their economic buildings lose a level, and that land pays nothing for 2 turns. |
 | **Quarry Blast** | Rare | $3 | Blast a mountain within 3 of your land, and the mountain behind it, down into Highlands: a 2-hex pass. |
 | **War Bonds** | Rare | $0 | Gain $1 for every 2 hexes you own. |
 | **Blitz Doctrine** | Rare | $3 | This turn: all units +1 move, fresh units may act. |

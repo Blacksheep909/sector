@@ -1007,7 +1007,7 @@
     const inc = E.computeIncome(S, you);
     $('#incomeLine').innerHTML = `Income <b>+$${inc.total}</b> /turn` + (inc.pact ? ` · <span style="color:#7fe0a0">🤝 +$${inc.pact}</span>` : '') + (inc.traitor ? ` · <span style="color:#ff9aa3">🗡 traitor ${inc.traitor}</span>` : '') + (planning() ? ' · <span style="color:var(--blue)">blueprint view</span>' : '');
     $('#incomeLine').title = `Base $${inc.base} + $${inc.fromHex} land (${inc.hexes} hexes, 1 per 3) + $${inc.fromSea} sea (${inc.sea} hexes, 1 per 4) + $${inc.fromRes} resources/rigs + $${inc.fish || 0} fishing + $${inc.lanes || 0} shipping lanes + $${inc.ref} refineries + $${inc.ware || 0} warehouses + $${inc.poi || 0} villages/relics + $${inc.fromRiver || 0} river valleys (${inc.river || 0} river hexes, 1 per 3)` + (inc.taper ? ` − $${-inc.taper} building taper (over $8)` : '') + (inc.pact ? ` + $${inc.pact} alliance dividend` : '') + (inc.cap ? ` − $${-inc.cap} war-chest cap (over $50)` : '') + (inc.traitor ? ` − $${-inc.traitor} traitor penalty (${me.traitor} turn${me.traitor > 1 ? 's' : ''} left)` : '');
-    $('#hexLine').innerHTML = `⬢ ${inc.hexes} land · ≈ ${inc.sea} sea` + (inc.cut ? ` · <span style="color:#ff9aa3">${inc.cut} cut off</span>` : '');
+    $('#hexLine').innerHTML = `⬢ ${inc.hexes} land · ≈ ${inc.sea} sea` + (inc.cut ? ` · <span style="color:#ff9aa3">${inc.cut} cut off</span>` : '') + (inc.ruined ? ` · <span style="color:#ffb03a">💣 ${inc.ruined} bombed out</span>` : '');
 
   }
   function countCash(from, to) {
@@ -1043,6 +1043,7 @@
     if (t.smoke) tags.push('<span class="hp-tag">Smoke</span>');
     if (ds.map.beacon === k) tags.push('<span class="hp-tag" style="color:var(--gold)">◆ BEACON</span>');
     if (t.owner === you && !E.supplySet(ds, you).has(k)) tags.push('<span class="hp-tag cut">Cut off — no income</span>');
+    if (t.ruin) tags.push(`<span class="hp-tag cut">💣 Bombed out — no income for ${t.ruin} turn${t.ruin > 1 ? 's' : ''}</span>`);
     if (t.fog === 2) { box.innerHTML = '<div class="hp-title">Unexplored</div><div class="hp-own"><span class="sub">Send units or extend your borders to see what is here.</span></div>'; return; }
     let h = `<div class="hp-title">${t.contam ? 'Fallout Zone' : E.TERRAIN[t.t].name}</div><div class="hp-own">${owner ? `<span style="color:${owner.color}">■ ${esc(owner.name)}</span>` : '<span class="sub">Unclaimed</span>'}</div><div class="hp-tags">${tags.join('')}</div>`;
     if (t.poi && E.POI[t.poi] && !(t.poi === 'fort' && t.owner)) h += `<div class="urow" style="cursor:default"><img src="${Art.iconURL('poi', t.poi)}"><div class="un">${E.POI[t.poi].name}${t.gar && !t.owner ? ` <span class="hp-tag cut">garrison ${t.gar} chips${t.poi === 'village' ? ' · +' + (t.gar >= 7 ? 2 : 1) + ' mult' : ''}</span>` : ''}<div class="st">${E.POI[t.poi].desc}</div></div></div>`;
@@ -1836,6 +1837,13 @@
         }
         case 'tactic': if (ev.target) { follow(ev.target); await sleep(200); } await animTactic(ev); break;
         case 'undo': if (ev.pid === you) toast('↶ Undone'); break;
+        case 'shell': {
+          // artillery or warships shelling an undefended building
+          SFX.shot(); Render.beam(ev.from, ev.to, '#ffcf5a', 0.45 * speed(), 70); await sleep(420);
+          SFX.boom(0.8); Render.shake(6); infraHit(ev.to, ev.infra, ev.structs);
+          if (S.units) for (const id in S.units) { const u = S.units[id]; if (u.owner === ev.pid && u.hex === ev.from) u.moved = true; }
+          await sleep(250); break;
+        }
         case 'fogstop': if (ev.pid === you) { toast(ev.ambush ? '🌫 Ambush! Hidden enemies in the fog' : '🌫 The fog hid an obstacle: your troops stopped short', 'err'); Render.float(ev.hex, ev.ambush ? 'AMBUSH!' : 'STOPPED', '#cfe3ff', 16); } break;
         case 'razed': {
           Render.burst(ev.hex, ['#ffb03a', '#ff5a2a', '#8a8a8a', '#3a3a3a'], 40, { speed: 1.8, size: 4, up: 160 });
@@ -1924,6 +1932,15 @@
     if (ci >= 3) Render.float(last, ci + ' HEXES!', '#ffc53d', 20);
   }
 
+  // economic warfare: show what a strike or shell did to the buildings on a hex
+  function infraHit(k, infra, structs) {
+    const tt = S.map.tiles[k]; if (tt && structs) { tt.structs = structs; tt.struct = structs.find(x => x.type === 'hq') || structs.find(x => x.type === 'fob') || structs[0] || null; }
+    if (!infra || !infra.length) { Render.float(k, 'NO DAMAGE', '#cfd8df', 16); return; }
+    const txt = infra.map(h => E.STRUCTS[h.type].name.toUpperCase() + (h.to ? ' ' + '★'.repeat(h.from) + '→' + '★'.repeat(h.to) : ' DESTROYED')).join(' · ');
+    Render.float(k, txt, '#ffb03a', 16);
+    Render.burst(k, ['#ffb03a', '#8a8a8a', '#3a3a3a'], 30, { speed: 1.6, size: 4, up: 140 }); Render.smoke(k, 12, 'rgba(90,85,80,');
+    Render.invalidate && Render.invalidate();
+  }
   async function animTactic(ev) {
     const d = E.TACTICS[ev.id];
     const who = pName(ev.pid);
@@ -1943,6 +1960,16 @@
         Render.float(ev.target, ev.kills.length + ' DESTROYED', '#ff4f5e', 20); killUnits(ev.kills); await sleep(300); break;
       }
       case 'jackpot': SFX.coin(8); Render.flash(0.2, '#ffc53d'); break;
+      case 'strategic': {
+        // a bomber stream crosses the target area; every hex under it smokes and stops paying
+        SFX.whoosh(); SFX.alarm();
+        Render.flyover(ev.hexes.map(h => h.k).concat([ev.target]), { color: pColor(ev.pid), dur: 2.2, onBomb: () => { SFX.boom(0.8); Render.shake(10); } });
+        await sleep(1900);
+        for (const h of ev.hexes) { const tt = S.map.tiles[h.k]; if (tt) tt.ruin = 2; if (h.infra.length) infraHit(h.k, h.infra, h.structs); else { Render.burst(h.k, ['#ffb03a', '#5a5a5a'], 14, { up: 90 }); Render.smoke(h.k, 8, 'rgba(70,65,60,'); } }
+        Render.recolor(); Render.invalidate();
+        Render.float(ev.target, 'BOMBED OUT · NO INCOME 2 TURNS', '#ff8a5a', 18);
+        await sleep(500); break;
+      }
       case 'buster': {
         // a heavy bomber, a long fall, then the fortifications crumble
         SFX.whoosh(); Render.flyover([ev.target, ev.target], { color: pColor(ev.pid), dur: 1.9, onBomb: () => { SFX.boom(1); Render.shake(16); Render.flash(0.25, '#ffb03a'); } });
@@ -1958,7 +1985,8 @@
         { const [x, y] = Render.topOf(ev.target); const k1 = ev.target, sp = n => { const [q, r] = E.parse(k1); return E.key(q + n, r); };
           Render.flyover([k1, sp(-1), sp(1)].filter(k2 => S.map.tiles[k2]).slice(0, 1).concat([k1, k1]), { color: pColor(ev.pid), dur: 1.6, onBomb: () => { SFX.boom(0.7); Render.shake(9); } }); }
         await sleep(1500);
-        Render.float(ev.target, ev.kills.length ? ev.kills.length + ' DESTROYED' : 'MISSED', ev.kills.length ? '#ff4f5e' : '#cfd8df', 20);
+        if (ev.infra) infraHit(ev.target, ev.infra, ev.structs);
+        else Render.float(ev.target, ev.kills.length ? ev.kills.length + ' DESTROYED' : 'MISSED', ev.kills.length ? '#ff4f5e' : '#cfd8df', 20);
         killUnits(ev.kills); await sleep(300); break;
       }
       case 'heli': {
