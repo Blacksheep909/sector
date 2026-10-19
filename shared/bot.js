@@ -206,8 +206,10 @@ function botStep(s, pid, mem) {
     const ids = art.map(u => u.id);
     const targets = E.rangedTargets(s, pid, ids, k, idx);
     let best = null, bv = 0;
+    const walk = E.reachable(s, pid, ids, k, idx);
     for (const t of targets) {
-      if (!(idx[t] || []).length) { const v = E.infraValue(s, t) * 0.8; if (v > bv && v >= 3) { bv = v; best = t; } continue; }   // shell undefended buildings
+      // an empty enemy building we can just walk onto is better captured than shelled
+      if (!(idx[t] || []).length) { if (walk[t] && ['move', 'capture'].includes(walk[t].kind)) continue; const v = E.infraValue(s, t) * 0.8; if (v > bv && v >= 3) { bv = v; best = t; } continue; }   // shell undefended buildings
       const c = E.combatCalc(s, pid, art, k, t, true, idx);
       const v = c.winProb * stackValue(idx[t]);
       if (c.winProb > 0.4 && v > bv) { bv = v; best = t; }
