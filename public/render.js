@@ -262,11 +262,14 @@ const Render = (() => {
     if (ov.spawn && ov.spawn.has(k)) return true;
     if (ov.targets && ov.targets.has(k)) return true;
     if (ov.fire && ov.fire.has(k)) return true;
+    if (ov.planTiles && ov.planTiles.has(k)) return true;
     if (ov.selectedExtra && ov.selectedExtra.includes(k)) return true;
     const r = ov.reach && ov.reach[k]; return !!(r && r.kind !== 'start' && r.kind !== 'pass');
   }
   function drawOverlays(k, cx, cy, s, z) {
     const pulse = 0.5 + 0.5 * Math.sin(t * 5);
+    // land the blueprint will take: a light-blue wash with a dashed edge
+    if (ov.planTiles && ov.planTiles.has(k)) { hexPath(cx, cy, s * 0.9); ctx.fillStyle = 'rgba(143,220,255,.22)'; ctx.fill(); ctx.strokeStyle = 'rgba(143,220,255,.8)'; ctx.lineWidth = 2 * z; ctx.setLineDash([5 * z, 4 * z]); ctx.stroke(); ctx.setLineDash([]); }
     if (ov.spawn && ov.spawn.has(k)) { hexPath(cx, cy, s * 0.86); ctx.fillStyle = `rgba(120,255,170,${0.18 + pulse * 0.2})`; ctx.fill(); ctx.strokeStyle = '#8affb8'; ctx.lineWidth = 2 * z; ctx.setLineDash([5 * z, 4 * z]); ctx.lineDashOffset = -t * 20; ctx.stroke(); ctx.setLineDash([]); }
     if (ov.targets && ov.targets.has(k)) { hexPath(cx, cy, s * 0.86); ctx.fillStyle = `rgba(255,190,60,${0.16 + pulse * 0.2})`; ctx.fill(); ctx.strokeStyle = '#ffcf5a'; ctx.lineWidth = 2 * z; ctx.setLineDash([5 * z, 4 * z]); ctx.lineDashOffset = -t * 20; ctx.stroke(); ctx.setLineDash([]); }
     if (ov.reach) {
@@ -726,11 +729,16 @@ const Render = (() => {
   // ── units ──
   function unitStacks() {
     const stacks = {};
-    for (const id in S_.units) { const u = S_.units[id]; if (unitHidden.has(u.id) || unitPos[u.id]) continue; (stacks[u.hex] || (stacks[u.hex] = [])).push(u); }
+    for (const id in S_.units) { const u = S_.units[id]; if (unitHidden.has(u.id) || unitPos[u.id] || (ov.planMoved && ov.planMoved.has(u.id))) continue; (stacks[u.hex] || (stacks[u.hex] = [])).push(u); }
     return stacks;
   }
   function strongest(units) { return units.slice().sort((a, b) => E.UNITS[b.type].cost - E.UNITS[a.type].cost)[0]; }
 
+  // queued in the blueprint: a light-blue dashed ring under the stack
+  function planRing(x, y, z) {
+    ctx.save(); ctx.strokeStyle = '#8fdcff'; ctx.lineWidth = 2.5 * z; ctx.setLineDash([5 * z, 4 * z]); ctx.lineDashOffset = -t * 20;
+    ctx.beginPath(); ctx.ellipse(x, y + 2 * z, 21 * z, 9 * z, 0, 0, Math.PI * 2); ctx.stroke(); ctx.restore();
+  }
   // stack token: a team-coloured shield plate with a bold silhouette and a count
   function drawToken(x, y, units, owner, z, opts = {}) {
     const p = S_.players.find(pl => pl.id === owner); const col = p ? p.color : '#aaa';
@@ -824,7 +832,7 @@ const Render = (() => {
       const [wx, wy] = topOf(st.k); const [x, y] = toScreen(wx, wy);
       const hasStruct = S_.map.tiles[st.k] && S_.map.tiles[st.k].struct;
       const own = st.units[0].owner === ov.me;
-      const ready = own && ov.myTurn && st.units.some(u => E.canAct(S_, u) && (E.moveAllow(S_, u) > 0 || E.UNITS[u.type].range));
+      const ready = own && ov.myTurn && (ov.planReady ? st.units.some(u => ov.planReady.has(u.id)) : st.units.some(u => E.canAct(S_, u) && (E.moveAllow(S_, u) > 0 || E.UNITS[u.type].range)));
       const exhausted = own && ov.myTurn && !ready;
       if (ov.troops) {
         // troops view: owner halo plus the stack's total attack / defence
@@ -840,12 +848,9 @@ const Render = (() => {
         continue;
       }
       const planned = own && ov.planHexes && ov.planHexes.has(st.k);
-      if (planned) {
-        // queued in the blueprint: a light-blue dashed ring under the stack
-        ctx.save(); ctx.strokeStyle = '#8fdcff'; ctx.lineWidth = 2.5 * z; ctx.setLineDash([5 * z, 4 * z]); ctx.lineDashOffset = -t * 20;
-        ctx.beginPath(); ctx.ellipse(x, y + 2 * z, 21 * z, 9 * z, 0, 0, Math.PI * 2); ctx.stroke(); ctx.restore();
-      }
-      drawToken(x + (hasStruct ? 12 * z : 0), y + (hasStruct ? 6 * z : 0), st.units, st.units[0].owner, z, { ready, exhausted: exhausted && !planned, planned });
+      const tx = x + (hasStruct ? 12 * z : 0), ty = y + (hasStruct ? 6 * z : 0);
+      if (planned) planRing(tx, ty, z);
+      drawToken(tx, ty, st.units, st.units[0].owner, z, { ready, exhausted: exhausted && !planned, planned });
     }
     // animated units
     const moving = {};
@@ -1071,7 +1076,16 @@ const Render = (() => {
     if (ov.troops) drawNotes();
     const p3 = performance.now();
     drawAir();
-    if (ov.planGhost) for (const g of ov.planGhost) { const [x, y] = screenOf(g.hex); if (g.units) drawToken(x, y, g.units, g.owner, cam.z, { ghost: true }); if (g.struct) { ctx.save(); ctx.globalAlpha = 0.5; Art.drawIcon(ctx, 'struct', g.struct, x, y - 12 * cam.z, 10 * cam.z, '#fff'); ctx.restore(); } }
+    // blueprint ghosts: stacks where the queued orders put them, and buildings the queue will raise
+    if (ov.planGhost) for (const g of ov.planGhost.slice().sort((a, b) => (tc[a.hex] ? tc[a.hex].wy : 0) - (tc[b.hex] ? tc[b.hex].wy : 0))) {
+      if (!tc[g.hex]) continue;
+      const z = cam.z, [wx, wy] = topOf(g.hex); let [x, y] = toScreen(wx, wy);
+      if (g.struct) { ctx.save(); ctx.globalAlpha = 0.6; Art.drawIcon(ctx, 'struct', g.struct, x, y - 12 * z, 10 * z, '#8fdcff'); ctx.restore(); }
+      if (g.units && g.units.length) {
+        const t0 = S_.map.tiles[g.hex]; if ((t0 && t0.struct) || g.struct) { x += 12 * z; y += 6 * z; }
+        planRing(x, y, z); ctx.save(); ctx.globalAlpha = 0.8; drawToken(x, y, g.units, g.owner, z, { planned: true }); ctx.restore();
+      }
+    }
     drawProbs();
     drawFx(dt);
     ctx.setTransform(DPR, 0, 0, DPR, 0, 0);

@@ -1114,6 +1114,9 @@ body.my-turn #hud::before { content: ''; position: fixed; inset: 0; pointer-even
 #rightCol { position: absolute; right: 12px; top: calc(var(--topH) + 8px); bottom: calc(var(--dockH) + 8px); width: 280px; display: flex; flex-direction: column; gap: 10px; pointer-events: none; }
 #rightCol > * { position: static !important; inset: auto !important; transform: none !important; width: auto !important; pointer-events: auto; flex: 0 1 auto; min-height: 0; max-height: none !important; overflow-y: auto; }
 #rightCol > [hidden] { display: none !important; }
+/* the blueprint keeps room for its orders; the alerts panel scrolls instead of squeezing it */
+#rightCol > #planBox { flex: 0 0 auto; max-height: 48% !important; }
+#rightCol > #waitBox { flex: 0 1 auto; min-height: 60px; }
 #centerStack { position: absolute; top: calc(var(--topH) + 6px); left: calc(var(--sideW) + 24px); right: 304px; display: flex; flex-direction: column; align-items: center; gap: 8px; pointer-events: none; z-index: 6; }
 #centerStack > * { position: static !important; inset: auto !important; transform: none !important; pointer-events: auto; max-width: 100%; }
 #centerStack > [hidden] { display: none !important; }
