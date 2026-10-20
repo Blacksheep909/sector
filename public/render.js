@@ -13,6 +13,9 @@ const Render = (() => {
   const late = [];
   let layerCost = 0, menuKey = '';
   let lc = null, lctx = null, layerKey = '', layerT = -1, stateVer = 0, fadeUntil = 0;   // cached terrain layer
+  // the layer is drawn with a margin around the screen at one camera (lcam), then slid and scaled while you pan and zoom
+  let LM = 0, camMovedAt = 0, boardSig = ''; const lcam = { x: 0, y: 0, z: 1, w: 0, h: 0, whole: false }, lastCam = { x: 0, y: 0, z: 1 };
+  const LAYER_MAX = 4096;   // device pixels per side: a whole map that fits is cached in one piece, so panning never redraws it
   let S_ = null;                 // display state
   let order = [];                // tile keys sorted for drawing
   const tc = {};                 // tile cache
@@ -39,7 +42,7 @@ const Render = (() => {
   function init(canvas) {
     cv = canvas; ctx = cv.getContext('2d');
     lc = document.createElement('canvas'); lctx = lc.getContext('2d');
-    const resize = () => { DPR = Math.min(2, window.devicePixelRatio || 1); W = innerWidth; H = innerHeight; cv.width = W * DPR; cv.height = H * DPR; cv.style.width = W + 'px'; cv.style.height = H + 'px'; lc.width = W * DPR; lc.height = H * DPR; layerKey = ''; };
+    const resize = () => { DPR = Math.min(2, window.devicePixelRatio || 1); W = innerWidth; H = innerHeight; cv.width = W * DPR; cv.height = H * DPR; cv.style.width = W + 'px'; cv.style.height = H + 'px'; LM = Math.round(0.2 * Math.max(W, H)); layerKey = ''; };
     addEventListener('resize', resize); resize();
     requestAnimationFrame(loop);
   }
@@ -49,6 +52,11 @@ const Render = (() => {
     const fresh = !S_ || !s || !S_.map || S_.seed !== s.seed;
     S_ = s;
     if (!s) return;
+    // the HUD hands the board over on every refresh: only recolour (and redraw the terrain layer) when what's drawn has changed
+    let sig = s.players.map(p => p.id + p.color + p.alive).join() + '|' + (s.map.beacon || '');
+    for (const k in s.map.tiles) sig += JSON.stringify(s.map.tiles[k]);
+    if (!fresh && sig === boardSig) return;
+    boardSig = sig;
     if (fresh) {
       order = Object.keys(s.map.tiles).sort((a, b) => { const [qa, ra] = E.parse(a), [qb, rb] = E.parse(b); return ra - rb || qa - qb; });
       for (const k in tc) delete tc[k];
@@ -1040,25 +1048,47 @@ const Render = (() => {
     const p0 = performance.now();
     if (!S_ || !S_.map) { const mk = W + 'x' + H + '|' + Math.floor(t * 4); if (mk !== menuKey) { menuKey = mk; bg(); } return; }
     if (Math.abs(cam.tx - cam.x) < 0.02) cam.x = cam.tx; if (Math.abs(cam.ty - cam.y) < 0.02) cam.y = cam.ty; if (Math.abs(cam.tz - cam.z) < 0.0005) cam.z = cam.tz;
-    // terrain, background and fog live in an offscreen layer: redrawn only when the view or board changes,
-    // while a fade/pop plays, or ~10x a second for ambient motion (water, sway, markers)
-    const key = Math.round(cam.x * 4) + '|' + Math.round(cam.y * 4) + '|' + Math.round(cam.z * 2000) + '|' + W + '|' + H + '|' + DPR + '|' + stateVer + '|' + (ov.unsupplied ? ov.unsupplied.size : 0);
-    // ambient motion refreshes the layer ~10x a second on fast machines; the slower the board is to draw,
-    // the less often it refreshes (down to never), so weak laptops don't stutter on an idle board
-    const ambient = layerCost < 5 ? 0.1 : layerCost < 12 ? 0.35 : layerCost < 25 ? 1.2 : Infinity;
-    if (key !== layerKey || t < fadeUntil || Object.keys(fx.pops).length || t - layerT > ambient) {
+    // terrain, background and fog live in an offscreen layer.
+    // It only redraws when the board changes, a fade/pop plays, or the camera has come to rest somewhere new.
+    // While the camera moves, the cached image (the whole map, or the screen plus a margin) is slid and scaled instead: panning and zooming cost a blit
+    const key = W + '|' + H + '|' + DPR + '|' + stateVer + '|' + (ov.unsupplied ? ov.unsupplied.size : 0);
+    // at rest = the camera hasn't changed for a moment (dragging and wheel-zoom move it instantly, so its target alone can't tell)
+    if (cam.x !== lastCam.x || cam.y !== lastCam.y || cam.z !== lastCam.z) { lastCam.x = cam.x; lastCam.y = cam.y; lastCam.z = cam.z; camMovedAt = t; }
+    const settled = t - camMovedAt > 0.15;
+    const ls = cam.z / lcam.z, X0 = (lcam.x - cam.x) * cam.z + W / 2 - (lcam.w / 2) * ls, Y0 = (lcam.y - cam.y) * cam.z + H / 2 - (lcam.h / 2) * ls;
+    const fills = lcam.w > 0 && X0 <= 0 && Y0 <= 0 && X0 + lcam.w * ls >= W && Y0 + lcam.h * ls >= H;
+    // a cached whole map can stretch further while zooming (it's redrawn sharp once you stop), and past its edge there's only open sea
+    const covers = lcam.w > 0 && (fills || lcam.whole) && ls > (lcam.whole ? 0.5 : 0.8) && ls < (lcam.whole ? 1.5 : 1.25);
+    const moved = cam.z !== lcam.z || !fills || (!lcam.whole && (cam.x !== lcam.x || cam.y !== lcam.y));
+    // ambient motion (water, sway, markers) refreshes it now and then, only while the camera is still, and less often the slower the board draws
+    const ambient = layerCost < 5 ? 0.25 : layerCost < 12 ? 0.6 : layerCost < 25 ? 2 : Infinity;
+    const why = key !== layerKey ? 'state' : t < fadeUntil ? 'fade' : Object.keys(fx.pops).length ? 'pop' : !covers ? 'edge' : settled && moved ? 'rest' : settled && t - layerT > ambient ? 'ambient' : '';
+    if (why) {
       const lt0 = performance.now();
+      // what to cache: the whole map if it fits at this zoom (then panning never redraws), else the screen plus a margin
+      let x0 = Infinity, y0 = Infinity, x1 = -Infinity, y1 = -Infinity;
+      for (const k of order) { const c = tc[k]; if (c.wx < x0) x0 = c.wx; if (c.wx > x1) x1 = c.wx; if (c.wy < y0) y0 = c.wy; if (c.wy > y1) y1 = c.wy; }
+      const pad = 90 / cam.z;
+      x0 = Math.min(x0 - pad, cam.x - W / 2 / cam.z); x1 = Math.max(x1 + pad, cam.x + W / 2 / cam.z); y0 = Math.min(y0 - pad * 1.5, cam.y - H / 2 / cam.z); y1 = Math.max(y1 + pad, cam.y + H / 2 / cam.z);
+      const whole = (x1 - x0) * cam.z * DPR <= LAYER_MAX && (y1 - y0) * cam.z * DPR <= LAYER_MAX;
+      const cx = whole ? (x0 + x1) / 2 : cam.x, cy = whole ? (y0 + y1) / 2 : cam.y;
+      const lw = Math.ceil(whole ? (x1 - x0) * cam.z : W + 2 * LM), lh = Math.ceil(whole ? (y1 - y0) * cam.z : H + 2 * LM);
+      if (lc.width !== lw * DPR || lc.height !== lh * DPR) { lc.width = lw * DPR; lc.height = lh * DPR; }
       const main = ctx; ctx = lctx;
+      const w0 = W, h0 = H, c0x = cam.x, c0y = cam.y; W = lw; H = lh; cam.x = cx; cam.y = cy;   // draw from the layer's own centre and size
       ctx.setTransform(DPR, 0, 0, DPR, 0, 0);
       bg();
       for (const k of order) drawTile(k, 'base');
       if (S_.fogOn) for (const k of order) if (S_.map.tiles[k].fog === 1) drawFog(k);
       // labels go on top of every tile, so taller neighbours never cut them off
       for (const f of late) f(); late.length = 0;
-      ctx = main; layerKey = key; layerT = t;
+      W = w0; H = h0; cam.x = c0x; cam.y = c0y;
+      ctx = main; layerKey = key; layerT = t; perf.why = why;
+      Object.assign(lcam, { x: cx, y: cy, z: cam.z, w: lw, h: lh, whole });
+      perf.layer = { x0: Math.round(x0), x1: Math.round(x1), y0: Math.round(y0), y1: Math.round(y1), whole, lw, lh };
       const lc0 = performance.now() - lt0; layerCost = layerCost ? layerCost * 0.85 + lc0 * 0.15 : lc0;
-    }
-    ctx.drawImage(lc, sx, sy, W, H);
+      ctx.drawImage(lc, (cx - cam.x) * cam.z + W / 2 - lw / 2 + sx, (cy - cam.y) * cam.z + H / 2 - lh / 2 + sy, lw, lh);
+    } else { if (!fills) { ctx.fillStyle = '#0d1d29'; ctx.fillRect(0, 0, W, H); } ctx.drawImage(lc, X0 + sx, Y0 + sy, lcam.w * ls, lcam.h * ls); }
     ctx.translate(sx, sy);
     drawWaterGlints();
     const p1 = performance.now();
@@ -1098,8 +1128,9 @@ const Render = (() => {
     if (fx.flash > 0.01) { ctx.fillStyle = fx.flashCol; ctx.globalAlpha = Math.min(1, fx.flash); ctx.fillRect(0, 0, W, H); ctx.globalAlpha = 1; fx.flash *= Math.pow(0.04, dt); }
     const p4 = performance.now(), a = 0.08;
     perf.tiles += ((p1 - p0) - perf.tiles) * a; perf.fog += ((p2 - p1) - perf.fog) * a; perf.units += ((p3 - p2) - perf.units) * a; perf.rest += ((p4 - p3) - perf.rest) * a; perf.total += ((p4 - p0) - perf.total) * a;
+    if (p4 - p0 > 30) { perf.slow.push({ at: +t.toFixed(2), layer: layerT === t && perf.why, board: +(p1 - p0).toFixed(1), overlay: +(p2 - p1).toFixed(1), units: +(p3 - p2).toFixed(1), fx: +(p4 - p3).toFixed(1) }); if (perf.slow.length > 30) perf.slow.shift(); }   // slow frames, for profiling
   }
-  const perf = { tiles: 0, fog: 0, units: 0, rest: 0, total: 0 };
+  const perf = { tiles: 0, fog: 0, units: 0, rest: 0, total: 0, slow: [] };
 
   return { invalidate, perf, flyover, init, setState, recolor, focus, fitMap, pan, zoomAt, hexAt, screenOf, topOf, world, ov, unitPos, unitHidden, extraUnits, burst, smoke, float, ring, beam, lance, emp, shake, flash, pop, cam, get time() { return t; }, get roads() { return roads; } };
 })();

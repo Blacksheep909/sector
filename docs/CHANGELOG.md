@@ -23,6 +23,10 @@ Every release, newest first. Each version also has its own post on the [Releases
 - **🌫 Fog of war, Pick your HQ:** you no longer see where everyone else set up. Only the hexes you can still pick are shown.
 - **🔊 Fix:** enemy airstrikes were silent while a full-screen panel (like the resupply picker) was open. The bombs' sound now plays on its own timer.
 - **Removed:** random map supply drops and the quick-decision pop-ups during other players' turns.
+- **⚡ Smoother panning and zooming:** the board used to be fully redrawn every frame while the camera moved, and on every HUD refresh even when nothing changed. Now the whole map is cached as one image (or the screen plus a margin on huge maps) and just slid and scaled while you pan or zoom. In tests panning went from 11 to 59 fps, zooming from 12 to 54, and the idle board holds a steady 60 with no hitches.
+- **Fix:** artillery in a mixed stack (say a Thumper guarding with Grunts) couldn't fire at all, which showed up when shooting across water or a river. The guns in a stack can now fire on their own.
+- **Fix:** in fog of war, a fallen commander's land kept showing in their colour on hexes you'd seen before. It now shows as neutral.
+- **📊 Balance report:** [docs/BALANCE.md](https://github.com/Blacksheep909/sector/blob/main/docs/BALANCE.md) has the data behind every change.
 
 ## v0.9.20
 
