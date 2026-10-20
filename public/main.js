@@ -344,11 +344,11 @@
     const me2 = myP();
     if (isMyTurn() && prepOpen) prepOpen = false;   // your turn started: the real resupply takes over
     if (isMyTurn() && S.turn.stage === 'choose' && me2 && !executing && !(plan.length && planAuto) && passReady())
-      Cards.openSupply({ me: me2, offer: S.turn.offer, income: S.turn.income, round: S.turn.round, rerollCost: E.rerollCost(S), key: S.turn.round + ':' + S.turn.idx + ':' + S.turn.rerolls,
+      Cards.openSupply({ me: me2, offer: S.turn.offer, income: S.turn.income, round: S.turn.round, rerollCost: E.rerollCost(S), refund: E.payout(S, you, 4), key: S.turn.round + ':' + S.turn.idx + ':' + S.turn.rerolls,
         onPick: pickFromSupply, onIncome: async () => { const ok = await act({ a: 'choose', pick: 'income' }); if (ok && plan.length) runPlan(); return ok; }, onReroll: () => act({ a: 'reroll' }) });
     else if (!prepOpen || isMyTurn()) { prepOpen = false; Cards.closeSupply(); }
     if (isMyTurn() && S.turn.stage === 'crate' && S.turn.crate && !S.turn.crate.hidden && me2 && passReady())
-      Cards.openCrate({ crate: S.turn.crate, me: me2, serial: S.turn.round + ':' + S.turn.idx + ':' + me2.stats.crates, onPick: pickFromCrate, onScrap: scrapCrate });
+      Cards.openCrate({ crate: S.turn.crate, me: me2, scrap: E.payout(S, you, E.SCRAP_VALUE), refund: E.payout(S, you, 4), serial: S.turn.round + ':' + S.turn.idx + ':' + me2.stats.crates, onPick: pickFromCrate, onScrap: scrapCrate });
     else Cards.closeCrate();
     if (S.phase === 'over') showVictory();
   }

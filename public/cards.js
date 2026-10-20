@@ -96,9 +96,9 @@ const Cards = (() => {
   }
 
   // ───────────── hands-on reveal: the backs hint rarity, you flip each card ─────────────
-    async function dealIn(slots) {
+  async function dealIn(slots, settle = 420) {
     for (const s of slots) { s.flip.classList.add('dealt'); SFX.card(); await sleep(110); }
-    await sleep(420);
+    await sleep(settle);
   }
   // spam-clicking: a click during a flip finishes it at once, and the next flips play at triple speed
   function rush(slots) { let any = false; for (const s of slots) if (s.flipping && s.rush) { s.rush(); any = true; } return any; }
@@ -185,7 +185,7 @@ const Cards = (() => {
       p.animate([{ transform: 'translate(0,0) rotate(0)' }, { transform: `translate(${(Math.random() - 0.5) * 300}px, ${innerHeight + 60}px) rotate(${Math.random() * 1440}deg)` }], { duration: 1800 + Math.random() * 1600, delay: Math.random() * 400, easing: 'cubic-bezier(.3,.2,.6,1)' }).onfinish = () => p.remove();
     }
   }
-  function revealRow(box, slots) {
+  function revealRow(box, slots, auto) {
     box.querySelectorAll('.reveal-bar').forEach(b => b.remove());
     return new Promise(res => {
       const hint = el('div', 'cr-hint', 'CLICK A CARD TO REVEAL · SPACE FOR NEXT');
@@ -210,6 +210,15 @@ const Cards = (() => {
         });
         s.flip.addEventListener('mouseenter', () => { if (s.flip.classList.contains('open')) return; const rk = RANK(s.d.rarity); SFX.chip(rk * 3); if (rk >= 3) Render.shake(2); });
       });
+      // auto: the cards turn over by themselves one after another (a click or Space still hurries them along)
+      if (auto) (async () => {
+        await sleep(auto);
+        for (const s of slots) {
+          if (done || !document.contains(s.flip)) return;
+          if (s.flip.classList.contains('open') || s.flipping) continue;
+          await flipCard(s, box); check(); await sleep(140);
+        }
+      })();
       // never stall the game: flip whatever's left after a while
       setTimeout(() => { if (!done) all.click(); }, 14000);
     });
@@ -220,7 +229,7 @@ const Cards = (() => {
   function openSupply(ctx) {
     const key = ctx.key;
     if (supplyKey === key && !$('#supply').hidden) return;
-    supplyKey = key;
+    supplyKey = key; clearTimeout(supplyFade);
     const box = $('#supply'); box.innerHTML = ''; box.hidden = false; box.className = '';
     Cards.fast = false;
     const { me, offer, income } = ctx, half = Math.floor(income / 2);
@@ -232,7 +241,7 @@ const Cards = (() => {
       const d = E.cardDef(id);
       const owned = d.kind === 'unit' && me.arsenal.includes(id);
       const lv = owned ? (me.levels[id] || 0) : 0;
-      const tag = owned ? (lv >= E.MAX_LEVEL ? 'MAXED · +$4' : 'UPGRADE ★' + (lv + 1)) : (d.kind === 'unit' && me.arsenal.length >= E.DECK_MAX ? 'DECK FULL · REPLACE' : d.kind === 'unit' ? 'NEW UNIT' : 'TACTIC');
+      const tag = owned ? (lv >= E.MAX_LEVEL ? 'MAXED · +$' + (ctx.refund || 4) : 'UPGRADE ★' + (lv + 1)) : (d.kind === 'unit' && me.arsenal.length >= E.DECK_MAX ? 'DECK FULL · REPLACE' : d.kind === 'unit' ? 'NEW UNIT' : 'TACTIC');
       const flip = el('div', 'flip r-' + d.rarity); flip.style.setProperty('--i', i);
       const back = el('div', 'cback', '<div class="cb-logo">⬢</div>');
       const front = make(id, { level: owned ? Math.min(E.MAX_LEVEL, lv + 1) : 0, tag }); front.classList.add('cfront');
@@ -248,6 +257,7 @@ const Cards = (() => {
     const look = el('button', 'btn big', 'PEEK MAP');
     look.onmousedown = () => { box.style.opacity = 0.06; }; look.onmouseup = look.onmouseleave = () => { box.style.opacity = 1; };
     bar.append(col, rr, look); box.appendChild(bar);
+    box.appendChild(el('div', 'sd-keys', '<b>1</b> <b>2</b> <b>3</b> take a card · <b>C</b> collect · <b>Space</b> flip'));
     let busy = false;
     col.onclick = async () => { if (busy) return; busy = true; SFX.coin(5); box.classList.add('leaving'); if (!(await ctx.onIncome())) { busy = false; box.classList.remove('leaving'); } };
     rr.onclick = async () => { if (busy) return; busy = true; SFX.card(); slots.forEach(s => s.flip.classList.add('discard')); await sleep(250); if (!(await ctx.onReroll())) busy = false; };
@@ -260,15 +270,42 @@ const Cards = (() => {
         slots.forEach(o => { if (o !== s) o.flip.classList.add('discard'); });
         const ok = await ctx.onPick(i, replace, s.front);
         if (!ok) { busy = false; slots.forEach(o => o.flip.classList.remove('discard')); }
+        else box.classList.add('leaving');   // fade out with the picked card on its way to your deck, rather than vanishing
       });
     });
     const tok = box.dataset.tok = String(Math.random());
     (async () => {
-      await sleep(350); if (box.dataset.tok !== tok) return; await dealIn(slots);
-      for (const s of slots) { if (box.dataset.tok !== tok || !document.contains(s.flip)) return; await flipCard(s, box); await sleep(160); }
+      await sleep(180); if (box.dataset.tok !== tok) return; await dealIn(slots, 160);
+      // commons and uncommons turn over in a quick cascade (the next starts while the last is still turning); rarer cards get the stage to themselves
+      const flips = [];
+      for (const s of slots) {
+        if (box.dataset.tok !== tok || !document.contains(s.flip)) return;
+        const f = flipCard(s, box); flips.push(f);
+        if (RANK(s.d.rarity) <= 1) await sleep(230); else { await f; await sleep(120); }
+      }
+      await Promise.all(flips);
     })();
+    pickKeys(box, slots, () => busy, col);
   }
-  function closeSupply() { $('#supply').hidden = true; supplyKey = ''; }
+  // closing fades out (a picked card is still flying to the deck); a new resupply opening meanwhile cancels the fade
+  let supplyFade = null;
+  function closeSupply() {
+    const box = $('#supply'); supplyKey = '';
+    if (box.hidden) return;
+    if (!box.classList.contains('leaving')) box.classList.add('leaving');
+    clearTimeout(supplyFade); supplyFade = setTimeout(() => { if (!supplyKey) box.hidden = true; }, 340);
+  }
+  // keys: 1–3 take that card once it's face up, C collects the full income
+  function pickKeys(box, slots, busy, collect) {
+    const key = e => {
+      if (box.hidden || !document.contains(slots[0].flip)) { removeEventListener('keydown', key, true); return; }
+      if (e.ctrlKey || e.metaKey || e.altKey || (e.target && /INPUT|TEXTAREA|SELECT/.test(e.target.tagName))) return;
+      const n = +e.key;
+      if (n >= 1 && n <= slots.length && !busy() && slots[n - 1].flip.classList.contains('open') && !slots[n - 1].flipping) { e.preventDefault(); e.stopPropagation(); slots[n - 1].flip.click(); }
+      else if (collect && (e.key === 'c' || e.key === 'C') && !busy()) { e.preventDefault(); e.stopPropagation(); collect.click(); }
+    };
+    addEventListener('keydown', key, true);
+  }
 
   // ───────────── the supply crate (from a Supply Drop card) ─────────────
   // ctx: { crate, me, onPick(idx, replace), onScrap() }
@@ -284,117 +321,112 @@ const Cards = (() => {
     const dropR = (E.TACTICS[ctx.crate.source] || { rarity: 'rare' }).rarity;
     const title = el('h2', 'cr-title', 'SUPPLY DROP'); title.style.setProperty('--dr', E.RARITY[dropR].color);
     box.appendChild(title);
-    // 1. tier reel
+    const T = crate.tier, glowCol = { standard: '#bfe6ff', gilded: '#ffd76a', mythic: '#e3a2ff' }[T] || '#fff';
+    const fast = () => Cards.fast, wait = ms => sleep(fast() ? ms * 0.3 : ms);
+    // 1. the reel: one smooth ease-out on the browser's own frame clock, then a short settle onto the winning crate
     const odds = E.DROP_TIERS[ctx.crate.source] || E.DROP_TIERS.drop_rare;
     const luckBar = el('div', 'luck', `<span style="color:${E.RARITY[dropR].color}">${E.RARITY[dropR].name.toUpperCase()} DROP</span><b>Standard ${odds.standard}% · <i style="color:#ffc53d;font-style:normal">Gilded ${odds.gilded}%</i> · <i style="color:#e0a0ff;font-style:normal">Mythic ${odds.mythic}%</i></b>`);
     box.appendChild(luckBar);
-    const reel = el('div', 'reel'), strip = el('div', 'strip');
-    const tiers = [];
-    for (let i = 0; i < 40; i++) { const r = Math.random() * 100; tiers.push(r < Math.max(10, odds.mythic) ? 'mythic' : r < Math.max(10, odds.mythic) + Math.max(25, odds.gilded) ? 'gilded' : 'standard'); }
-    const landAt = 32; tiers[landAt] = crate.tier;
-    for (const t of tiers) strip.appendChild(el('div', 'rt rt-' + t, `<div class="rt-box"></div><span>${t.toUpperCase()}</span>`));
-    reel.appendChild(strip); reel.appendChild(el('div', 'reel-mark'));
+    const reel = el('div', 'sd-reel'), strip = el('div', 'sd-strip');
+    const tiers = [], landAt = 38;
+    for (let i = 0; i < 46; i++) { const r = Math.random() * 100; tiers.push(r < Math.max(10, odds.mythic) ? 'mythic' : r < Math.max(10, odds.mythic) + Math.max(25, odds.gilded) ? 'gilded' : 'standard'); }
+    tiers[landAt] = T;
+    for (const t of tiers) strip.appendChild(el('div', 'sd-cell sd-' + t, `<i></i><span>${t.toUpperCase()}</span>`));
+    reel.append(strip, el('div', 'sd-mark'));
     box.appendChild(reel);
-    await sleep(60);
-    const cell = 110, offset = landAt * cell - (reel.clientWidth / 2 - cell / 2);
-    const dur = crate.tier === 'standard' ? 1500 : crate.tier === 'gilded' ? 2100 : 2800;
-    let last = -1; const t0 = performance.now();
-    await new Promise(res => {
-      const step = () => {
-        const p = Math.min(1, (performance.now() - t0) / (dur * (Cards.fast ? 0.2 : 1)));
-        const e = 1 - Math.pow(1 - p, 4);
-        strip.style.transform = `translateX(${-offset * e}px)`;
-        const idx = Math.floor((offset * e + reel.clientWidth / 2) / cell);
-        if (idx !== last) { last = idx; SFX.chip(idx % 10); }
-        if (p < 1) setTimeout(step, 16); else res();
+    await new Promise(r => requestAnimationFrame(r));
+    const cell = strip.children[0].offsetWidth, mid = reel.clientWidth / 2;
+    const exact = landAt * cell + cell / 2 - mid, overshoot = exact + (Math.random() - 0.5) * cell * 0.55;
+    const dur = T === 'standard' ? 1700 : T === 'gilded' ? 2300 : 3000;
+    let last = -1;
+    const run = (from, to, ms, ease) => new Promise(res => {
+      const t0 = performance.now();
+      const step = now => {
+        const p = Math.min(1, (now - t0) / (fast() ? ms * 0.2 : ms)), x = from + (to - from) * ease(p);
+        strip.style.transform = `translate3d(${-x}px,0,0)`;
+        const i = Math.floor((x + mid) / cell); if (i !== last) { last = i; SFX.chip(i % 10); }
+        if (p < 1 && document.contains(strip)) requestAnimationFrame(step); else res();
       };
-      step();
+      requestAnimationFrame(step);
     });
-    strip.children[landAt].classList.add('won');
-    SFX.victoryHit(); Render.shake(crate.tier === 'mythic' ? 16 : crate.tier === 'gilded' ? 8 : 3);
-    if (crate.tier !== 'standard') { const [x, y] = center(strip.children[landAt]); rays(x, y, TIER_COL[crate.tier], 1400, crate.tier === 'mythic'); burstAt(x, y, [TIER_COL[crate.tier], '#fff'], crate.tier === 'mythic' ? 70 : 30, 260); }
-    await sleep(650);
-    reel.classList.add('gone'); luckBar.classList.add('gone');
-    reel.remove(); luckBar.remove();
-    // 2. the chest slams down, breathes, hops on tap, then bursts open (sunburst lives inside the stage, so it's always centred)
-    const T = crate.tier, glowCol = { standard: '#bfe6ff', gilded: '#ffd76a', mythic: '#e3a2ff' }[T] || '#fff';
-    // the sunburst is its own layer pinned to the screen centre, so the chest hopping or flying off can't drag it around
-    const sun = el('div', 'chest-rays'); sun.style.setProperty('--tc', glowCol); box.appendChild(sun);
-    const stage = el('div', 'chest-stage tier-' + T, `<div class="chest-glow"></div><div class="chest-shadow"></div>
-      <div class="chest"><img class="chest-body" src="${Art.chest(T, 'body')}" alt=""><div class="chest-leak"></div><div class="chest-beam"></div><img class="chest-lid" src="${Art.chest(T, 'lid')}" alt=""><div class="chest-count">${crate.cards.length}</div></div>
-      <div class="chest-hint">TAP TO OPEN</div>`);
+    await run(0, overshoot, dur, p => 1 - Math.pow(1 - p, 5));
+    await run(overshoot, exact, 260, p => p * p * (3 - 2 * p));
+    const won = strip.children[landAt]; won.classList.add('won');
+    SFX.victoryHit(); Render.shake(T === 'mythic' ? 16 : T === 'gilded' ? 8 : 3);
+    if (T !== 'standard') { const [x, y] = center(won); rays(x, y, TIER_COL[T], 1400, T === 'mythic'); burstAt(x, y, [TIER_COL[T], '#fff'], T === 'mythic' ? 70 : 30, 260); }
+    await wait(520);
+    // 2. the chest drops in as the reel clears away: no empty beat in between
+    reel.classList.add('sd-out'); luckBar.classList.add('sd-out');
+    setTimeout(() => { reel.remove(); luckBar.remove(); }, 350);
+    const sun = el('div', 'sd-sun'); sun.style.setProperty('--tc', glowCol); box.appendChild(sun);
+    const stage = el('div', 'sd-stage tier-' + T, `<div class="sd-glow"></div><div class="sd-shadow"></div>
+      <div class="sd-chest"><img class="sd-body" src="${Art.chest(T, 'body')}" alt=""><div class="sd-leak"></div><img class="sd-lid" src="${Art.chest(T, 'lid')}" alt=""><div class="sd-count">${crate.cards.length}</div></div>
+      <div class="sd-hint">CLICK TO OPEN</div>`);
     stage.style.setProperty('--tc', glowCol);
     box.appendChild(stage);
-    const chestEl = stage.querySelector('.chest'), countEl = stage.querySelector('.chest-count');
+    const chestEl = stage.querySelector('.sd-chest'), countEl = stage.querySelector('.sd-count');
     SFX.whoosh();
-    await sleep(Cards.fast ? 120 : 430);
-    { const r = chestEl.getBoundingClientRect(); burstAt(r.left + r.width / 2, r.bottom - 8, ['#b8a68a', '#8c7b62', '#d9cbb2'], 26, 150, 9); }
-    SFX.boom(0.55); SFX.deploy(); Render.shake(T === 'mythic' ? 14 : T === 'gilded' ? 10 : 7);
-    await sleep(Cards.fast ? 60 : 380);
-    chestEl.classList.add('idle'); stage.classList.add('ready');
+    await wait(330);   // it hits the ground 55% of the way through its drop
+    { const r = chestEl.getBoundingClientRect(); burstAt(r.left + r.width / 2, r.bottom - 6, ['#b8a68a', '#8c7b62', '#d9cbb2'], 22, 140, 8); }
+    SFX.boom(0.5); SFX.deploy(); Render.shake(T === 'mythic' ? 12 : T === 'gilded' ? 9 : 6);
+    await wait(300);
+    stage.classList.add('ready');
     await new Promise(res => {
       let done = false;
-      const go = () => { if (done) return; done = true; removeEventListener('keydown', key); res(); };
-      const key = e => { if (e.key === ' ') { e.preventDefault(); go(); } };
-      addEventListener('keydown', key); stage.onclick = go; setTimeout(go, Cards.fast ? 50 : 2600);
+      const go = () => { if (done) return; done = true; removeEventListener('keydown', key); stage.onclick = null; res(); };
+      const key = e => { if (e.key === ' ' || e.key === 'Enter') { e.preventDefault(); go(); } };
+      addEventListener('keydown', key); stage.onclick = go; box.addEventListener('click', go, { once: true }); setTimeout(go, fast() ? 40 : 1000);
     });
-    stage.classList.remove('ready'); chestEl.classList.remove('idle');
-    // anticipation: three hops, light leaking from the seam a little more each time
-    for (let i = 0; i < 3; i++) {
-      chestEl.style.setProperty('--hr', (i % 2 ? 5 : -5) + 'deg');
-      chestEl.classList.remove('hop'); void chestEl.offsetWidth; chestEl.classList.add('hop');
-      stage.style.setProperty('--leak', String((i + 1) / 3));
-      SFX.chip(5 + i * 3); Render.shake(3 + i * 3);
-      await sleep(Cards.fast ? 50 : 250);
-    }
-    // burst
-    chestEl.classList.add('open'); stage.classList.add('open'); sun.classList.add('open');
-    const seam = stage.querySelector('.chest-leak').getBoundingClientRect(), mx = seam.left + seam.width / 2, my = seam.top + seam.height / 2;
-    SFX.boom(1.1); SFX.victoryHit(); Render.shake(T === 'mythic' ? 22 : 14);
-    burstAt(mx, my, [glowCol, '#ffffff', glowCol], T === 'mythic' ? 80 : 50, 320, 9);
-    const flash = el('div', 'chest-flash'); flash.style.setProperty('--tc', glowCol); box.appendChild(flash); setTimeout(() => flash.remove(), 700);
-    await sleep(Cards.fast ? 80 : 380);
-    // 3. the cards shoot out of the chest into a row, then flip
-    const row = el('div', 'cr-cards emerging'); box.appendChild(row);
+    // 3. one rising charge: the shake builds and light pours from the seam
+    stage.classList.remove('ready'); stage.classList.add('charge');
+    for (let i = 0; i < 3; i++) setTimeout(() => { SFX.chip(5 + i * 3); Render.shake(2 + i * 2); }, (fast() ? 30 : 200) * i);
+    await wait(620);
+    // 4. the lid blows off; the glow stays round the chest instead of whiting out the screen
+    stage.classList.remove('charge'); stage.classList.add('open'); sun.classList.add('open');
+    const seam = stage.querySelector('.sd-leak').getBoundingClientRect(), mx = seam.left + seam.width / 2, my = seam.top + seam.height / 2;
+    SFX.boom(1); SFX.victoryHit(); Render.shake(T === 'mythic' ? 18 : 11);
+    burstAt(mx, my, [glowCol, '#ffffff', glowCol], T === 'mythic' ? 70 : 44, 300, 9);
+    await wait(200);
+    // 5. the cards rise out of the chest one after another and fan into their places
+    const row = el('div', 'cr-cards sd-row'); box.appendChild(row);
     const slots = crate.cards.map((id, i) => {
       const d = E.cardDef(id);
       const owned = d.kind === 'unit' && me.arsenal.includes(id);
       const lv = owned ? (me.levels[id] || 0) : 0;
-      const tag = owned ? (lv >= E.MAX_LEVEL ? 'MAXED · +$4' : 'UPGRADE ★' + (lv + 1)) : (d.kind === 'unit' && me.arsenal.length >= E.DECK_MAX ? 'DECK FULL · REPLACE' : d.kind === 'unit' ? 'NEW UNIT' : 'TACTIC');
-      const flip = el('div', 'flip r-' + d.rarity);
+      const tag = owned ? (lv >= E.MAX_LEVEL ? 'MAXED · +$' + (ctx.refund || 4) : 'UPGRADE ★' + (lv + 1)) : (d.kind === 'unit' && me.arsenal.length >= E.DECK_MAX ? 'DECK FULL · REPLACE' : d.kind === 'unit' ? 'NEW UNIT' : 'TACTIC');
+      const flip = el('div', 'flip dealt r-' + d.rarity);
       flip.style.setProperty('--i', i);
-      const back = el('div', 'cback tb-' + crate.tier, '<div class="cb-logo">⬢</div>');
+      const back = el('div', 'cback tb-' + T, '<div class="cb-logo">⬢</div>');
       const front = make(id, { level: owned ? Math.min(E.MAX_LEVEL, lv + 1) : 0, tag }); front.classList.add('cfront');
       flip.append(back, front);
       row.appendChild(flip);
       return { flip, front, d, id };
     });
-    await sleep(30);
-    let left = slots.length;
-    for (const [i, s] of slots.entries()) {
+    const gap = fast() ? 40 : 140, fly = fast() ? 200 : 640;
+    slots.forEach((s, i) => {
       const r = s.flip.getBoundingClientRect(), dx = mx - (r.left + r.width / 2), dy = my - (r.top + r.height / 2);
-      s.flip.classList.add('dealt', 'out');
       s.flip.animate([
-        { transform: `translate(${dx}px, ${dy}px) scale(.12) rotateY(180deg) rotate(${(i - 1) * 25}deg)`, opacity: 0.2 },
-        { transform: `translate(${dx * 0.45}px, ${dy * 0.45 - 170}px) scale(.85) rotateY(180deg) rotate(${(i - 1) * -10}deg)`, opacity: 1, offset: 0.55 },
+        { transform: `translate(${dx}px, ${dy}px) scale(.2) rotateY(180deg)`, opacity: 0 },
+        { transform: `translate(${dx * 0.5}px, ${dy * 0.5 - 150}px) scale(.8) rotateY(180deg) rotate(${(i - (slots.length - 1) / 2) * -7}deg)`, opacity: 1, offset: 0.5 },
         { transform: 'rotateY(180deg)', opacity: 1 },
-      ], { duration: Cards.fast ? 160 : 560, easing: 'cubic-bezier(.2,.9,.3,1.05)' });
-      countEl.textContent = String(--left); countEl.classList.remove('pop'); void countEl.offsetWidth; countEl.classList.add('pop');
-      SFX.card(); SFX.chip(8 + i * 2);
-      await sleep(Cards.fast ? 60 : 300);
-    }
-    await sleep(Cards.fast ? 60 : 420);
-    stage.classList.add('done'); sun.classList.add('fade');
-    setTimeout(() => { stage.remove(); sun.remove(); }, 700);
+      ], { duration: fly, delay: i * gap, easing: 'cubic-bezier(.22,.8,.3,1)', fill: 'backwards' });
+      setTimeout(() => { countEl.textContent = String(slots.length - 1 - i); countEl.classList.remove('pop'); void countEl.offsetWidth; countEl.classList.add('pop'); SFX.card(); SFX.chip(8 + i * 2); }, i * gap);
+    });
+    await sleep((slots.length - 1) * gap + fly * 0.7);
+    // 6. the empty chest sinks away behind the cards before the reveal starts
+    stage.classList.add('gone'); sun.classList.add('fade');
+    setTimeout(() => { stage.remove(); sun.remove(); }, 450);
+    await wait(320);
     if (!document.contains(row)) return;
-    await revealRow(box, slots);
+    await revealRow(box, slots, 350);
     // 4. choose
     const bar = el('div', 'cr-actions');
-    const scrap = el('button', 'btn big', 'SCRAP <small>+$' + E.SCRAP_VALUE + '</small>');
+    const scrap = el('button', 'btn big', 'SCRAP <small>+$' + (ctx.scrap || E.SCRAP_VALUE) + '</small>');
     bar.appendChild(scrap); box.appendChild(bar);
     box.appendChild(el('div', 'cr-sub', 'Pick one card to keep'));
     let busy = false;
     scrap.onclick = async () => { if (busy) return; busy = true; SFX.coin(2); box.classList.add('leaving'); slots.forEach(s => s.flip.classList.add('discard')); await ctx.onScrap(); };
+    pickKeys(box, slots, () => busy, null);
     slots.forEach((s, i) => {
       s.flip.onclick = async () => {
         if (busy) return;
