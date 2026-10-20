@@ -1256,3 +1256,14 @@ body.my-turn #hud::before { content: ''; position: fixed; inset: 0; pointer-even
 .cr-cards.sd-row .flip { animation: none !important; }
 #supply .sd-keys { position: relative; z-index: 2; font-size: 12px; color: var(--dim); margin-top: -6px; }
 #supply .sd-keys b { display: inline-block; min-width: 18px; padding: 0 4px; border-radius: 4px; background: #1b2733; border: 1px solid #2c3d4d; color: #e9edf2; font-weight: 700; text-align: center; }
+
+/* ═════════ epic / legendary / mythic showcase reveal ═════════ */
+.flip.lifting[class*="stage-"] { z-index: 60; }
+.flip .stage-glow { position: absolute; inset: -46px; border-radius: 40px; background: radial-gradient(closest-side, var(--sc), transparent); opacity: var(--gl, .2); filter: blur(8px); transform: translateZ(-2px); transition: opacity .25s; pointer-events: none; }
+.flip.open .stage-glow { opacity: .85; }
+.flip.charging .cback { animation: stTremble .07s linear infinite !important; box-shadow: 0 6px 0 #000, 0 0 calc(var(--amp, 1px) * 9) var(--rc), inset 0 0 calc(var(--amp, 1px) * 6) var(--rc) !important; }
+.flip.stage-legendary { --rc: #ffb52e; } .flip.stage-mythic { --rc: #ffffff; } .flip.stage-epic { --rc: #c25cff; }
+@keyframes stTremble { 0% { translate: calc(var(--amp) * -1) 0; } 25% { translate: var(--amp) calc(var(--amp) * -.6); } 50% { translate: calc(var(--amp) * -.6) var(--amp); } 75% { translate: var(--amp) 0; } 100% { translate: 0 0; } }
+.stage-flash { position: fixed; width: 900px; height: 900px; margin: -450px 0 0 -450px; border-radius: 50%; background: radial-gradient(circle, #fff 0, var(--sc) 22%, transparent 60%); pointer-events: none; z-index: 94; animation: stFlash .6s ease-out forwards; }
+@keyframes stFlash { from { opacity: 1; transform: scale(.3); } to { opacity: 0; transform: scale(1.15); } }
+.flip.showing .cfront .ci { box-shadow: 0 0 0 3px var(--rc), 0 0 50px var(--rc); }

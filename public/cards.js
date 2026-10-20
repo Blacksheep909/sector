@@ -74,8 +74,10 @@ const Cards = (() => {
   const center = e => { const r = e.getBoundingClientRect(); return [r.left + r.width / 2, r.top + r.height / 2]; };
 
   // reveal effect for a single flipped card, by rarity
-  async function revealFx(card, rarity) {
+  async function revealFx(card, rarity, staged) {
     const [x, y] = center(card), col = E.RARITY[rarity].color, rk = RANK(rarity);
+    // a staged card is big at the centre: its word goes just above it
+    const bigText = (text, color, cls) => { const b = el('div', 'bigtext ' + cls, text); b.style.setProperty('--tc', color); if (staged) { b.style.top = Math.max(8, staged.getBoundingClientRect().top - 110) + 'px'; } $('#flyLayer').appendChild(b); setTimeout(() => b.remove(), 1900); };
     card.classList.add('pop');
     if (rk === 0) { SFX.card(); return; }
     if (rk === 1) { SFX.select(); burstAt(x, y, [col, '#fff'], 16, 160); return; }
@@ -106,6 +108,7 @@ const Cards = (() => {
     if (s.flipping || s.flip.classList.contains('open')) return;
     s.flipping = true;
     const rk = RANK(s.d.rarity), f = Cards.fast ? 0.3 : quick ? 0.33 : 1;
+    if (rk >= 3) return showcase(s, box, rk, f);
     s.flip.classList.remove('tell'); s.flip.classList.add('lifting');
     const r = s.flip.getBoundingClientRect();
     const dx = innerWidth / 2 - (r.left + r.width / 2), dy = innerHeight * 0.45 - (r.top + r.height / 2);
@@ -175,6 +178,58 @@ const Cards = (() => {
     s.flip.classList.remove('lifting');
     box.classList.remove('dim');
     s.flipping = false;
+  }
+  // epic, legendary and mythic cards get the stage: they charge up at the centre, turn over in one clean half-turn
+  // (faces swap exactly edge-on, so nothing is ever seen mirrored), hold big and face-up, then glide back to their slot
+  async function showcase(s, box, rk, f) {
+    const T = rk >= 5 ? { col: '#ffffff', charge: 1500, hold: 1900, scale: 1.8, word: 'MYTHIC', cls: 'legend mythic' }
+      : rk === 4 ? { col: '#ffb52e', charge: 1150, hold: 1450, scale: 1.75, word: 'LEGENDARY', cls: 'legend' }
+      : { col: '#c25cff', charge: 550, hold: 750, scale: 1.55, word: 'EPIC!', cls: 'epic' };
+    s.flipping = true;
+    const el0 = s.flip, anims = [], live = new Set();
+    let skip = false;
+    const wait = ms => new Promise(res => { if (skip) return res(); const t = setTimeout(res, ms * f); live.add({ t, res }); });
+    const hurry = () => { if (skip) return; skip = true; for (const w of live) { clearTimeout(w.t); w.res(); } live.clear(); for (const a of anims) try { a.finish(); } catch (e) {} };
+    s.rush = hurry;
+    el0.classList.remove('tell'); el0.classList.add('lifting', 'stage-' + (rk >= 5 ? 'mythic' : rk === 4 ? 'legendary' : 'epic'));
+    box.classList.add('dim');
+    const r = el0.getBoundingClientRect(), dx = innerWidth / 2 - (r.left + r.width / 2), dy = innerHeight * 0.47 - (r.top + r.height / 2);
+    const C = `translate(${dx}px, ${dy}px)`, go = (frames, ms, easing) => { const a = el0.animate(frames, { duration: skip ? 1 : ms * f, easing, fill: 'forwards' }); anims.push(a); return new Promise(res => { a.onfinish = res; a.oncancel = res; }); };
+    // 1. charge: lift to the centre, then tremble harder and harder while the light builds behind it
+    SFX.whoosh(); if (rk >= 4) SFX.alarm(); else SFX.zap();
+    const glow = el('div', 'stage-glow'); glow.style.setProperty('--sc', T.col); el0.insertBefore(glow, el0.firstChild);
+    await go([{ transform: 'rotateY(180deg)' }, { transform: `${C} rotateY(180deg) scale(${T.scale - 0.2})` }], 420, 'cubic-bezier(.2,.9,.3,1)');
+    el0.classList.add('charging');
+    const steps = rk >= 4 ? 6 : 3;
+    for (let i = 0; i < steps && !skip; i++) {
+      el0.style.setProperty('--amp', (1 + i * 1.3).toFixed(1) + 'px'); glow.style.setProperty('--gl', String(0.25 + 0.75 * (i + 1) / steps));
+      SFX.chip(4 + i * 2); if (i >= steps - 2) Render.shake(3 + i * 2);
+      await wait(T.charge / steps);
+    }
+    el0.classList.remove('charging');
+    // 2. the turn: quick to edge-on, swap faces there, then settle face-up with a little overshoot
+    await go([{ transform: `${C} rotateY(180deg) scale(${T.scale - 0.2})` }, { transform: `${C} rotateY(90deg) scale(${T.scale + 0.1})` }], 170, 'cubic-bezier(.5,0,1,.6)');
+    el0.classList.add('open');
+    { const [x, y] = center(el0); const fl = el('div', 'stage-flash'); fl.style.left = x + 'px'; fl.style.top = y + 'px'; fl.style.setProperty('--sc', T.col); $('#flyLayer').appendChild(fl); setTimeout(() => fl.remove(), 700); }
+    SFX.diceLand(); SFX.chip(4 + rk * 2);
+    revealFx(s.front, s.d.rarity, el0);
+    if (rk === 4) confetti();
+    await go([{ transform: `${C} rotateY(90deg) scale(${T.scale + 0.1})` }, { transform: `${C} rotateY(-12deg) scale(${T.scale + 0.05})`, offset: 0.65 }, { transform: `${C} rotateY(0deg) scale(${T.scale})` }], 420, 'cubic-bezier(.2,.9,.3,1)');
+    // 3. the showcase: held big and face-up; a click (or Space) moves on
+    el0.classList.add('showing');
+    const onClick = e => { e.stopPropagation(); hurry(); };
+    box.addEventListener('click', onClick, true);
+    await wait(T.hold);
+    box.removeEventListener('click', onClick, true);
+    el0.classList.remove('showing');
+    // 4. back to its slot
+    const back = el0.animate([{ transform: `${C} rotateY(0deg) scale(${T.scale})` }, { transform: 'rotateY(0deg)' }], { duration: skip ? 160 : 460 * f, easing: 'cubic-bezier(.5,0,.25,1)' });
+    for (const a of anims) a.cancel();
+    box.classList.remove('dim');
+    await new Promise(res => { back.onfinish = res; back.oncancel = res; setTimeout(res, 700); });
+    glow.remove();
+    el0.classList.remove('lifting', 'stage-epic', 'stage-legendary', 'stage-mythic');
+    s.rush = null; s.flipping = false;
   }
   function confetti() {
     const cols = ['#ffb52e', '#fff3a8', '#ff4f5e', '#36c9ff', '#59f08a', '#c25cff'];
