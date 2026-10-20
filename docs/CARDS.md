@@ -10,7 +10,7 @@ Unit cards are permanent unlocks: deploy as many as you can afford.
 
 | Unit | Class | Rarity | Cost | ATK | DEF | Move | Range | Notes |
 |---|---|---|---|---|---|---|---|---|
-| **Grunts** | Infantry | Common | $1 | 2 | 2 | 2 | – | Cheap, dependable rifle squad. |
+| **Grunts** | Infantry | Common | $2 | 2 | 1 | 2 | – | Cheap, dependable rifle squad. |
 | **Skitter** | Vehicle | Common | $3 | 2 | 1 | 4 | – | Raider buggy. Grabs land fast. |
 | **Thumper** | Artillery | Common | $4 | 3 | 1 | 1 | 2 | Mortar crew. Fires 2 hexes instead of moving. |
 | **Barracuda** | Naval | Common | $4 | 3 | 2 | 4 | – | Fast gunboat. Claims sea lanes, raids coasts. |
@@ -19,11 +19,11 @@ Unit cards are permanent unlocks: deploy as many as you can afford.
 | **Hornet** | Air | Common | $4 | 2 | 1 | 4 | – | Scout drone. Flies over mountains and water and sees 3 hexes around it. |
 | **Jackal** | Vehicle | Uncommon | $3 | 3 | 2 | 4 | – | Light patrol truck with a heavy machine gun. Cheap, quick, hits above its weight. |
 | **Coyote** | Vehicle | Uncommon | $4 | 2 | 2 | 4 | – | Scout truck with a sensor mast. Sees 2 hexes further in the fog of war. |
-| **Lancer** | Infantry | Uncommon | $4 | 3 | 2 | 2 | – | Tank Hunter: +3 Chips when fighting vehicles. |
+| **Lancer** | Infantry | Uncommon | $5 | 3 | 2 | 2 | – | Tank Hunter: +3 Chips when fighting vehicles. |
 | **Warden** | Air | Uncommon | $4 | 1 | 3 | 3 | – | Airborne radar plane. Aegis: +1 Mult when its hex defends. |
 | **Sapper** | Infantry | Uncommon | $4 | 2 | 2 | 2 | – | Demolitions: +3 Chips attacking a hex with buildings. |
 | **Scorpion** | Vehicle | Uncommon | $5 | 2 | 3 | 3 | – | Flak tank. +4 Chips vs aircraft; 35% to shoot down air strikes within 1. |
-| **Bulwark** | Vehicle | Uncommon | $6 | 3 | 5 | 3 | – | Armoured carrier. Holds the line. |
+| **Bulwark** | Vehicle | Uncommon | $6 | 3 | 5 | 3 | – | Armoured personnel carrier. Holds the line, and carries up to 4 Grunts with it at its own speed. |
 | **Mauler** | Vehicle | Uncommon | $6 | 5 | 4 | 2 | – | Main battle tank. |
 | **Ark** | Naval | Uncommon | $4 | 0 | 3 | 4 | – | Transport. Carries up to 3 land units across the sea. |
 | **Marlin** | Naval | Rare | $7 | 5 | 4 | 4 | 2 | Destroyer. Shells coasts and ships 2 hexes away. |
@@ -31,11 +31,14 @@ Unit cards are permanent unlocks: deploy as many as you can afford.
 | **Ranger** | Infantry | Rare | $6 | 4 | 3 | 3 | – | Pathfinders: rough terrain costs only 1 move. |
 | **Skyguard** | Vehicle | Rare | $7 | 3 | 4 | 3 | – | Air defence truck. +6 Chips vs aircraft; 50% to shoot down air strikes within 2. |
 | **Hellcat** | Vehicle | Rare | $7 | 6 | 2 | 3 | – | Strike tank. Can act on the turn it is deployed. |
-| **Outrider** | Vehicle | Rare | $7 | 5 | 3 | 5 | – | Eight-wheeled fighting vehicle. 5 move: the fastest thing on the ground. |
+| **Outrider** | Vehicle | Rare | $7 | 5 | 3 | 5 | – | Eight-wheeled fighting vehicle. 5 move: the fastest thing on the ground. Carries up to 4 Grunts. |
 | **Kraken** | Naval | Rare | $8 | 7 | 2 | 4 | – | Submarine. Torpedoes: +4 Chips vs ships. |
+| **Wren** | Air | Rare | $5 | 3 | 1 | 5 | – | Light assault helicopter. Fast, with 2 Grunts riding on its benches. Strafing Run: +2 Mult attacking ground targets. |
+| **Ravager** | Air | Rare | $7 | 5 | 2 | 4 | – | Armoured attack helicopter with a chin cannon. Strafing Run: +2 Mult attacking ground targets. |
 | **Leviathan** | Vehicle | Legendary | $14 | 12 | 10 | 1 | – | Land dreadnought. Never suffers pyrrhic losses. |
 | **Titan** | Vehicle | Legendary | $16 | 13 | 12 | 1 | – | Landship with naval guns. Siege Breaker and never suffers pyrrhic losses. |
 | **Seraph** | Air | Legendary | $12 | 9 | 4 | 5 | – | Heavy gunship. Strafing Run: +2 Mult attacking ground targets. |
+| **Banshee** | Air | Legendary | $14 | 9 | 3 | 4 | – | Attack helicopter with anti-tank missiles. Hellfire: +3 Chips against vehicles, and Strafing Run: +2 Mult attacking ground targets. |
 | **Carrier** | Naval | Legendary | $13 | 3 | 9 | 3 | – | Floating airbase: deploy aircraft onto it and fly them off it. Holds 4. |
 | **Oracle** | Artillery | Legendary | $11 | 8 | 3 | 2 | 4 | Orbital uplink. Range 4, ignores mountains. |
 | **Trident** | Naval | Legendary | $16 | 10 | 6 | 3 | 8 | Missile submarine. Fires at any troops or buildings within 8, over mountains; a hit kills one extra unit. Only a Sentinel can intercept. |
@@ -52,7 +55,7 @@ Single-use cards from your hand.
 | **Forced March** | Common | $1 | Units on one hex may act again, with +2 move. |
 | **Rally** | Common | $1 | Your next attack this turn gets +2 Mult. |
 | **Fortify** | Common | $2 | Build or upgrade a Bunker on one of your hexes for free (on your HQ hex it fortifies the HQ instead). |
-| **Conscription** | Common | $1 | Deploy 2 free Grunts at a deploy point. |
+| **Conscription** | Common | $1 | Deploy 5 free Grunts at a deploy point (as many as fit). |
 | **Kamikaze Drone** | Common | $2 | A loitering munition dives on a target within 5 of your land. Troops: roll 4+ kills 1. Undefended buildings: knocks a level off one. |
 | **Gun Run** | Common | $2 | Attack jet, within 3 of your land. Troops: roll 3+ kills 1. Undefended buildings: knocks a level off one. |
 | **Airstrike** | Uncommon | $4 | Bomb a hex within 4 of your land. Troops: roll to kill 1–3. Undefended buildings: knocks 1–2 levels off them. |

@@ -6,7 +6,7 @@ const path = require('path');
 const sleep = ms => new Promise(r => setTimeout(r, ms));
 async function launch({ browser, url, width = 1600, height = 900, port = 9333 }) {
   const prof = path.join(require('os').tmpdir(), 'sector-cdp-' + Date.now());
-  const proc = spawn(browser || 'C:/Program Files (x86)/Microsoft/Edge/Application/msedge.exe', ['--headless=new', '--remote-debugging-port=' + port, '--user-data-dir=' + prof, `--window-size=${width},${height}`, '--hide-scrollbars', 'about:blank'], { stdio: 'ignore' });
+  const proc = spawn(browser || 'C:/Program Files (x86)/Microsoft/Edge/Application/msedge.exe', ['--headless=new', '--remote-debugging-port=' + port, '--user-data-dir=' + prof, `--window-size=${width},${height}`, '--hide-scrollbars', ...(process.platform === 'win32' ? [] : ['--no-sandbox']), 'about:blank'], { stdio: 'ignore' });
   let target;
   for (let i = 0; i < 50 && !target; i++) { await sleep(200); try { const list = await (await fetch('http://127.0.0.1:' + port + '/json')).json(); target = list.find(t => t.type === 'page'); } catch (e) {} }
   if (!target) throw new Error('browser did not start');

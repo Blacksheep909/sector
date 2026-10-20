@@ -1000,7 +1000,15 @@ body.planning #hexPanel { max-height: calc(100vh - 34vh - 200px); }
 .intel .ic.r-mythic { box-shadow: 0 0 10px #fff; }
 .teamchip { font: 800 10px var(--title, sans-serif); letter-spacing: 1px; padding: 2px 6px; border-radius: 6px; border: 0; color: #0b0f13; background: #9fb3c8; cursor: pointer; margin-right: 4px; }
 .teamchip:disabled { cursor: default; opacity: .9; }
-.teamchip.t1 { background: #ff6b6b; } .teamchip.t2 { background: #4fa8ff; } .teamchip.t3 { background: #ffd24f; } .teamchip.t4 { background: #6be38a; }
+.teamchip.t1 { background: #ff4f5e; } .teamchip.t2 { background: #36a3ff; } .teamchip.t3 { background: #ffc53d; } .teamchip.t4 { background: #59f08a; }
+/* teams lobby: one column per team, names dragged between them */
+.teamcols { display: grid; grid-template-columns: repeat(auto-fit, minmax(220px, 1fr)); gap: 10px; margin-bottom: 8px; }
+.teamcol { border: 2px solid var(--tc); border-radius: 12px; padding: 6px; background: color-mix(in srgb, var(--tc) 9%, transparent); min-height: 70px; transition: background .15s, transform .15s; }
+.teamcol.over { background: color-mix(in srgb, var(--tc) 28%, transparent); transform: scale(1.01); }
+.teamcol .tc-h { font: 800 12px var(--title, sans-serif); letter-spacing: 1.5px; color: var(--tc); display: flex; align-items: center; gap: 6px; padding: 2px 4px 6px; }
+.teamcol .tc-h small { margin-left: auto; color: #8fa1b3; font: 600 11px sans-serif; letter-spacing: 0; }
+.teamcol .tc-dot { width: 10px; height: 10px; border-radius: 50%; background: var(--tc); box-shadow: 0 0 8px var(--tc); }
+.prow.drag { cursor: grab; } .prow.dragging { opacity: .45; }
 .pn .teamchip { font-size: 9px; padding: 0 4px; }
 
 /* war report (victory screen) */
@@ -1165,13 +1173,6 @@ body.my-turn #hud::before { content: ''; position: fixed; inset: 0; pointer-even
 .pchip > .chipbtns { position: static; transform: none; flex: 1 1 100%; justify-content: center; margin-top: 2px; bottom: auto; left: auto; }
 .chipbtns .tradebtn { white-space: nowrap; }
 /* quick decision pop-up: a few seconds, then gone */
-#snapPop { position: fixed; left: 50%; top: 40%; transform: translate(-50%, -50%); z-index: 85; background: #10202c; border: 3px solid #ffc53d; border-radius: 14px; padding: 12px 16px; box-shadow: 0 6px 0 #000, 0 0 40px rgba(255,197,61,.45); display: flex; flex-direction: column; gap: 10px; align-items: center; animation: offerIn .25s; }
-#snapPop.gone { opacity: 0; transition: opacity .25s; }
-#snapPop .sp-h { font-family: var(--title); letter-spacing: 2px; color: #ffc53d; font-size: 20px; }
-#snapPop .sp-row { display: flex; gap: 10px; }
-#snapPop .sp-row .btn { max-width: 220px; white-space: normal; font-size: 13px; }
-#snapPop .sp-bar { width: 100%; height: 6px; background: #2a2a1a; border-radius: 3px; overflow: hidden; }
-#snapPop .sp-bar i { display: block; height: 100%; background: #ffc53d; animation: rpDrain 6.5s linear forwards; }
 /* speed strip: ⏸ > >> >>> 🚀 */
 .speed-ctl { display: flex; gap: 2px; background: var(--panel); border: 3px solid var(--line); border-radius: 10px; padding: 2px; box-shadow: 0 4px 0 #000; }
 .speed-ctl button { background: transparent; border: 0; color: var(--dim); font: 800 12px var(--ui, sans-serif); min-width: 28px; height: 26px; border-radius: 7px; cursor: pointer; letter-spacing: -1px; }
@@ -1189,3 +1190,4 @@ body.my-turn #hud::before { content: ''; position: fixed; inset: 0; pointer-even
 #roundBox .cq { font-size: 11.5px; color: #e6eef5; margin-top: 2px; }
 #roundBox .cq b { display: inline; font-family: var(--ui); font-size: 12px; color: var(--gold); letter-spacing: 0; }
 #roundBox .cq span { color: var(--dim); }
+#colorList.teamlock { opacity: .35; pointer-events: none; position: relative; }

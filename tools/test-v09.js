@@ -20,16 +20,9 @@ const idle = (s, pid) => s.players.find(p => p.id !== pid && p.id !== me(s).id) 
   const t = E.applyAction(s, a.id, { a: 'tradeCancel' });
   ok(t.ok, 'trade actions work off-turn');
 }
-{ // snap decisions arrive while others play, and pay out
-  const s = game(); let waiting = null;
-  for (let i = 0; i < 40 && !waiting; i++) { endTurn(s); waiting = s.players.find(p => p.id !== me(s).id && p.snap); }   // they're random: keep playing until one turns up
-  ok(!!waiting, 'someone waiting has a snap decision');
-  if (waiting) {
-    const cash = waiting.cash, opts = waiting.snap.opts;
-    const r = E.applyAction(s, waiting.id, { a: 'snap', pick: opts.indexOf('convoy') >= 0 ? opts.indexOf('convoy') : 0 });
-    ok(r.ok && !waiting.snap, 'a snap decision can be answered off-turn');
-    if (opts.includes('convoy')) ok(waiting.cash === cash + 3, 'convoy pays $3');
-  }
+{ // map supply drops and quick decisions are gone
+  const s = game(); for (let i = 0; i < 20; i++) endTurn(s);
+  ok(!s.drops && s.players.every(p => !p.snap), 'no supply drops land and no quick decisions pop up');
 }
 { // resupply prep: the next offer is dealt when your turn ends, and a pre-pick applies at your next turn start
   const s = game(); const p0 = me(s); E.applyAction(s, p0.id, { a: 'choose', pick: 'income' }); E.applyAction(s, p0.id, { a: 'end' });
@@ -104,8 +97,7 @@ const idle = (s, pid) => s.players.find(p => p.id !== pid && p.id !== me(s).id) 
   s.units.tk = { id: 'tk', type: 'mauler', owner: p.id, hex: p.hq, moved: false, fresh: false };
   s.units.gr = { id: 'gr', type: 'grunt', owner: p.id, hex: p.hq, moved: false, fresh: false };
   ok(!E.reachable(s, p.id, ['tk'], p.hq)[k], 'a tank cannot drive into a river');
-  ok(!!E.reachable(s, p.id, ['gr'], p.hq)[k], 'infantry can ford a river');
-  { const r = E.reachable(s, p.id, ['gr'], p.hq); ok(!Object.keys(r).some(x => r[x].prev === k), 'fording ends the move: nothing is reachable through the river this turn'); }
+  { const r = E.reachable(s, p.id, ['gr'], p.hq); ok(!r[k] || r[k].kind === 'pass', 'infantry never stop in a river (they ford across: see test-v10)'); }
   ok(E.buildHexes(s, p.id, 'bridge').includes(k), 'you can bridge a river on your land');
   E.applyAction(s, p.id, { a: 'build', struct: 'bridge', hex: k });
   ok(!!E.reachable(s, p.id, ['tk'], p.hq)[k], 'a bridged river lets vehicles across');
@@ -134,21 +126,6 @@ const idle = (s, pid) => s.players.find(p => p.id !== pid && p.id !== me(s).id) 
   ok(tr.length === 1 && tr[0].owner === p.id, 'an enemy stopping next to it triggers overwatch');
   const f = E.overwatchFire(s, p.id, tr[0].from, k, () => 0.99);
   ok(f.ok && f.events.some(e => e.e === 'combat' && e.overwatch) && ids.every(id => !s.units[id] || !s.units[id].ow), 'overwatch fires once, then it is spent');
-}
-{ // supply drops land on open ground and go to the first unit there
-  const s = game(); let tries = 0;
-  while (!(s.drops && s.drops.length) && tries++ < 60) endTurn(s);
-  ok(s.drops && s.drops.length > 0, 'a supply drop lands within a few rounds');
-  if (s.drops && s.drops.length) {
-    const d = s.drops[0]; const p = me(s); if (s.turn.stage === 'choose') E.applyAction(s, p.id, { a: 'choose', pick: 'income' });
-    const from = E.neighbors(d.hex).find(n => s.map.tiles[n] && E.isLandTile(s.map.tiles[n]) && s.map.tiles[n].t !== 'mountain' && !Object.values(s.units).some(u => u.hex === n));
-    if (from) {
-      s.units.dr = { id: 'dr', type: 'grunt', owner: p.id, hex: from, moved: false, fresh: false };   // infantry: drops can land on rivers
-      const cash = p.cash, cards = p.tactics.length;
-      const r = E.applyAction(s, p.id, { a: 'move', from, units: ['dr'], to: d.hex });
-      ok(r.ok && !s.drops.some(x => x.hex === d.hex) && (p.cash > cash || p.tactics.length > cards), 'the first unit there claims the drop');
-    }
-  }
 }
 { // undefended enemy land: troops sweep through at full speed, capturing as they go, and stop on contact
   const s = game({ fog: 'off' }); if (s.turn.stage === 'choose') E.applyAction(s, me(s).id, { a: 'choose', pick: 'income' }); const p = me(s), foe = s.players.find(x => x.id !== p.id);
@@ -185,24 +162,6 @@ const idle = (s, pid) => s.players.find(p => p.id !== pid && p.id !== me(s).id) 
     ok(step() && T[k].owner === p.id, 'holding the only way in does encircle it');
   }
 }
-{ // bots go and grab a supply drop they can reach
-  let got = 0, tries = 0;
-  for (let g = 0; g < 4; g++) {
-    const s = game({ fog: 'off' }); s.players.forEach(p => { p.bot = true; });
-    if (s.turn.stage === 'choose') E.applyAction(s, me(s).id, { a: 'choose', pick: 'income' });
-    const p = me(s), idx = E.buildIndex(s);
-    const u = Object.values(s.units).find(u => u.owner === p.id && E.canAct(s, u) && !E.isSea(u.type)); if (!u) continue;
-    const r = E.reachable(s, p.id, [u.id], u.hex, idx);
-    // behind our own lines, away from the enemy: somewhere a bot wouldn't wander by accident
-    const foes = Object.keys(s.map.tiles).filter(x => s.map.tiles[x].owner && s.map.tiles[x].owner !== p.id), far = x => Math.min(...foes.map(f => E.dist(f, x)));
-    const k = Object.keys(r).filter(k => r[k].kind === 'move' && !(idx[k] || []).length).sort((a, b) => far(b) - far(a))[0]; if (!k) continue;
-    s.drops = [{ hex: k, kind: 'cash', amount: 7, round: s.turn.round }]; tries++;
-    const mem = {}; let c = 0;
-    while (s.phase === 'play' && me(s).id === p.id && c++ < 90) E.applyAction(s, p.id, botStep(s, p.id, mem) || { a: 'end' });
-    if (!s.drops.length) got++;
-  }
-  ok(tries > 0 && got === tries, 'bots grab supply drops in reach (' + got + '/' + tries + ')');
-}
 { // bridges can be turned by their owner, through all three axes and back
   const s = game({ fog: 'off' }); if (s.turn.stage === 'choose') E.applyAction(s, me(s).id, { a: 'choose', pick: 'income' });
   const p = me(s), foe = s.players.find(x => x.id !== p.id), T = s.map.tiles;
@@ -238,7 +197,8 @@ const idle = (s, pid) => s.players.find(p => p.id !== pid && p.id !== me(s).id) 
   const walk = E.reachable(s, p.id, g, hq), fly = E.reachable(s, p.id, g.concat([950]), hq);
   const far = Object.keys(fly).filter(k => fly[k].kind !== 'start' && fly[k].kind !== 'pass' && !walk[k]);
   ok(far.length > 0, 'with a helicopter, Grunts reach hexes they could not walk to (' + far.length + ' more)');
-  ok(Object.keys(fly).every(k => fly[k].kind === 'start' || !E.isWater(T[k]) || fly[k].kind === 'pass' || fly[k].kind === 'attack'), 'a helicopter with troops aboard never stops over water');
+  ok(Object.keys(fly).some(k => E.isWater(T[k]) && fly[k].kind === 'move'), 'a helicopter with troops aboard can hover over water (they stay aboard)');
+  ok(!E.stackFits(Array(5).fill('stormcrow').concat(Array(6).fill('grunt')), []), 'carriers no longer pack more than 10 units onto a hex');
   const dest = Object.keys(fly).filter(k => ['move', 'capture'].includes(fly[k].kind) && E.isLandTile(T[k])).sort((a, b) => fly[b].c - fly[a].c)[0];
   const path = E.pathTo(fly, dest), over = path.slice(1, -1).filter(k => E.isLandTile(T[k]) && T[k].owner !== p.id);
   const r = E.applyAction(s, p.id, { a: 'move', from: hq, units: g.concat([950]), to: dest });

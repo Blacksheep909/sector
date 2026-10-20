@@ -102,7 +102,7 @@
 
   // cls: inf | veh | air | art | sea
   const UNITS = {
-    grunt: { name: 'Grunts', cls: 'inf', cost: 1, atk: 2, def: 1, mv: 2, rarity: 'common', desc: 'Cheap, dependable rifle squad.' },
+    grunt: { name: 'Grunts', cls: 'inf', cost: 2, atk: 2, def: 1, mv: 2, rarity: 'common', desc: 'Cheap, dependable rifle squad.' },
     skitter: { name: 'Skitter', cls: 'veh', cost: 3, atk: 2, def: 1, mv: 4, rarity: 'common', desc: 'Raider buggy. Grabs land fast.' },
     thumper: { name: 'Thumper', cls: 'art', cost: 4, atk: 3, def: 1, mv: 1, range: 2, rarity: 'common', desc: 'Mortar crew. Fires 2 hexes instead of moving.' },
     barracuda: { name: 'Barracuda', cls: 'sea', cost: 4, atk: 3, def: 2, mv: 4, rarity: 'common', desc: 'Fast gunboat. Claims sea lanes, raids coasts.' },
@@ -110,7 +110,7 @@
     corpsman: { name: 'Corpsman', cls: 'inf', cost: 3, atk: 1, def: 3, mv: 2, rarity: 'common', ability: 'medic', desc: 'Medic squad. Its stack never suffers pyrrhic losses.' },
     jackal: { name: 'Jackal', cls: 'veh', cost: 3, atk: 3, def: 2, mv: 4, rarity: 'uncommon', desc: 'Light patrol truck with a heavy machine gun. Cheap, quick, hits above its weight.' },
     coyote: { name: 'Coyote', cls: 'veh', cost: 4, atk: 2, def: 2, mv: 4, rarity: 'uncommon', ability: 'recon', desc: 'Scout truck with a sensor mast. Sees 2 hexes further in the fog of war.' },
-    lancer: { name: 'Lancer', cls: 'inf', cost: 4, atk: 3, def: 2, mv: 2, rarity: 'uncommon', ability: 'hunter', desc: 'Tank Hunter: +3 Chips when fighting vehicles.' },
+    lancer: { name: 'Lancer', cls: 'inf', cost: 5, atk: 3, def: 2, mv: 2, rarity: 'uncommon', ability: 'hunter', desc: 'Tank Hunter: +3 Chips when fighting vehicles.' },
     warden: { name: 'Warden', cls: 'air', cost: 4, atk: 1, def: 3, mv: 3, rarity: 'uncommon', ability: 'aegis', desc: 'Airborne radar plane. Aegis: +1 Mult when its hex defends.' },
     sapper: { name: 'Sapper', cls: 'inf', cost: 4, atk: 2, def: 2, mv: 2, rarity: 'uncommon', ability: 'sapper', desc: 'Demolitions: +3 Chips attacking a hex with buildings.' },
     scorpion: { name: 'Scorpion', cls: 'veh', cost: 5, atk: 2, def: 3, mv: 3, rarity: 'uncommon', ability: 'aa', aa: 4, desc: 'Flak tank. +4 Chips vs aircraft; 35% to shoot down air strikes within 1.' },
@@ -126,11 +126,11 @@
     wraith: { name: 'Outrider', cls: 'veh', cost: 7, atk: 5, def: 3, mv: 5, rarity: 'rare', lift: 4, desc: 'Eight-wheeled fighting vehicle. 5 move: the fastest thing on the ground. Carries up to 4 Grunts.' },
     kraken: { name: 'Kraken', cls: 'sea', cost: 8, atk: 7, def: 2, mv: 4, rarity: 'rare', ability: 'torpedo', desc: 'Submarine. Torpedoes: +4 Chips vs ships.' },
     goliath: { name: 'Goliath', cls: 'veh', cost: 10, atk: 7, def: 6, mv: 1, rarity: 'epic', ability: 'siege', desc: 'Siege mortar tank. +2 Mult vs fortified hexes.' },
-    valkyrie: { name: 'Valkyrie', cls: 'air', cost: 10, atk: 6, def: 4, mv: 4, rarity: 'epic', ability: 'strafe', lift: 8, desc: 'Tiltrotor assault transport. Carries up to 8 Grunts over mountains and water (it sets them down on land). Strafing Run: +2 Mult attacking ground targets.' },
+    valkyrie: { name: 'Valkyrie', cls: 'air', cost: 10, atk: 6, def: 3, mv: 4, rarity: 'epic', ability: 'strafe', lift: 8, desc: 'Tiltrotor assault transport. Carries up to 8 Grunts over mountains and water (it sets them down on land). Strafing Run: +2 Mult attacking ground targets.' },
     // helicopters
-    wren: { name: 'Wren', cls: 'air', cost: 5, atk: 3, def: 2, mv: 5, rarity: 'rare', ability: 'strafe', lift: 2, heli: true, desc: 'Light assault helicopter. Fast, with 2 Grunts riding on its benches. Strafing Run: +2 Mult attacking ground targets.' },
-    ravager: { name: 'Ravager', cls: 'air', cost: 7, atk: 5, def: 3, mv: 4, rarity: 'rare', ability: 'strafe', heli: true, desc: 'Armoured attack helicopter with a chin cannon. Strafing Run: +2 Mult attacking ground targets.' },
-    stormcrow: { name: 'Stormcrow', cls: 'air', cost: 9, atk: 4, def: 4, mv: 4, rarity: 'epic', lift: 6, heli: true, desc: 'Utility helicopter with door guns. Carries up to 6 Grunts over mountains and water (it sets them down on land).' },
+    wren: { name: 'Wren', cls: 'air', cost: 5, atk: 3, def: 1, mv: 5, rarity: 'rare', ability: 'strafe', lift: 2, heli: true, desc: 'Light assault helicopter. Fast, with 2 Grunts riding on its benches. Strafing Run: +2 Mult attacking ground targets.' },
+    ravager: { name: 'Ravager', cls: 'air', cost: 7, atk: 5, def: 2, mv: 4, rarity: 'rare', ability: 'strafe', heli: true, desc: 'Armoured attack helicopter with a chin cannon. Strafing Run: +2 Mult attacking ground targets.' },
+    stormcrow: { name: 'Stormcrow', cls: 'air', cost: 9, atk: 4, def: 3, mv: 4, rarity: 'epic', lift: 6, heli: true, desc: 'Utility helicopter with door guns. Carries up to 6 Grunts over mountains and water (it sets them down on land).' },
     phantom: { name: 'Phantom', cls: 'air', cost: 10, atk: 7, def: 3, mv: 5, rarity: 'epic', ability: 'stealth', desc: 'Stealth bomber. Immune to artillery, airstrikes and bombardment.' },
     hailstorm: { name: 'Hailstorm', cls: 'art', cost: 11, atk: 7, def: 3, mv: 2, range: 4, rarity: 'epic', ability: 'salvo', desc: 'Tracked rocket launcher (MLRS). Range 4. A hit also rains rockets on every enemy stack next to the target: 1 unit each.' },
     sentinel: { name: 'Sentinel', cls: 'art', cost: 9, atk: 6, def: 3, mv: 1, range: 3, rarity: 'epic', ability: 'sam', aa: 4, desc: 'SAM battery. Fires at aircraft 3 hexes away; 60% to shoot down air strikes within 3.' },
@@ -138,7 +138,7 @@
     leviathan: { name: 'Leviathan', cls: 'veh', cost: 14, atk: 12, def: 10, mv: 1, rarity: 'legendary', ability: 'juggernaut', desc: 'Land dreadnought. Never suffers pyrrhic losses.' },
     titan: { name: 'Titan', cls: 'veh', cost: 16, atk: 13, def: 12, mv: 1, rarity: 'legendary', ability: 'titan', desc: 'Landship with naval guns. Siege Breaker and never suffers pyrrhic losses.' },
     seraph: { name: 'Seraph', cls: 'air', cost: 12, atk: 9, def: 4, mv: 5, rarity: 'legendary', ability: 'strafe', desc: 'Heavy gunship. Strafing Run: +2 Mult attacking ground targets.' },
-    banshee: { name: 'Banshee', cls: 'air', cost: 13, atk: 10, def: 5, mv: 4, rarity: 'legendary', ability: 'hellfire', heli: true, desc: 'Attack helicopter with anti-tank missiles. Hellfire: +4 Chips against vehicles, and Strafing Run: +2 Mult attacking ground targets.' },
+    banshee: { name: 'Banshee', cls: 'air', cost: 14, atk: 9, def: 3, mv: 4, rarity: 'legendary', ability: 'hellfire', heli: true, desc: 'Attack helicopter with anti-tank missiles. Hellfire: +3 Chips against vehicles, and Strafing Run: +2 Mult attacking ground targets.' },
     carrier: { name: 'Carrier', cls: 'sea', cost: 13, atk: 3, def: 9, mv: 3, rarity: 'legendary', ability: 'carrier', desc: 'Floating airbase: deploy aircraft onto it and fly them off it. Holds 4.' },
     oracle: { name: 'Oracle', cls: 'art', cost: 11, atk: 8, def: 3, mv: 2, range: 4, rarity: 'legendary', ability: 'orbital', desc: 'Orbital uplink. Range 4, ignores mountains.' },
     trident: { name: 'Trident', cls: 'sea', cost: 16, atk: 10, def: 6, mv: 3, range: 8, rarity: 'legendary', ability: 'ballistic', desc: 'Missile submarine. Fires at any troops or buildings within 8, over mountains; a hit kills one extra unit. Only a Sentinel can intercept.' },
@@ -152,7 +152,7 @@
     march: { name: 'Forced March', rarity: 'common', cost: 1, target: 'ownStack', desc: 'Units on one hex may act again, with +2 move.' },
     rally: { name: 'Rally', rarity: 'common', cost: 1, target: 'none', desc: 'Your next attack this turn gets +2 Mult.' },
     fortify: { name: 'Fortify', rarity: 'common', cost: 2, target: 'ownHex', desc: 'Build or upgrade a Bunker on one of your hexes for free (on your HQ hex it fortifies the HQ instead).' },
-    conscript: { name: 'Conscription', rarity: 'common', cost: 1, target: 'spawn', desc: 'Deploy 2 free Grunts at a deploy point.' },
+    conscript: { name: 'Conscription', rarity: 'common', cost: 1, target: 'spawn', desc: 'Deploy 5 free Grunts at a deploy point (as many as fit).' },
     kamikaze: { name: 'Kamikaze Drone', rarity: 'common', cost: 2, target: 'enemyUnits', range: 5, desc: 'A loitering munition dives on a target within 5 of your land. Troops: roll 4+ kills 1. Undefended buildings: knocks a level off one.' },
     gunrun: { name: 'Gun Run', rarity: 'common', cost: 2, target: 'enemyUnits', range: 3, desc: 'Attack jet, within 3 of your land. Troops: roll 3+ kills 1. Undefended buildings: knocks a level off one.' },
     airstrike: { name: 'Airstrike', rarity: 'uncommon', cost: 4, target: 'enemyUnits', range: 4, desc: 'Bomb a hex within 4 of your land. Troops: roll to kill 1–3. Undefended buildings: knocks 1–2 levels off them.' },
@@ -245,7 +245,16 @@
     clear: { name: 'Clear Skies', icon: '☀', desc: 'Everyone sees 2 hexes further this round (fog of war).' },
   };
   const COLORS = ['#ff4f5e', '#36c9ff', '#ffc53d', '#59f08a', '#c27dff', '#ff8ad0', '#ff9a3c', '#e9edf2'];
-  const MAX_STACK = 5, GRUNT_STACK = 10;
+  // teams play in team colours: A red, B blue, C gold, D green, a different shade for each teammate
+  const TEAM_COLORS = {
+    1: ['#ff4f5e', '#ff8f6b', '#c42a4a', '#ff6fa8'],
+    2: ['#36a3ff', '#7fd8ff', '#2f5fe0', '#4fe3d8'],
+    3: ['#ffc53d', '#ffe680', '#e8941f', '#d8e04a'],
+    4: ['#59f08a', '#b0f060', '#22b86a', '#8ff5d0'],
+  };
+  const TEAM_NAMES = { 1: 'Red', 2: 'Blue', 3: 'Gold', 4: 'Green' };
+  function teamColor(team, nth) { const l = TEAM_COLORS[team] || TEAM_COLORS[1]; return l[nth % l.length]; }
+  const MAX_STACK = 5, GRUNT_STACK = 10, ROLL_BASE = 2;
   // a hex holds 5 units, or up to 10 when every unit on it is a Grunt
   const typeOf = u => typeof u === 'string' ? u : u.type;
   const stackFits = (occ, add) => {
@@ -253,7 +262,7 @@
     if (all.every(u => typeOf(u) === 'grunt')) return all.length <= GRUNT_STACK;
     // Grunts aboard a carrier (APC, helicopter) don't take up room in the stack
     const cap = all.reduce((a, u) => a + (UNITS[typeOf(u)].lift || 0), 0), g = all.filter(u => typeOf(u) === 'grunt').length;
-    return all.length - Math.min(cap, g) <= MAX_STACK;
+    return all.length - Math.min(cap, g) <= MAX_STACK && all.length <= GRUNT_STACK;   // ...but nothing packs more than 10 on a hex
   };
   // Grunts moving with carriers ride along: they travel at the carriers' pace and over their terrain. All or nothing:
   // if there are more Grunts than seats, nobody rides and the group walks
@@ -547,7 +556,11 @@
     // World War: a colossal map, a war economy and superweapon silos (always with world events)
     if (ww) { settings.mapSize = 'colossal'; settings.events = 'on'; settings.conquestPct = 45; }
     const teams = settings.teams === 'on';
-    if (teams) { const used = roster.filter(p => p.team).length; roster = roster.map((p, i) => ({ ...p, team: used ? (p.team || 1) : 1 + (i % 2) })); if (new Set(roster.map(p => p.team)).size < 2) settings.teams = 'off'; }
+    if (teams) {
+      const used = roster.filter(p => p.team).length; roster = roster.map((p, i) => ({ ...p, team: used ? (p.team || 1) : 1 + (i % 2) }));
+      if (new Set(roster.map(p => p.team)).size < 2) settings.teams = 'off';
+      else { const nth = {}; roster = roster.map(p => ({ ...p, color: teamColor(p.team, nth[p.team] = (nth[p.team] ?? -1) + 1) })); }
+    }
     const seed = settings.seed ? hashStr(String(settings.seed)) : (Math.random() * 1e9) >>> 0;
     const shuffled = roster.slice().sort(() => Math.random() - 0.5);
     const map = generateMap({ size: settings.mapSize, seed, nPlayers: roster.length, archetype: ARCHETYPES.includes(settings.mapType) ? settings.mapType : null });
@@ -660,6 +673,7 @@
   // HQ hexes the current picker may still choose
   function spawnChoices(s) {
     if (!s.spawn) return [];
+    if (s.spawn.choices) return s.spawn.choices;   // a fog-of-war client view: the server worked these out without showing the other HQs
     const taken = s.players.filter(p => p.hq).map(p => p.hq);
     return s.spawn.cands.filter(k => taken.every(h => dist(h, k) >= s.spawn.minDist));
   }
@@ -742,7 +756,7 @@
   function musterHexes(s, pid) {
     const p = player(s, pid); if (!p || !p.hq || !s.map.tiles[p.hq]) return [];
     const h = getS(s.map.tiles[p.hq], 'hq'); if (!h || h.owner !== pid || !h.siege) return [];
-    return neighbors(p.hq).filter(n => { const t = s.map.tiles[n]; return t && t.owner === pid && isLandTile(t) && t.t !== 'mountain'; });
+    return neighbors(p.hq).filter(n => { const t = s.map.tiles[n]; return t && t.owner === pid && isLandTile(t) && t.t !== 'mountain' && !(t.river && !t.bridge); });
   }
   function spawnPoints(s, pid) {
     const out = []; let sup = null;
@@ -771,7 +785,10 @@
     if (!t) return 'No such hex';
     if (struct === 'bridge' && t.river && isLandTile(t) && !t.bridge) {
       // a river bridge: on your own supplied river hex, so vehicles can cross
-      if (t.owner !== pid || !sup.has(k)) return 'Bridge a river on your own supplied land';
+      // your own supplied river hex, or an unclaimed one on the edge of your supplied land
+      const edge = !t.owner && neighbors(k).some(n => tiles[n] && tiles[n].owner === pid && sup.has(n) && isLandTile(tiles[n]));
+      if (!((t.owner === pid && sup.has(k)) || edge)) return 'Bridge a river from your own supplied bank';
+      if (!t.owner && Object.values(s.units).some(u => u.hex === k)) return 'Hex is occupied';
       if (structsOf(t).length) return 'Clear the hex first';
       if (neighbors(k).some(n => tiles[n] && (tiles[n].bridge || getS(tiles[n], 'bridge')))) return 'Too close to another bridge';
       return null;
@@ -978,8 +995,25 @@
         if (t.t === 'mountain' && !allAir) continue;
         // aircraft can land on one of your carriers
         if (allAir && !carrying && isWater(t) && occ.length && occ[0].owner === pid && airCap(occ) >= occ.filter(isAirU).length + units.length && stackFits(occ, units)) { if (cn.c + 1 <= mv) set(n, cn.c + 1, cur, 'board'); continue; }
-        if (t.river && !t.bridge && !allAir && units.some(u => ['veh', 'art'].includes(UNITS[u.type].cls))) continue;   // vehicles need a bridge over a river
-        const step = (!allAir && !pathfind && (TERRAIN[t.t].moveCost || (t.river && !t.bridge ? 2 : 0))) || 1;   // infantry ford rivers
+        if (t.river && !t.bridge && !allAir) {
+          // nobody stands in a river. Vehicles need a bridge; infantry can ford straight across to the far bank, but it takes their whole move
+          if (cn.c !== 0 || units.some(u => ['veh', 'art'].includes(UNITS[u.type].cls))) continue;
+          for (const m of neighbors(n)) {
+            const mt = s.map.tiles[m];
+            if (!mt || dist(cur, m) !== 2 || !isLandTile(mt) || mt.t === 'mountain' || (mt.river && !mt.bridge) || mt.contam) continue;
+            const mo = idx[m] || [];
+            if (mo.length && mo[0].owner !== pid) continue;   // no opposed crossings: you can't fight your way out of the water
+            if (!mt.owner && GARRISONED.includes(mt.poi)) continue;
+            if (!stackFits(mo, group)) continue;
+            const mAlly = !!(mt.owner && mt.owner !== pid && isAlly(s, pid, mt.owner));
+            let mk = 'move';
+            if (mt.owner && mt.owner !== pid && !mAlly) { const h = getS(mt, 'hq'), bk = getS(mt, 'bunker'); if ((h && h.owner === mt.owner) || (bk && bk.owner === mt.owner)) continue; mk = 'capture'; }
+            if (!out[n]) set(n, 1, cur, 'pass');
+            if (!out[m] || out[m].c > Math.max(mv, 2)) { out[m] = { c: Math.max(mv, 2), prev: n, kind: mk, ford: true }; }   // a ford ends the move: no expanding from the far bank
+          }
+          continue;
+        }
+        const step = (!allAir && !pathfind && TERRAIN[t.t].moveCost) || 1;
         const cc = cn.c + step;
         if (cc > mv && !(cn.c === 0 && mv > 0)) continue;   // slow units can always crawl one hex
         const land = isLandTile(t);
@@ -988,7 +1022,7 @@
         else if (enemy) { if (!canFight) continue; kind = 'attack'; }
         else if (land && !t.owner && GARRISONED.includes(t.poi)) { if (!canFight) continue; kind = 'attack'; }
         else if (land && t.owner && t.owner !== pid && !allyLand) { const h = getS(t, 'hq'), bk = getS(t, 'bunker'); kind = (h && h.owner === t.owner) || (bk && bk.owner === t.owner) ? (canFight ? 'attack' : null) : 'capture'; }
-        else kind = (land || (allAir && !carrying)) && !t.contam && stackFits(occ, group) ? 'move' : 'pass';   // aircraft may loiter over water (not with troops aboard)
+        else kind = (land || allAir) && !t.contam && stackFits(occ, group) ? 'move' : 'pass';   // aircraft may loiter over water (troops aboard stay aboard)
         if (!kind || (kind === 'capture' && t.contam)) continue;
         if (carrying && kind === 'attack' && isWater(s.map.tiles[cur])) continue;   // troops can't jump out over the sea
         set(n, cc, cur, kind);
@@ -1040,7 +1074,7 @@
     const hunters = units.filter(u => UNITS[u.type].ability === 'hunter').length;
     if (hunters && has(defenders, 'veh')) { att.chips += 3 * hunters; att.bonuses.push({ label: 'Tank Hunter', chips: 3 * hunters }); }
     const hellfire = units.filter(u => UNITS[u.type].ability === 'hellfire').length;
-    if (hellfire && has(defenders, 'veh')) { att.chips += 4 * hellfire; att.bonuses.push({ label: 'Hellfire', chips: 4 * hellfire }); }
+    if (hellfire && has(defenders, 'veh')) { att.chips += 3 * hellfire; att.bonuses.push({ label: 'Hellfire', chips: 3 * hellfire }); }
     const torps = units.filter(u => UNITS[u.type].ability === 'torpedo').length;
     if (torps && has(defenders, 'sea')) { att.chips += 4 * torps; att.bonuses.push({ label: 'Torpedoes', chips: 4 * torps }); }
     if (!ranged && isLandTile(t)) {
@@ -1049,6 +1083,9 @@
       const ga = guns(pid); if (ga) { att.chips += 2 * ga; att.bonuses.push({ label: 'Naval Gunfire', chips: 2 * ga }); }
       if (defPid) { const gd = guns(defPid); if (gd) { def.chips += 2 * gd; def.bonuses.push({ label: 'Coastal Fleet', chips: 2 * gd }); } }
     }
+    // rifles and machine guns can hit a helicopter: every infantry unit adds a Chip in a fight against them
+    const isHeli = u => !!UNITS[u.type].heli;
+    { const gf = units.filter(u => UNITS[u.type].cls === 'inf').length; if (gf && defenders.some(isHeli)) { att.chips += gf; att.bonuses.push({ label: 'Ground Fire', chips: gf }); } }
     const aaA = units.reduce((n, u) => n + (UNITS[u.type].aa || 0), 0);
     if (aaA && has(defenders, 'air')) { att.chips += aaA; att.bonuses.push({ label: 'Anti-Air', chips: aaA }); }
     const sap = units.filter(u => UNITS[u.type].ability === 'sapper').length;
@@ -1083,6 +1120,7 @@
     const dlv = defenders.reduce((a, u) => a + levelOf(s, u), 0);
     if (dlv) def.bonuses.push({ label: 'Veteran ★', chips: dlv, note: true });
     if (dp && dp.faction === 'iron' && defenders.length) { def.chips += 2 * defenders.length; def.bonuses.push({ label: 'Steel Wall', chips: 2 * defenders.length }); }
+    { const gf = defenders.filter(u => UNITS[u.type].cls === 'inf').length; if (gf && units.some(isHeli)) { def.chips += gf; def.bonuses.push({ label: 'Ground Fire', chips: gf }); } }
     const aaD = defenders.reduce((n, u) => n + (UNITS[u.type].aa || 0), 0);
     if (aaD && has(units, 'air')) { def.chips += aaD; def.bonuses.push({ label: 'Anti-Air', chips: aaD }); }
     if (!t.owner && GARRISONED.includes(t.poi) && !defenders.length) {
@@ -1130,6 +1168,8 @@
         const L2 = slvlOf(bk2), hold = Math.min(L2 >= 3 ? 20 : 4 * L2, Math.round((att.chips - def.chips) * (L2 >= 3 ? 0.6 : 0.4)));
         if (hold > 0) { def.chips += hold; def.bonuses.push({ label: 'Hold the Line', chips: hold }); }
       } }
+    // every roll is d6 + 2: luck still swings a close fight, but the bigger, better-supported army wins far more reliably
+    att.mult += ROLL_BASE; def.mult += ROLL_BASE; att.bonuses.push({ label: 'Training', mult: ROLL_BASE, note: true }); def.bonuses.push({ label: 'Training', mult: ROLL_BASE, note: true });
     const aNull = ap && ap.faction === 'null', dNull = dp && dp.faction === 'null';
     let wins = 0;
     for (let a = 1; a <= 6; a++) for (let d = 1; d <= 6; d++) {
@@ -1140,7 +1180,8 @@
   }
   function rollDie(rng) { return 1 + Math.floor(rng() * 6); }
   const weakest = arr => arr.slice().sort((a, b) => UNITS[a.type].cost - UNITS[b.type].cost)[0];
-  function canHold(tile, u) { return isWater(tile) ? isSea(u.type) : isLandTile(tile) && !isSea(u.type); }
+  // who can stand on a hex after winning it: ships at sea, anyone on land, and nobody on foot in an unbridged river
+  function canHold(tile, u) { return isWater(tile) ? isSea(u.type) : isLandTile(tile) && !isSea(u.type) && !(tile.river && !tile.bridge && UNITS[u.type].cls !== 'air'); }
 
   // groups: [{ units, stage, from }] — one group is a normal attack, several is a pincer
   function resolveAssault(s, pid, groups, target, rng, ev) {
@@ -1386,7 +1427,7 @@
     if (d.kind === 'tactic') { p.tactics.push({ uid: s.nextId++, id }); ev.push({ e: 'card', pid: p.id, id, rarity: d.rarity, kind: 'tactic' }); return null; }
     if (p.arsenal.includes(id)) {
       const lv = (p.levels[id] || 0);
-      if (lv >= MAX_LEVEL) { p.cash += 4; ev.push({ e: 'card', pid: p.id, id, rarity: d.rarity, kind: 'unit', refund: 4 }); return null; }
+      if (lv >= MAX_LEVEL) { const refund = scaled(s, p.id, 4); p.cash += refund; ev.push({ e: 'card', pid: p.id, id, rarity: d.rarity, kind: 'unit', refund }); return null; }
       p.levels[id] = lv + 1;
       ev.push({ e: 'card', pid: p.id, id, rarity: d.rarity, kind: 'unit', level: lv + 1 });
       return null;
@@ -1495,15 +1536,7 @@
       ev.push({ e: 'embargoHit', pid: p.id, left: p.embargo || 0 }); pushLog(s, '⛔ ' + p.name + "'s income is halved by an embargo" + (p.embargo ? ' (1 more turn).' : '.'));
     }
     s.turn.rerolls = 0; s.turn.crate = null;
-    if (!preview) supplyDrops(s, ev, rng);
-    if (!preview) {
-      // a snap decision left unanswered lapses (bots take one at random); then everyone else gets this round's
-      if (p.snap) { if (p.bot) snapPick(s, p, { pick: Math.floor((rng || Math.random)() * 2) }, []); delete p.snap; }
-      offerSnaps(s, p.id, rng);
-    }
-    const snapNow = p.snapNext; if (!preview) delete p.snapNext;
-    if (snapNow === 'drill') for (const id in s.units) { const u = s.units[id]; if (u.owner === p.id) u.mvBonus = (u.mvBonus || 0) + 1; }
-    if (snapNow === 'volunteers' && !preview) { const idx = buildIndex(s); if (stackFits(idx[p.hq] || [], ['grunt']) && !(idx[p.hq] || []).some(u => u.owner !== p.id)) { const u = addUnit(s, p.id, 'grunt', p.hq, false); ev.push({ e: 'deploy', pid: p.id, unit: { ...u }, hex: p.hq }); } }
+    if (!preview) { delete s.drops; delete p.snap; delete p.snapNext; }   // old saves: map crates and quick decisions are gone
     ev.push({ e: 'turn', pid: p.id, round: s.turn.round });
     if (s.turn.round === 1) {
       // everyone just drafted 3 cards: round 1 pays full income with no resupply pick
@@ -1511,8 +1544,7 @@
       ev.push({ e: 'income', pid: p.id, amount: s.turn.income, hq: p.hq });
     } else {
       s.turn.stage = 'choose';
-      s.turn.offer = p.nextOffer && p.nextOffer.length ? p.nextOffer.slice() : drawCards(s, p, snapNow === 'ration' ? 4 : 3, TURN_ODDS, rng);
-      if (snapNow === 'ration' && s.turn.offer.length < 4) s.turn.offer = s.turn.offer.concat(drawCards(s, p, 4 - s.turn.offer.length, TURN_ODDS, rng));
+      s.turn.offer = p.nextOffer && p.nextOffer.length ? p.nextOffer.slice() : drawCards(s, p, 3, TURN_ODDS, rng);
       if (!preview) delete p.nextOffer;
       // picked ahead of time while waiting: apply it straight away
       const pre = p.prePick; if (!preview) delete p.prePick;
@@ -1696,6 +1728,9 @@
   }
   function conquestTarget(s) { return Math.ceil(s.map.landCount * (s.settings.conquestPct || 60) / 100); }
   // rerolls cost a quarter of this turn's income (min $2), and each one costs that much more again
+  // flat payouts (ruins, scrapped crates, maxed cards) keep pace with the war: they grow with your income
+  function payScale(s, pid) { const inc = s._preview ? 10 : computeIncome(s, pid).total; return Math.max(1, inc / 10); }
+  const scaled = (s, pid, base) => Math.max(base, Math.round(base * payScale(s, pid)));
   function rerollCost(s) { return Math.max(2, Math.ceil((s.turn.income || 0) * 0.25)) * (1 + (s.turn.rerolls || 0)); }
   // bounty pays a fifth of your income per kill (min $2)
   function bountyValue(s, p) { return Math.max(2, Math.round(computeIncome(s, p.id).total * 0.2)); }
@@ -1746,7 +1781,7 @@
         {
           const ms = (idx[from] || []).filter(u => u.owner === pid && canAct(s, u) && !isSea(u.type));
           for (const k of area(from, def.range)) {
-            const t = tiles[k]; if (!isLandTile(t) || k === from || t.contam) continue;
+            const t = tiles[k]; if (!isLandTile(t) || k === from || t.contam || (t.river && !t.bridge)) continue;
             if ((idx[k] || []).length) continue;
             if (getS(t, 'hq') || (!t.owner && GARRISONED.includes(t.poi)) || (t.owner && t.owner !== pid && getS(t, 'bunker') && getS(t, 'bunker').owner === t.owner)) continue;
             if (t.owner !== pid && flakCovered(s, pid, k)) continue;
@@ -1855,7 +1890,8 @@
     for (const k in idx) {
       if (!isWater(s.map.tiles[k])) continue;
       const riders = idx[k].filter(u => !isSea(u.type) && UNITS[u.type].cls !== 'air' && UNITS[u.type].ability !== 'hover');
-      riders.slice(cargoCap(idx[k])).forEach(u => { dead.push(u.id); delete s.units[u.id]; const o = player(s, u.owner); if (o) o.stats.lost++; });
+      const seats = cargoCap(idx[k]) + idx[k].filter(isAirU).reduce((a, u) => a + (UNITS[u.type].lift || 0), 0);   // ships' holds and helicopters' benches
+      riders.slice(seats).forEach(u => { dead.push(u.id); delete s.units[u.id]; const o = player(s, u.owner); if (o) o.stats.lost++; });
     }
     if (dead.length) { ev.push({ e: 'drown', units: dead }); pushLog(s, '🌊 ' + dead.length + ' unit' + (dead.length > 1 ? 's' : '') + ' lost at sea.'); }
   }
@@ -1868,7 +1904,13 @@
     const dest = reach[to];
     if (!dest || dest.kind === 'start' || dest.kind === 'pass') return { err: 'Cannot reach that hex' };
     // a carrier can't drive off and leave more Grunts behind than the hex holds without it
-    if (isLandTile(s.map.tiles[g.from])) { const left = (idx[g.from] || []).filter(u => u.owner === pid && !g.units.includes(u.id)); if (left.length && !stackFits(left, [])) return { err: 'Take the Grunts along: they would not fit on the hex without their transport' }; }
+    { const ft = s.map.tiles[g.from], left = (idx[g.from] || []).filter(u => u.owner === pid && !g.units.includes(u.id));
+      if (isLandTile(ft) && !(ft.river && !ft.bridge) && left.length && !stackFits(left, [])) return { err: 'Take the Grunts along: they would not fit on the hex without their transport' };
+      // over water a helicopter can't fly off and leave its passengers hanging in the air
+      if ((isWater(ft) || (ft.river && !ft.bridge)) && left.some(u => !isSea(u.type) && !isAirU(u))) {
+        const walkers = left.filter(u => !isSea(u.type) && !isAirU(u)).length, seats = cargoCap(left) + left.filter(isAirU).reduce((a, u) => a + (UNITS[u.type].lift || 0), 0);
+        if (walkers > seats) return { err: 'Take the troops along: they would be left over the water' };
+      } }
     return { units, reach, dest, path: pathTo(reach, to) };
   }
   // supply caches hold a tactic: common 40%, uncommon 35%, rare 18%, epic 6%, legendary 1%
@@ -1885,7 +1927,7 @@
     for (const k of path.slice(1)) {
       const t = s.map.tiles[k];
       if (!t || !(t.poi === 'ruins' || t.poi === 'cache')) continue;
-      if (t.poi === 'ruins') { const amt = 4 + Math.floor(rng() * 7); p.cash += amt; ev.push({ e: 'loot', pid, hex: k, poi: 'ruins', amount: amt }); pushLog(s, '🏺 ' + p.name + ' looted ruins: +$' + amt + '.'); }
+      if (t.poi === 'ruins') { const amt = scaled(s, pid, 4 + Math.floor(rng() * 7)); p.cash += amt; ev.push({ e: 'loot', pid, hex: k, poi: 'ruins', amount: amt }); pushLog(s, '🏺 ' + p.name + ' looted ruins: +$' + amt + '.'); }
       else { const id = cacheCard(rng); p.tactics.push({ uid: s.nextId++, id }); ev.push({ e: 'loot', pid, hex: k, poi: 'cache', card: id }); pushLog(s, '📦 ' + p.name + ' found a supply cache.'); }
       delete t.poi;
     }
@@ -1926,14 +1968,13 @@
     if (s.phase !== 'play') return fail('Game is not running');
     if (a.a === 'tradeReply') return tradeReply(s, p, a, ev);
     if (a.a === 'allyReply') return allyReply(s, p, a, ev);
-    // diplomacy, trades, intel, snap decisions and resupply prep don't wait for your turn
+    // diplomacy, trades, intel and resupply prep don't wait for your turn
     if (a.a === 'trade') return tradeOffer(s, p, a, ev);
     if (a.a === 'allyOffer') return allyOffer(s, p, a, ev);
     if (a.a === 'allyBreak') return allyBreak(s, p, a, ev);
     if (a.a === 'allyRenew') return allyRenew(s, p, a, ev);
     if (a.a === 'tradeCancel') { if (s.trade && s.trade.from === pid) { s.trade = null; ev.push({ e: 'trade', status: 'cancelled', from: pid }); } return { ok: true, events: ev }; }
     if (a.a === 'intel') return intelOp(s, p, a, ev);
-    if (a.a === 'snap') return snapPick(s, p, a, ev);
     if (a.a === 'prepick') return prePick(s, p, a, ev);
     if (current(s).id !== pid) return fail('Not your turn');
     const tiles = s.map.tiles;
@@ -1976,8 +2017,8 @@
         const d = cardDef(id);
         pushLog(s, p.name + ' pulled ' + (d.kind === 'unit' || RARITY_ORDER.indexOf(d.rarity) >= 3 ? d.name : 'a ' + RARITY[d.rarity].name + ' tactic') + ' from a ' + CRATES[crate.tier].name + (RARITY_ORDER.indexOf(d.rarity) >= 3 ? ' ★' : '') + '.');
       } else {
-        p.cash += SCRAP_VALUE;
-        ev.push({ e: 'scrap', pid, amount: SCRAP_VALUE, hq: p.hq });
+        const scrap = scaled(s, pid, SCRAP_VALUE); p.cash += scrap;
+        ev.push({ e: 'scrap', pid, amount: scrap, hq: p.hq });
       }
       s.turn.crate = null; s.turn.stage = 'act';
       return { ok: true, events: ev };
@@ -1985,7 +2026,7 @@
     if (a.a === 'end') {
       if (s.trade) { ev.push({ e: 'trade', status: 'expired', ...s.trade }); s.trade = null; }
       if (stage === 'choose') { p.cash += s.turn.income; ev.push({ e: 'income', pid, amount: s.turn.income, hq: p.hq }); }
-      if (stage === 'crate') { p.cash += SCRAP_VALUE; s.turn.crate = null; }
+      if (stage === 'crate') { p.cash += scaled(s, pid, SCRAP_VALUE); s.turn.crate = null; }
       ev.push({ e: 'endturn', pid });
       endTurn(s, ev, rng);
       return { ok: true, events: ev };
@@ -2083,7 +2124,6 @@
         if (c.dest.kind !== 'board' && (navy ? isWater(t) : isLandTile(t)) && captureTile(s, a.to, pid)) caps.push(a.to);
         ev.push({ e: 'move', pid, units: fleet.concat(cargo).map(u => u.id), path: c.path, captures: caps });
         lootPath(s, pid, c.path, ev, rng);
-        if (!fleet.every(u => isSea(u.type))) claimDrops(s, pid, c.path, ev, rng);
       }
       return { ok: true, events: ev };
     }
@@ -2219,7 +2259,7 @@
       }
       case 'conscript': {
         const here = buildIndex(s)[a.target] || [], made = [];
-        for (let i = 0; i < 2 && stackFits(here, Array(i + 1).fill('grunt')); i++) made.push({ ...addUnit(s, pid, 'grunt', a.target, true) });
+        for (let i = 0; i < 5 && stackFits(here, Array(i + 1).fill('grunt')); i++) made.push({ ...addUnit(s, pid, 'grunt', a.target, true) });
         ev.push({ ...base, units: made }); break;
       }
       case 'airstrike': {
@@ -2464,38 +2504,6 @@
     ev.push({ e: 'intel', pid: p.id, hex: a.target });
     return { ok: true, events: ev };
   }
-  // snap decisions: once a round, while someone else is playing, each commander gets a quick either/or
-  const SNAPS = {
-    convoy: { text: '+$3 right now' },
-    drill: { text: 'Your units get +1 move next turn' },
-    volunteers: { text: 'A free Grunt joins at your HQ next turn' },
-    bonds: { text: '+$1 per 4 land hexes (max $6)' },
-    ration: { text: 'Your next resupply deals 4 cards' },
-    goodwill: { text: 'Every bot warms to you (+10 mood)' },
-  };
-  function offerSnaps(s, curPid, rng) {
-    const keys = Object.keys(SNAPS), r = rng || Math.random;
-    for (const q of s.players) {
-      if (!q.alive || q.id === curPid || q.snapRound === s.turn.round) continue;
-      q.snapRound = s.turn.round;
-      if (r() < 0.5) continue;   // only some rounds bring one, so they stay a surprise
-      const a = keys[Math.floor(r() * keys.length)]; let b = a; for (let i = 0; i < 8 && b === a; i++) b = keys[Math.floor(r() * keys.length)];
-      q.snap = { round: s.turn.round, opts: [a, b] }; q.snapRound = s.turn.round;
-    }
-  }
-  function snapPick(s, p, a, ev) {
-    const fail = err => ({ ok: false, err, events: [] });
-    if (!p.snap) return fail('No decision waiting');
-    if (a.pick === -1) { delete p.snap; return { ok: true, events: [] }; }   // let it slip by
-    const id = p.snap.opts[a.pick]; if (!id) return fail('Pick one');
-    delete p.snap;
-    if (id === 'convoy') p.cash += 3;
-    else if (id === 'bonds') p.cash += Math.min(6, Math.floor(ownedLand(s, p.id).length / 4));
-    else if (id === 'goodwill') { for (const q of s.players) if (q.bot && q.id !== p.id) addMood(s, q.id, p.id, 10); }
-    else p.snapNext = id;   // drill, volunteers, ration land at the start of your turn
-    ev.push({ e: 'snap', pid: p.id, id });
-    return { ok: true, events: ev };
-  }
   // resupply prep: your next resupply is dealt when your turn ends, so you can pick from it while you wait
   function prePick(s, p, a, ev) {
     const fail = err => ({ ok: false, err, events: [] });
@@ -2545,29 +2553,6 @@
     units.forEach(u => { u.ow = false; });
     for (const e2 of ev) if (e2.e === 'combat') e2.overwatch = true;
     return { ok: true, events: ev };
-  }
-  // supply drops: now and then a crate parachutes onto open land away from the HQs. Everyone sees it land
-  function supplyDrops(s, ev, rng) {
-    const r = rng || Math.random; s.drops = (s.drops || []).filter(d => s.turn.round - d.round < 5);
-    if (s.turn.round < 2 || s.drops.length >= 3 || r() > 0.3) return;
-    const hqs = s.players.filter(p => p.alive && p.hq).map(p => p.hq), idx = buildIndex(s);
-    const spots = Object.keys(s.map.tiles).filter(k => { const t = s.map.tiles[k]; return isLandTile(t) && t.t !== 'mountain' && !t.bridge && !t.poi && !(idx[k] || []).length && hqs.every(h => dist(h, k) >= 3) && !s.drops.some(d => d.hex === k); });
-    if (!spots.length) return;
-    const k = spots[Math.floor(r() * spots.length)], card = r() < 0.4;
-    const d = { hex: k, round: s.turn.round, kind: card ? 'card' : 'cash', amount: card ? 0 : 5 + Math.floor(r() * 6) };
-    s.drops.push(d); ev.push({ e: 'airdrop', hex: k, kind: d.kind });
-    pushLog(s, '📦 A supply drop is coming down. First to reach it takes it.');
-  }
-  function claimDrops(s, pid, path, ev, rng) {
-    if (!s.drops || !s.drops.length || s._preview) return;
-    const p = player(s, pid); if (!p) return;
-    for (const k of path.slice(1)) {
-      const i = s.drops.findIndex(d => d.hex === k); if (i < 0) continue;
-      const d = s.drops.splice(i, 1)[0];
-      if (d.kind === 'card') { const id = cacheCard(rng || Math.random); p.tactics.push({ uid: s.nextId++, id }); ev.push({ e: 'dropClaim', pid, hex: k, card: id }); }
-      else { p.cash += d.amount; ev.push({ e: 'dropClaim', pid, hex: k, amount: d.amount }); }
-      pushLog(s, '📦 ' + p.name + ' grabbed a supply drop.');
-    }
   }
   // the hexes and defenders an attack order would hit (the server pauses for the defender's reaction)
   function attackTarget(s, pid, a) {
@@ -2637,7 +2622,16 @@
       for (const q of c.players) if (q.id !== pid && !isAlly(s, pid, q.id) && q.hq && !mem.explored.has(q.hq)) delete q.hq;
       c.fogOn = true;
     }
-    for (const p of c.players) { p.tacticCount = p.tactics.length; if (p.id !== pid) { p.tactics = []; delete p.nextOffer; delete p.prePick; delete p.snap; delete p.snapNext; delete p.intel; } }
+    // fog of war, picking HQs: you see where you may still build, not where everyone else already has
+    if (s.settings.fog === 'on' && c.phase === 'spawn' && c.spawn && pid) {
+      c.spawn.choices = spawnChoices(s); delete c.spawn.cands; delete c.spawn.fallback;
+      for (const q of c.players) if (q.id !== pid && !isAlly(s, pid, q.id)) delete q.hq;
+      const hide = o => o && o !== pid && !isAlly(s, pid, o);
+      for (const k in c.map.tiles) { const t = c.map.tiles[k]; if (hide(t.owner)) { t.owner = null; t.structs = structsOf(t).filter(x => !hide(x.owner)); t.struct = t.structs[0] || null; } }
+      for (const id in c.units) if (hide(c.units[id].owner)) delete c.units[id];
+      c.fogSpawn = true;
+    }
+    for (const p of c.players) { p.tacticCount = p.tactics.length; if (p.id !== pid) { p.tactics = []; delete p.nextOffer; delete p.prePick; delete p.intel; } }
     if (c.trade && c.trade.to !== pid && c.trade.from !== pid) c.trade = { from: c.trade.from, to: c.trade.to, hidden: true };
     const cur = c.players[c.turn.idx];
     if (c.turn.crate && (!cur || cur.id !== pid)) c.turn.crate = { tier: c.turn.crate.tier, hidden: true, cards: [] };
@@ -2648,8 +2642,8 @@
 
   return {
     DIRS, key, parse, dist, neighbors, area, line, mulberry32, hashStr,
-    POI, WEATHER, isAlly, recordHistory, RARITY, RARITY_ORDER, CRATES, DROP_TIERS, SCRAP_VALUE, DECK_MAX, MAX_LEVEL, TERRAIN, DIFFICULTY, UNITS, TACTICS, STRUCTS, BUILD_ORDER, UPGRADABLE, MAX_SLVL, FACTIONS, COLORS, MAX_STACK, GRUNT_STACK, stackFits, CLASS_NAME, cardDef,
-    SNAPS, REACTIONS, INTEL_COST, intelCost, overwatchTriggers, overwatchFire, reactTactic, attackTarget, ECON, infraValue, econOf, AIR_STRIKES, airDefenders, interceptChance, generateMap, createGame, applyAction, spawnChoices, visionOf, startTurn, endTurn, simulateTurnStart, view, drawCards,
+    POI, WEATHER, isAlly, recordHistory, RARITY, RARITY_ORDER, CRATES, DROP_TIERS, SCRAP_VALUE, DECK_MAX, MAX_LEVEL, TERRAIN, DIFFICULTY, UNITS, TACTICS, STRUCTS, BUILD_ORDER, UPGRADABLE, MAX_SLVL, FACTIONS, ROLL_BASE, COLORS, TEAM_COLORS, TEAM_NAMES, teamColor, MAX_STACK, GRUNT_STACK, stackFits, CLASS_NAME, cardDef,
+    REACTIONS, INTEL_COST, intelCost, overwatchTriggers, overwatchFire, reactTactic, attackTarget, ECON, infraValue, econOf, AIR_STRIKES, airDefenders, interceptChance, generateMap, createGame, applyAction, spawnChoices, visionOf, startTurn, endTurn, simulateTurnStart, view, drawCards,
     player, current, buildIndex, canAct, moveAllow, ownedTiles, ownedLand, spawnPoints, musterHexes, supplySet, computeIncome, levelOf, unitAtk, unitDef,
     riders, tsarArea, moodOf, addMood, threatOf, rerollCost, bountyValue, reachable, pathTo, rangedTargets, deployHexes, buildHexes, buildError, isSea, isWater, isCoastal, movers, combatCalc, tacticTargets, unitCost, structCost, buildCost, structsOf, MAX_STRUCTS, conquestTarget, isLandTile, flakCovered,
   };
