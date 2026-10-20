@@ -169,14 +169,17 @@ const Render = (() => {
     // bombs leave the lead plane as it passes over each target, in flight order
     pts.slice().sort((a, b) => (a[0] - cx) * dx + (a[1] - cy) * dy - ((b[0] - cx) * dx + (b[1] - cy) * dy)).forEach((p, i) => {
       const along = ((p[0] - cx) * dx + (p[1] - cy) * dy + L) / (2 * L);   // 0..1 along the path
-      bombs.push({ tx: p[0], ty: p[1], tDrop: t0 + along * dur - 0.32 + i * 0.03, fall: 0.42, alt, cb: opts.onBomb, colors: opts.colors });
+      const tDrop = t0 + along * dur - 0.32 + i * 0.03;
+      bombs.push({ tx: p[0], ty: p[1], tDrop, fall: 0.42, alt, colors: opts.colors });
+      // the bang (sound, shake) runs on the clock, not the render loop: the loop pauses under full-screen panels and in background tabs
+      if (opts.onBomb) setTimeout(opts.onBomb, Math.max(0, (tDrop + 0.42 - t) * 1000));
     });
   }
   function drawAir() {
     for (let i = bombs.length - 1; i >= 0; i--) {
       const b = bombs[i], p = (t - b.tDrop) / b.fall;
       if (p < 0) continue;
-      if (p >= 1) { burst([b.tx, b.ty], b.colors || ['#ffb03a', '#ff5a2a', '#fff2a8', '#555'], 22, { speed: 1.4, size: 3.2 }); ring([b.tx, b.ty], '#ffb03a', 55, 0.45, 4); if (b.cb) b.cb(); bombs.splice(i, 1); continue; }
+      if (p >= 1) { burst([b.tx, b.ty], b.colors || ['#ffb03a', '#ff5a2a', '#fff2a8', '#555'], 22, { speed: 1.4, size: 3.2 }); ring([b.tx, b.ty], '#ffb03a', 55, 0.45, 4); bombs.splice(i, 1); continue; }
       const [sx, sy] = toScreen(b.tx, b.ty - b.alt * (1 - p * p)), z = cam.z;
       ctx.fillStyle = 'rgba(0,0,0,.25)'; const [gx, gy] = toScreen(b.tx, b.ty); ctx.beginPath(); ctx.ellipse(gx, gy, 5 * z * p, 2 * z * p, 0, 0, Math.PI * 2); ctx.fill();
       ctx.save(); ctx.translate(sx, sy); ctx.fillStyle = '#20262c'; ctx.beginPath(); ctx.ellipse(0, 0, 2.6 * z, 5 * z, 0, 0, Math.PI * 2); ctx.fill();
@@ -219,7 +222,7 @@ const Render = (() => {
   function emp(k, dur = 1.2) { fx.emps.push({ b: topOf(k), t0: t, dur }); }
   // orbital lance: a column of light straight down from the sky onto hex k
   function lance(k, color, dur = 0.9) { fx.lances.push({ b: topOf(k), color, t0: t, dur }); }
-  function beam(a, b, color, dur, arc = 0, cb) { fx.beams.push({ a: topOf(a), b: topOf(b), color, t0: t, dur, arc, cb, done: false }); }
+  function beam(a, b, color, dur, arc = 0, cb) { fx.beams.push({ a: topOf(a), b: topOf(b), color, t0: t, dur, arc, done: false }); if (cb) setTimeout(cb, dur * 1000); }   // impact on the clock, like bombs
   function shake(v) { fx.shake = Math.max(fx.shake, v); }
   function flash(v, col = '#fff') { fx.flash = Math.max(fx.flash, v); fx.flashCol = col; }
   function pop(k) { fx.pops[k] = t; }
@@ -875,20 +878,6 @@ const Render = (() => {
     for (const kk in moving) { const m = moving[kk]; const [x, y] = toScreen(m.p.x, m.p.y); drawToken(x, y, m.units, m.owner, z, { scale: m.p.s || 1 }); }
   }
 
-  // supply drops: a crate under a parachute, bobbing
-  function drawDrops() {
-    if (!S_ || !S_.drops) return; const z = cam.z;
-    for (const d of S_.drops) {
-      if (!tc[d.hex]) continue; const [x, y0] = screenOf(d.hex), y = y0 - 18 * z + Math.sin(t * 2 + x) * 2 * z;
-      ctx.save();
-      ctx.fillStyle = 'rgba(0,0,0,.3)'; ctx.beginPath(); ctx.ellipse(x, y0 + 2 * z, 9 * z, 3.5 * z, 0, 0, Math.PI * 2); ctx.fill();
-      ctx.strokeStyle = 'rgba(240,240,240,.85)'; ctx.lineWidth = 1 * z; ctx.beginPath(); ctx.moveTo(x - 10 * z, y - 14 * z); ctx.lineTo(x - 4 * z, y); ctx.moveTo(x + 10 * z, y - 14 * z); ctx.lineTo(x + 4 * z, y); ctx.stroke();
-      ctx.fillStyle = '#e9edf2'; ctx.beginPath(); ctx.arc(x, y - 14 * z, 11 * z, Math.PI, 0); ctx.fill(); ctx.fillStyle = '#ff4f5e'; ctx.beginPath(); ctx.arc(x, y - 14 * z, 11 * z, Math.PI * 1.33, Math.PI * 1.66); ctx.lineTo(x, y - 14 * z); ctx.fill();
-      ctx.fillStyle = '#b8863b'; ctx.strokeStyle = '#3d2a12'; ctx.lineWidth = 1.5 * z; ctx.fillRect(x - 6 * z, y - 2 * z, 12 * z, 10 * z); ctx.strokeRect(x - 6 * z, y - 2 * z, 12 * z, 10 * z);
-      ctx.fillStyle = '#ffc53d'; ctx.fillRect(x - 6 * z, y + 2 * z, 12 * z, 2 * z);
-      ctx.restore();
-    }
-  }
   // ally war-room marks: arrows and circles, only in the Alt view
   function drawNotes() {
     const z = cam.z, all = (ov.notes || []).concat(ov.notePreview ? [ov.notePreview] : []);
@@ -1022,7 +1011,7 @@ const Render = (() => {
       const [x, y] = toScreen(xw, yw - 10);
       ctx.fillStyle = b.color; ctx.globalAlpha = 0.35; ctx.beginPath(); ctx.arc(x, y, 8 * z, 0, Math.PI * 2); ctx.fill(); ctx.globalAlpha = 1; ctx.beginPath(); ctx.arc(x, y, 4 * z, 0, Math.PI * 2); ctx.fill();
       if (Math.random() < 0.6) fx.parts.push({ x: xw, y: yw - 10, vx: 0, vy: 0, life: 0, max: 0.35, col: b.color, sz: 2.5, g: 0 });
-      if (p >= 1) { fx.beams.splice(i, 1); if (b.cb) b.cb(); }
+      if (p >= 1) fx.beams.splice(i, 1);
     }
     for (let i = fx.floats.length - 1; i >= 0; i--) {
       const f = fx.floats[i], p = (t - f.t0) / f.dur; if (p >= 1) { fx.floats.splice(i, 1); continue; }
@@ -1088,7 +1077,6 @@ const Render = (() => {
       // hold Alt: everything but the armies fades out
       ctx.fillStyle = 'rgba(6,10,16,.74)'; ctx.fillRect(-sx - 20, -sy - 20, W + 40, H + 40);
     }
-    drawDrops();
     drawUnits();
     if (ov.troops) drawNotes();
     const p3 = performance.now();

@@ -2,6 +2,28 @@
 
 Every release, newest first. Each version also has its own post on the [Releases page](https://github.com/Blacksheep909/sector/releases).
 
+## v0.10.0
+
+**A balance pass backed by data, helicopters that behave like helicopters, and a pile of fixes.**
+
+- **⚖ Balance, from bot games and exact combat maths** (`node tools/balance-lab.js`):
+  - **No more flying doomstacks.** Grunts riding in carriers didn't count toward the stack limit, so a hex could hold 5 Stormcrows and 30 Grunts (or 5 Valkyries and 40). Now no hex ever holds more than 10 units.
+  - **Helicopters are thin-skinned.** Wren, Ravager, Stormcrow, Valkyrie and Banshee all have less DEF, and **Ground Fire** gives every infantry unit +1 chip in any fight against a helicopter. Helicopters still hit hard, but they can't sit on a hex and soak up attacks.
+  - **Banshee (Apache) toned down:** ATK 10 → 9, DEF 5 → 3, Hellfire +4 → +3 chips, cost $13 → $14.
+  - **Grunts cost $2** (were $1). In real games they traded about twice as well as anything else per dollar, and a bot that only spammed Grunts won 45% of 4-player games.
+  - **Lancer costs $5** (was $4): the most cost-efficient unit left.
+  - **Conscription deploys 5 Grunts** (was 2).
+  - **Less dice luck: every roll is d6 + 2.** Twice the enemy's chips used to lose 1 fight in 4; now it wins about 9 in 10. Even fights stay a coin flip, so good planning wins far more reliably.
+  - **Payouts scale with the war:** ruins loot, scrapping a crate, and a maxed card's refund grow with your income, so they're still worth having at round 50.
+- **🌊 Rivers:** nobody stands in a river any more. Infantry ford straight across to the far bank (it takes their whole move); vehicles still need a bridge. **Fix:** you can now bridge a river hex that touches your supplied land, without having to claim it with aircraft first.
+- **🚁 Troops in a helicopter stay aboard over water:** a helicopter carrying Grunts can hover over the sea, but it can't fly off and leave them there.
+- **↶ Undo works in fog of war.** Every move uncovered some fog, which locked it in, so undo almost never worked. Now only spotting enemy troops, land or buildings locks a move in. Undo also hands back the hexes the move captured.
+- **🎨 New art:** Apache (head-on, with the Longbow radar), Mi-28 Havoc, Black Hawk (troops in the door), an AC-130 side-on with its guns firing, and armour after the real machines: M1 Abrams (Mauler), M18 Hellcat, Maus (Leviathan), Ratte (Titan), M2 Bradley (Bulwark).
+- **👥 Teams:** the lobby shows a column per team and you drag names between them. Teams play in team colours: A in reds, B in blues, C gold, D green.
+- **🌫 Fog of war, Pick your HQ:** you no longer see where everyone else set up. Only the hexes you can still pick are shown.
+- **🔊 Fix:** enemy airstrikes were silent while a full-screen panel (like the resupply picker) was open. The bombs' sound now plays on its own timer.
+- **Removed:** random map supply drops and the quick-decision pop-ups during other players' turns.
+
 ## v0.9.20
 
 **The open ocean is actually there now.**

@@ -6,7 +6,7 @@ Grab land, build an economy, crush your rivals. **Every hex you hold pays you**,
 
 - 2–8 commanders: humans over the network, bots (Easy, Medium, Hard, Impossible), and **pass-and-play** players sharing one device. Anyone can press 👁 in the lobby to **spectate** instead of play. A cover screen hides each player's hand between turns.
 - Every map is procedurally generated from one of seven layouts: continent, supercontinent, twin continents, archipelago, inland sea, crescent isles or open ocean. Rivers branch into tributaries, small lakes sit in the lowlands, and mountain ranges throw out ridges of highlands. The coastline is noise-warped, so no two boards share an outline. Sizes run from Small to **Huge** (about 3.5× the land of Small).
-- **Spawns.** With *Random* spawns, HQs are placed fairly far apart. With *Pick your HQ*, commanders take turns choosing their HQ hex (whoever moves last picks first). HQs must sit a minimum distance apart, and bots pick roomy spots near resources.
+- **Spawns.** With *Random* spawns, HQs are placed fairly far apart. With *Pick your HQ*, commanders take turns choosing their HQ hex (whoever moves last picks first). HQs must sit a minimum distance apart, and bots pick roomy spots near resources. In fog of war you only see the hexes you can still pick, never where the others set up.
 - Everyone starts with an HQ and its surrounding hexes, 2 Grunts, $6, a **Rare Supply Drop** card, and two unit cards: **Grunts** and their faction's starter unit. Commanders who start on a small island also get the **Ark** transport so they can reach the mainland.
 - **Opening draft.** Before round 1, every commander picks simultaneously. In each of 3 draft rounds you're offered 3 cards and keep 1.
 
@@ -44,7 +44,7 @@ Grab land, build an economy, crush your rivals. **Every hex you hold pays you**,
 
 An optional round limit gives the win to whoever holds the most land when time runs out.
 
-**Teams** (lobby option). Click the TEAM chip next to each commander to pick a team (A–D). Teammates are locked into a permanent alliance: shared vision, no friendly fire, and they win together. Teammates start near each other, and in Conquest or World War the team's land counts together. Other diplomacy is switched off.
+**Teams** (lobby option). The lobby splits into team columns: drag a name onto another team to move it (the host can move anyone, and players can move themselves; the ⇄ chip does the same on a touch screen). Teams play in team colours: Team A in reds, Team B in blues, Team C in golds, Team D in greens, a different shade for each teammate. Teammates are locked into a permanent alliance: shared vision, no friendly fire, and they win together. Teammates start near each other, and in Conquest or World War the team's land counts together. Other diplomacy is switched off.
 
 **World War** is the big one:
 - A **colossal map**, always with world events.
@@ -92,7 +92,7 @@ Legendaries and Mythics are unique: only one copy exists until it's spent or its
 | Epic | 15% | 55% | 30% |
 | Legendary | 0% | 35% | 65% |
 
-The crate then bursts open and deals 3 cards with that tier's odds. Keep one, or scrap them all for $2.
+The crate then bursts open and deals 3 cards with that tier's odds. Keep one, or scrap them all for $2 (more as your income grows: scrap value, ruins loot and maxed-card payouts all scale with a tenth of your income).
 
 | Crate | Common | Uncommon | Rare | Epic | Legendary |
 |---|---|---|---|---|---|
@@ -108,7 +108,7 @@ The crate then bursts open and deals 3 cards with that tier's odds. Keep one, or
 - Legendaries shake, spin 3½ times and detonate.
 
 - **Your deck holds up to 10 unit cards.** Deploy as many copies of a unit as you can afford.
-- **Drafting a unit you already own upgrades it:** ★ means +1 ATK and +1 DEF, up to ★★★. A maxed unit pays out $4 instead.
+- **Drafting a unit you already own upgrades it:** ★ means +1 ATK and +1 DEF, up to ★★★. A maxed unit pays out $4 instead (scaled up with your income).
 - **Full deck?** Choose a card to replace. Units of the replaced type already on the board stay.
 - **Tactics** are single-use cards kept in your hand.
 
@@ -128,7 +128,7 @@ $3 base
 
 **Diminishing returns.** Buildings (refineries and warehouses) pay in full up to $8 a turn, then at half rate up to $24, then a quarter. Past $50 a turn, every extra dollar of income counts as two-thirds. Holding land always pays; farming buildings alone can't run away.
 
-**Rivers** wind from the highlands down to the sea (or into an inland lake) as channels of water hexes, and later rivers join earlier ones as tributaries. **Vehicles and artillery can't cross a river without a bridge**: build a Bridge on a river hex you own. Infantry can ford one, but wading in ends their move for the turn. Aircraft fly over. A river hex defends at **+1 mult (River Crossing)**, and every 3 river hexes you hold pay **+$1** (fertile valleys). HQs, towns and other sites always sit on dry ground.
+**Rivers** wind from the highlands down to the sea (or into an inland lake) as channels of water hexes, and later rivers join earlier ones as tributaries. **Vehicles and artillery can't cross a river without a bridge**: build a Bridge on a river hex that's yours or that touches your supplied land. **Nobody stands in a river.** Infantry can ford one straight across, from bank to far bank, but only from a standing start and it takes their whole move. Aircraft fly over, and Grunts riding in a helicopter go with it. A river hex defends at **+1 mult (River Crossing)**, and every 3 river hexes you hold pay **+$1** (fertile valleys). HQs, towns and other sites always sit on dry ground.
 
 **Roads** link your buildings back to your HQ through your own land. They're for show: they break where land is captured or cut off, so you can read your supply network at a glance.
 
@@ -158,7 +158,7 @@ Maps have climate. It's colder toward the top and bottom edges and hotter in the
 
 **Points of interest** are scattered across the map:
 
-- **Ruins.** The first unit to pass through loots $4–10.
+- **Ruins.** The first unit to pass through loots $4–10 (more later in the war, scaled with your income).
 - **Supply cache.** The first unit to pass through finds a tactic card (common 40%, uncommon 35%, rare 18%, epic 6%, legendary 1%).
 - **Village.** Neutral town with a militia of 3–9 chips (+1 mult, +2 from 7 chips). Conquer it for **+$2 every turn**. The pips under its marker show how strong it is.
 - **Abandoned FOB.** A war-torn forward base nobody holds, with no garrison. Drive a unit onto it and it becomes your ★ FOB (a deploy point and supply source, online next turn).
@@ -167,12 +167,12 @@ Maps have climate. It's colder toward the top and bottom edges and hotter in the
 ## Moving
 
 - Ground units and ships **seize every unclaimed hex they pass through**. Aircraft can't hold ground they fly over: **every aircraft only takes the hex it lands on.** Gunships (Valkyrie, Seraph, and the Wren, Ravager and Banshee helicopters) can fly over enemy land, and get **Strafing Run** (+2 mult attacking ground targets).
-- **Troop carriers.** Grunts moving together with a carrier ride along at its speed and over its terrain: helicopters and the Valkyrie fly them over mountains and water, and APCs drive them. Seats: Wren 2, Bulwark 4, Outrider 4, Stormcrow 6, Valkyrie 8. It's all or nothing: with more Grunts than seats, nobody rides and the group walks. Grunts aboard don't take up stack space, a helicopter carrying troops can't stop over water, and if a carrier is destroyed, passengers who no longer fit in the stack go down with it.
+- **Troop carriers.** Grunts moving together with a carrier ride along at its speed and over its terrain: helicopters and the Valkyrie fly them over mountains and water, and APCs drive them. Seats: Wren 2, Bulwark 4, Outrider 4, Stormcrow 6, Valkyrie 8. It's all or nothing: with more Grunts than seats, nobody rides and the group walks. Grunts aboard don't count toward the 5-unit limit, but **no hex ever holds more than 10 units**, carriers or not. A helicopter carrying troops can hover over water (they stay aboard), but it can't fly off and leave them there, and if it goes down, the passengers who don't fit go down with it.
 - **Fog of war:** if something hidden blocks the route you planned, your troops go as far as they can, or run into the hidden enemy (an ambush).
 - **March orders:** Ctrl+click a hex (or select a stack, press `M`, then click) to give the stack a standing order. At the start of each of your turns it advances toward the objective by itself, and it halts on enemy contact or when it arrives. Select it and press `Delete` to cancel.
-- Highlands, jungle, tundra, swamp and canyons cost 2 move. Fording a **river** ends an infantry unit's move (vehicles need a bridge). Rangers ignore this. **A unit can always move at least one hex**, so slow units like the Goliath never get stuck in rough ground (and a Blizzard never takes a unit below 1 move).
+- Highlands, jungle, tundra, swamp and canyons cost 2 move. Fording a **river** takes an infantry unit's whole move, straight across to the far bank (vehicles need a bridge). **A unit can always move at least one hex**, so slow units like the Goliath never get stuck in rough ground (and a Blizzard never takes a unit below 1 move).
 - Mountains block movement except for air units. Open water blocks land units unless they're aboard an Ark; aircraft fly across it, and can end their move over it.
-- A hex holds at most 5 units, and mixed types share a stack freely. A hex of nothing but Grunts can hold 10.
+- A hex holds at most 5 units, and mixed types share a stack freely. A hex of nothing but Grunts can hold 10, and so can a stack whose Grunts ride in carriers (never more than 10).
 - Entering an empty enemy hex captures it. Entering an occupied hex starts a fight.
 - **Sweeping advance:** undefended enemy land doesn't slow you down. Troops keep moving at full speed through empty enemy hexes and capture every one on the way. They stop when they take a fortified hex (FOB or Flak), when they come next to enemy troops, or at a river. Bunkers and HQs still have to be attacked.
 
@@ -187,11 +187,11 @@ Every selected stack that can reach the target attacks together. You get **Pince
 ## Combat: chips × mult
 
 ```
-Attacker score = total ATK chips × (d6 + attacker mult)
-Defender score = total DEF chips × (d6 + defender mult)
+Attacker score = total ATK chips × (d6 + 2 + attacker mult)
+Defender score = total DEF chips × (d6 + 2 + defender mult)
 ```
 
-You **throw your own die**: drag and fling it in the dice tray, or press `Space`. The defender wins ties.
+You **throw your own die**: drag and fling it in the dice tray, or press `Space`. Every roll gets +2 (training), so luck can still swing a close fight but a clearly stronger, better-supported army wins far more reliably (twice the chips wins about 9 times in 10). The defender wins ties.
 
 - The loser's stack is wiped out.
 - If the loser scored at least 60% of the winner's score, the winner also loses its weakest unit.
@@ -208,7 +208,8 @@ You **throw your own die**: drag and fling it in the dice tray, or press `Space`
 | Tank Hunter / Torpedoes | +3 chips vs vehicles / +4 chips vs ships |
 | Anti-Air | Stinger +3, Scorpion +4, Skyguard +6, Sentinel +4 chips in any fight involving enemy aircraft |
 | Strafing Run | +2 mult when gunships (Valkyrie, Seraph, Wren, Ravager, Banshee) attack ground targets |
-| Hellfire | +4 chips per Banshee against vehicles |
+| Hellfire | +3 chips per Banshee against vehicles |
+| Ground Fire | +1 chip per infantry unit in any fight against helicopters (rifles hit helicopters too) |
 | Siege Breaker | +2 mult vs fortified hexes |
 | Aegis / Flak | +1 defender mult / +2 vs air |
 | Shore Assault | −1 mult when ships alone attack a land hex |
@@ -294,13 +295,11 @@ Any time, click **TRADE** under a rival's name. You can offer cash and tactic ca
 You're never just watching:
 - **Reactions.** When an enemy attacks one of your hexes and you hold a reaction card (Smoke Screen, Fortify, Aegis Protocol, Ambush) you can afford, the attack waits up to 7 seconds while you decide whether to play it.
 - **Next resupply.** Your next resupply is dealt when your turn ends. Pick a card or full income from the panel while you wait, and your next turn starts straight in the action.
-- **Quick decisions.** On some rounds, at a random moment while someone else plays, an either/or bonus pops up for about 6 seconds (cash now, extra move, a free Grunt, a bigger resupply and so on). Grab one or it's gone.
 - **Diplomacy and trades** work any time, not just on your turn.
 - **Intel ops** (fog of war): $2 to scout a 2-hex area anywhere until the end of next round, twice per round (`I`).
 - **Pings and emotes** from the bar above the chat.
 - **Overwatch.** On your turn, select a stack and press `O`: it gives up its move to watch. When an enemy ends a move next to it (or within range, for artillery), you get a few seconds to **FIRE** (+1 mult, one shot) or **HOLD**.
-- **Supply drops.** Crates parachute onto open land now and then, for everyone to see. The first unit to reach one takes the cash or card inside.
-- **Radar and alerts.** In fog of war, hidden enemies moving within 2 hexes of your land show up as radar blips. Attacks on you, contacts and drops are listed in the side panel with a LOOK button.
+- **Radar and alerts.** In fog of war, hidden enemies moving within 2 hexes of your land show up as radar blips. Attacks on you and contacts are listed in the side panel with a LOOK button.
 - **War room.** In the Alt view, draw arrows and circles on the map that only you and your allies can see.
 - **Troop donations.** On your turn, select a stack and press **GIVE** on an ally's name card to hand it over.
 
@@ -311,7 +310,7 @@ While others play, queue moves, deploys and builds. The preview shows exactly wh
 ## Turn timer and undo
 
 - With a **turn timer** set, a bar under the top bar drains in the current player's colour, turning red for the last 10 seconds. The clock **pauses while your fights and crates play out**, and your resupply pick gets 20 seconds of its own. If time runs out, income is collected and your turn ends.
-- **Undo** (↶ button or `Ctrl+Z`) takes back moves, deploys and builds that didn't reveal anything: no fights, loot or cards, and in fog of war no newly seen hexes. You can undo several steps back to the last such reveal. If nothing can be undone, it tells you why. In the blueprint, `Ctrl+Z` takes back the last queued order.
+- **Undo** (↶ button or `Ctrl+Z`) takes back moves, deploys and builds that didn't reveal anything: no fights, loot or cards, and in fog of war no newly spotted enemy troops, land or buildings (uncovering empty terrain is fine). Hexes the move captured are given back. You can undo several steps back to the last such reveal. If nothing can be undone, it tells you why. In the blueprint, `Ctrl+Z` takes back the last queued order.
 - **Auto-end turn:** when you have nothing left to do (no stack can act, nothing affordable to deploy or build, no tactic to play), your turn ends after a 3-second countdown. Press STAY to keep it, or switch it off in the Esc menu.
 - **Whose turn:** a pill under the top bar always shows whose turn it is (and when you're next). On your turn the screen edge glows in your colour.
 - **Game speed:** Normal, Fast or Superspeed (lobby setting, or the **⏸ > >> >>>** strip in the top bar for the host). Faster speeds make bot turns and other players' animations quicker. **⏸ pauses** the game: bots stop and the turn clock freezes until someone resumes. When only bots are left, anyone can use the strip, up to 🚀 Max.

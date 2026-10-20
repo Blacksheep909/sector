@@ -135,18 +135,40 @@
   };
   $('#nameIn').addEventListener('keydown', e => { if (e.key === 'Enter') $('#joinBtn').click(); });
 
+  let dragPid = null;   // the lobby row being dragged to another team
   function renderLobby() {
     if (!lobby) return;
+    if (dragPid) return;   // don't rebuild the list under a drag in progress
     const me = lobby.players.find(p => p.id === (realId || you));
     if (!me) { showJoin(); if (lobby.inGame) $('#joinBox .hint').textContent = 'A war is in progress — you can watch once it loads, or wait for the next game.'; return; }
     $('#joinBox').hidden = true; $('#lobbyBox').hidden = !$('#joinNet').hidden; $('#lobbyBox').dataset.show = '1';
     const host = lobby.hostId === you;
     { const sp = lobby.players.filter(p => p.spectator).length; $('#pCount').textContent = (lobby.players.length - sp) + '/8' + (sp ? ' · ' + sp + ' watching' : ''); }
     const pl = $('#playerList'); pl.innerHTML = '';
+    const teamsOn = lobby.settings.teams === 'on';
+    const canMove = p => host || p.id === realId || (p.local && p.controller === realId);
+    // teams: the list becomes one column per team, and names are dragged between them
+    const cols = {};
+    if (teamsOn) {
+      const used = Math.max(2, ...lobby.players.filter(p => !p.spectator).map(p => p.team || 1));
+      const shown = Math.min(4, used + (lobby.players.filter(p => !p.spectator).length > used ? 1 : 0));
+      const wrap = el('div', 'teamcols'); pl.appendChild(wrap);
+      for (let tm = 1; tm <= shown; tm++) {
+        const n = lobby.players.filter(p => !p.spectator && (p.team || 1) === tm).length;
+        const col = el('div', 'teamcol t' + tm, `<div class="tc-h"><span class="tc-dot"></span>TEAM ${'ABCD'[tm - 1]} · ${E.TEAM_NAMES[tm].toUpperCase()}<small>${n || 'drop a name here'}</small></div>`);
+        col.style.setProperty('--tc', E.TEAM_COLORS[tm][0]);
+        col.ondragover = e => { if (dragPid) { e.preventDefault(); col.classList.add('over'); } };
+        col.ondragleave = () => col.classList.remove('over');
+        col.ondrop = e => { e.preventDefault(); col.classList.remove('over'); const id = dragPid; dragPid = null; if (id) { SFX.click(); send({ t: 'team', id, team: tm }); } };
+        wrap.appendChild(col); cols[tm] = col;
+      }
+    }
+    const nth = {};
     for (const p of lobby.players) {
       const r = el('div', 'prow' + (p.connected ? '' : ' off'));
       const f = E.FACTIONS[p.faction];
-      r.innerHTML = `<div class="sw" style="background:${p.color}"></div><div class="nm">${esc(p.name)}<div class="fx">${f ? f.name : ''}</div></div>` +
+      const tmc = teamsOn && !p.spectator ? E.teamColor(p.team || 1, nth[p.team || 1] = (nth[p.team || 1] ?? -1) + 1) : null;   // the colour they'll play in
+      r.innerHTML = `<div class="sw" style="background:${tmc || p.color}"></div><div class="nm">${esc(p.name)}<div class="fx">${f ? f.name : ''}</div></div>` +
         (p.id === lobby.hostId ? '<span class="tag host">HOST</span>' : '') + (p.bot ? '<span class="tag">BOT</span>' : '') + (p.id === you ? '<span class="tag">YOU</span>' : '') +
         (!p.bot && !p.local && !p.spectator && p.id !== lobby.hostId ? (p.ready ? '<span class="tag ready">✔ READY</span>' : '<span class="tag notready">NOT READY</span>') : '');
       if (p.spectator) { r.classList.add('spec'); const fx = r.querySelector('.fx'); if (fx) fx.textContent = '👁 Spectating'; }
@@ -171,16 +193,17 @@
         sb.onclick = () => { SFX.click(); send({ t: 'spectate', id: p.id, on: !p.spectator }); };
         r.appendChild(sb);
       }
-      if (lobby.settings.teams === 'on' && !p.spectator) {
-        // team chip: click to cycle A → B → C → D
-        const tm = p.team || 1, can = host || p.id === realId || (p.local && p.controller === realId);
-        const tb = el('button', 'teamchip t' + tm, 'TEAM ' + 'ABCD'[tm - 1]); tb.disabled = !can;
-        tb.title = can ? 'Click to change team' : '';
-        tb.onclick = () => { SFX.click(); send({ t: 'team', id: p.id, team: tm % 4 + 1 }); };
+      if (teamsOn && !p.spectator) {
+        // drag the row to another team's column (or tap the chip to send it to the next team)
+        const tm = p.team || 1, can = canMove(p), nTeams = Object.keys(cols).length;
+        const tb = el('button', 'teamchip t' + tm, '⇄'); tb.disabled = !can;
+        tb.title = can ? 'Move to the next team (or drag the name)' : '';
+        tb.onclick = () => { SFX.click(); send({ t: 'team', id: p.id, team: tm % Math.max(2, nTeams) + 1 }); };
         r.insertBefore(tb, r.querySelector('.tag'));
+        if (can) { r.draggable = true; r.classList.add('drag'); r.ondragstart = e => { dragPid = p.id; r.classList.add('dragging'); try { e.dataTransfer.setData('text/plain', p.id); e.dataTransfer.effectAllowed = 'move'; } catch (err) {} }; r.ondragend = () => { dragPid = null; r.classList.remove('dragging'); }; }
       }
       if ((host && p.id !== you) || (p.local && p.controller === realId)) { const x = el('button', 'x', '✕'); x.onclick = () => send({ t: 'kick', id: p.id }); r.appendChild(x); }
-      pl.appendChild(r);
+      (teamsOn && !p.spectator ? cols[p.team || 1] || pl : pl).appendChild(r);
     }
     $('#addBot').hidden = !host;
     $('#lanBox').innerHTML = lobby.lan.length ? 'Friends on your network join at:<br>' + lobby.lan.map(u => `<b>${u}</b>`).join('<br>') : 'No network address found — local play only.';
@@ -191,7 +214,7 @@
       d.onclick = () => { SFX.select(); send({ t: 'me', faction: id }); };
       fl.appendChild(d);
     }
-    const cl = $('#colorList'); cl.innerHTML = '';
+    const cl = $('#colorList'); cl.innerHTML = ''; cl.classList.toggle('teamlock', teamsOn); cl.title = teamsOn ? 'Teams play in team colours' : '';
     for (const c of E.COLORS) {
       const taken = lobby.players.some(p => p.color === c && p.id !== you && !p.bot && !(p.local && p.controller === realId));
       const d = el('div', 'c' + (me.color === c ? ' on' : '') + (taken ? ' taken' : '')); d.style.background = c;
@@ -432,7 +455,7 @@
   }
   addEventListener('resize', () => layoutHud());
   if (window.ResizeObserver) { const ro = new ResizeObserver(() => layoutHud()); for (const id of ['#topbar', '#dock', '#centerStack', '#hand', '#deckBar', '#buildBar']) ro.observe($(id)); }
-  // ───────────── between turns: next resupply, snap decision, intel ─────────────
+  // ───────────── between turns: next resupply, intel ─────────────
   let prepOpen = false;
   function renderWait() {
     const box = $('#waitBox'); const me = myP();
@@ -446,22 +469,6 @@
     const pb = $('#prepBtn'); if (pb) pb.onclick = openPrep;
     box.querySelectorAll('[data-look]').forEach(b => b.onclick = () => { const a = recent[+b.dataset.look]; if (a && a.hex) { Render.focus(a.hex); Render.ring(a.hex, '#ffc53d', 60, 0.8, 4); } });
     const ib = $('#intelBtn'); if (ib) ib.onclick = () => { mode = { type: 'intel' }; refreshAll(); };
-  }
-  // quick decisions: pop up at a random moment while you wait, for about 6 seconds. Grab one or it's gone
-  let snapShown = '', snapTimer = null;
-  function scheduleSnap() {
-    const me = myP(); if (!me || !me.snap || isMyTurn()) return;
-    const key = me.snap.round + ':' + me.snap.opts.join(','); if (snapShown === key || snapTimer) return;
-    snapTimer = setTimeout(() => { snapTimer = null; const m2 = myP(); if (m2 && m2.snap && !isMyTurn() && document.visibilityState !== 'hidden') { snapShown = key; showSnap(m2.snap); } }, 1500 + Math.random() * 9000);
-  }
-  function showSnap(snap) {
-    let p = $('#snapPop'); if (p) p.remove();
-    p = el('div', '', `<div class="sp-h">⚡ QUICK!</div><div class="sp-row">${snap.opts.map((id, i) => `<button class="btn" data-i="${i}">${esc(E.SNAPS[id].text)}</button>`).join('')}</div><div class="sp-bar"><i></i></div>`);
-    p.id = 'snapPop'; document.body.appendChild(p); SFX.rare();
-    let done = false;
-    const close = pick => { if (done) return; done = true; p.classList.add('gone'); setTimeout(() => p.remove(), 250); act({ a: 'snap', pick }).then(ok => { if (ok && pick >= 0) toast('⚡ ' + E.SNAPS[snap.opts[pick]].text, 'good'); }); };
-    p.querySelectorAll('button').forEach(b => b.onclick = () => { SFX.select(); close(+b.dataset.i); });
-    setTimeout(() => close(-1), 6500);
   }
   function openPrep() {
     const me = myP(); if (!me || !me.nextOffer) return;
@@ -1074,7 +1081,7 @@
     const P = window.__refreshPerf || (window.__refreshPerf = {}), tm = (n, f) => { const t0 = performance.now(); f(); const d = performance.now() - t0; P[n] = +((P[n] || 0) * 0.8 + d * 0.2).toFixed(2); if (d > (P[n + '^'] || 0)) P[n + '^'] = +d.toFixed(1); };
     tm('state', () => Render.setState(S));
     tm('overlays', updateOverlays);
-    tm('top', renderTop); tm('cash', renderCash); renderSiege(); renderUndo(); renderWeather(); tm('ally', renderAlly); tm('plan', renderPlan); tm('hex', renderHexPanel); tm('hand', renderHand); renderEnd(); renderModeHint(); renderOffer(); renderTurnPill(); renderAfk(); renderSpeed(); renderWait(); scheduleSnap(); checkAutoEnd(); layoutHud();
+    tm('top', renderTop); tm('cash', renderCash); renderSiege(); renderUndo(); renderWeather(); tm('ally', renderAlly); tm('plan', renderPlan); tm('hex', renderHexPanel); tm('hand', renderHand); renderEnd(); renderModeHint(); renderOffer(); renderTurnPill(); renderAfk(); renderSpeed(); renderWait(); checkAutoEnd(); layoutHud();
   }
   // game speed button: the host sets the pace; anyone may once only bots are left
   // speed strip: ⏸ and > >> >>> (and 🚀 when only bots are left). The host controls it; anyone may once only bots play
@@ -2136,18 +2143,6 @@
         case 'crash': { const at = ev.units.map(id => S.units[id]).find(Boolean); if (at) Render.float(at.hex, '🚁 WENT DOWN', '#ffb03a', 16); killUnits(ev.units, true); await sleep(300); break; }
         case 'bridgeRot': { const tt = S.map.tiles[ev.hex]; if (tt) tt.bridgeRot = ev.rot; Render.invalidate(); SFX.click(); break; }
         case 'overwatch': { for (const id of ev.units) if (S.units[id]) { S.units[id].ow = true; S.units[id].moved = true; } Render.ring(ev.hex, pColor(ev.pid), 45, 0.6, 3); if (ev.pid === you) toast('🎯 On overwatch: they will fire on enemies that stop next to them'); break; }
-        case 'airdrop': {
-          // a crate parachutes in: everyone sees it
-          S.drops = (S.drops || []).concat([{ hex: ev.hex, kind: ev.kind }]);
-          Render.ring(ev.hex, '#ffc53d', 80, 1, 5); Render.float(ev.hex, '📦 SUPPLY DROP', '#ffc53d', 18); SFX.whoosh();
-          toast('📦 A supply drop is landing — first unit there takes it'); pushAlert('📦 Supply drop landed', ev.hex);
-          await sleep(400); break;
-        }
-        case 'dropClaim': {
-          S.drops = (S.drops || []).filter(d => d.hex !== ev.hex);
-          Render.burst(ev.hex, ['#ffc53d', '#fff'], 24, { up: 140, square: true }); Render.float(ev.hex, ev.card ? '📦 ' + E.cardDef(ev.card).name : '📦 +$' + ev.amount, '#ffc53d', 16); SFX.coin(4);
-          if (ev.pid !== you) toast(`📦 ${pName(ev.pid)} grabbed the supply drop`); break;
-        }
         case 'radar': { Render.ring(ev.hex, '#59f08a', 60, 1.2, 3); Render.float(ev.hex, '📡 CONTACT', '#59f08a', 14); pushAlert('📡 Enemy contact near your land', ev.hex); break; }
         case 'donate': {
           for (const id of ev.units) if (S.units[id]) S.units[id].owner = ev.to;
@@ -2672,7 +2667,7 @@
     While others play, plan your turn: queue moves, deploys and builds. They execute the instant your turn starts. Attacks and tactics are live-only.
     </div><div>
     <h4>COMBAT — CHIPS × MULT</h4>
-    Attacker: total <span style="color:var(--chips)">ATK chips</span> × (<span style="color:var(--mult)">d6 + mult bonuses</span>).<br>Defender: total <span style="color:var(--chips)">DEF chips</span> × (<span style="color:var(--mult)">d6 + terrain/structure mult</span>). Ties go to the defender.<br>
+    Attacker: total <span style="color:var(--chips)">ATK chips</span> × (<span style="color:var(--mult)">d6 + 2 + mult bonuses</span>).<br>Defender: total <span style="color:var(--chips)">DEF chips</span> × (<span style="color:var(--mult)">d6 + 2 + terrain/structure mult</span>). Ties go to the defender.<br>
     The loser's stack is wiped out. A close fight (loser ≥ 60%) costs the winner its weakest unit.<br>
     <b>Bonuses:</b> Flanking (+1 mult per other friendly stack touching the target), Combined Arms (3+ unit types), Forest +1, Highlands +2, Bunker +2, FOB +1, HQ +2 & garrison.
     <b>You throw your own die</b> — drag & fling it in the tray.

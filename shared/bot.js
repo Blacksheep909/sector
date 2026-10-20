@@ -230,22 +230,6 @@ function botStep(s, pid, mem) {
     if (best) { const a = tryOnce({ a: 'fire', from: k, units: ids, to: best }); if (a) return a; }
   }
 
-  // 3b. supply drops: send the cheapest unit that can reach a crate this turn to grab it (not the whole stack)
-  for (const d of s.drops || []) {
-    let pick = null;
-    for (const k in idx) {
-      if (k === p.hq && enemyNear(k, 3)) continue;
-      for (const u of idx[k]) {
-        if (u.owner !== pid || !E.canAct(s, u) || E.isSea(u.type)) continue;
-        const r = E.reachable(s, pid, [u.id], k, idx)[d.hex];
-        if (!r || !['move', 'capture'].includes(r.kind)) continue;
-        const cost = E.UNITS[u.type].cost + r.c * 0.1;
-        if (!pick || cost < pick.cost) pick = { k, u, cost };
-      }
-    }
-    if (pick) { const a = tryOnce({ a: 'move', from: pick.k, units: [pick.u.id], to: d.hex }); if (a) return a; }
-  }
-
   // 4. manoeuvre stacks
   mem.skip = mem.skip || new Set();
   const enemyTiles = Object.keys(tiles).filter(k => tiles[k].owner && tiles[k].owner !== pid);
@@ -351,7 +335,6 @@ function botStep(s, pid, mem) {
         if (t.owner !== pid) v += t.owner ? 6 : 3;
         if (t.poi === 'ruins' || t.poi === 'cache') v += 6;
         if (t.poi === 'fort' && !t.owner) v += 9;   // an abandoned FOB: a free forward base
-        if ((s.drops || []).some(d => path.includes(d.hex))) v += 8;   // supply drop on the way: first come, first served
         if (t.poi === 'relic' && t.owner !== pid) v += 8;
         if (t.res && t.owner !== pid) v += 4;
         if (t.struct && t.owner !== pid) v += 6;

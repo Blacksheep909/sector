@@ -188,7 +188,16 @@ function seatFor(c) {
   }
   return c.pid;
 }
-function broadcastLobby() { const v = lobbyView(); for (const c of clients) send(c, { t: 'lobby', lobby: v }); }
+// teams mode: everyone playing is on a team. Newcomers (and everyone, when teams are switched on) join the smaller side
+function fillTeams() {
+  if (lobby.settings.teams !== 'on' || game) return;
+  for (const p of lobby.players) {
+    if (p.spectator || p.team) continue;
+    const n = t => lobby.players.filter(q => !q.spectator && q.team === t).length;
+    p.team = n(2) < n(1) ? 2 : 1;
+  }
+}
+function broadcastLobby() { fillTeams(); const v = lobbyView(); for (const c of clients) send(c, { t: 'lobby', lobby: v }); }
 const undoStack = []; undoStack.owner = null;
 let fogMem = {};   // fog of war: what each commander has explored and last seen
 const fogFor = seat => seat ? (fogMem[seat] = fogMem[seat] || { explored: new Set(), seen: {} }) : null;
@@ -210,6 +219,8 @@ function sendNotes() {
 function filterEvents(events, pid) {
   let out = events.map(e => (e.e === 'card' && e.pid !== pid && e.kind === 'tactic' && e.rarity !== 'legendary') ? { ...e, id: null } : e);
   const pl = game && pid && game.players.find(p => p.id === pid);
+  // fog of war: where a rival set up their HQ stays secret
+  if (game && game.settings.fog === 'on') out = out.filter(e => e.e !== 'spawnPicked' || e.pid === pid || (pid && E.isAlly(game, pid, e.pid)));
   if (game && game.settings.fog === 'on' && pl && pl.alive && game.phase === 'play') {
     const vis = E.visionOf(game, pid), mine = e => e.pid === pid || (e.pid && E.isAlly(game, pid, e.pid));
     const myLand = new Set(Object.keys(game.map.tiles).filter(k => game.map.tiles[k].owner === pid));
@@ -438,7 +449,15 @@ function onMessage(c, m) {
       if (game.turn.deadline && !game.turn.pausedAt && r.events.some(e => e.e === 'combat' || e.e === 'crate')) game.turn.pausedAt = Date.now();
       // undo: only for moves/deploys/builds that revealed nothing random (no fights, loot or cards)
       // fog of war: a move that showed you anything new can't be taken back (no free scouting)
-      const scouted = snap && game.settings.fog === 'on' && (() => { const sees = E.visionOf(game, actor), mem = fogFor(actor); for (const k of sees) if (!mem.explored.has(k)) return true; return false; })();
+      // (uncovering terrain and neutral sites is fine: only spotting enemy troops, land or buildings locks the move in)
+      const scouted = snap && game.settings.fog === 'on' && (() => {
+        const sees = E.visionOf(game, actor), mem = fogFor(actor), idx = E.buildIndex(game), mine = id => !id || id === actor || E.isAlly(game, actor, id);
+        for (const k of sees) {
+          if (mem.explored.has(k)) continue;
+          const t = game.map.tiles[k]; if (!t) continue;
+          if (!mine(t.owner) || E.structsOf(t).some(x => !mine(x.owner)) || (idx[k] || []).some(u => !mine(u.owner))) return true;
+        }
+        return false; })();
       if (snap && !scouted && r.events.every(e => ['move', 'deploy', 'build', 'annex', 'bridgeRot'].includes(e.e))) {
         if (undoStack.owner !== actor) { undoStack.length = 0; undoStack.owner = actor; }
         undoStack.push(snap); if (undoStack.length > 30) undoStack.shift();
@@ -679,7 +698,7 @@ function overwatchAfter(events, actor, done) {
   };
   next();
 }
-function fireOw(t) { const r = E.overwatchFire(game, t.owner, t.from, t.target); if (r.ok) { game.v++; broadcastState(r.events, t.owner); } }
+function fireOw(t) { const r = E.overwatchFire(game, t.owner, t.from, t.target); if (r.ok) { undoStack.length = 0; game.v++; broadcastState(r.events, t.owner); } }   // shots fired: no taking the move back
 function answerOw(fire) {
   const p = pendingOw; if (!p) return; pendingOw = null; clearTimeout(p.timer);
   for (const cl of clients) send(cl, { t: 'owDone' });
