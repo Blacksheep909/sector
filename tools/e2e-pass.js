@@ -20,7 +20,7 @@ const { launch, sleep } = require('./cdp');
     if (await evalJS(`SECTOR_DEBUG.state().phase==='play'`)) break;
     const who = await evalJS(`SECTOR_DEBUG.you()`);
     await evalJS(`document.querySelector('#draft .reveal-all').click(); true`);
-    await waitFor(`document.querySelectorAll('#draft .flip.open').length===3`, 15000); await sleep(300);
+    await waitFor(`document.querySelectorAll('#draft .flip.open').length===3 && !document.querySelector('#draft .flip.lifting')`, 15000); await sleep(300);   // epic+ reveals hold centre stage for a moment
     await evalJS(`document.querySelector('#draft .flip.open').click(); true`);
     seen.push('draft-pick:' + who); await sleep(1500);
   }
