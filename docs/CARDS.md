@@ -33,12 +33,12 @@ Unit cards are permanent unlocks: deploy as many as you can afford.
 | **Hellcat** | Vehicle | Rare | $7 | 6 | 2 | 3 | – | Strike tank. Can act on the turn it is deployed. |
 | **Outrider** | Vehicle | Rare | $7 | 5 | 3 | 5 | – | Eight-wheeled fighting vehicle. 5 move: the fastest thing on the ground. Carries up to 4 Grunts. |
 | **Kraken** | Naval | Rare | $8 | 7 | 2 | 4 | – | Submarine. Torpedoes: +4 Chips vs ships. |
-| **Wren** | Air | Rare | $5 | 3 | 1 | 5 | – | Light assault helicopter. Fast, with 2 Grunts riding on its benches. Strafing Run: +2 Mult attacking ground targets. |
-| **Ravager** | Air | Rare | $7 | 5 | 2 | 4 | – | Armoured attack helicopter with a chin cannon. Strafing Run: +2 Mult attacking ground targets. |
+| **Wren** | Air | Rare | $5 | 2 | 0 | 5 | – | Light assault helicopter. Fast, with 2 Grunts riding on its benches. Strafing Run: +2 Mult attacking ground targets. |
+| **Ravager** | Air | Rare | $7 | 4 | 1 | 4 | – | Armoured attack helicopter with a chin cannon. Strafing Run: +2 Mult attacking ground targets. |
 | **Leviathan** | Vehicle | Legendary | $14 | 12 | 10 | 1 | – | Land dreadnought. Never suffers pyrrhic losses. |
 | **Titan** | Vehicle | Legendary | $16 | 13 | 12 | 1 | – | Landship with naval guns. Siege Breaker and never suffers pyrrhic losses. |
 | **Seraph** | Air | Legendary | $12 | 9 | 4 | 5 | – | Heavy gunship. Strafing Run: +2 Mult attacking ground targets. |
-| **Banshee** | Air | Legendary | $14 | 9 | 3 | 4 | – | Attack helicopter with anti-tank missiles. Hellfire: +3 Chips against vehicles, and Strafing Run: +2 Mult attacking ground targets. |
+| **Banshee** | Air | Legendary | $14 | 8 | 2 | 4 | – | Attack helicopter with anti-tank missiles. Hellfire: +3 Chips against vehicles, and Strafing Run: +2 Mult attacking ground targets. |
 | **Carrier** | Naval | Legendary | $13 | 3 | 9 | 3 | – | Floating airbase: deploy aircraft onto it and fly them off it. Holds 4. |
 | **Oracle** | Artillery | Legendary | $11 | 8 | 3 | 2 | 4 | Orbital uplink. Range 4, ignores mountains. |
 | **Trident** | Naval | Legendary | $16 | 10 | 6 | 3 | 8 | Missile submarine. Fires at any troops or buildings within 8, over mountains; a hit kills one extra unit. Only a Sentinel can intercept. |

@@ -28,23 +28,23 @@ A flying 35-unit stack that ignores rivers and mountains and moves 4 hexes a tur
 
 ### 2. Helicopters defended like tanks
 A real helicopter caught on the ground (or hovering over one) is a soft target. In the game they had tank-like DEF and nothing on the ground could punish them unless it was dedicated anti-air.
-**Fix:** less DEF on every helicopter (Wren 2→1, Ravager 3→2, Stormcrow 4→3, Valkyrie 4→3, Banshee 5→3), and **Ground Fire**: every infantry unit adds +1 chip in any fight against a helicopter.
+**Fix:** helicopters lose ATK and DEF (ATK/DEF: Wren 3/2 → 2/0, Ravager 5/3 → 4/1, Stormcrow 4/4 → 3/2, Banshee 10/5 → 8/2; the Valkyrie tiltrotor DEF 4 → 3), and **Ground Fire**: every infantry unit adds +1 chip in any fight against a helicopter.
 
 Equal-budget duels ($30 a side, open plains), chance to hold when attacked:
 
 | | Before | After |
 |---|---|---|
-| Banshee | 31% | 5% |
-| Ravager | 35% | 11% |
+| Banshee | 31% | 2% |
+| Ravager | 35% | 2% |
 | Valkyrie | 35% | 18% |
-| Stormcrow (+ Grunts) | 45% | 27% |
-| Wren (+ Grunts) | 45% | 21% |
+| Stormcrow (+ Grunts) | 45% | 16% |
+| Wren (+ Grunts) | 45% | 5% |
 
-Their attack win rates barely moved (Banshee 83% → 80%, Ravager 79% → 79%): helicopters are still the best strike units in the game, they just can't park on a hex and soak up attacks any more.
+Attack win rates came down a little (Banshee 83% → 77%, Ravager 79% → 71%, Stormcrow 74% → 63%, Wren 93% → 87%): helicopters still hit hard, they just can't park on a hex and soak up attacks any more. A lone Wren now has 0 DEF, so it's lost to any attack unless it levels up or has company.
 
 ### 3. The Banshee (Apache)
 ATK 10, flies over everything (mountains, rivers, enemy land without seizing it), Strafing Run +2 mult against anything on the ground, and Hellfire +4 chips per Banshee against any stack with a vehicle in it. One Banshee beats most lone stacks of armour on any roll, from 4 hexes away, and nothing but anti-air can hit back.
-**Fix:** ATK 10→9, DEF 5→3, Hellfire +4→+3, cost $13→$14. Together with Ground Fire, a Banshee that kills a stack now has to worry about the counter-attack.
+**Fix:** ATK 10→8, DEF 5→2, Hellfire +4→+3, cost $13→$14. Together with Ground Fire, a Banshee that kills a stack now has to worry about the counter-attack.
 
 ### 4. Grunts were the best unit in the game per dollar
 | | Before | After |
