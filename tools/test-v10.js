@@ -81,5 +81,18 @@ function crossing(s) {
   ok(E.TEAM_COLORS[1].includes(col('p0')) && E.TEAM_COLORS[1].includes(col('p2')) && col('p0') !== col('p2'), 'team A plays in two shades of red');
   ok(E.TEAM_COLORS[2].includes(col('p1')) && E.TEAM_COLORS[2].includes(col('p3')), 'team B plays in blue');
 }
+{ // fog of war: a fallen commander's remembered land shows as neutral
+  const roster = [0, 1, 2].map(i => ({ id: 'p' + i, name: 'P' + i, color: E.COLORS[i], faction: 'iron' }));
+  const { state: s } = E.createGame({ mode: 'domination', mapSize: 'medium', fog: 'on' }, roster);
+  s.phase = 'play'; const T = s.map.tiles, dead = s.players[1], mem = { explored: new Set(), seen: {} };
+  const k = Object.keys(T).find(x => T[x].owner === dead.id);
+  mem.explored.add(k); mem.seen[k] = { owner: dead.id, structs: [{ type: 'hq', owner: dead.id, lvl: 1 }] };
+  for (const id in s.units) delete s.units[id];
+  for (const x in T) if (T[x].owner === 'p0' && E.dist(x, k) <= 3) T[x].owner = null;   // keep it out of sight
+  ok(E.view(s, 'p0', mem).map.tiles[k].owner === dead.id, 'a living rival\'s remembered land shows in their colour');
+  dead.alive = false;
+  const v = E.view(s, 'p0', mem).map.tiles[k];
+  ok(v.owner === null && !v.structs.length, 'once they fall, it shows as neutral');
+}
 console.log(fails ? fails + ' FAILED' : 'all passed');
 process.exit(fails ? 1 : 0);

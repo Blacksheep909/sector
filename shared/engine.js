@@ -2610,7 +2610,10 @@
         const t = c.map.tiles[k], real = s.map.tiles[k], hq = getS(real, 'hq');
         if (mem.explored.has(k)) {
           t.fog = 1;
-          const m = mem.seen[k]; if (m) { t.owner = m.owner; t.structs = m.structs; t.poi = m.poi; t.gar = m.gar; if (!m.poi) delete t.poi; if (m.ruin) t.ruin = m.ruin; else delete t.ruin; if (m.wreck) t.wreck = true; else delete t.wreck; }
+          // a fallen commander's empire collapses, and everyone hears about it: remembered land of theirs shows as neutral
+          const m = mem.seen[k], gone = m && m.owner && !(player(s, m.owner) || {}).alive;
+          if (m && gone) { m.owner = null; m.structs = m.structs.filter(x => x.type === 'bridge').map(x => ({ ...x, owner: null })); }
+          if (m) { t.owner = m.owner; t.structs = m.structs; t.poi = m.poi; t.gar = m.gar; if (!m.poi) delete t.poi; if (m.ruin) t.ruin = m.ruin; else delete t.ruin; if (m.wreck) t.wreck = true; else delete t.wreck; }
         } else {
           t.fog = 2;
           t.owner = null; t.structs = [];   // unexplored means unknown: not even an HQ shows through

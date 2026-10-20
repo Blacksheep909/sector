@@ -631,7 +631,7 @@
   function updateOverlays() {
     const ov = Render.ov, ds = dispState();
     ov.me = you; ov.myTurn = isMyTurn() || planning();
-    ov.reach = null; ov.probs = null; ov.fire = null; ov.spawn = null; ov.targets = null; ov.path = null;
+    ov.reach = null; ov.probs = null; ov.fire = null; ov.guns = null; ov.spawn = null; ov.targets = null; ov.path = null;
     ov.selected = sel ? sel.hex : null;
     ov.selectedExtra = sel && sel.extra ? sel.extra.map(g => g.hex) : [];
     ov.unsupplied = null;
@@ -673,8 +673,11 @@
         if (gs.length) ov.probs[k] = E.combatCalc(ds, you, gs.flatMap(g => g.units.map(id => ds.units[id])), gs.map(g => g.stage), k, false, idx).winProb;
       }
       // an empty hex the stack can walk onto is a move (capturing it, buildings and all), not a shelling target
-      const fire = E.rangedTargets(ds, you, ids, sel.hex, idx).filter(k => !((idx[k] || []).length === 0 && ov.reach[k] && ['move', 'capture'].includes(ov.reach[k].kind)));
-      if (fire.length) { ov.fire = new Set(fire); for (const k of fire) ov.probs[k] = E.combatCalc(ds, you, units, sel.hex, k, true, idx).winProb; }
+      // the guns in the stack can fire on their own (Grunts guarding a Thumper don't stop it shelling across a river);
+      // where the whole stack can attack, the attack wins the click
+      const guns = ids.filter(id => ds.units[id] && E.UNITS[ds.units[id].type].range && E.canAct(ds, ds.units[id]));
+      const fire = guns.length ? E.rangedTargets(ds, you, guns, sel.hex, idx).filter(k => !((idx[k] || []).length === 0 && ov.reach[k] && ['move', 'capture'].includes(ov.reach[k].kind)) && !(guns.length < ids.length && ov.reach[k] && ov.reach[k].kind === 'attack')) : [];
+      if (fire.length) { ov.fire = new Set(fire); ov.guns = guns; for (const k of fire) ov.probs[k] = E.combatCalc(ds, you, guns.map(id => ds.units[id]), sel.hex, k, true, idx).winProb; }
     }
     // blueprint arrows & ghosts
     ov.planArrows = []; ov.planGhost = null; ov.planHexes = null; ov.planMoved = null; ov.planTiles = null; ov.planReady = null;
@@ -1055,7 +1058,7 @@
     if (sel && sel.units.size && k && k !== sel.hex && (ctrlDown || marchArm) && (isMyTurn() || planning())) { marchArm = false; marchOrder(sel.hex, sel.units, k); return; }
     if (sel && sel.units.size && canCommand() && k && k !== sel.hex) {
       const ov = Render.ov;
-      if (ov.fire && ov.fire.has(k)) { const a = { a: 'fire', from: sel.hex, units: [...sel.units], to: k }; sel = null; refreshAll(); await doAction(a); return; }
+      if (ov.fire && ov.fire.has(k)) { const a = { a: 'fire', from: sel.hex, units: ov.guns || [...sel.units], to: k }; sel = null; refreshAll(); await doAction(a); return; }
       const r = ov.reach && ov.reach[k];
       if (r && r.kind === 'attack' && sel.extra && sel.extra.length) {
         const gs = assaultGroups(ds, k, E.buildIndex(ds));
@@ -1595,7 +1598,7 @@
         html = combatTip(gs.length > 1 ? gs.length + '-WAY PINCER' : 'ATTACK', c) + intel(ds, k);
       }
     } else if (ov.fire && ov.fire.has(k) && sel) {
-      const c = E.combatCalc(ds, you, [...sel.units].map(id => ds.units[id]), sel.hex, k, true);
+      const c = E.combatCalc(ds, you, (ov.guns || [...sel.units]).map(id => ds.units[id]), sel.hex, k, true);
       html = combatTip('BOMBARD', c) + '<div class="sub">Win: destroy 1 unit (2 on double score). Lose: nothing happens.</div>';
     } else if (ov.reach && ov.reach[k] && ov.reach[k].kind === 'capture') html = '<b>SEIZE</b> — empty ' + (E.isWater(ds.map.tiles[k]) ? 'sea lane' : 'enemy hex');
     else if (ov.reach && ov.reach[k] && ov.reach[k].kind === 'board') html = '<b>BOARD</b> — climb aboard the transport';
