@@ -94,5 +94,16 @@ function crossing(s) {
   const v = E.view(s, 'p0', mem).map.tiles[k];
   ok(v.owner === null && !v.structs.length, 'once they fall, it shows as neutral');
 }
+{ // alliances can't snowball: a bloc holds at most half the commanders left (2 at least)
+  const roster = [0, 1, 2, 3, 4].map(i => ({ id: 'p' + i, name: 'P' + i, color: E.COLORS[i], faction: 'iron' }));
+  const { state: s } = E.createGame({ mode: 'domination', mapSize: 'medium' }, roster);
+  s.phase = 'play';
+  const pact = (a, b) => { const r = E.applyAction(s, a, { a: 'allyOffer', to: b }); if (!r.ok) return r.err; E.applyAction(s, b, { a: 'allyReply', accept: true }); return E.isAlly(s, a, b) ? 'ok' : 'declined'; };
+  ok(pact('p0', 'p1') === 'ok', 'two commanders can ally');
+  ok(pact('p1', 'p2') !== 'ok' && pact('p2', 'p0') !== 'ok', 'a third can\'t join their bloc (5 left: at most 2)');
+  ok(pact('p2', 'p3') === 'ok', 'the others can still pair up');
+  s.players.find(p => p.id === 'p4').alive = false; s.players.find(p => p.id === 'p3').alive = false;
+  ok(E.blocCap(s) === 2, 'the cap is never below 2');
+}
 console.log(fails ? fails + ' FAILED' : 'all passed');
 process.exit(fails ? 1 : 0);

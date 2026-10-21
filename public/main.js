@@ -2190,7 +2190,7 @@
         case 'ally': {
           const a = pName(ev.from), b = pName(ev.to), meIn = ev.from === you || ev.to === you;
           if (ev.status === 'formed') { banner('🤝 ALLIANCE FORMED', a + ' & ' + b, '#2f6b4a'); SFX.rare(); await sleep(900); }
-          else if (ev.status === 'declined' && meIn) toast(`${b} declined the alliance`);
+          else if (ev.status === 'declined' && meIn) toast(ev.cap ? `🤝 That alliance would be too big for the commanders left` : `${b} declined the alliance`);
           else if (ev.status === 'offer' && !meIn) toast(`🤝 ${a} offered ${b} an alliance`);
           else if (ev.status === 'breaking') { if (ev.to === you || ev.from === you) { banner('🗡 BETRAYAL INCOMING', (ev.to === you ? a + ' is breaking your alliance next turn' : 'Your pact with ' + b + ' ends next turn') + ' — pull your troops out of their land', '#7a1f2b'); SFX.alarm(); } else toast(`🗡 ${a} is breaking the alliance with ${b}`); }
           else if (ev.status === 'broken') { toast(`💔 ${a} broke the alliance with ${b}`, 'err'); }
