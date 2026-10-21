@@ -60,7 +60,7 @@ const Locker = (() => {
   function tile(it, inStore) {
     const t = el('div', 'lk-tile s-' + it.slot + ' r-' + it.rarity + (owns(it.id) ? ' owned' : '') + (isOn(it) ? ' on' : ''));
     const prev = el('div', 'lk-prev');
-    if (it.slot === 'territory' || it.slot === 'border') { const cv = el('canvas'); cv.width = 260; cv.height = 170; Skins.preview(cv, it.slot, it.id, '#36a3ff'); prev.appendChild(cv); }
+    if (it.slot === 'territory' || it.slot === 'border' || it.slot === 'trim') { const cv = el('canvas'); cv.width = 260; cv.height = 170; Skins.preview(cv, it.slot, it.id, '#36a3ff'); prev.appendChild(cv); }
     else if (it.slot === 'banner') prev.appendChild(el('div', 'pchip demo bn-' + it.id, `<div class="pn">${esc((profile && profile.name) || 'Commander')}</div><div class="ps"><span>⬢ <b>24</b></span><span>$<b>31</b></span></div>`));
     else prev.appendChild(Cards.make(it.card, { variant: it.variant }));
     t.appendChild(prev);
