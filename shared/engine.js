@@ -147,10 +147,16 @@
 
   // target: none | ownHex | ownStack | spawn | enemyUnits | heli | enemyStruct | area | nuke | mutiny
   const TACTICS = {
-    ambush: { name: 'Ambush', rarity: 'common', cost: 1, target: 'ownHex', desc: 'Reaction: play it when you are attacked (or on your own turn). Your defenders on that hex get +2 Chips each in the next fight there.' },
+    // battle cards: thrown into a fight before the dice roll (attacker and defender both get the chance), or readied on your turn for your next attack
+    ambush: { name: 'Ambush', rarity: 'common', cost: 1, target: 'battle', battle: 'def', fx: { per: 2 }, desc: 'Battle card (defence): your defenders get +2 Chips each in this fight.' },
+    holdfast: { name: 'Hold Fast', rarity: 'common', cost: 1, target: 'battle', battle: 'def', fx: { mult: 2 }, desc: 'Battle card (defence): +2 Mult to your side in this fight.' },
+    bayonets: { name: 'Fix Bayonets', rarity: 'common', cost: 1, target: 'battle', battle: 'att', fx: { per: 1 }, desc: 'Battle card (attack): your attackers get +1 Chip each. Ready it on your turn, or throw it in before the dice.' },
+    barrage: { name: 'Covering Barrage', rarity: 'rare', cost: 2, target: 'battle', battle: 'any', fx: { mult: 3 }, desc: 'Battle card (attack or defence): +3 Mult to your side.' },
+    reserves: { name: 'Reserves', rarity: 'rare', cost: 2, target: 'battle', battle: 'any', fx: { per: 2 }, desc: 'Battle card (attack or defence): every unit on your side gets +2 Chips.' },
+    steady: { name: 'Steady Nerves', rarity: 'rare', cost: 2, target: 'battle', battle: 'any', fx: { steady: true }, desc: 'Battle card (attack or defence): your die never rolls below 3.' },
     smoke: { name: 'Smoke Screen', rarity: 'common', cost: 1, target: 'ownHex', desc: 'A hex you own gets +2 Mult on defence until your next turn.' },
     march: { name: 'Forced March', rarity: 'common', cost: 1, target: 'ownStack', desc: 'Units on one hex may act again, with +2 move.' },
-    rally: { name: 'Rally', rarity: 'common', cost: 1, target: 'none', desc: 'Your next attack this turn gets +2 Mult.' },
+    rally: { name: 'Rally', rarity: 'common', cost: 1, target: 'battle', battle: 'att', fx: { mult: 2 }, desc: 'Battle card (attack): +2 Mult. Ready it on your turn for your next attack, or throw it in before the dice.' },
     fortify: { name: 'Fortify', rarity: 'common', cost: 2, target: 'ownHex', desc: 'Build or upgrade a Bunker on one of your hexes for free (on your HQ hex it fortifies the HQ instead).' },
     conscript: { name: 'Conscription', rarity: 'common', cost: 1, target: 'spawn', desc: 'Deploy 5 free Grunts at a deploy point (as many as fit).' },
     kamikaze: { name: 'Kamikaze Drone', rarity: 'common', cost: 2, target: 'enemyUnits', range: 5, desc: 'A loitering munition dives on a target within 5 of your land. Troops: roll 4+ kills 1. Undefended buildings: knocks a level off one.' },
@@ -1092,7 +1098,6 @@
     if (!ranged && sap && structsOf(t).some(x => x.type !== 'bridge')) { att.chips += 3 * sap; att.bonuses.push({ label: 'Demolitions', chips: 3 * sap }); }
     if (s.weather && s.weather.id === 'fervour') { att.mult += 1; att.bonuses.push({ label: 'War Fervour', mult: 1 }); }
     if (ap && ap.vengeance && ap.vengeance.vs === defPid) { att.mult += 2; att.bonuses.push({ label: 'Vengeance', mult: 2 }); }
-    if (!ranged && ap && ap.rally) { att.mult += ap.rally; att.bonuses.push({ label: 'Rally', mult: ap.rally }); }
     if (!ranged && units.some(isStrafer) && !defenders.some(u => ['air', 'sea'].includes(UNITS[u.type].cls)) && isLandTile(t)) { att.mult += 2; att.bonuses.push({ label: 'Strafing Run', mult: 2 }); }
     if (!ranged && TERRAIN[t.t] && TERRAIN[t.t].bog && !units.every(u => UNITS[u.type].cls === 'air')) { att.mult -= 1; att.bonuses.push({ label: 'Bogged Down', mult: -1 }); }
     if (!ranged) {
@@ -1156,7 +1161,6 @@
     if (t.smoke && t.smoke === defPid) { def.mult += 2; def.bonuses.push({ label: 'Smoke Screen', mult: 2 }); }
     if (ranged && units.some(u => u.ow)) { att.mult += 1; att.bonuses.push({ label: 'Overwatch', mult: 1 }); }
     if (defenders.length && defenders.every(u => u.dug)) { def.mult += 1; def.bonuses.push({ label: 'Dug In', mult: 1 }); }
-    if (t.ambush && t.ambush === defPid && defenders.length) { def.chips += 2 * defenders.length; def.bonuses.push({ label: 'Ambush', chips: 2 * defenders.length }); }
     if (dp && dp.shield && t.owner === defPid) { def.mult += 3; def.bonuses.push({ label: 'Aegis Protocol', mult: 3 }); }
     // allies cover each other: a hex bordering an ally's land holds a little harder
     if (defPid && (s.allies || []).length && isLandTile(t) && neighbors(target).some(n => { const nb = s.map.tiles[n]; return nb && nb.owner && nb.owner !== defPid && isAlly(s, defPid, nb.owner); })) { def.mult += 1; def.bonuses.push({ label: 'Allied Support', mult: 1 }); }
@@ -1170,13 +1174,33 @@
       } }
     // every roll is d6 + 2: luck still swings a close fight, but the bigger, better-supported army wins far more reliably
     att.mult += ROLL_BASE; def.mult += ROLL_BASE; att.bonuses.push({ label: 'Training', mult: ROLL_BASE, note: true }); def.bonuses.push({ label: 'Training', mult: ROLL_BASE, note: true });
-    const aNull = ap && ap.faction === 'null', dNull = dp && dp.faction === 'null';
+    // battle cards both sides threw in (and any the attacker readied on their turn)
+    let aSteady = false, dSteady = false;
+    if (!ranged) {
+      const bt = s.battle && s.battle.hex === target ? s.battle : null;
+      const aIds = ((ap && ap.ready) || []).concat(bt && bt.att === pid ? bt.cards.att : []), dIds = bt && bt.def === defPid ? bt.cards.def : [];
+      aSteady = battleFx(att, aIds, units.length); dSteady = battleFx(def, dIds, defenders.length);
+    }
+    const aNull = (ap && ap.faction === 'null') || aSteady, dNull = (dp && dp.faction === 'null') || dSteady;
     let wins = 0;
     for (let a = 1; a <= 6; a++) for (let d = 1; d <= 6; d++) {
       const ra = aNull && a <= 2 ? 3 : a, rd = dNull && d <= 2 ? 3 : d;
       if (att.chips * Math.max(1, ra + att.mult) > def.chips * Math.max(1, rd + def.mult)) wins++;
     }
     return { att, def, defenders, winProb: wins / 36, aNull, dNull };
+  }
+  // adds a side's battle cards to its chips and mult (one line per card type); true if Steady Nerves is among them
+  function battleFx(side, ids, n) {
+    const cnt = {}; for (const id of ids) cnt[id] = (cnt[id] || 0) + 1;
+    let steady = false;
+    for (const id in cnt) {
+      const fx = TACTICS[id] && TACTICS[id].fx; if (!fx) continue;
+      const k = cnt[id], label = TACTICS[id].name + (k > 1 ? ' ×' + k : '');
+      if (fx.mult) { side.mult += fx.mult * k; side.bonuses.push({ label, mult: fx.mult * k, card: true }); }
+      if (fx.per && n) { side.chips += fx.per * n * k; side.bonuses.push({ label, chips: fx.per * n * k, card: true }); }
+      if (fx.steady) { steady = true; side.bonuses.push({ label: label + ' (die ≥ 3)', card: true }); }
+    }
+    return steady;
   }
   function rollDie(rng) { return 1 + Math.floor(rng() * 6); }
   const weakest = arr => arr.slice().sort((a, b) => UNITS[a.type].cost - UNITS[b.type].cost)[0];
@@ -1206,12 +1230,13 @@
       if (aScore >= 0.6 * dScore && defenders.length > 1 && !defenders.some(u => ['juggernaut', 'titan', 'medic'].includes(UNITS[u.type].ability))) pyrrhic.push(weakest(defenders));
     }
     tallyLosses(s, pid, defPid, killed.concat(pyrrhic));
-    { const apr = player(s, pid); if (apr) apr.rally = 0; }
+    { const apr = player(s, pid); if (apr) apr.ready = []; }
+    const cardsIn = s.battle && s.battle.hex === target ? s.battle.cards : null; if (cardsIn) delete s.battle;
     ev.push({
       e: 'combat', ranged: false, from: stages[0], stages, to: target,
       att: { ...calc.att, roll: ra, raw: rawA, score: aScore, units: units.map(u => u.type) },
       def: { ...calc.def, roll: rd, raw: rawD, score: dScore, units: defenders.map(u => u.type) },
-      attWin, crush, killed: killed.map(u => u.id), pyrrhic: pyrrhic.map(u => u.id), winProb: calc.winProb,
+      attWin, crush, killed: killed.map(u => u.id), pyrrhic: pyrrhic.map(u => u.id), winProb: calc.winProb, cards: cardsIn,
     });
     const ap = player(s, pid), dp = player(s, defPid);
     const survivors = units.filter(u => s.units[u.id]);
@@ -1467,7 +1492,7 @@
     if (s.phase !== 'play') return;
     const p = current(s);
     if (!p.alive) return endTurn(s, ev, rng);
-    p.blitz = false; p.bounty = false; p.rally = 0; p.shield = false; p.wx = s.weather ? s.weather.id : null;
+    p.blitz = false; p.bounty = false; p.ready = []; p.shield = false; p.wx = s.weather ? s.weather.id : null;
     if (!preview) expirePacts(s, ev);
     if (!preview && (s.allies || []).some(x => x.ending === p.id)) {
       for (const x of s.allies.filter(x => x.ending === p.id)) {
@@ -1486,7 +1511,7 @@
       u.moved = false; u.fresh = false; u.mvBonus = 0; u.ow = false;   // overwatch lasts until your next turn
       if (u.stun > 0) { u.moved = true; u.stun--; }
     }
-    for (const k in s.map.tiles) { const t = s.map.tiles[k]; if (t.smoke === p.id) t.smoke = null; if (t.ambush === p.id) delete t.ambush; if (t.ruin && t.owner === p.id && !preview) { t.ruin--; if (!t.ruin) delete t.ruin; } }
+    for (const k in s.map.tiles) { const t = s.map.tiles[k]; if (t.smoke === p.id) t.smoke = null; if (t.ruin && t.owner === p.id && !preview) { t.ruin--; if (!t.ruin) delete t.ruin; } }
     const depots = Object.keys(s.map.tiles).filter(k => { const t = s.map.tiles[k], d = getS(t, 'depot'); return t.owner === p.id && d && d.owner === p.id; });
     if (depots.length) for (const id in s.units) { const u = s.units[id]; if (u.owner === p.id && depots.some(d => dist(d, u.hex) <= slvlOf(getS(s.map.tiles[d], 'depot')))) u.mvBonus = 1; }
     // structures captured last turn come online; sieges this player started now resolve
@@ -1750,7 +1775,7 @@
   // ───────────────────────── tactics targeting ─────────────────────────
   function tacticTargets(s, pid, id, from) {
     const out = tacticTargetsRaw(s, pid, id, from), def = TACTICS[id];
-    if (!def || ['none', 'ownHex', 'ownStack', 'spawn'].includes(def.target)) return out;
+    if (!def || ['none', 'battle', 'ownHex', 'ownStack', 'spawn'].includes(def.target)) return out;
     const shielded = s.players.filter(q => q.shield && q.id !== pid).map(q => q.id);
     if (!(s.allies || []).length && !shielded.length) return out;
     const idx = buildIndex(s);
@@ -1767,7 +1792,7 @@
     const def = TACTICS[id]; if (!def) return [];
     const idx = buildIndex(s), out = [], tiles = s.map.tiles;
     switch (def.target) {
-      case 'none': return [];
+      case 'none': case 'battle': return [];
       case 'ownHex': for (const k in tiles) if (tiles[k].owner === pid && isLandTile(tiles[k])) out.push(k); return out;
       case 'ownStack': for (const k in idx) if (idx[k][0].owner === pid && !idx[k].some(u => u.stun)) out.push(k); return out;
       case 'spawn': return spawnPoints(s, pid).filter(k => stackFits(idx[k] || [], ['grunt']));
@@ -2224,7 +2249,7 @@
       if (!ts.length) return def.target === 'enemyHand' ? 'They have no cards you can steal' : 'You cannot embargo them now';
       a = { ...a, target: ts[0] };
     }
-    if (def.target !== 'none' && def.target !== 'heli' && !tacticTargets(s, pid, id).includes(a.target)) return 'Invalid target';
+    if (def.target !== 'none' && def.target !== 'battle' && def.target !== 'heli' && !tacticTargets(s, pid, id).includes(a.target)) return 'Invalid target';
     const base = { e: 'tactic', pid, id, target: a.target };
     if (AIR_STRIKES.includes(id) && a.target && !s._preview) p.intel = (p.intel || []).filter(x => x.until >= s.turn.round).concat([{ hex: a.target, until: s.turn.round, bda: true }]);   // damage assessment: you see what you hit
     if (AIR_STRIKES.includes(id) && id !== 'strategic' && id !== 'carpet') {
@@ -2240,7 +2265,13 @@
     switch (id) {
       case 'bonds': { const n = Math.floor(ownedLand(s, pid).length / 2); p.cash += n; ev.push({ ...base, amount: n }); break; }
       case 'blitz': p.blitz = true; ev.push(base); break;
-      case 'rally': p.rally = (p.rally || 0) + 2; ev.push(base); break;
+      case 'rally': case 'bayonets': case 'barrage': case 'reserves': case 'steady': case 'ambush': case 'holdfast': {
+        // on your own turn a battle card is readied for your next attack (defence cards wait for the enemy to attack you)
+        if (def.battle === 'def') return 'Hold it: play it when you are attacked, before the dice roll';
+        if (s.battle && s.battle.att === pid) { const r = battleCard(s, pid, a.uid, true); if (!r.ok) return r.err; ev.push(...r.events); break; }
+        p.ready = p.ready || []; if (p.ready.length >= BATTLE_MAX) return 'Up to ' + BATTLE_MAX + ' cards per fight';
+        p.ready.push(id); ev.push({ ...base, ready: true }); break;
+      }
       case 'bounty': p.bounty = bountyValue(s, p); ev.push({ ...base, amount: p.bounty }); break;
       case 'fortify': {
         const t = tiles[a.target], bk = getS(t, 'bunker'), hq = getS(t, 'hq');
@@ -2262,7 +2293,6 @@
         pushLog(s, p.name + ' called in a ' + RARITY[def.rarity].name + ' Supply Drop.');
         break;
       case 'smoke': tiles[a.target].smoke = pid; ev.push(base); break;
-      case 'ambush': tiles[a.target].ambush = pid; ev.push(base); break;
       case 'march': {
         const us = Object.values(s.units).filter(u => u.hex === a.target && u.owner === pid);
         us.forEach(u => { u.moved = false; u.fresh = false; u.mvBonus = 2; });
@@ -2527,21 +2557,58 @@
     ev.push({ e: 'prepick', pid: p.id });
     return { ok: true, events: ev };
   }
-  // reactions: when you're attacked, a few cards can be played on the spot
-  const REACTIONS = ['smoke', 'fortify', 'ambush', 'aegis'];
-  function reactTactic(s, defPid, uid, hex, rng) {
-    const p = player(s, defPid); if (!p || !p.alive) return { ok: false, err: 'Not in game', events: [] };
-    const ci = p.tactics.findIndex(c => c.uid === uid); if (ci < 0) return { ok: false, err: 'Card not in hand', events: [] };
-    const id = p.tactics[ci].id, def = TACTICS[id];
-    if (!REACTIONS.includes(id)) return { ok: false, err: 'Not a reaction card', events: [] };
-    if (p.cash < def.cost) return { ok: false, err: 'Need $' + def.cost, events: [] };
-    const ev = [];
-    const err = useTactic(s, p, id, { uid, target: hex }, rng || Math.random, ev);
-    if (err) return { ok: false, err, events: [] };
-    p.cash -= def.cost; const still = p.tactics.findIndex(c => c.uid === uid); if (still >= 0) p.tactics.splice(still, 1);
-    for (const e2 of ev) e2.reaction = true;
-    pushLog(s, '⚡ ' + p.name + ' reacted with ' + def.name + '!');
-    return { ok: true, events: ev };
+  // ───────── battles: before the dice roll, attacker and defender can each throw battle cards in ─────────
+  const BATTLE_MAX = 3;   // cards per side per fight
+  // the units, staging hexes and target of an attack order (null if it isn't a valid attack)
+  function assaultPlan(s, pid, a) {
+    if (!a || (a.a !== 'move' && a.a !== 'assault')) return null;
+    const idx = buildIndex(s), groups = a.a === 'move' ? [{ from: a.from, units: a.units }] : (a.groups || []);
+    if (!groups.length || groups.length > 6) return null;
+    const units = [], stages = [];
+    for (const g of groups) {
+      const v = validGroup(s, pid, g, a.to, idx); if (v.err || v.dest.kind !== 'attack') return null;
+      units.push(...movers(v.units)); stages.push(v.path[v.path.length - 2]);
+    }
+    const occ = (idx[a.to] || []).filter(u => u.owner !== pid), t = s.map.tiles[a.to];
+    const defPid = occ.length ? occ[0].owner : t.owner;
+    return { hex: a.to, defPid: defPid || null, units: units.map(u => u.id), stages };
+  }
+  // opens the pre-roll window for an attack order (the server holds the order until both sides are ready)
+  function openBattle(s, pid, a) {
+    const pl = assaultPlan(s, pid, a); if (!pl) return null;
+    s.battle = { hex: pl.hex, att: pid, def: pl.defPid, units: pl.units, stages: pl.stages, cards: { att: [], def: [] } };
+    return s.battle;
+  }
+  // a battle whose order never went through (it failed, or the fog stopped it short) hands its cards back
+  function closeBattle(s, refund) {
+    const b = s.battle; if (!b) return; delete s.battle;
+    if (refund) for (const x of b.spent || []) { const p = player(s, x.pid); if (p) { p.cash += x.cost; p.tactics.push(x.card); } }
+  }
+  // the odds as things stand in the open battle
+  function battleOdds(s) {
+    const b = s.battle; if (!b) return null;
+    const units = b.units.map(id => s.units[id]).filter(Boolean); if (!units.length) return null;
+    return combatCalc(s, b.att, units, b.stages, b.hex, false);
+  }
+  // which battle cards a commander could throw into the open battle right now
+  function battleHand(s, pid) {
+    const b = s.battle, p = player(s, pid); if (!b || !p || !p.alive) return [];
+    const side = b.att === pid ? 'att' : b.def === pid ? 'def' : null; if (!side) return [];
+    const used = b.cards[side].length + (side === 'att' ? (p.ready || []).length : 0); if (used >= BATTLE_MAX) return [];
+    return p.tactics.filter(c => { const d = TACTICS[c.id]; return d.target === 'battle' && (d.battle === 'any' || d.battle === side) && d.cost <= p.cash; });
+  }
+  function battleCard(s, pid, uid, inTactic) {
+    const fail = err => ({ ok: false, err, events: [] });
+    const b = s.battle, p = player(s, pid); if (!b) return fail('No battle to join'); if (!p || !p.alive) return fail('Not in game');
+    const side = b.att === pid ? 'att' : b.def === pid ? 'def' : null; if (!side) return fail('Not your fight');
+    const c = p.tactics.find(x => x.uid === uid); if (!c) return fail('Card not in hand');
+    const d = TACTICS[c.id]; if (d.target !== 'battle') return fail('Not a battle card');
+    if (d.battle !== 'any' && d.battle !== side) return fail(d.battle === 'def' ? 'That one is for defending' : 'That one is for attacking');
+    if (!battleHand(s, pid).some(x => x.uid === uid)) return fail(p.cash < d.cost ? 'Need $' + d.cost : 'Up to ' + BATTLE_MAX + ' cards per fight');
+    b.cards[side].push(c.id);
+    if (!inTactic) { p.cash -= d.cost; p.tactics.splice(p.tactics.indexOf(c), 1); (b.spent = b.spent || []).push({ pid, card: c, cost: d.cost }); }   // played as a tactic, the tactic action pays for it
+    pushLog(s, '🃏 ' + p.name + ' threw ' + d.name + ' into the fight.');
+    return { ok: true, events: [{ e: 'battleCard', pid, id: c.id, hex: b.hex, side }] };
   }
   // overwatch: after a move, any enemy stack on overwatch next to where the mover stopped may open fire (one shot each)
   function overwatchTriggers(s, moverPid, hex) {
@@ -2657,7 +2724,7 @@
   return {
     DIRS, key, parse, dist, neighbors, area, line, mulberry32, hashStr,
     POI, WEATHER, isAlly, recordHistory, RARITY, RARITY_ORDER, CRATES, DROP_TIERS, SCRAP_VALUE, DECK_MAX, MAX_LEVEL, TERRAIN, DIFFICULTY, UNITS, TACTICS, STRUCTS, BUILD_ORDER, UPGRADABLE, MAX_SLVL, FACTIONS, ROLL_BASE, COLORS, TEAM_COLORS, TEAM_NAMES, teamColor, MAX_STACK, GRUNT_STACK, stackFits, CLASS_NAME, cardDef,
-    REACTIONS, INTEL_COST, intelCost, overwatchTriggers, overwatchFire, reactTactic, attackTarget, ECON, infraValue, econOf, AIR_STRIKES, airDefenders, interceptChance, generateMap, createGame, applyAction, spawnChoices, visionOf, startTurn, endTurn, simulateTurnStart, view, drawCards,
+    BATTLE_MAX, cacheCard, assaultPlan, openBattle, closeBattle, battleOdds, battleHand, battleCard, INTEL_COST, intelCost, overwatchTriggers, overwatchFire, attackTarget, ECON, infraValue, econOf, AIR_STRIKES, airDefenders, interceptChance, generateMap, createGame, applyAction, spawnChoices, visionOf, startTurn, endTurn, simulateTurnStart, view, drawCards,
     player, current, buildIndex, canAct, moveAllow, ownedTiles, ownedLand, spawnPoints, musterHexes, supplySet, computeIncome, levelOf, unitAtk, unitDef,
     payout: scaled, blocOf, blocCap, blocTooBig, riders, tsarArea, moodOf, addMood, threatOf, rerollCost, bountyValue, reachable, pathTo, rangedTargets, deployHexes, buildHexes, buildError, isSea, isWater, isCoastal, movers, combatCalc, tacticTargets, unitCost, structCost, buildCost, structsOf, MAX_STRUCTS, conquestTarget, isLandTile, flakCovered,
   };

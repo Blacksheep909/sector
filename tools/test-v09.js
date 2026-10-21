@@ -50,16 +50,8 @@ const idle = (s, pid) => s.players.find(p => p.id !== pid && p.id !== me(s).id) 
   const c = E.combatCalc(s, o.id, [{ id: 'x', type: 'grunt', owner: o.id, hex: 'zz' }], 'zz', p.hq, false);
   ok(c.def.bonuses.some(b => b.label === 'Dug In'), 'dug-in defenders get +1 Mult');
 }
-{ // reactions: an Ambush played when attacked boosts the defenders
-  const s = game(); const p = me(s); E.applyAction(s, p.id, { a: 'choose', pick: 'income' });
-  const o = s.players.find(q => q.id !== p.id); o.cash = 10; o.tactics.push({ uid: 4242, id: 'ambush' });
-  const k = E.neighbors(o.hq).find(n => s.map.tiles[n] && s.map.tiles[n].owner === o.id && E.isLandTile(s.map.tiles[n]));
-  s.units.d1 = { id: 'd1', type: 'grunt', owner: o.id, hex: k, moved: false, fresh: false };
-  const r = E.reactTactic(s, o.id, 4242, k);
-  ok(r.ok && s.map.tiles[k].ambush === o.id && !o.tactics.some(c => c.uid === 4242), 'a reaction card plays off-turn');
-  const c = E.combatCalc(s, p.id, [{ id: 'x', type: 'grunt', owner: p.id, hex: 'zz' }], 'zz', k, false);
-  ok(c.def.bonuses.some(b => b.label === 'Ambush'), 'ambush adds defence chips');
-  ok(!E.reactTactic(s, o.id, 999, k).ok, 'only cards in hand');
+{ // battle cards replaced reactions (tools/test-battle.js covers them)
+  ok(E.TACTICS.ambush.target === 'battle' && !E.reactTactic, 'Ambush is a battle card now');
 }
 { // allies can march through each other's land (without taking it); troops left there when the pact ends are lost
   const s = game({}, 3); const p = me(s), o = s.players.find(q => q.id !== p.id);
