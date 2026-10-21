@@ -14,6 +14,7 @@ const Render = (() => {
   let layerCost = 0, menuKey = '';
   let lc = null, lctx = null, layerKey = '', layerT = -1, stateVer = 0, fadeUntil = 0;   // cached terrain layer
   // the layer is drawn with a margin around the screen at one camera (lcam), then slid and scaled while you pan and zoom
+  const cosOf = {}, hqOf = {};   // each commander's skins, and where their HQ is (Stars & Stripes puts its stars there)
   let LM = 0, camMovedAt = 0, boardSig = ''; const lcam = { x: 0, y: 0, z: 1, w: 0, h: 0, whole: false }, lastCam = { x: 0, y: 0, z: 1 };
   const LAYER_MAX = 4096;   // device pixels per side: a whole map that fits is cached in one piece, so panning never redraws it
   let S_ = null;                 // display state
@@ -53,7 +54,7 @@ const Render = (() => {
     S_ = s;
     if (!s) return;
     // the HUD hands the board over on every refresh: only recolour (and redraw the terrain layer) when what's drawn has changed
-    let sig = s.players.map(p => p.id + p.color + p.alive).join() + '|' + (s.map.beacon || '');
+    let sig = s.players.map(p => p.id + p.color + p.alive + JSON.stringify(p.cos || '') + (p.hq || '')).join() + '|' + (s.map.beacon || '');
     for (const k in s.map.tiles) sig += JSON.stringify(s.map.tiles[k]);
     if (!fresh && sig === boardSig) return;
     boardSig = sig;
@@ -73,6 +74,8 @@ const Render = (() => {
   function recolor() {
     if (!S_) return;
     const pc = {}; for (const p of S_.players) pc[p.id] = hx(p.color);
+    for (const k in cosOf) delete cosOf[k]; for (const k in hqOf) delete hqOf[k];
+    for (const p of S_.players) { if (p.cos) cosOf[p.id] = p.cos; if (p.hq) hqOf[p.id] = p.hq; }
     const now = t;
     for (const k of order) {
       const t = S_.map.tiles[k], c = tc[k];
@@ -334,6 +337,8 @@ const Render = (() => {
     hexPath(cx, cy, s);
     ctx.fillStyle = c.top;   // water shimmer is drawn every frame on top (drawWaterGlints), so it fades smoothly
     ctx.fill();
+    // the owner's territory skin, over their colour (land only: the sea and rivers keep their water look)
+    if (c.owned && tile.fog !== 2) { const cs = cosOf[tile.owner]; if (cs && cs.territory && typeof Skins !== 'undefined') { const [ox, oy] = toScreen(0, 0), hq = hqOf[tile.owner]; Skins.territory(ctx, cs.territory, { cx, cy, s, tilt: TILT, z, q: c.q, r: c.r, ox, oy, nearHQ: !!hq && E.dist(hq, k) <= 1 }, hexPath); } }
     // top bevel highlight
     ctx.strokeStyle = 'rgba(255,255,255,.13)'; ctx.lineWidth = 1.2 * z;
     ctx.beginPath(); ctx.moveTo(cx + VERT[4][0] * s, cy + VERT[4][1] * s * TILT); ctx.lineTo(cx + VERT[5][0] * s, cy + VERT[5][1] * s * TILT); ctx.lineTo(cx + VERT[0][0] * s, cy + VERT[0][1] * s * TILT); ctx.lineTo(cx + VERT[1][0] * s, cy + VERT[1][1] * s * TILT); ctx.stroke();
@@ -381,6 +386,7 @@ const Render = (() => {
         const a = VERT[i], b = VERT[(i + 1) % 6], ss = s * 0.97;
         ctx.moveTo(cx + a[0] * ss, cy + a[1] * ss * TILT); ctx.lineTo(cx + b[0] * ss, cy + b[1] * ss * TILT);
       }
+      { const cs = cosOf[tile.owner]; if (cs && cs.border && typeof Skins !== 'undefined') Skins.border(ctx, cs.border, z, c.oc); }   // border aura, under the line
       ctx.strokeStyle = c.oc; ctx.globalAlpha = 0.28; ctx.lineWidth = 10 * z; ctx.stroke();
       ctx.globalAlpha = 1; ctx.lineWidth = 4.5 * z; ctx.stroke();
       // your allies' land: a dashed green line just inside their border, so you can see every friendly hex at a glance

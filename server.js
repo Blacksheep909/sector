@@ -7,6 +7,8 @@ const os = require('os');
 const crypto = require('crypto');
 const E = require('./shared/engine');
 const { botStep, draftStep, spawnStep, tradeReply, allyReply, BOT_NAMES } = require('./shared/bot');
+const C = require('./shared/cosmetics');
+const { createProfiles } = require('./profiles');
 
 // ── self-update, step 2: the freshly downloaded exe is started with this flag. It waits for the old
 //    server to exit, copies itself over the old exe, starts it, and quits. No scripts involved. ──
@@ -88,7 +90,7 @@ const server = http.createServer((req, res) => {
   if (url === '/host' || url.startsWith('/host/')) return hostApi(req, res, url);
   const name = url.replace(/^\/+/, '');
   if (!name || name.includes('..') || name.includes('\\')) { res.writeHead(403); return res.end(); }
-  const rel = name === 'engine.js' ? (sea ? 'engine.js' : 'shared/engine.js') : 'public/' + name;
+  const rel = name === 'engine.js' ? (sea ? 'engine.js' : 'shared/engine.js') : name === 'cosmetics.js' ? (sea ? 'cosmetics.js' : 'shared/cosmetics.js') : 'public/' + name;
   const done = (err, data) => {
     if (err) { res.writeHead(404); return res.end('not found'); }
     res.writeHead(200, { 'Content-Type': MIME[path.extname(name)] || 'application/octet-stream', 'Cache-Control': 'no-cache' });
@@ -152,15 +154,17 @@ setInterval(() => {
 }, 6000);
 
 // ───────────────────────── lobby / game ─────────────────────────
-const lobby = { players: [], hostId: null, settings: { mode: 'domination', mapSize: 'medium', mapType: 'random', spawns: 'random', fog: 'off', events: 'on', timer: 0, maxRounds: 0, conquestPct: 60, seed: '', teams: 'off', speed: 'fast', bank: 'off' } };
+const lobby = { players: [], hostId: null, settings: { mode: 'domination', mapSize: 'medium', mapType: 'random', spawns: 'pick', fog: 'on', events: 'on', timer: 0, maxRounds: 0, conquestPct: 60, seed: '', teams: 'off', speed: 'fast', bank: 'off' } };
 let game = null;           // engine state
+// profiles live next to the saved games; SECTOR_OG_UNTIL=YYYY-MM-DD gives early accounts the Founder skins
+const profiles = createProfiles(process.env.SECTOR_PROFILES || path.join(process.env.APPDATA || os.homedir(), 'Sector', 'profiles.json'), { ogUntil: process.env.SECTOR_OG_UNTIL });
 let botMem = {}, botTimer = null, turnTimer = null, idleTimer = null;
 let nextPid = 1;
 const autoPids = new Set(); // dev: humans driven by the bot AI (SECTOR_DEV=1)
 
 function lobbyView() {
   return {
-    players: lobby.players.map(p => ({ id: p.id, name: p.name, color: p.color, faction: p.faction, bot: p.bot, diff: p.diff, local: !!p.local, controller: p.controller || null, spectator: !!p.spectator, team: p.team || 0, ready: isReady(p), away: !!p.away, afk: !!p.afk, connected: p.bot || isConnected(p.id) })),
+    players: lobby.players.map(p => ({ id: p.id, name: p.name, color: p.color, faction: p.faction, bot: p.bot, diff: p.diff, local: !!p.local, controller: p.controller || null, spectator: !!p.spectator, team: p.team || 0, cos: p.cos || null, ready: isReady(p), away: !!p.away, afk: !!p.afk, connected: p.bot || isConnected(p.id) })),
     hostId: lobby.hostId, settings: lobby.settings, inGame: !!game, saves: game ? [] : listSaves(), version: VERSION, lan: lanAddresses().map(a => 'http://' + a + ':' + PORT), port: PORT,
   };
 }
@@ -257,6 +261,8 @@ function onMessage(c, m) {
       } else if (!isConnected(p.id)) note(p.name + ' reconnected');
       if (p.away && game) { c.pid = p.id; returnSeats(p); }
       c.pid = p.id;
+      // the player's profile (coins, skins): their loadout shows on their seat for everyone
+      if (m.profile) { const pr = profiles.open(m.profile.id, m.profile.secret, p.name, m.ref); if (pr) { p.profileId = pr.id; p.cos = C.cleanLoadout(pr.equipped, pr.owned); send(c, { t: 'profile', profile: profiles.view(pr) }); } }
       if (!lobby.hostId || !lobby.players.some(x => x.id === lobby.hostId && !x.bot)) lobby.hostId = p.id;
       send(c, { t: 'welcome', you: p.id, token: p.token });
       broadcastLobby();
@@ -326,8 +332,21 @@ function onMessage(c, m) {
       if (c.pid !== lobby.hostId || game || lobby.players.length >= 8) return;
       const used = new Set(lobby.players.map(p => p.name));
       const name = BOT_NAMES.find(n => !used.has(n)) || 'Bot';
-      lobby.players.push({ id: 'p' + nextPid++, token: null, name, color: freeColor(), faction: Object.keys(E.FACTIONS)[Math.floor(Math.random() * 5)], bot: true, diff: E.DIFFICULTY[m.diff] ? m.diff : 'medium' });
+      // a new bot takes the difficulty of the bot above it (so filling a lobby with Hard bots is one setting, not five)
+      const prev = [...lobby.players].reverse().find(p => p.bot);
+      const diff = E.DIFFICULTY[m.diff] || m.diff === 'random' ? m.diff : prev ? prev.diff : 'medium';
+      lobby.players.push({ id: 'p' + nextPid++, token: null, name, color: freeColor(), faction: Object.keys(E.FACTIONS)[Math.floor(Math.random() * 5)], bot: true, diff, cos: C.botLoadout() });
       return broadcastLobby();
+    }
+    case 'buy': case 'equip': case 'profile': case 'devCoins': {
+      const lp = lobby.players.find(x => x.id === c.pid), pr = lp && lp.profileId && profiles.get(lp.profileId);
+      if (!pr) return send(c, { t: 'err', msg: 'No profile: rejoin to load your skins' });
+      if (m.t === 'devCoins') { if (!process.env.SECTOR_DEV) return; profiles.grant(pr, 5000); }
+      const err = m.t === 'buy' ? profiles.buy(pr, String(m.item || '')) : m.t === 'equip' ? profiles.equip(pr, String(m.slot || ''), m.item ? String(m.item) : null) : null;
+      if (err) return send(c, { t: 'err', msg: err });
+      send(c, { t: 'profile', profile: profiles.view(pr), bought: m.t === 'buy' ? m.item : null });
+      if (m.t === 'equip' && !game) { lp.cos = C.cleanLoadout(pr.equipped, pr.owned); broadcastLobby(); }
+      return;
     }
     case 'ready': {
       const rp = lobby.players.find(p => p.id === c.pid); if (!rp || game) return;
@@ -751,8 +770,25 @@ function onDisconnect(c) {
 
 // after every change: schedule bots, timers, idle-skips
 let tradeTimer = null, draftTimer = null, allyTimer = null;
+// a finished game pays every human commander who played it (coins, objectives, a recruit's first game)
+function payOut() {
+  if (!game || game.phase !== 'over' || game.paid) return;
+  game.paid = true;
+  const w = game.winner || {}, winners = w.pids || [w.pid];
+  const land = id => E.ownedLand(game, id).length;
+  const order = game.players.slice().sort((a, b) => (winners.includes(b.id) - winners.includes(a.id)) || (b.alive - a.alive) || land(b.id) - land(a.id));
+  const humans = game.players.filter(p => !p.bot || (lobby.players.find(x => x.id === p.id) || {}).away);
+  for (const gp of game.players) {
+    const lp = lobby.players.find(x => x.id === gp.id), pr = lp && !lp.bot && lp.profileId && profiles.get(lp.profileId);
+    if (!pr) continue;
+    const r = { won: winners.includes(gp.id), place: order.indexOf(gp) + 1, players: game.players.length, rounds: game.turn.round, kills: gp.stats.kills, captured: gp.stats.captured, crates: gp.stats.crates, vsHumans: humans.length > 1 };
+    const out = profiles.finishGame(pr, r);
+    for (const cl of clients) if (cl.pid === lp.id || (lp.local && cl.pid === lp.controller)) send(cl, { t: 'reward', reward: out, profile: profiles.view(pr) });
+  }
+}
 function afterChange(events) {
   clearTimeout(botTimer); clearTimeout(turnTimer); clearTimeout(idleTimer);
+  payOut();
   if (game && game.phase === 'play') scheduleSave();
   else if (game && game.phase === 'over' && game.saveId) { clearTimeout(saveTimer); saveTimer = null; dropSave(game.saveId); game.saveId = null; }   // a finished war can't be resumed
   if (game && game.phase === 'spawn') {

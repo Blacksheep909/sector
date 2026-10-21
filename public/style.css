@@ -1267,3 +1267,68 @@ body.my-turn #hud::before { content: ''; position: fixed; inset: 0; pointer-even
 .stage-flash { position: fixed; width: 900px; height: 900px; margin: -450px 0 0 -450px; border-radius: 50%; background: radial-gradient(circle, #fff 0, var(--sc) 22%, transparent 60%); pointer-events: none; z-index: 94; animation: stFlash .6s ease-out forwards; }
 @keyframes stFlash { from { opacity: 1; transform: scale(.3); } to { opacity: 0; transform: scale(1.15); } }
 .flip.showing .cfront .ci { box-shadow: 0 0 0 3px var(--rc), 0 0 50px var(--rc); }
+
+/* ═════════ Locker, Store, coins ═════════ */
+.coin { color: #ffc53d; text-shadow: 0 0 8px rgba(255,197,61,.6); }
+.coin-pill { position: absolute; top: 14px; right: 18px; z-index: 6; display: flex; align-items: center; gap: 8px; padding: 6px 8px 6px 12px; background: var(--panel); border: 3px solid var(--line); border-radius: 14px; box-shadow: 0 4px 0 #000; font-size: 15px; }
+.coin-pill b { font-family: var(--title); letter-spacing: 1px; margin-right: 4px; }
+#lockerModal { position: fixed; inset: 0; z-index: 86; background: rgba(4,8,12,.82); display: grid; place-items: center; animation: fadeIn .2s; }
+.locker-card { width: min(1180px, 96vw); max-height: 92vh; overflow: auto; display: flex; flex-direction: column; gap: 12px; }
+.lk-coins { margin-left: auto; margin-right: 14px; font-size: 20px; } .lk-coins b { font-family: var(--title); }
+.lk-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(220px, 1fr)); gap: 12px; }
+.lk-tile { --rc: #9fb3c8; background: #0f171e; border: 3px solid #1d2a36; border-radius: 14px; padding: 10px; display: flex; flex-direction: column; gap: 6px; transition: transform .15s, border-color .15s; }
+.lk-tile.r-uncommon { --rc: #3fd07a; } .lk-tile.r-rare { --rc: #3fa0ff; } .lk-tile.r-epic { --rc: #c25cff; } .lk-tile.r-legendary { --rc: #ffb52e; }
+.lk-tile:hover { transform: translateY(-3px); border-color: var(--rc); }
+.lk-tile.owned { box-shadow: inset 0 0 0 1px rgba(255,255,255,.06); } .lk-tile.on { border-color: #59f08a; box-shadow: 0 0 18px rgba(89,240,138,.25); }
+.lk-prev { height: 150px; display: grid; place-items: center; border-radius: 10px; background: radial-gradient(circle at 50% 45%, #1c2a38, #0a1016 75%); overflow: hidden; }
+.lk-prev canvas { width: 100%; height: 100%; object-fit: contain; }
+.lk-prev .card { transform: scale(.52); transform-origin: 50% 50%; pointer-events: none; }
+.lk-prev .pchip.demo { transform: scale(1.15); min-width: 150px; }
+.lk-name { display: flex; justify-content: space-between; align-items: baseline; gap: 8px; } .lk-name span { font-size: 11px; font-family: var(--title); letter-spacing: 1px; }
+.lk-desc { font-size: 12px; color: var(--dim); min-height: 30px; }
+.lk-act { display: flex; justify-content: flex-end; align-items: center; min-height: 30px; }
+.lk-filter { display: flex; gap: 8px; align-items: center; } .lk-filter input { margin-left: auto; width: 220px; }
+.lk-recruit { display: flex; flex-wrap: wrap; align-items: center; gap: 10px; font-size: 13px; background: #101b24; border: 2px dashed #2c3d4d; border-radius: 10px; padding: 8px 12px; }
+.lk-recruit code { background: #0a1016; padding: 3px 8px; border-radius: 6px; color: #9fe8ff; font-size: 12px; }
+.st-head { display: flex; align-items: baseline; gap: 14px; font-family: var(--title); letter-spacing: 2px; font-size: 18px; }
+.st-head i { font-style: normal; color: var(--gold); }
+.lk-grid.store { grid-template-columns: repeat(auto-fill, minmax(240px, 1fr)); }
+.st-obj { display: grid; grid-template-columns: 1fr 1fr; gap: 16px; } .st-obj h3 { margin: 4px 0 8px; }
+.st-obj .st-note { grid-column: 1 / -1; }
+.ob { display: grid; grid-template-columns: 1fr 120px 56px 64px; gap: 10px; align-items: center; font-size: 13px; padding: 6px 0; border-bottom: 1px solid #1a2631; }
+.ob .bar { height: 8px; border-radius: 4px; background: #0a1016; overflow: hidden; } .ob .bar i { display: block; height: 100%; background: linear-gradient(90deg, #36a3ff, #59f08a); }
+.ob em { font-style: normal; color: #ffc53d; text-align: right; } .ob.done { opacity: .55; } .ob.done .bar i { background: #59f08a; }
+.st-packs { border-top: 2px solid #1a2631; padding-top: 8px; }
+.reward-pop { position: fixed; right: 24px; bottom: 120px; z-index: 96; background: #10202c; border: 3px solid #ffc53d; border-radius: 14px; padding: 12px 16px; box-shadow: 0 6px 0 #000, 0 0 30px rgba(255,197,61,.35); display: flex; flex-direction: column; gap: 6px; font-size: 14px; animation: offerIn .3s; cursor: pointer; }
+.reward-pop h3 { margin: 0; color: #ffc53d; letter-spacing: 2px; } .reward-pop.gone { opacity: 0; transition: opacity .5s; }
+
+/* ── name banners: a skin behind your name card (in game and in the lobby) ── */
+.pchip[class*="bn-"], .prow[class*="bn-"] { background-size: cover; }
+.bn-n-carbon { background: repeating-linear-gradient(45deg, #1a1f24 0 4px, #252b31 4px 8px), #1a1f24 !important; }
+.bn-n-usa { background: linear-gradient(90deg, rgba(0,40,104,.95) 0 34%, transparent 34%), repeating-linear-gradient(180deg, rgba(178,34,52,.85) 0 6px, rgba(240,240,240,.85) 6px 12px) !important; }
+.bn-n-usa .pn, .bn-n-usa .ps, .bn-n-usa .nm { text-shadow: 0 1px 2px #000, 0 0 6px #000; }
+.bn-n-uk { background: linear-gradient(26deg, transparent 46%, #fff 46% 49%, #c8102e 49% 51%, #fff 51% 54%, transparent 54%), linear-gradient(-26deg, transparent 46%, #fff 46% 49%, #c8102e 49% 51%, #fff 51% 54%, transparent 54%), linear-gradient(0deg, transparent 38%, #fff 38% 43%, #c8102e 43% 57%, #fff 57% 62%, transparent 62%), #012169 !important; }
+.bn-n-uk .pn, .bn-n-uk .ps, .bn-n-uk .nm { text-shadow: 0 1px 2px #000, 0 0 8px #000; }
+.bn-n-nato { background: radial-gradient(circle at 88% 50%, rgba(255,255,255,.35) 0 7%, transparent 8%), linear-gradient(90deg, #002663, #0b3a8a) !important; }
+.bn-n-russia { background: linear-gradient(180deg, rgba(255,255,255,.85) 0 33%, #0039a6 33% 66%, #d52b1e 66%) !important; }
+.bn-n-russia .pn, .bn-n-russia .ps, .bn-n-russia .nm { text-shadow: 0 1px 2px #000, 0 0 8px #000; }
+.bn-n-camo { background: radial-gradient(ellipse at 20% 30%, #4b5320 0 18%, transparent 19%), radial-gradient(ellipse at 70% 60%, #2f2f1f 0 22%, transparent 23%), radial-gradient(ellipse at 45% 85%, #7b6a3a 0 16%, transparent 17%), #2d4a2a !important; }
+.bn-n-gold { background: linear-gradient(110deg, #8a5a10 0%, #e2b24a 35%, #fff2b0 48%, #e2b24a 60%, #8a5a10 100%) !important; background-size: 250% 100% !important; animation: bnSheen 4s linear infinite; }
+.bn-n-gold .pn, .bn-n-gold .ps, .bn-n-gold .nm { color: #1a1206; text-shadow: none; }
+@keyframes bnSheen { from { background-position: 100% 0; } to { background-position: -150% 0; } }
+.bn-n-founder { background: linear-gradient(135deg, #2a1a04, #5a3a0a 50%, #2a1a04) !important; border-color: #ffd76a !important; box-shadow: 0 4px 0 #000, 0 0 14px rgba(255,215,106,.45) !important; }
+.bn-n-founder .pn::after { content: ' 🏅'; }
+.bn-n-recruiter { background: linear-gradient(135deg, #1a0f33, #3a1f6a) !important; border-color: #c25cff !important; }
+.bn-n-recruiter .pn::after { content: ' 🎖'; }
+
+/* ── card versions: Foil, Gilded, Blackout ── */
+.card.cv-foil .ci::after { content: ''; position: absolute; inset: 0; border-radius: inherit; pointer-events: none; mix-blend-mode: color-dodge; opacity: .55;
+  background: linear-gradient(115deg, transparent 15%, #ff7ad9 30%, #7af7ff 45%, #fff27a 60%, #9dff7a 75%, transparent 90%); background-size: 300% 300%; animation: cvFoil 5s linear infinite; }
+@keyframes cvFoil { from { background-position: 0% 50%; } to { background-position: 300% 50%; } }
+.card.cv-gilded .ci { box-shadow: 0 0 0 3px #ffcf4a, 0 0 18px rgba(255,207,74,.55), 0 6px 0 #000 !important; }
+.card.cv-gilded .c-art img { filter: sepia(.65) saturate(1.6) hue-rotate(-12deg) brightness(1.08); }
+.card.cv-gilded .c-name { color: #8a5a10; }
+.card.cv-blackout .ci { background: #0b0d10 !important; color: #e9edf2; box-shadow: 0 0 0 3px #1c2026, 0 0 16px var(--rc, #9fb3c8), 0 6px 0 #000 !important; }
+.card.cv-blackout .c-art img { filter: invert(1) hue-rotate(180deg) contrast(1.15); }
+.card.cv-blackout .c-name, .card.cv-blackout .c-type, .card.cv-blackout .c-desc { color: #e9edf2 !important; }
+.lk-tile.s-card .lk-prev { height: 230px; } .lk-tile.s-card .lk-prev .card { transform: scale(.8); }
