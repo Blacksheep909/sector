@@ -62,11 +62,11 @@
       case 'serverClosed': serverClosed(m); break;
       case 'saved': toast('💾 Game saved. Resume it any time from the lobby.'); SFX.select(); break;
       case 'skipFx': if (curFight && curFight.att === m.att && curFight.to === m.to) fastForward = true; break;
-      case 'react': showReaction(m); break;
+      case 'battle': showBattle(m); break;
       case 'owPrompt': showOwPrompt(m); break;
       case 'owDone': { const r = $('#owPop'); if (r) r.remove(); break; }
       case 'notes': Render.ov.notes = (m.notes || []).flatMap(n => n.shapes.map(sh => ({ ...sh, pid: n.pid, color: pColor(n.pid) }))); Render.invalidate(); break;
-      case 'reactDone': { const r = $('#reactPop'); if (r) r.remove(); break; }
+      case 'battleDone': { const r = $('#battlePop'); if (r) r.remove(); battleOpen = null; break; }
       case 'ping': showPing(m); break;
       case 'emote': showEmote(m); break;
       case 'chat': addLog(`<b style="--c:${m.color}">${esc(m.from)}:</b> ${esc(m.text)}`, 'chat'); SFX.click(); break;
@@ -481,21 +481,38 @@
     Cards.openSupply({ me, offer: me.nextOffer, income: E.computeIncome(S, you).total, round: S.turn.round + 1, rerollCost: 0, prep: true, key: 'prep:' + S.turn.round + ':' + me.nextOffer.join(','),
       onPick: async (idx, replace) => done(await act({ a: 'prepick', pick: 'card', idx, replace })), onIncome: async () => done(await act({ a: 'prepick', pick: 'income' })), onReroll: async () => false });
   }
-  // a reaction window: the defender sees their reaction cards and a countdown; everyone else sees who's deciding
-  function showReaction(m) {
-    let p = $('#reactPop'); if (p) p.remove();
-    p = el('div', '', ''); p.id = 'reactPop'; document.body.appendChild(p);
-    const mine = m.cards && m.cards.length;
-    p.innerHTML = mine ? `<div class="rp-h">⚡ YOU'RE UNDER ATTACK</div><div class="sub">${esc(pName(m.attacker))} is attacking. React?</div><div class="rp-cards"></div><div class="rp-bar"><i></i></div><button class="btn tiny" id="rpPass">TAKE IT</button>`
-      : `<div class="rp-h">⚡ ${esc(pName(m.defPid))} IS REACTING…</div><div class="rp-bar"><i></i></div>`;
-    p.querySelector('.rp-bar i').style.animationDuration = (m.ms / 1000) + 's';
-    if (mine) {
-      SFX.alarm(); Render.focus(m.hex); Render.ring(m.hex, '#ff4f5e', 70, 0.8, 5);
-      const row = p.querySelector('.rp-cards');
-      for (const cd of m.cards) { const b = el('button', 'btn', `${esc(E.TACTICS[cd.id].name)} <small>$${E.TACTICS[cd.id].cost}</small>`); b.onclick = () => { SFX.select(); send({ t: 'react', uid: cd.uid }); p.remove(); }; row.appendChild(b); }
-      $('#rpPass').onclick = () => { send({ t: 'react', uid: null }); p.remove(); };
+  // the battle window: before the dice roll, both sides can throw battle cards in. Live odds, your playable cards, READY
+  let battleOpen = null;
+  function showBattle(m) {
+    let p = $('#battlePop');
+    const fresh = !battleOpen || battleOpen.hex !== m.hex || battleOpen.att !== m.att;
+    if (fresh) { battleOpen = { hex: m.hex, att: m.att, max: m.ms, n: 0 }; if (p) p.remove(); p = null; }
+    battleOpen.max = Math.max(battleOpen.max, m.ms);
+    if (!p) {
+      p = el('div', '', ''); p.id = 'battlePop'; document.body.appendChild(p);
+      if (m.you) { Render.focus(m.hex); Render.ring(m.hex, m.you === m.def ? '#ff4f5e' : '#ffc53d', 70, 0.8, 5); if (m.you === m.def) SFX.alarm(); else SFX.select(); }
     }
+    const thrown = m.cards.att.length + m.cards.def.length;
+    if (thrown > battleOpen.n) { battleOpen.n = thrown; SFX.card(); p.classList.remove('bp-bump'); void p.offsetWidth; p.classList.add('bp-bump'); }
+    const pa = m.winProb == null ? 50 : Math.round(m.winProb * 100), mine = m.you === m.def ? 100 - pa : pa;
+    const side = (pid, chips, mult, cards, bon) => `<div class="bp-side" style="--c:${pColor(pid)}"><b>${esc(pName(pid))}</b><span class="bp-score">${chips} × (d6 + ${mult})</span>
+      <div class="bp-thrown">${cards.map(id => `<span class="bp-card">${esc(E.TACTICS[id].name)}</span>`).join('') || '<i>no cards</i>'}</div>
+      <div class="bp-bon">${bon.filter(b => !b.note && !b.card).map(b => `<span>${esc(b.label)} ${b.chips ? '+' + b.chips + '⬢' : ''}${b.mult ? (b.mult > 0 ? '+' : '') + b.mult + '×' : ''}</span>`).join('')}</div></div>`;
+    p.innerHTML = `<div class="rp-h">⚔ BATTLE${m.you ? (m.you === m.def ? ' — YOU\'RE DEFENDING' : ' — YOU\'RE ATTACKING') : ''}</div>
+      <div class="bp-odds"><i style="width:${pa}%;background:${pColor(m.att)}"></i><em style="background:${pColor(m.def) || '#666'}"></em><span>${pa}% attack wins</span></div>
+      <div class="bp-cols">${side(m.att, m.attChips, m.attMult, m.cards.att, m.attBonuses)}<div class="bp-vs">VS</div>${side(m.def, m.defChips, m.defMult, m.cards.def, m.defBonuses)}</div>
+      ${m.you && m.hand.length ? `<div class="sub">Throw cards in before the dice roll (up to ${E.BATTLE_MAX} a side). Your odds: <b>${mine}%</b></div><div class="rp-cards"></div>` : m.you ? '' : '<div class="sub">Both sides are deciding…</div>'}
+      <div class="rp-bar"><i style="width:${Math.max(0, m.ms / battleOpen.max * 100)}%"></i></div>
+      ${m.you && !m.ready ? `<button class="btn bp-go" id="bpReady">${m.you === m.def ? 'HOLD' : 'FIGHT'} <small>Space</small></button>` : m.you ? '<div class="sub">Ready — waiting on the other side…</div>' : ''}`;
+    const row = p.querySelector('.rp-cards');
+    if (row) for (const cd of m.hand) {
+      const d = E.TACTICS[cd.id], b = el('button', 'btn bp-play r-' + d.rarity, `${esc(d.name)} <small>$${d.cost}</small>`);
+      b.title = d.desc; b.onclick = () => { SFX.select(); b.disabled = true; send({ t: 'battleCard', uid: cd.uid }); };
+      row.appendChild(b);
+    }
+    const rb = $('#bpReady'); if (rb) rb.onclick = () => { SFX.click(); send({ t: 'battleReady' }); rb.disabled = true; };
   }
+  addEventListener('keydown', e => { if (battleOpen && (e.code === 'Space' || e.key === 'Enter') && $('#bpReady') && !['INPUT', 'TEXTAREA'].includes(document.activeElement.tagName)) { e.preventDefault(); $('#bpReady').click(); } });
   // overwatch: an enemy stopped next to your watching stack. FIRE or HOLD, with the odds
   function showOwPrompt(m) {
     let p = $('#owPop'); if (p) p.remove();
@@ -2180,6 +2197,7 @@
           if (S.units) for (const id in S.units) { const u = S.units[id]; if (u.owner === ev.pid && u.hex === ev.from) u.moved = true; }
           await sleep(250); break;
         }
+        case 'battleCard': { const d = E.TACTICS[ev.id]; Render.float(ev.hex, '🃏 ' + d.name.toUpperCase(), pColor(ev.pid), 16); Render.ring(ev.hex, pColor(ev.pid), 50, 0.5, 4); SFX.rare(); break; }
         case 'fogstop': if (ev.pid === you) { toast(ev.ambush ? '🌫 Ambush! Hidden enemies in the fog' : '🌫 The fog hid an obstacle: your troops stopped short', 'err'); Render.float(ev.hex, ev.ambush ? 'AMBUSH!' : 'STOPPED', '#cfe3ff', 16); } break;
         case 'razed': {
           Render.burst(ev.hex, ['#ffb03a', '#ff5a2a', '#8a8a8a', '#3a3a3a'], 40, { speed: 1.8, size: 4, up: 160 });
@@ -2440,7 +2458,7 @@
         if (me2 && me2.hq) for (let i = 0; i < 3; i++) { Render.ring(me2.hq, ['#7ff3ff', '#ffffff', '#b48cff'][i], 120 + i * 60, 0.9, 6); }
         banner('🛡 AEGIS PROTOCOL', who + ' — untouchable until their next turn', '#bff6ff'); SFX.zap(); await sleep(700); break;
       }
-      case 'rally': banner('RALLY!', who + ' — next attack +2 Mult', pColor(ev.pid)); SFX.rare(); await sleep(500); break;
+      case 'rally': case 'bayonets': case 'barrage': case 'reserves': case 'steady': banner(d.name.toUpperCase() + '!', who + ' — readied for their next attack', pColor(ev.pid)); SFX.rare(); await sleep(500); break;
       case 'bounty': Render.float(me.hq, 'BOUNTY: $' + (ev.amount || 2) + ' PER KILL', '#ffc53d', 18); SFX.coin(3); break;
       case 'fortify': Render.ring(ev.target, pColor(ev.pid), 60, 0.6, 5); Render.float(ev.target, 'FORTIFIED ' + '★'.repeat(ev.lvl || 1), '#ffc53d', 18); SFX.deploy(); Render.shake(4); break;
       case 'embargo': Render.ring(ev.target, '#ff4f5e', 90, 0.8, 5); Render.float(ev.target, 'EMBARGO', '#ff4f5e', 20); SFX.alarm(); break;

@@ -240,7 +240,7 @@ function botStep(s, pid, mem) {
     if (p.cash < d.cost || Math.random() > K.tactics) continue;
     let act = null;
     if (c.id === 'bonds' || c.id.startsWith('drop_')) act = { a: 'tactic', uid: c.uid };
-    else if ((c.id === 'rally' || c.id === 'bounty') && Object.values(s.units).filter(u => u.owner === pid && !u.moved).length >= 4) act = { a: 'tactic', uid: c.uid };
+    else if (c.id === 'bounty' && Object.values(s.units).filter(u => u.owner === pid && !u.moved).length >= 4) act = { a: 'tactic', uid: c.uid };
     else if (c.id === 'fortify' && enemyNear(p.hq, 4) && (((E.structsOf(tiles[p.hq]).find(x => x.type === 'hq') || {}).lvl || 1) < E.MAX_SLVL)) act = { a: 'tactic', uid: c.uid, target: p.hq };
     else if (c.id === 'embargo') { const lead = s.players.filter(o => o.alive && o.id !== pid).sort((a, b) => E.ownedLand(s, b.id).length - E.ownedLand(s, a.id).length)[0]; const k = lead && E.tacticTargets(s, pid, 'embargo').find(k => tiles[k].owner === lead.id); if (k) act = { a: 'tactic', uid: c.uid, target: k }; }
     else if (c.id === 'aegis' && (enemyNear(p.hq, 3) || Object.values(s.units).some(u => u.owner !== pid && E.dist(u.hex, p.hq) <= 2))) act = { a: 'tactic', uid: c.uid };
@@ -686,4 +686,27 @@ function diplomacy(s, pid, mem) {
   mem.offered = 1; p._offerRound = s.turn.round;
   return { a: 'allyOffer', to: best };
 }
-module.exports = { botStep, draftStep, spawnStep, tradeReply, allyReply, BOT_NAMES };
+// battle cards: in an open battle, throw in the card that moves the odds the most per dollar, if the fight is worth it
+// (a sure win or a hopeless fight isn't worth a card; easier bots spot fewer chances and save less carefully)
+function battlePick(s, pid) {
+  const b = s.battle, p = E.player(s, pid); if (!b || !p) return null;
+  const hand = E.battleHand(s, pid); if (!hand.length) return null;
+  const K = SKILL[p.diff] || SKILL.medium;
+  if (Math.random() > K.tactics) return null;
+  const side = b.att === pid ? 'att' : 'def', mine = c => side === 'att' ? c.winProb : 1 - c.winProb;
+  const base = E.battleOdds(s); if (!base) return null;
+  const now = mine(base);
+  if (now >= 0.98) return null;
+  // what's riding on it: the units on both sides, more for an HQ or a base
+  const stake = base.defenders.concat(b.units.map(id => s.units[id]).filter(Boolean)).reduce((a, u) => a + E.UNITS[u.type].cost, 0)
+    + (E.structsOf(s.map.tiles[b.hex]).some(x => x.type === 'hq') ? 40 : 0) + (E.structsOf(s.map.tiles[b.hex]).length ? 8 : 0);
+  let best = null;
+  for (const c of hand) {
+    b.cards[side].push(c.id); const o = E.battleOdds(s); b.cards[side].pop();
+    const gain = mine(o) - now, cost = E.TACTICS[c.id].cost;
+    const worth = gain * stake - cost * (1.2 + (p.cash < 6 ? 2 : 0)) + (Math.random() - 0.5) * K.noise;
+    if (gain >= 0.06 && worth > 0 && (!best || worth > best.worth)) best = { uid: c.uid, worth };
+  }
+  return best ? best.uid : null;
+}
+module.exports = { botStep, battlePick, draftStep, spawnStep, tradeReply, allyReply, BOT_NAMES };

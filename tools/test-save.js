@@ -16,7 +16,7 @@ const until = async (f, ms = 8000) => { const t = Date.now(); while (Date.now() 
   try {
     await sleep(1200);
     const a = client('Alice'); await a.open; await until(() => a.you && a.lobby);
-    a.send({ t: 'addBot' }); a.send({ t: 'settings', settings: { speed: 'normal' } }); await until(() => a.lobby.players.length === 2);
+    a.send({ t: 'addBot' }); a.send({ t: 'settings', settings: { speed: 'normal', spawns: 'random' } }); await until(() => a.lobby.players.length === 2);
     a.send({ t: 'autoplay', on: true }); a.send({ t: 'start' });
     ok(await until(() => a.state && a.state.phase === 'play', 20000), 'game reaches play');
     a.send({ t: 'autoplay', on: false }); a.send({ t: 'pause' });

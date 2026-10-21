@@ -22,7 +22,8 @@ Every release, newest first. Each version also has its own post on the [Releases
 - **👥 Teams:** the lobby shows a column per team and you drag names between them. Teams play in team colours: A in reds, B in blues, C gold, D green.
 - **🌫 Fog of war, Pick your HQ:** you no longer see where everyone else set up. Only the hexes you can still pick are shown.
 - **🔊 Fix:** enemy airstrikes were silent while a full-screen panel (like the resupply picker) was open. The bombs' sound now plays on its own timer.
-- **Removed:** random map supply drops and the quick-decision pop-ups during other players' turns.
+- **🃏 Battle cards replace the quick-reaction pop-up.** Before any attack's dice roll, attacker and defender can both throw cards in (up to 3 a side) while watching the odds change, and answer each other's cards. Rally and Ambush became battle cards, and five new ones join them: **Hold Fast** and **Fix Bayonets** (common), **Covering Barrage**, **Reserves** and **Steady Nerves** (rare). They come from resupply and supply caches; bots play them too. See [Battle cards](RULES.md#battle-cards).
+- **Removed:** random map supply drops.
 - **⚡ Smoother panning and zooming:** the board used to be fully redrawn every frame while the camera moved, and on every HUD refresh even when nothing changed. Now the whole map is cached as one image (or the screen plus a margin on huge maps) and just slid and scaled while you pan or zoom. In tests panning went from 11 to 59 fps, zooming from 12 to 54, and the idle board holds a steady 60 with no hitches.
 - **Fix:** artillery in a mixed stack (say a Thumper guarding with Grunts) couldn't fire at all, which showed up when shooting across water or a river. The guns in a stack can now fire on their own.
 - **Fix:** in fog of war, a fallen commander's land kept showing in their colour on hexes you'd seen before. It now shows as neutral.

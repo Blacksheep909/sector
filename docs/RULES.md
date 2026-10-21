@@ -287,6 +287,27 @@ If your territory completely surrounds a land pocket of 10 hexes or fewer, the p
 
 The same goes for water: a pocket of 12 or fewer sea hexes walled in by your coast and your own sea, with no enemy ships inside, becomes yours.
 
+## Battle cards
+
+Battle cards are thrown into a fight **before the dice roll**, by either side. When an attack is ordered and the attacker or defender holds a battle card they can afford, a battle window opens for a few seconds with the live odds:
+- Both sides can throw in **up to 3 cards each**, one at a time. Every card the other side plays gives you a few more seconds to answer (up to 20 seconds in all).
+- Press **FIGHT** / **HOLD** (or Space) when you're done; the dice roll once both sides are ready or time runs out.
+- Bots throw cards in when it swings a fight worth winning, and answer yours.
+- On your own turn you can also **ready** an attack card: it joins your next attack.
+- If the order never goes through (the fog stopped it short, say), the cards are handed back.
+
+| Card | Rarity | Cost | Side | Effect |
+|---|---|---|---|---|
+| Rally | Common | $1 | Attack | +2 Mult |
+| Fix Bayonets | Common | $1 | Attack | +1 Chip for each attacking unit |
+| Hold Fast | Common | $1 | Defence | +2 Mult |
+| Ambush | Common | $1 | Defence | +2 Chips for each defending unit |
+| Covering Barrage | Rare | $2 | Either | +3 Mult |
+| Reserves | Rare | $2 | Either | +2 Chips for each unit on your side |
+| Steady Nerves | Rare | $2 | Either | Your die never rolls below 3 |
+
+They turn up in resupply and in supply caches like any other tactic. Smoke Screen, Fortify and Aegis Protocol are played on your own turn.
+
 ## Trading
 
 Any time, click **TRADE** under a rival's name. You can offer cash and tactic cards in exchange for cash. They accept or decline. Bots weigh offers by value, are greedier on higher difficulties, and won't feed a runaway leader.
@@ -294,7 +315,7 @@ Any time, click **TRADE** under a rival's name. You can offer cash and tactic ca
 ## Between turns
 
 You're never just watching:
-- **Reactions.** When an enemy attacks one of your hexes and you hold a reaction card (Smoke Screen, Fortify, Aegis Protocol, Ambush) you can afford, the attack waits up to 7 seconds while you decide whether to play it.
+- **Battle cards.** When an enemy attacks you, see **Battle cards** below: you get a few seconds to throw cards into the fight before the dice roll.
 - **Next resupply.** Your next resupply is dealt when your turn ends. Pick a card or full income from the panel while you wait, and your next turn starts straight in the action.
 - **Diplomacy and trades** work any time, not just on your turn.
 - **Intel ops** (fog of war): $2 to scout a 2-hex area anywhere until the end of next round, twice per round (`I`).

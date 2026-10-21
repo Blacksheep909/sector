@@ -6,7 +6,7 @@ const path = require('path');
 const os = require('os');
 const crypto = require('crypto');
 const E = require('./shared/engine');
-const { botStep, draftStep, spawnStep, tradeReply, allyReply, BOT_NAMES } = require('./shared/bot');
+const { botStep, battlePick, draftStep, spawnStep, tradeReply, allyReply, BOT_NAMES } = require('./shared/bot');
 const C = require('./shared/cosmetics');
 const { createProfiles } = require('./profiles');
 
@@ -447,9 +447,18 @@ function onMessage(c, m) {
       if (!pendingOw || !controls(c, pendingOw.owner)) return;
       return answerOw(!!m.fire);
     }
-    case 'react': {
-      if (!pendingReact || !controls(c, pendingReact.defPid)) return;
-      return closeReaction(m.uid == null ? null : m.uid);
+    case 'battleCard': case 'battleReady': {
+      if (!pendingBattle || !game || !game.battle) return;
+      const side = [game.battle.att, game.battle.def].find(pid => pendingBattle.humans.includes(pid) && controls(c, pid)); if (!side) return;
+      if (m.t === 'battleReady') { pendingBattle.ready.add(side); return battleTick(); }
+      const r = E.battleCard(game, side, m.uid);
+      if (!r.ok) return send(c, { t: 'err', msg: r.err });
+      game.v++; broadcastState(r.events, side);
+      // the other side gets a moment to answer: bots straight away, a human who'd said ready is asked again
+      for (const pid of pendingBattle.humans) if (pid !== side) pendingBattle.ready.delete(pid);
+      pendingBattle.until = Math.min(pendingBattle.cap, Math.max(pendingBattle.until, Date.now() + 4000));
+      botBattleCards();
+      return battleTick();
     }
     case 'ping': case 'emote': {
       // map pings and taunts (rate-limited), relayed to everyone
@@ -463,13 +472,14 @@ function onMessage(c, m) {
     case 'act': {
       if (!game) return;
       const actor = m.as && controls(c, m.as) ? m.as : c.pid;
-      if (pendingReact) return send(c, { t: 'err', msg: 'Waiting for the defender to react…', seq: m.seq });
+      if (pendingBattle) return send(c, { t: 'err', msg: 'A battle is being decided…', seq: m.seq });
       if (pendingOw) return send(c, { t: 'err', msg: 'Waiting for an overwatch decision…', seq: m.seq });
       if (game.paused && game.phase === 'play') return send(c, { t: 'err', msg: 'The game is paused', seq: m.seq });
-      if (!m._reacted) { const w = reactionWindow(actor, m.action); if (w) return openReaction(w, actor, () => onMessage(c, { ...m, _reacted: true })); }
+      if (!m[BATTLED] && startBattle(actor, m.action, () => onMessage(c, { ...m, [BATTLED]: true }))) return;
       const isCur = game.players[game.turn.idx] && game.players[game.turn.idx].id === actor;
       const snap = isCur && ['move', 'deploy', 'build'].includes((m.action || {}).a) ? JSON.stringify(game) : null;
       const r = E.applyAction(game, actor, m.action || {});
+      if (m[BATTLED]) E.closeBattle(game, true);
       if (!r.ok) return send(c, { t: 'err', msg: r.err, seq: m.seq });
       { const lp = lobby.players.find(x => x.id === actor); if (lp) { lp.seenAt = Date.now(); lp.idle = 0; } if (isCur) actedKey = turnKey; }
       if (game.turn.deadline && !game.turn.pausedAt && r.events.some(e => e.e === 'combat' || e.e === 'crate')) game.turn.pausedAt = Date.now();
@@ -647,7 +657,7 @@ function loadSave(c, id) {
   fogMem = {}; for (const k in d.fog || {}) fogMem[k] = { explored: new Set(d.fog[k].explored || []), seen: d.fog[k].seen || {} };
   for (const k in bankLeft) delete bankLeft[k]; Object.assign(bankLeft, d.bank || {}); bankKey = ''; bankPid = null; turnKey = '';
   for (const k in warNotes) delete warNotes[k];
-  pendingReact = null; pendingOw = null;
+  if (pendingBattle) clearTimeout(pendingBattle.timer); pendingBattle = null; pendingOw = null;
   game.log.push('💾 Resumed from a save (round ' + game.turn.round + ').');
   console.log('[game] resumed save ' + d.id + ' (round ' + game.turn.round + ')');
   note('Resumed a saved game: ' + d.title);
@@ -674,30 +684,55 @@ function speedOf() {
   return game.settings.speed || 'fast';
 }
 const BOT_PACE = { normal: 1, fast: 0.6, super: 0.12, max: 0.02 };
-// ── reactions: when an attack is about to hit a human who holds a reaction card, it waits up to 7s for their answer ──
-const REACT_MS = 7000;
-let pendingReact = null;
-function reactionWindow(actor, action) {
-  if (!game || game.phase !== 'play' || !action || (action.a !== 'move' && action.a !== 'assault')) return null;
-  const tgt = E.attackTarget(game, actor, action); if (!tgt || tgt.defPid === actor) return null;
-  const lp = lobby.players.find(x => x.id === tgt.defPid); if (!lp || lp.bot || lp.away) return null;
-  if (!isConnected(lp.local ? lp.controller : lp.id)) return null;
-  const dp = E.player(game, tgt.defPid); if (!dp || !dp.alive) return null;
-  const t = game.map.tiles[tgt.hex], ownHex = t && t.owner === tgt.defPid && E.isLandTile(t);
-  const cards = dp.tactics.filter(c => E.REACTIONS.includes(c.id) && E.TACTICS[c.id].cost <= dp.cash && (E.TACTICS[c.id].target === 'none' || ownHex));
-  if (!cards.length) return null;
-  return { ...tgt, cards: cards.map(c => ({ uid: c.uid, id: c.id })) };
+// ── battles: before an attack's dice roll, attacker and defender can each throw battle cards in ──
+// bots decide on the spot; a connected human holding a playable card gets a window (READY ends it early)
+const BATTLE_MS = 8000, BATTLE_CAP = 20000, BATTLED = Symbol('battled');
+let pendingBattle = null;
+function humanAt(pid) { const lp = lobby.players.find(x => x.id === pid); return !!(lp && !autoPids.has(pid) && !lp.bot && !lp.away && isConnected(lp.local ? lp.controller : lp.id)); }
+function botBattleCards() {
+  for (let round = 0; round < 6 && game && game.battle; round++) {
+    let played = false;
+    for (const pid of [game.battle.att, game.battle.def]) {
+      if (!pid || humanAt(pid)) continue;
+      const uid = battlePick(game, pid); if (uid == null) continue;
+      const r = E.battleCard(game, pid, uid); if (r.ok) { played = true; game.v++; broadcastState(r.events, pid); }
+    }
+    if (!played) break;
+  }
 }
-function openReaction(w, actor, done) {
-  pendingReact = { ...w, actor, done, until: Date.now() + REACT_MS };
-  for (const cl of clients) { if (cl.left) continue; send(cl, { t: 'react', defPid: w.defPid, hex: w.hex, attacker: actor, ms: REACT_MS, cards: controls(cl, w.defPid) ? w.cards : [] }); }
-  pendingReact.timer = setTimeout(() => closeReaction(null), REACT_MS + 300);
+// true if the order is now waiting on the battle (done() runs it later); false to carry on as normal
+function startBattle(actor, action, done) {
+  if (!game || game.phase !== 'play' || !action || (action.a !== 'move' && action.a !== 'assault')) return false;
+  const b = E.openBattle(game, actor, action); if (!b) return false;
+  if (!b.def || b.def === actor || !E.player(game, b.def)) { E.closeBattle(game); return false; }
+  botBattleCards();
+  const humans = [b.att, b.def].filter(pid => humanAt(pid) && E.battleHand(game, pid).length);
+  if (!humans.length) { if (!b.cards.att.length && !b.cards.def.length) { E.closeBattle(game); return false; } done(); return true; }
+  pendingBattle = { humans, ready: new Set(), done, until: Date.now() + BATTLE_MS, cap: Date.now() + BATTLE_CAP };
+  battleTick();
+  return true;
 }
-function closeReaction(uid) {
-  const pr = pendingReact; if (!pr) return; pendingReact = null; clearTimeout(pr.timer);
-  for (const cl of clients) send(cl, { t: 'reactDone' });
-  if (uid != null && game && game.phase === 'play') { const r = E.reactTactic(game, pr.defPid, uid, pr.hex); if (r.ok) { game.v++; broadcastState(r.events, pr.defPid); } }
-  pr.done();
+function battleTick() {
+  const pb = pendingBattle; if (!pb) return; clearTimeout(pb.timer);
+  if (!game || !game.battle || game.phase !== 'play') { pendingBattle = null; return; }
+  for (const pid of pb.humans) if (!E.battleHand(game, pid).length) pb.ready.add(pid);   // nothing left to play
+  if (pb.humans.every(pid => pb.ready.has(pid)) || Date.now() >= pb.until) return endBattle();
+  const b = game.battle, calc = E.battleOdds(game);
+  for (const cl of clients) {
+    if (cl.left) continue;
+    const side = [b.att, b.def].find(pid => controls(cl, pid));
+    const watcher = !cl.pid || (lobby.players.find(x => x.id === cl.pid) || {}).spectator;
+    if (!side && !watcher && game.settings.fog === 'on') continue;   // in the fog, only the two sides (and spectators) see it coming
+    send(cl, { t: 'battle', hex: b.hex, att: b.att, def: b.def, ms: pb.until - Date.now(), cards: b.cards, winProb: calc ? calc.winProb : null,
+      attBonuses: calc ? calc.att.bonuses : [], defBonuses: calc ? calc.def.bonuses : [], attChips: calc ? calc.att.chips : 0, defChips: calc ? calc.def.chips : 0, attMult: calc ? calc.att.mult : 0, defMult: calc ? calc.def.mult : 0,
+      you: side || null, hand: side && pb.humans.includes(side) ? E.battleHand(game, side).map(x => ({ uid: x.uid, id: x.id })) : [], ready: side ? pb.ready.has(side) : true });
+  }
+  pb.timer = setTimeout(battleTick, Math.min(1000, Math.max(50, pb.until - Date.now())));
+}
+function endBattle() {
+  const pb = pendingBattle; if (!pb) return; pendingBattle = null; clearTimeout(pb.timer);
+  for (const cl of clients) send(cl, { t: 'battleDone' });
+  pb.done();
 }
 // overwatch: after a move, stacks on overwatch next to where the mover stopped may fire. Bots decide on the spot;
 // a connected human gets a few seconds to say FIRE or HOLD while the game waits
@@ -897,6 +932,7 @@ function afterChange(events) {
 function resumeClock() { if (game && game.turn.pausedAt) { game.turn.deadline += Date.now() - game.turn.pausedAt; game.turn.pausedAt = 0; } }
 function forceEnd(pid) {
   if (!game || game.phase !== 'play' || E.current(game).id !== pid) return;
+  if (pendingBattle) return void (turnTimer = setTimeout(() => forceEnd(pid), 1000));   // let the fight finish first
   // a whole turn without acting counts as idle; two in a row and a bot covers until the player is back
   { const lp = lobby.players.find(p => p.id === pid);
     if (lp && !lp.bot && isConnected(lp.local ? lp.controller : lp.id)) {
@@ -915,18 +951,18 @@ function forceEnd(pid) {
   if (r.ok || ev.length) { game.log.push('⏱ ' + (E.player(game, pid) || {}).name + ' ran out of time.'); game.v++; broadcastState(ev.concat(r.ok ? r.events : []), pid); afterChange(r.events); }
 }
 function runBot() {
-  if (!game || game.phase !== 'play' || game.paused || pendingOw) return;
+  if (!game || game.phase !== 'play' || game.paused || pendingOw || pendingBattle) return;
   const cur = E.current(game);
   const mem = botMem[cur.id + ':' + game.turn.round] || (botMem = {}, botMem[cur.id + ':' + game.turn.round] = { n: 0 });
   let a = mem.n++ > 60 ? { a: 'end' } : botStep(game, cur.id, mem);
-  // a bot attacking a human who holds a reaction card waits for their answer too
-  if (!pendingReact) { const w = reactionWindow(cur.id, a); if (w) return openReaction(w, cur.id, () => applyBot(cur, a)); }
-  else return;
+  // a bot's attack goes through the battle window too (instant unless a human holds a battle card)
+  if (startBattle(cur.id, a, () => applyBot(cur, a))) return;
   applyBot(cur, a);
 }
 function applyBot(cur, a) {
   if (!game || game.phase !== 'play' || E.current(game).id !== cur.id) return afterChange();
   let r = E.applyAction(game, cur.id, a);
+  E.closeBattle(game, true);
   if (!r.ok) { if (a.a === 'end') return; return void (botTimer = setTimeout(runBot, 10)); }
   game.v++;
   broadcastState(r.events, cur.id);

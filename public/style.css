@@ -1159,11 +1159,28 @@ body.my-turn #hud::before { content: ''; position: fixed; inset: 0; pointer-even
 #pingBar button { background: rgba(16,26,36,.9); border: 2px solid #2a3947; color: #e3eaf0; border-radius: 7px; font-size: 13px; min-width: 26px; height: 24px; cursor: pointer; padding: 0 4px; }
 #pingBar button:hover { border-color: #36c9ff; }
 #pingBar .sep { width: 6px; }
-#reactPop { position: fixed; left: 50%; top: 32%; transform: translateX(-50%); z-index: 80; background: #1a0f12; border: 3px solid #ff4f5e; border-radius: 14px; padding: 12px 16px; box-shadow: 0 6px 0 #000, 0 0 40px rgba(255,79,94,.45); display: flex; flex-direction: column; gap: 8px; align-items: center; min-width: 300px; animation: offerIn .3s; }
-#reactPop .rp-h { font-family: var(--title); letter-spacing: 1.5px; color: #ff9aa3; font-size: 18px; }
-#reactPop .rp-cards { display: flex; gap: 8px; flex-wrap: wrap; justify-content: center; }
-#reactPop .rp-bar { width: 100%; height: 6px; background: #2a1a1e; border-radius: 3px; overflow: hidden; }
-#reactPop .rp-bar i { display: block; height: 100%; background: #ff4f5e; animation: rpDrain linear forwards; }
+#battlePop { position: fixed; left: 50%; top: 18%; transform: translateX(-50%); z-index: 80; background: linear-gradient(#1d1810, #120f0a); border: 3px solid #ffc53d; border-radius: 14px; padding: 12px 16px; box-shadow: 0 6px 0 #000, 0 0 40px rgba(255,197,61,.35); display: flex; flex-direction: column; gap: 8px; align-items: center; width: min(560px, calc(100vw - 32px)); animation: offerIn .3s; }
+#battlePop.bp-bump { animation: bpBump .35s; }
+@keyframes bpBump { 0% { transform: translateX(-50%) scale(1); } 40% { transform: translateX(-50%) scale(1.04); } 100% { transform: translateX(-50%) scale(1); } }
+#battlePop .rp-h { font-family: var(--title); letter-spacing: 1.5px; color: #ffd27a; font-size: 18px; }
+#battlePop .sub b { color: #fff; }
+#battlePop .rp-cards { display: flex; gap: 8px; flex-wrap: wrap; justify-content: center; }
+#battlePop .rp-bar { width: 100%; height: 6px; background: #2a2412; border-radius: 3px; overflow: hidden; }
+#battlePop .rp-bar i { display: block; height: 100%; background: #ffc53d; transition: width 1s linear; }
+.bp-odds { position: relative; width: 100%; height: 22px; border-radius: 6px; overflow: hidden; display: flex; border: 2px solid #000; }
+.bp-odds i { display: block; height: 100%; transition: width .4s; }
+.bp-odds em { flex: 1; height: 100%; }
+.bp-odds span { position: absolute; inset: 0; display: grid; place-items: center; font-weight: 800; font-size: 12px; color: #fff; text-shadow: 0 1px 2px #000, 0 0 4px #000; }
+.bp-cols { display: grid; grid-template-columns: 1fr auto 1fr; gap: 8px; width: 100%; align-items: start; }
+.bp-vs { font-family: var(--title); color: #ffc53d; align-self: center; }
+.bp-side { border-left: 4px solid var(--c); padding: 4px 8px; background: rgba(255,255,255,.04); border-radius: 6px; display: flex; flex-direction: column; gap: 3px; min-width: 0; }
+.bp-side b { color: var(--c); overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.bp-score { font-size: 12px; color: #ddd; font-variant-numeric: tabular-nums; }
+.bp-thrown { display: flex; flex-wrap: wrap; gap: 4px; }
+.bp-thrown i { font-size: 11px; color: #888; }
+.bp-card { font-size: 11px; font-weight: 700; padding: 2px 6px; border-radius: 4px; background: #ffc53d; color: #1a1408; animation: offerIn .25s; }
+.bp-bon { display: flex; flex-wrap: wrap; gap: 3px 8px; font-size: 10.5px; color: #aaa; }
+.bp-play.r-rare { border-color: #5aa9ff; }
 @keyframes rpDrain { from { width: 100%; } to { width: 0; } }
 .emote-pop { position: absolute; top: calc(100% + 2px); left: 50%; transform: translateX(-50%); z-index: 9; font-size: 26px; filter: drop-shadow(0 2px 0 #000); animation: emotePop 2.2s ease-out forwards; pointer-events: none; }
 @keyframes emotePop { 0% { scale: .3; opacity: 0; } 15% { scale: 1.2; opacity: 1; } 80% { opacity: 1; } 100% { translate: 0 -14px; opacity: 0; } }
@@ -1332,3 +1349,5 @@ body.my-turn #hud::before { content: ''; position: fixed; inset: 0; pointer-even
 .card.cv-blackout .c-art img { filter: invert(1) hue-rotate(180deg) contrast(1.15); }
 .card.cv-blackout .c-name, .card.cv-blackout .c-type, .card.cv-blackout .c-desc { color: #e9edf2 !important; }
 .lk-tile.s-card .lk-prev { height: 230px; } .lk-tile.s-card .lk-prev .card { transform: scale(.8); }
+
+#battlePop .bp-go { background: #ffc53d; color: #1a1408; border-color: #000; font-weight: 800; min-width: 160px; }

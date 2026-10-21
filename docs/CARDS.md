@@ -50,10 +50,12 @@ Single-use cards from your hand.
 
 | Tactic | Rarity | Cost | Effect |
 |---|---|---|---|
-| **Ambush** | Common | $1 | Reaction: play it when you are attacked (or on your own turn). Your defenders on that hex get +2 Chips each in the next fight there. |
+| **Ambush** | Common | $1 | Battle card (defence): your defenders get +2 Chips each in this fight. |
+| **Hold Fast** | Common | $1 | Battle card (defence): +2 Mult to your side in this fight. |
+| **Fix Bayonets** | Common | $1 | Battle card (attack): your attackers get +1 Chip each. Ready it on your turn, or throw it in before the dice. |
 | **Smoke Screen** | Common | $1 | A hex you own gets +2 Mult on defence until your next turn. |
 | **Forced March** | Common | $1 | Units on one hex may act again, with +2 move. |
-| **Rally** | Common | $1 | Your next attack this turn gets +2 Mult. |
+| **Rally** | Common | $1 | Battle card (attack): +2 Mult. Ready it on your turn for your next attack, or throw it in before the dice. |
 | **Fortify** | Common | $2 | Build or upgrade a Bunker on one of your hexes for free (on your HQ hex it fortifies the HQ instead). |
 | **Conscription** | Common | $1 | Deploy 5 free Grunts at a deploy point (as many as fit). |
 | **Kamikaze Drone** | Common | $2 | A loitering munition dives on a target within 5 of your land. Troops: roll 4+ kills 1. Undefended buildings: knocks a level off one. |
@@ -63,6 +65,9 @@ Single-use cards from your hand.
 | **Sabotage** | Uncommon | $3 | Destroy an enemy structure (or bridge) within 3 of your land. |
 | **Embargo** | Uncommon | $3 | Click any enemy territory: that commander earns half income for their next 2 turns and cannot trade. |
 | **Bounty** | Uncommon | $1 | This turn, every enemy unit you destroy pays a fifth of your income (min $2). |
+| **Covering Barrage** | Rare | $2 | Battle card (attack or defence): +3 Mult to your side. |
+| **Reserves** | Rare | $2 | Battle card (attack or defence): every unit on your side gets +2 Chips. |
+| **Steady Nerves** | Rare | $2 | Battle card (attack or defence): your die never rolls below 3. |
 | **Precision Strike** | Rare | $5 | Guided bomb within 5 of your land, ignores Flak. Kills the strongest unit (2 on a 5+), or destroys a building. |
 | **Strategic Bombing** | Rare | $5 | Bombers hit an enemy hex within 6 and its neighbours: their economic buildings lose a level, and that land pays nothing for 2 turns. |
 | **Quarry Blast** | Rare | $3 | Blast a mountain within 3 of your land, and the mountain behind it, down into Highlands: a 2-hex pass. |
