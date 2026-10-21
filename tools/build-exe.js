@@ -10,7 +10,7 @@ const dist = path.join(root, 'dist');
 fs.mkdirSync(dist, { recursive: true });
 
 // 1. bundle server + shared modules into one CommonJS file (SEA can only `require` built-ins)
-const mods = { './shared/engine': 'shared/engine.js', './shared/bot': 'shared/bot.js', './engine': 'shared/engine.js' };
+const mods = { './shared/engine': 'shared/engine.js', './shared/bot': 'shared/bot.js', './engine': 'shared/engine.js', './shared/cosmetics': 'shared/cosmetics.js', './profiles': 'profiles.js' };
 const version = process.env.SECTOR_BUILD_VERSION || JSON.parse(fs.readFileSync(path.join(root, 'package.json'), 'utf8')).version;
 let bundle = "'use strict';\nconst __SECTOR_VERSION = " + JSON.stringify(version) + ";\nconst __mods = {}, __cache = {};\nconst __req = require;\n";
 bundle += "function __require(id) { if (__mods[id]) { if (!__cache[id]) { const m = { exports: {} }; __cache[id] = m; __mods[id](m, m.exports, __require); } return __cache[id].exports; } return __req(id); }\n";
@@ -22,7 +22,7 @@ bundle += '(function (require) {\n' + fs.readFileSync(path.join(root, 'server.js
 fs.writeFileSync(path.join(dist, 'sector-bundle.js'), bundle);
 
 // 2. SEA config with every client file as an embedded asset
-const assets = { 'engine.js': path.join(root, 'shared', 'engine.js') };
+const assets = { 'engine.js': path.join(root, 'shared', 'engine.js'), 'cosmetics.js': path.join(root, 'shared', 'cosmetics.js') };
 for (const f of fs.readdirSync(path.join(root, 'public'))) assets['public/' + f] = path.join(root, 'public', f);
 const cfg = { main: path.join(dist, 'sector-bundle.js'), output: path.join(dist, 'sea-prep.blob'), disableExperimentalSEAWarning: true, useCodeCache: false, assets };
 fs.writeFileSync(path.join(dist, 'sea-config.json'), JSON.stringify(cfg, null, 2));

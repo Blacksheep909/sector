@@ -14,7 +14,9 @@ const Cards = (() => {
   // opts: { mini, cost, level, key, count, owned, tag }
   function make(id, opts = {}) {
     const d = E.cardDef(id);
-    const c = el('div', `card r-${d.rarity} k-${d.kind}${opts.mini ? ' mini' : ''}${d.cls ? ' c-' + d.cls : ''}`);
+    // the version of this card you've equipped (Foil, Gilded, Blackout); the index and other players' cards show the standard one
+    const v = opts.variant !== undefined ? opts.variant : (typeof Locker !== 'undefined' && Locker.variant(id));
+    const c = el('div', `card r-${d.rarity} k-${d.kind}${opts.mini ? ' mini' : ''}${d.cls ? ' c-' + d.cls : ''}${v ? ' cv-' + v : ''}`);
     c.dataset.id = id;
     c.style.setProperty('--dl', (-Math.random() * 4).toFixed(2) + 's');
     const cost = opts.cost ?? d.cost;
@@ -596,7 +598,7 @@ const Cards = (() => {
       if (tab === 'unit' || tab === 'tactic') {
         const src = tab === 'unit' ? E.UNITS : E.TACTICS;
         Object.keys(src).filter(id => rar === 'all' || src[id].rarity === rar).sort((a, b) => RANK(src[a].rarity) - RANK(src[b].rarity) || src[a].cost - src[b].cost)
-          .forEach((id, i) => { const c = make(id); c.style.animationDelay = (i * 0.025) + 's'; c.classList.add('ix-in'); grid.appendChild(c); });
+          .forEach((id, i) => { const c = make(id, { variant: null }); c.style.animationDelay = (i * 0.025) + 's'; c.classList.add('ix-in'); grid.appendChild(c); });
         // an empty filter points you at the tab that has those cards (Mythics are all tactics)
         if (!grid.children.length) {
           const other = tab === 'unit' ? 'tactic' : 'unit', osrc = other === 'unit' ? E.UNITS : E.TACTICS;

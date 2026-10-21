@@ -1,0 +1,106 @@
+/* SECTOR — player profiles: coins, owned skins, loadouts, objectives and referrals.
+   The server is the only thing that changes them, so a player can't give themselves coins from the browser.
+   Today a profile is tied to a device (a random id + secret kept by the browser); accounts will sign in to the same records. */
+'use strict';
+const fs = require('fs');
+const path = require('path');
+const crypto = require('crypto');
+const C = require('./shared/cosmetics');
+
+const REF_COINS = 250, WELCOME_COINS = 100, RECRUITER_AT = 3;
+
+function createProfiles(file, opts = {}) {
+  let db = {};
+  try { db = JSON.parse(fs.readFileSync(file, 'utf8')); } catch (e) {}
+  let timer = null;
+  const save = () => {
+    clearTimeout(timer);
+    timer = setTimeout(() => {
+      try { fs.mkdirSync(path.dirname(file), { recursive: true }); fs.writeFileSync(file + '.tmp', JSON.stringify(db)); fs.renameSync(file + '.tmp', file); }
+      catch (e) { console.log('[profiles] save failed: ' + e.message); }
+    }, 400);
+  };
+  const hash = s => crypto.createHash('sha256').update(String(s)).digest('hex');
+  // Founder skins go to profiles made before this date (SECTOR_OG_UNTIL=2027-03-01, say). Unset: nobody gets them yet
+  const ogUntil = opts.ogUntil ? Date.parse(opts.ogUntil) : 0;
+  const newCode = () => { let c; do c = crypto.randomBytes(4).toString('hex').toUpperCase().slice(0, 6); while (Object.values(db).some(q => q.refCode === c)); return c; };
+  function roll(p) {
+    const d = C.dayKey(), w = C.weekKey();
+    if (!p.day || p.day.key !== d) p.day = { key: d, stats: {}, done: [] };
+    if (!p.week || p.week.key !== w) p.week = { key: w, stats: {}, done: [] };
+    if (!p.earned || p.earned.day !== d) p.earned = { day: d, amount: 0 };
+  }
+  // find or create a profile. A wrong secret for a known id gets nothing (that's someone else's profile)
+  function open(id, secret, name, ref) {
+    if (typeof id !== 'string' || !/^[a-f0-9]{24,64}$/.test(id) || typeof secret !== 'string' || secret.length < 16 || secret.length > 128) return null;
+    let p = db[id];
+    if (p && p.secret !== hash(secret)) return null;
+    if (!p) {
+      p = db[id] = { id, secret: hash(secret), created: Date.now(), coins: 0, owned: [], equipped: {}, cards: {}, total: {}, refCode: newCode(), referredBy: null, refPaid: false, recruits: 0 };
+      if (ref) { const r = Object.values(db).find(q => q.refCode === String(ref).toUpperCase().slice(0, 8) && q.id !== id); if (r) p.referredBy = r.id; }
+      if (ogUntil && Date.now() <= ogUntil) p.owned.push('t-founder', 'n-founder');
+    }
+    if (name) p.name = String(name).slice(0, 16);
+    roll(p); save();
+    return p;
+  }
+  const objList = (list, period) => list.map(o => ({ id: o.id, text: o.text, need: o.need, coins: o.coins, have: Math.min(o.need, period.stats[o.stat] || 0), done: period.done.includes(o.id) }));
+  // what the player's own client gets to see (never the secret, never anyone else's)
+  function view(p) {
+    roll(p);
+    const store = C.dailyStore();
+    return {
+      name: p.name || null, coins: p.coins, owned: p.owned, equipped: p.equipped, cards: p.cards, refCode: p.refCode, recruits: p.recruits, earnedToday: p.earned.amount, daySoft: C.DAY_SOFT,
+      daily: objList(C.dailyObjectives(), p.day), weekly: objList(C.weeklyObjectives(), p.week),
+      store: { day: store.day, items: store.items, endsIn: C.msToNextDay() },
+    };
+  }
+  // territory, borders and banners come from today's store; any version of any card can be bought from the locker
+  function buy(p, itemId) {
+    const it = C.ITEMS[itemId];
+    if (!it || it.buy === false) return 'That can’t be bought';
+    if (p.owned.includes(itemId)) return 'Already yours';
+    if (it.slot !== 'card' && !C.dailyStore().items.includes(itemId)) return 'Not in today’s store';
+    if (p.coins < it.price) return 'Need ' + it.price + ' coins';
+    p.coins -= it.price; p.owned.push(itemId); save();
+    return null;
+  }
+  function equip(p, slot, itemId) {
+    if (slot === 'card') {
+      const it = C.ITEMS[itemId];
+      if (!it || it.slot !== 'card' || !p.owned.includes(itemId)) return 'Not yours';
+      if (p.cards[it.card] === it.variant) delete p.cards[it.card]; else p.cards[it.card] = it.variant;   // equipping it again takes it off
+      save(); return null;
+    }
+    if (!C.SLOTS[slot]) return 'No such slot';
+    if (!itemId) { delete p.equipped[slot]; save(); return null; }
+    const it = C.ITEMS[itemId];
+    if (!it || it.slot !== slot || !p.owned.includes(itemId)) return 'Not yours';
+    p.equipped[slot] = itemId; save();
+    return null;
+  }
+  // a finished match: coins (with diminishing returns over the day), stats, objectives, and the referral payout
+  function finishGame(p, r) {
+    roll(p);
+    const m = C.matchCoins(r), match = C.diminish(m.base, p.earned.amount);
+    p.earned.amount += match; p.coins += match;
+    const out = { match, base: m.base, why: m.why || null, objectives: [], referral: 0 };
+    if (r.rounds < 6) { save(); return out; }
+    const add = { games: 1, wins: r.won ? 1 : 0, kills: r.kills || 0, captured: r.captured || 0, crates: r.crates || 0 };
+    for (const k in add) { p.day.stats[k] = (p.day.stats[k] || 0) + add[k]; p.week.stats[k] = (p.week.stats[k] || 0) + add[k]; p.total[k] = (p.total[k] || 0) + add[k]; }
+    for (const [list, period] of [[C.dailyObjectives(), p.day], [C.weeklyObjectives(), p.week]])
+      for (const o of list) if (!period.done.includes(o.id) && (period.stats[o.stat] || 0) >= o.need) { period.done.push(o.id); p.coins += o.coins; out.objectives.push({ text: o.text, coins: o.coins }); }
+    // a recruit's first finished game pays both sides
+    if (p.referredBy && !p.refPaid) {
+      const ref = db[p.referredBy];
+      p.refPaid = true; p.coins += WELCOME_COINS; out.referral = WELCOME_COINS;
+      if (ref) { ref.coins += REF_COINS; ref.recruits = (ref.recruits || 0) + 1; if (ref.recruits >= RECRUITER_AT && !ref.owned.includes('n-recruiter')) ref.owned.push('n-recruiter'); }
+    }
+    save();
+    return out;
+  }
+  // dev servers only (SECTOR_DEV=1): coins for testing the store
+  function grant(p, n) { p.coins += Math.max(0, n | 0); save(); }
+  return { open, view, buy, equip, finishGame, grant, get: id => db[id] };
+}
+module.exports = { createProfiles, REF_COINS, WELCOME_COINS };

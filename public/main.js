@@ -35,7 +35,7 @@
   // ───────────── networking ─────────────
   function connect() {
     ws = new WebSocket((location.protocol === 'https:' ? 'wss://' : 'ws://') + location.host + '/ws');
-    ws.onopen = () => { if (token || joinedOnce) send({ t: 'hello', token, name: $('#nameIn').value || savedName() }); };
+    ws.onopen = () => { if (token || joinedOnce) send({ t: 'hello', token, name: $('#nameIn').value || savedName(), profile: Locker.identity(), ref: Locker.ref() }); };
     ws.onmessage = ev => onMsg(JSON.parse(ev.data));
     ws.onclose = () => { if (closedFor) return; toast('Connection lost — reconnecting…', 'err'); setTimeout(connect, 1500); };
   }
@@ -51,6 +51,8 @@
         joinedOnce = true;
         break;
       case 'lobby': lobby = m.lobby; if (!S) renderLobby(); break;
+      case 'profile': Locker.set(m.profile); if (m.bought) { toast('✔ ' + SectorCosmetics.ITEMS[m.bought].name + ' is yours', 'good'); SFX.legendary(); } break;
+      case 'reward': Locker.set(m.profile); setTimeout(() => Locker.reward(m.reward), 1600); break;
       case 'state': if (leftGame) break; msgQ.push(m); pump(); break;
       case 'err':
         if (m.seq && pending.has(m.seq)) { pending.get(m.seq)(false); pending.delete(m.seq); }
@@ -131,7 +133,7 @@
     const name = $('#nameIn').value.trim() || 'Commander';
     try { localStorage.setItem('sector.name', name); } catch (e) {}
     joinedOnce = true; leftGame = false; SFX.select();
-    send({ t: 'hello', token, name });
+    send({ t: 'hello', token, name, profile: Locker.identity(), ref: Locker.ref() });
   };
   $('#nameIn').addEventListener('keydown', e => { if (e.key === 'Enter') $('#joinBtn').click(); });
 
@@ -165,7 +167,7 @@
     }
     const nth = {};
     for (const p of lobby.players) {
-      const r = el('div', 'prow' + (p.connected ? '' : ' off'));
+      const r = el('div', 'prow' + (p.connected ? '' : ' off') + Locker.bannerClass(p.cos));
       const f = E.FACTIONS[p.faction];
       const tmc = teamsOn && !p.spectator ? E.teamColor(p.team || 1, nth[p.team || 1] = (nth[p.team || 1] ?? -1) + 1) : null;   // the colour they'll play in
       r.innerHTML = `<div class="sw" style="background:${tmc || p.color}"></div><div class="nm">${esc(p.name)}<div class="fx">${f ? f.name : ''}</div></div>` +
@@ -1114,7 +1116,7 @@
     const counts = {}, seas = {}; for (const k in S.map.tiles) { const t = S.map.tiles[k], o = t.owner; if (!o) continue; if (E.isLandTile(t)) counts[o] = (counts[o] || 0) + 1; else seas[o] = (seas[o] || 0) + 1; }
     for (const p of S.players) {
       const f = E.FACTIONS[p.faction];
-      const c = el('div', 'pchip' + (curP().id === p.id && S.phase === 'play' ? ' cur' : '') + (p.alive ? '' : ' dead') + (p.id === you ? ' me' : '')); c.dataset.pid = p.id;
+      const c = el('div', 'pchip' + (curP().id === p.id && S.phase === 'play' ? ' cur' : '') + (p.alive ? '' : ' dead') + (p.id === you ? ' me' : '') + Locker.bannerClass(p.cos)); c.dataset.pid = p.id;
       c.style.setProperty('--pc', p.color);
       const extra = S.map.beacon ? ` · ◆${p.koth}/3` : '';
       if (!p.alive) c.style.setProperty('--pc', '#5b6670');
@@ -2685,6 +2687,7 @@
   $('#rulesBtn').onclick = showRules; $('#rulesBtn2').onclick = showRules;
   for (const b of ['#indexBtn', '#indexBtn2', '#indexBtn3']) $(b).onclick = () => { SFX.select(); Cards.showIndex(); };
 
+  Locker.init({ send }); window.SECTOR_TOAST = t => toast(t, 'good');
   window.SECTOR_DEBUG = { resume: () => pump(), refresh: () => refreshAll(), victoryFx: () => showVictory(), crushFx: ev => obliterate(ev), combatFx: ev => showCombat(ev), send, state: () => S, you: () => you, plan: () => plan, planState: () => planState, act: doAction, click: onHexClick };
   connect();
 })();
