@@ -530,7 +530,7 @@ function diplomacy(s, pid, mem) {
     if (x.until && x.until - s.turn.round <= 2 && !(x.renew && x.renew[pid])) {
       const bm = botMem(s, pid), plotting = bm.plot && bm.plot.vs === o;
       const stillUseful = !threatGone && !(lastTwo) && E.moodOf(s, pid, o) > -20;
-      if (!plotting && stillUseful) return { a: 'allyRenew', with: o };
+      if (!plotting && stillUseful && E.blocOf(s, pid).size <= E.blocCap(s)) return { a: 'allyRenew', with: o };
     }
     if (held >= 3 && (threatGone || weakAlly || lastTwo) && (mem.betrayRoll = mem.betrayRoll ?? Math.random()) < 0.5 * ruthless) {
       // a smart traitor strikes when it can: mass troops on the border first, break once the knife is in reach
@@ -545,7 +545,7 @@ function diplomacy(s, pid, mem) {
   // ask the friendliest commander who isn't the leader and isn't already on our side
   let best = null, bm = -31;
   for (const q of alive) {
-    if (q.id === pid || q.id === lead || q.traitor || E.isAlly(s, pid, q.id)) continue;
+    if (q.id === pid || q.id === lead || q.traitor || E.isAlly(s, pid, q.id) || E.blocTooBig(s, pid, q.id)) continue;
     const m = E.moodOf(s, pid, q.id) + (th[q.id] < th[lead] ? 10 : 0);
     if (m > bm) { bm = m; best = q.id; }
   }

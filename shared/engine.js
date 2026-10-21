@@ -1619,6 +1619,14 @@
     pushLog(s, WEATHER[id].icon + ' ' + WEATHER[id].name + ': ' + WEATHER[id].desc);
   }
   // ── alliances: pacts of non-aggression with shared vision and a shared victory ──
+  // alliances can't snowball into everyone-vs-one: a bloc (everyone linked by pacts) holds at most half the commanders still standing (2 at least)
+  function blocOf(s, pid) {
+    const seen = new Set([pid]), q = [pid];
+    while (q.length) { const c = q.shift(); for (const x of s.allies || []) { if (x.team) continue; const o = x.a === c ? x.b : x.b === c ? x.a : null; if (o && !seen.has(o)) { seen.add(o); q.push(o); } } }
+    return seen;
+  }
+  const blocCap = s => Math.max(2, Math.floor(s.players.filter(p => p.alive).length / 2));
+  function blocTooBig(s, a, b) { const u = new Set([...blocOf(s, a), ...blocOf(s, b)]); return u.size > blocCap(s) ? blocCap(s) : 0; }
   function isAlly(s, a, b) { return !!(a && b && a !== b && (s.allies || []).some(x => (x.a === a && x.b === b) || (x.a === b && x.b === a))); }
   function allyOffer(s, p, a, ev) {
     const to = player(s, a.to);
@@ -1627,6 +1635,7 @@
     if (s.allyOffer) return { ok: false, err: 'An alliance offer is already on the table', events: [] };
     if (s.settings.teams === 'on') return { ok: false, err: 'Teams are locked in this game', events: [] };
     if (p.traitor) return { ok: false, err: 'Nobody trusts a traitor (' + p.traitor + ' more turn' + (p.traitor > 1 ? 's' : '') + ')', events: [] };
+    { const cap = blocTooBig(s, p.id, to.id); if (cap) return { ok: false, err: 'An alliance can hold at most ' + cap + ' of the ' + s.players.filter(q => q.alive).length + ' commanders left', events: [] }; }
     s.allyOffer = { from: p.id, to: to.id };
     ev.push({ e: 'ally', status: 'offer', from: p.id, to: to.id });
     return { ok: true, events: ev };
@@ -1634,6 +1643,7 @@
   function allyReply(s, p, a, ev) {
     const o = s.allyOffer; if (!o || o.to !== p.id) return { ok: false, err: 'No alliance offer for you', events: [] };
     s.allyOffer = null;
+    if (a.accept && blocTooBig(s, o.from, o.to)) { ev.push({ e: 'ally', status: 'declined', from: o.from, to: o.to, cap: true }); return { ok: true, events: ev }; }   // the board changed: it would be too big now
     if (a.accept) {
       s.allies = (s.allies || []).concat([{ a: o.from, b: o.to, since: s.turn.round, until: s.turn.round + PACT_ROUNDS, renew: {} }]);
       addMood(s, o.from, o.to, 25); addMood(s, o.to, o.from, 25);
@@ -1650,6 +1660,7 @@
     if (!x || x.team || !x.until) return { ok: false, err: 'Not allied', events: [] };
     if (x.ending) return { ok: false, err: 'This alliance is breaking up', events: [] };
     if (x.until - s.turn.round > 2) return { ok: false, err: 'You can renew in the last 2 rounds of the pact', events: [] };
+    if (blocOf(s, p.id).size > blocCap(s)) return { ok: false, err: 'Your alliance is too big for the commanders left (at most ' + blocCap(s) + '): it will lapse', events: [] };
     x.renew = x.renew || {}; if (x.renew[p.id]) return { ok: false, err: 'Already renewed — waiting for your ally', events: [] };
     x.renew[p.id] = s.turn.round;
     const o = player(s, a.with);
@@ -2648,6 +2659,6 @@
     POI, WEATHER, isAlly, recordHistory, RARITY, RARITY_ORDER, CRATES, DROP_TIERS, SCRAP_VALUE, DECK_MAX, MAX_LEVEL, TERRAIN, DIFFICULTY, UNITS, TACTICS, STRUCTS, BUILD_ORDER, UPGRADABLE, MAX_SLVL, FACTIONS, ROLL_BASE, COLORS, TEAM_COLORS, TEAM_NAMES, teamColor, MAX_STACK, GRUNT_STACK, stackFits, CLASS_NAME, cardDef,
     REACTIONS, INTEL_COST, intelCost, overwatchTriggers, overwatchFire, reactTactic, attackTarget, ECON, infraValue, econOf, AIR_STRIKES, airDefenders, interceptChance, generateMap, createGame, applyAction, spawnChoices, visionOf, startTurn, endTurn, simulateTurnStart, view, drawCards,
     player, current, buildIndex, canAct, moveAllow, ownedTiles, ownedLand, spawnPoints, musterHexes, supplySet, computeIncome, levelOf, unitAtk, unitDef,
-    payout: scaled, riders, tsarArea, moodOf, addMood, threatOf, rerollCost, bountyValue, reachable, pathTo, rangedTargets, deployHexes, buildHexes, buildError, isSea, isWater, isCoastal, movers, combatCalc, tacticTargets, unitCost, structCost, buildCost, structsOf, MAX_STRUCTS, conquestTarget, isLandTile, flakCovered,
+    payout: scaled, blocOf, blocCap, blocTooBig, riders, tsarArea, moodOf, addMood, threatOf, rerollCost, bountyValue, reachable, pathTo, rangedTargets, deployHexes, buildHexes, buildError, isSea, isWater, isCoastal, movers, combatCalc, tacticTargets, unitCost, structCost, buildCost, structsOf, MAX_STRUCTS, conquestTarget, isLandTile, flakCovered,
   };
 });
