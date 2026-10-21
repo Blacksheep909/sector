@@ -7,27 +7,42 @@
   'use strict';
 
   // ───────── the catalogue ─────────
-  // slot: territory (pattern over your land) · border (aura on your frontier) · banner (your name card) · card (a version of one card)
+  // slot: territory (one big pattern over all your land) · border (an aura round your frontier) · trim (the frontier line itself)
+  //       · banner (your name card) · card (a version of one card)
   // buy: false = can't be bought (earned by being early, or by recruiting)
   const ITEMS = {
-    // territory: flags and patterns laid over your land, blended with your colour so you're still you on the map
-    't-usa': { slot: 'territory', name: 'Stars & Stripes', rarity: 'epic', price: 1600, desc: 'Red and white stripes across your land, stars around your HQ.' },
-    't-uk': { slot: 'territory', name: 'Union', rarity: 'epic', price: 1600, desc: 'The crosses of the Union flag on every hex.' },
-    't-nato': { slot: 'territory', name: 'Alliance Star', rarity: 'epic', price: 1600, desc: 'Navy blue with the four-point compass star.' },
-    't-russia': { slot: 'territory', name: 'Tricolour', rarity: 'epic', price: 1600, desc: 'White, blue and red bands across your land.' },
-    't-wood': { slot: 'territory', name: 'Woodland Camo', rarity: 'rare', price: 900, desc: 'Four-colour woodland camouflage.' },
+    // territory: one big picture over your whole territory (a flag draped across it, camouflage that spans hexes),
+    // blended with your colour so you're still you on the map
+    't-usa': { slot: 'territory', name: 'Stars & Stripes', rarity: 'epic', price: 1600, desc: 'One giant flag across your whole territory. It grows as you do.' },
+    't-uk': { slot: 'territory', name: 'Union', rarity: 'epic', price: 1600, desc: 'The Union flag, draped across all your land.' },
+    't-nato': { slot: 'territory', name: 'Alliance Star', rarity: 'epic', price: 1600, desc: 'Navy blue, with the great compass star over your HQ and its lines running to your borders.' },
+    't-russia': { slot: 'territory', name: 'Tricolour', rarity: 'epic', price: 1600, desc: 'White, blue and red bands across your whole territory.' },
+    't-jolly': { slot: 'territory', name: 'Jolly Roger', rarity: 'legendary', price: 2400, desc: 'Black as night, with a skull and crossbones over your HQ.' },
+    't-dazzle': { slot: 'territory', name: 'Dazzle', rarity: 'legendary', price: 2200, desc: 'Razzle-dazzle, the warship camouflage of 1917: slabs of hard stripes at clashing angles.' },
+    't-tiger': { slot: 'territory', name: 'Tiger Stripe', rarity: 'epic', price: 1400, desc: 'Long, ragged jungle stripes.' },
+    't-topo': { slot: 'territory', name: 'Topographic', rarity: 'epic', price: 1400, desc: 'Your land as a survey map: contour lines with every fifth one inked heavier.' },
+    't-wood': { slot: 'territory', name: 'Woodland Camo', rarity: 'rare', price: 900, desc: 'Four-colour woodland camouflage, blobs the size of a hex.' },
     't-desert': { slot: 'territory', name: 'Desert Camo', rarity: 'rare', price: 900, desc: 'Three-colour desert camouflage.' },
+    't-arctic': { slot: 'territory', name: 'Arctic Camo', rarity: 'rare', price: 1000, desc: 'Snow white with grey and slate.' },
     't-digital': { slot: 'territory', name: 'Digital Camo', rarity: 'rare', price: 1100, desc: 'Pixelated MARPAT-style camouflage.' },
     't-carbon': { slot: 'territory', name: 'Carbon Fibre', rarity: 'uncommon', price: 600, desc: 'A woven carbon weave.' },
     't-hazard': { slot: 'territory', name: 'Hazard', rarity: 'uncommon', price: 600, desc: 'Black and yellow chevrons.' },
-    't-founder': { slot: 'territory', name: 'Founder’s Laurel', rarity: 'legendary', buy: false, desc: 'For commanders who made an account in SECTOR’s first months. Never sold.' },
+    't-founder': { slot: 'territory', name: 'Founder’s Laurel', rarity: 'legendary', buy: false, desc: 'For commanders who made an account in SECTOR’s first months: gold rays and a laurel wreath round your HQ. Never sold.' },
     // borders: an aura round your frontier
     'b-neon': { slot: 'border', name: 'Neon', rarity: 'rare', price: 800, desc: 'Your frontier glows in your colour.' },
     'b-gold': { slot: 'border', name: 'Gold Leaf', rarity: 'epic', price: 1400, desc: 'A gilded edge on every border.' },
     'b-frost': { slot: 'border', name: 'Frostline', rarity: 'rare', price: 900, desc: 'An icy white-blue haze.' },
     'b-ember': { slot: 'border', name: 'Embers', rarity: 'epic', price: 1400, desc: 'A smouldering orange glow with sparks.' },
     'b-static': { slot: 'border', name: 'Static', rarity: 'rare', price: 900, desc: 'A crackling electric line.' },
-    'b-void': { slot: 'border', name: 'Void', rarity: 'legendary', price: 2400, desc: 'A deep violet shadow that bleeds outward.' },
+    'b-void': { slot: 'border', name: 'Void', rarity: 'legendary', price: 2400, desc: 'A deep violet shadow, with tendrils seeping outward.' },
+    // border lines: the frontier line itself, always in your colour
+    'h-tactical': { slot: 'trim', name: 'Map Boundary', rarity: 'uncommon', price: 500, desc: 'A hard line with ticks along the outside, like a boundary on a military map.' },
+    'h-double': { slot: 'trim', name: 'Double Line', rarity: 'uncommon', price: 450, desc: 'Two crisp lines with a dark channel between.' },
+    'h-plate': { slot: 'trim', name: 'Steel Plate', rarity: 'rare', price: 800, desc: 'Riveted armour plate round your land.' },
+    'h-sandbag': { slot: 'trim', name: 'Sandbags', rarity: 'rare', price: 900, desc: 'A wall of sandbags along every border.' },
+    'h-barbed': { slot: 'trim', name: 'Barbed Wire', rarity: 'epic', price: 1300, desc: 'Twisted wire, barbs and fence posts.' },
+    'h-teeth': { slot: 'trim', name: 'Dragon’s Teeth', rarity: 'epic', price: 1300, desc: 'Rows of concrete tank traps along the frontier.' },
+    'h-laser': { slot: 'trim', name: 'Laser Fence', rarity: 'legendary', price: 2000, desc: 'A white-hot beam between emitter posts, glowing in your colour.' },
     // banners: your name card
     'n-carbon': { slot: 'banner', name: 'Carbon', rarity: 'uncommon', price: 400, desc: 'A carbon-fibre name card.' },
     'n-usa': { slot: 'banner', name: 'Old Glory', rarity: 'rare', price: 700, desc: 'Stars and stripes behind your name.' },
@@ -52,7 +67,8 @@
     ITEMS['c-' + cid + '-' + v] = { slot: 'card', card: cid, variant: v, name: V.name + ' ' + d.name, rarity: V.rarity, price: Math.round(V.price * (CARD_MULT[d.rarity] || 1) / 10) * 10, desc: V.desc };
   }
   for (const id in ITEMS) ITEMS[id].id = id;
-  const SLOTS = { territory: 'Territory', border: 'Borders', banner: 'Banners', card: 'Cards' };
+  const SLOTS = { territory: 'Territory', border: 'Auras', trim: 'Border Lines', banner: 'Banners', card: 'Cards' };
+  const LOOKS = ['territory', 'border', 'trim', 'banner'];   // the slots worn on the map and name card (cards are per card)
 
   // ───────── coins ─────────
   // a finished match pays by placement and how well you fought; the more you've earned today, the less each match adds
@@ -90,10 +106,10 @@
   const msToNextDay = (t = Date.now()) => { const d = new Date(t); d.setUTCHours(24, 0, 0, 0); return d - t; };
   function seeded(str) { let h = E.hashStr(str); return () => { h = (h + 0x6D2B79F5) | 0; let x = Math.imul(h ^ (h >>> 15), 1 | h); x = (x + Math.imul(x ^ (x >>> 7), 61 | x)) ^ x; return ((x ^ (x >>> 14)) >>> 0) / 4294967296; }; }
   function pick(list, n, r) { const l = list.slice(), out = []; while (out.length < n && l.length) out.push(l.splice(Math.floor(r() * l.length), 1)[0]); return out; }
-  // today's store: a featured territory or border, a banner, and four card versions. Same for everyone, new every day (UTC)
+  // today's store: three featured territories, auras or border lines, a banner, and four card versions. Same for everyone, new every day (UTC)
   function dailyStore(day = dayKey()) {
     const r = seeded('store:' + day), buyable = slot => Object.values(ITEMS).filter(i => i.slot === slot && i.buy !== false);
-    const big = pick(buyable('territory').concat(buyable('border')), 2, r), banner = pick(buyable('banner'), 1, r), cards = pick(buyable('card'), 4, r);
+    const big = pick(buyable('territory').concat(buyable('border'), buyable('trim')), 3, r), banner = pick(buyable('banner'), 1, r), cards = pick(buyable('card'), 4, r);
     return { day, items: big.concat(banner, cards).map(i => i.id) };
   }
   function dailyObjectives(day = dayKey()) { return pick(DAILY, 3, seeded('daily:' + day)); }
@@ -102,15 +118,15 @@
   // ───────── bots: labelled as bots, but some wear a skin ─────────
   function botLoadout(rng = Math.random) {
     const out = {}, buyable = slot => Object.values(ITEMS).filter(i => i.slot === slot && i.buy !== false);
-    for (const slot of ['territory', 'border', 'banner']) if (rng() < 0.035) { const l = buyable(slot); out[slot] = l[Math.floor(rng() * l.length)].id; }
+    for (const slot of LOOKS) if (rng() < 0.035) { const l = buyable(slot); out[slot] = l[Math.floor(rng() * l.length)].id; }
     return out;
   }
   // a loadout from the client is only trusted for items the profile owns (the server checks; this tidies the shape)
   function cleanLoadout(eq, owned) {
     const out = {}, has = id => ITEMS[id] && (!owned || owned.includes(id));
-    for (const slot of ['territory', 'border', 'banner']) if (eq && has(eq[slot]) && ITEMS[eq[slot]].slot === slot) out[slot] = eq[slot];
+    for (const slot of LOOKS) if (eq && has(eq[slot]) && ITEMS[eq[slot]].slot === slot) out[slot] = eq[slot];
     return out;
   }
 
-  return { ITEMS, VARIANTS, SLOTS, DAILY, WEEKLY, DAY_SOFT, matchCoins, diminish, dayKey, weekKey, msToNextDay, dailyStore, dailyObjectives, weeklyObjectives, botLoadout, cleanLoadout };
+  return { ITEMS, VARIANTS, SLOTS, LOOKS, DAILY, WEEKLY, DAY_SOFT, matchCoins, diminish, dayKey, weekKey, msToNextDay, dailyStore, dailyObjectives, weeklyObjectives, botLoadout, cleanLoadout };
 });

@@ -14,7 +14,7 @@ const Render = (() => {
   let layerCost = 0, menuKey = '';
   let lc = null, lctx = null, layerKey = '', layerT = -1, stateVer = 0, fadeUntil = 0;   // cached terrain layer
   // the layer is drawn with a margin around the screen at one camera (lcam), then slid and scaled while you pan and zoom
-  const cosOf = {}, hqOf = {};   // each commander's skins, and where their HQ is (Stars & Stripes puts its stars there)
+  const cosOf = {}, hqOf = {}, terrBox = {};   // each commander's skins, where their HQ is, and the bounds of their land (a territory skin covers it all)
   let LM = 0, camMovedAt = 0, boardSig = ''; const lcam = { x: 0, y: 0, z: 1, w: 0, h: 0, whole: false }, lastCam = { x: 0, y: 0, z: 1 };
   const LAYER_MAX = 4096;   // device pixels per side: a whole map that fits is cached in one piece, so panning never redraws it
   let S_ = null;                 // display state
@@ -75,6 +75,7 @@ const Render = (() => {
     if (!S_) return;
     const pc = {}; for (const p of S_.players) pc[p.id] = hx(p.color);
     for (const k in cosOf) delete cosOf[k]; for (const k in hqOf) delete hqOf[k];
+    for (const k in terrBox) delete terrBox[k];
     for (const p of S_.players) { if (p.cos) cosOf[p.id] = p.cos; if (p.hq) hqOf[p.id] = p.hq; }
     const now = t;
     for (const k of order) {
@@ -98,6 +99,7 @@ const Render = (() => {
       c.base = base;
       setCols(c, base, owned);
       c.owned = !!owned;
+      if (owned && t.fog !== 2 && cosOf[t.owner] && cosOf[t.owner].territory) { const b = terrBox[t.owner] || (terrBox[t.owner] = { x0: 1e9, y0: 1e9, x1: -1e9, y1: -1e9, tilt: TILT }); b.x0 = Math.min(b.x0, c.wx); b.x1 = Math.max(b.x1, c.wx); b.y0 = Math.min(b.y0, c.wy); b.y1 = Math.max(b.y1, c.wy); }
       c.owner = t.owner; c.oc = t.owner && pc[t.owner] && t.fog !== 2 ? rgb(shade(pc[t.owner], 0.45)) : null;
     }
     if (S_._sup) delete S_._sup;
@@ -338,7 +340,7 @@ const Render = (() => {
     ctx.fillStyle = c.top;   // water shimmer is drawn every frame on top (drawWaterGlints), so it fades smoothly
     ctx.fill();
     // the owner's territory skin, over their colour (land only: the sea and rivers keep their water look)
-    if (c.owned && tile.fog !== 2) { const cs = cosOf[tile.owner]; if (cs && cs.territory && typeof Skins !== 'undefined') { const [ox, oy] = toScreen(0, 0), hq = hqOf[tile.owner]; Skins.territory(ctx, cs.territory, { cx, cy, s, tilt: TILT, z, q: c.q, r: c.r, ox, oy, nearHQ: !!hq && E.dist(hq, k) <= 1 }, hexPath); } }
+    if (c.owned && tile.fog !== 2) { const cs = cosOf[tile.owner], box = terrBox[tile.owner]; if (cs && cs.territory && box && typeof Skins !== 'undefined') { const hq = tc[hqOf[tile.owner]]; if (hq) { box.hx = hq.wx; box.hy = hq.wy; } Skins.territory(ctx, cs.territory, { cx, cy, s, z, wx: c.wx, wy: c.wy, box }, hexPath); } }
     // top bevel highlight
     ctx.strokeStyle = 'rgba(255,255,255,.13)'; ctx.lineWidth = 1.2 * z;
     ctx.beginPath(); ctx.moveTo(cx + VERT[4][0] * s, cy + VERT[4][1] * s * TILT); ctx.lineTo(cx + VERT[5][0] * s, cy + VERT[5][1] * s * TILT); ctx.lineTo(cx + VERT[0][0] * s, cy + VERT[0][1] * s * TILT); ctx.lineTo(cx + VERT[1][0] * s, cy + VERT[1][1] * s * TILT); ctx.stroke();
@@ -380,15 +382,20 @@ const Render = (() => {
       const nb = E.neighbors(k);
       ctx.lineCap = 'round';
       ctx.beginPath();
+      const cs = cosOf[tile.owner], skinned = cs && (cs.border || cs.trim) && typeof Skins !== 'undefined', segs = skinned ? [] : null;
       for (let i = 0; i < 6; i++) {
         const n = S_.map.tiles[nb[EDGE_DIR[i]]];
         if (n && n.owner === tile.owner) continue;
-        const a = VERT[i], b = VERT[(i + 1) % 6], ss = s * 0.97;
-        ctx.moveTo(cx + a[0] * ss, cy + a[1] * ss * TILT); ctx.lineTo(cx + b[0] * ss, cy + b[1] * ss * TILT);
+        const a = VERT[i], b = VERT[(i + 1) % 6], ss = s * 0.97, ax = cx + a[0] * ss, ay = cy + a[1] * ss * TILT, bx = cx + b[0] * ss, by = cy + b[1] * ss * TILT;
+        ctx.moveTo(ax, ay); ctx.lineTo(bx, by);
+        if (segs) { let nx = (ax + bx) / 2 - cx, ny = (ay + by) / 2 - cy; const l = Math.hypot(nx, ny) || 1; segs.push({ ax, ay, bx, by, nx: nx / l, ny: ny / l }); }
       }
-      { const cs = cosOf[tile.owner]; if (cs && cs.border && typeof Skins !== 'undefined') Skins.border(ctx, cs.border, z, c.oc); }   // border aura, under the line
-      ctx.strokeStyle = c.oc; ctx.globalAlpha = 0.28; ctx.lineWidth = 10 * z; ctx.stroke();
-      ctx.globalAlpha = 1; ctx.lineWidth = 4.5 * z; ctx.stroke();
+      if (skinned && cs.border) Skins.border(ctx, cs.border, z, c.oc, segs);   // border aura, under the line
+      // the line itself: a border-line skin, or the plain one
+      if (!(skinned && cs.trim && Skins.trim(ctx, cs.trim, z, c.oc, segs))) {
+        ctx.strokeStyle = c.oc; ctx.globalAlpha = 0.28; ctx.lineWidth = 10 * z; ctx.stroke();
+        ctx.globalAlpha = 1; ctx.lineWidth = 4.5 * z; ctx.stroke();
+      }
       // your allies' land: a dashed green line just inside their border, so you can see every friendly hex at a glance
       if (ov.me && tile.owner !== ov.me && E.isAlly(S_, ov.me, tile.owner)) {
         ctx.beginPath();
