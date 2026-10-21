@@ -35,12 +35,84 @@ function choosePick(s, p, cards) {
   return act;
 }
 
+// attack: odds needed to commit · combo: stacks it will mass into one blow · guard: how hard it holds the front
+// noise/idle: how sloppy its moves are · heli: how carefully it flies helicopters
+// Easy still plays a real game (it attacks, masses a little, defends a little) — it just makes more mistakes
 const SKILL = {
-  easy: { attack: 0.8, noise: 3, idle: 0.45, tactics: 0.3 },
-  medium: { attack: 0.64, noise: 1.4, idle: 0.18, tactics: 0.7 },
-  hard: { attack: 0.53, noise: 0.45, idle: 0.03, tactics: 1 },
-  impossible: { attack: 0.46, noise: 0.15, idle: 0, tactics: 1 },
+  easy: { attack: 0.52, combo: 1, guard: 0.35, noise: 2.2, idle: 0.15, tactics: 0.5, heli: 0.4 },
+  medium: { attack: 0.58, combo: 2, guard: 0.7, noise: 1.1, idle: 0.05, tactics: 0.8, heli: 0.75 },
+  hard: { attack: 0.6, combo: 3, guard: 1, noise: 0.4, idle: 0, tactics: 1, heli: 1 },
+  impossible: { attack: 0.6, combo: 3, guard: 1, noise: 0.15, idle: 0, tactics: 1, heli: 1 },
 };
+
+// ── the threat map: how much enemy punch could land on each of our hexes next turn ──
+function threatMap(s, pid, idx) {
+  const out = {}, tiles = s.map.tiles;
+  for (const k in idx) {
+    const foes = idx[k].filter(u => u.owner !== pid && !E.isAlly(s, pid, u.owner) && E.UNITS[u.type].atk > 0);
+    if (!foes.length) continue;
+    const atk = foes.reduce((a, u) => a + E.unitAtk(s, u), 0);
+    const reach = Math.min(5, Math.max(1, ...foes.map(u => E.UNITS[u.type].range || E.moveAllow(s, u))));
+    for (const a of E.area(k, reach)) { const t = tiles[a]; if (t && t.owner === pid) out[a] = (out[a] || 0) + atk * (E.dist(a, k) <= 1 ? 1 : 0.7); }
+  }
+  return out;
+}
+const holdOf = (s, pid, units) => units.filter(u => u.owner === pid).reduce((a, u) => a + E.unitDef(s, u), 0);
+// anti-air and Grunts near a hex: what a helicopter landing there would face
+function heliDanger(s, pid, idx, k) {
+  let d = 0;
+  for (const a of E.area(k, 2)) for (const u of idx[a] || []) {
+    if (u.owner === pid || E.isAlly(s, pid, u.owner)) continue;
+    const def = E.UNITS[u.type];
+    if (def.aa && E.dist(a, k) <= (def.ability === 'sam' ? 3 : 1)) d += def.aa;
+    if (def.cls === 'inf' && E.dist(a, k) <= 1) d += 1;
+  }
+  return d;
+}
+
+// ── the assault planner: every attack on the board, with up to K.combo stacks massed into one blow ──
+function planAssault(s, pid, idx, K, strat, mem) {
+  const tiles = s.map.tiles, stacks = [];
+  for (const k in idx) {
+    if (mem.skip && mem.skip.has(k)) continue;
+    const units = idx[k].filter(u => u.owner === pid && E.canAct(s, u) && E.UNITS[u.type].atk > 0 && !E.UNITS[u.type].range && !E.isSea(u.type));
+    if (!units.length || E.isWater(tiles[k])) continue;
+    stacks.push({ k, units, reach: E.reachable(s, pid, units.map(u => u.id), k, idx) });
+  }
+  const by = {};
+  for (const st of stacks) for (const t in st.reach) if (st.reach[t].kind === 'attack') (by[t] = by[t] || []).push(st);
+  const p = E.player(s, pid);
+  let best = null, bv = 0;
+  for (const t in by) {
+    const tt = tiles[t], defs = (idx[t] || []).filter(u => u.owner !== pid);
+    const isHQ = tt.struct && tt.struct.type === 'hq' && tt.owner !== pid;
+    const prize = 6 + stackValue(defs) * 1.2 + (isHQ ? 90 : 0) + (tt.struct ? 6 : 0) + (tt.res ? 3 : 0) + (!tt.owner && ['village', 'silo'].includes(tt.poi) ? 10 : 0) + (tt.owner && tt.owner === strat.target ? 6 : 0) + (p && p.vengeance && p.vengeance.vs === tt.owner ? 8 : 0);
+    // strongest contributors first; add stacks until the odds are good enough (or we run out of stacks we're allowed to mass)
+    const list = by[t].slice().sort((a, b) => stackValue(b.units) - stackValue(a.units)).slice(0, 4);
+    const used = [];
+    let calc = null;
+    for (const st of list) {
+      if (used.length >= K.combo) break;
+      used.push(st);
+      const stages = used.map(u => E.pathTo(u.reach, t).slice(-2)[0]);
+      calc = E.combatCalc(s, pid, used.flatMap(u => u.units), stages, t, false, idx);
+      if (calc.winProb >= Math.max(K.attack, 0.85)) break;
+    }
+    if (!calc) continue;
+    const need = isHQ ? K.attack - 0.15 : K.attack;
+    if (calc.winProb < need) continue;
+    const risk = used.reduce((a, u) => a + stackValue(u.units), 0);
+    // helicopters that win are left sitting on the hex: count what they'd face there
+    const helis = used.some(u => u.units.some(x => E.UNITS[x.type].heli));
+    const exposure = helis ? heliDanger(s, pid, idx, t) * 2 * K.heli : 0;
+    const v = calc.winProb * prize - (1 - calc.winProb) * risk * 0.8 - exposure;
+    if (v > bv) { bv = v; best = { t, used, calc }; }
+  }
+  if (!best) return null;
+  for (const u of best.used) mem.skip && mem.skip.add(u.k);
+  if (best.used.length === 1) return { a: 'move', from: best.used[0].k, units: best.used[0].units.map(u => u.id), to: best.t };
+  return { a: 'assault', to: best.t, groups: best.used.map(u => ({ from: u.k, units: u.units.map(x => x.id) })) };
+}
 
 // accept a trade if what we get is worth clearly more than what we give
 function tradeReply(s, pid) {
@@ -117,9 +189,12 @@ function strategy(s, pid, idx) {
   return { focus, target, goal, seen, danger };
 }
 
+// experiments only (balance lab): BOTX=noguard,noplan,atk=0.5,… switches parts of the bot off to measure what each is worth
+const BOTX = (typeof process !== 'undefined' && process.env && process.env.BOTX || '').split(',').filter(Boolean);
 function botStep(s, pid, mem) {
   const p = E.player(s, pid);
-  const K = SKILL[p.diff] || SKILL.medium;
+  let K = SKILL[p.diff] || SKILL.medium;
+  if (BOTX.length) { K = { ...K }; for (const x of BOTX) { const [k, v] = x.split('='); if (v !== undefined) K[k] = +v; else K[k] = true; } }
   if (s.turn.stage === 'choose') {
     const c = choosePick(s, p, s.turn.offer);
     const threshold = 2.4 + s.turn.income / 10 - (s.turn.round <= 3 ? 0.6 : 0);
@@ -230,8 +305,53 @@ function botStep(s, pid, mem) {
     if (best) { const a = tryOnce({ a: 'fire', from: k, units: ids, to: best }); if (a) return a; }
   }
 
-  // 4. manoeuvre stacks
   mem.skip = mem.skip || new Set();
+  // 3c. attacks: the planner picks the best one on the board, massing stacks into pincers when one isn't enough
+  if (!mem.noAssault && !K.noplan) {
+    const a = planAssault(s, pid, idx, K, strat, mem);
+    if (a) { const t = tryOnce(a); if (t) return t; }
+    else mem.noAssault = true;
+  }
+  const threat = mem.threat = mem.threat || threatMap(s, pid, idx);
+  // 3d. helicopters don't loiter where they'll be shot down: pull them back over safe ground
+  if (!mem.heliDone && Math.random() < K.heli) {
+    mem.heliDone = true;
+    for (const k in idx) {
+      if (mem.skip.has(k)) continue;
+      const hs = idx[k].filter(u => u.owner === pid && E.canAct(s, u) && E.UNITS[u.type].heli);
+      if (!hs.length || hs.length !== idx[k].filter(u => u.owner === pid && !(u.type === 'grunt')).length) continue;   // only all-helicopter stacks (and their passengers)
+      if (heliDanger(s, pid, idx, k) < 2 && !(threat[k] > holdOf(s, pid, idx[k]) * 1.5)) continue;
+      const ids = idx[k].filter(u => u.owner === pid && E.canAct(s, u)).map(u => u.id), r = E.reachable(s, pid, ids, k, idx);
+      let best = null, bv = 1e9;
+      for (const d in r) { if (r[d].kind !== 'move' || tiles[d].owner !== pid) continue; const v = heliDanger(s, pid, idx, d) * 3 + (threat[d] || 0) - ((idx[d] || []).some(u => u.owner === pid && !E.UNITS[u.type].heli) ? 4 : 0); if (v < bv) { bv = v; best = d; } }
+      mem.skip.add(k);
+      if (best) { const a = tryOnce({ a: 'move', from: k, units: ids, to: best }); if (a) return a; }
+    }
+  }
+  // 3e. hold the front: sturdy stacks move onto our threatened bases, buildings and resources (plain land isn't worth standing still for)
+  if (!mem.guardDone && !K.noguard && Math.random() < K.guard) {
+    mem.guardDone = true;
+    const weak = Object.keys(threat).filter(k => { const t = tiles[k]; if (!E.isLandTile(t) || t.t === 'mountain') return false; if (!t.struct && !t.res && !t.poi) return false; const hold = holdOf(s, pid, idx[k] || []) + (t.struct && ['hq', 'fob', 'bunker'].includes(t.struct.type) ? 6 : 0); return threat[k] > hold * 1.3; })
+      .map(k => ({ k, v: threat[k] + (tiles[k].struct ? (tiles[k].struct.type === 'hq' ? 40 : 12) : 0) + (tiles[k].res ? 4 : 0) })).sort((a, b) => b.v - a.v).slice(0, 3);
+    for (const w of weak) {
+      let pick = null, pv = 0;
+      for (const k in idx) {
+        if (k === w.k || mem.skip.has(k) || E.dist(k, w.k) > 5) continue;
+        if (threat[k] && threat[k] > holdOf(s, pid, idx[k]) * 0.9) continue;   // don't strip one threatened hex to save another
+        const us = idx[k].filter(u => u.owner === pid && E.canAct(s, u) && !E.isSea(u.type) && !E.UNITS[u.type].heli);
+        if (!us.length || (k === p.hq && enemyNear(k, 3))) continue;
+        const r = E.reachable(s, pid, us.map(u => u.id), k, idx)[w.k]; if (!r || r.kind !== 'move') continue;
+        const v = us.reduce((a, u) => a + E.unitDef(s, u), 0);
+        if (v > pv) { pv = v; pick = { k, us }; }
+      }
+      if (pick) { mem.skip.add(pick.k); const a = tryOnce({ a: 'move', from: pick.k, units: pick.us.map(u => u.id), to: w.k }); if (a) return a; }
+    }
+    // a bunker on the most threatened chokepoint we can afford to fortify
+    const spot = weak.find(w => { const t = tiles[w.k]; return !t.struct && !t.contam && E.supplySet(s, pid).has(w.k) && E.neighbors(w.k).filter(n => tiles[n] && tiles[n].owner === pid).length <= 3; });
+    if (spot && p.cash >= E.structCost(p, 'bunker') + 6 && K.guard >= 0.7) { const a = tryOnce({ a: 'build', struct: 'bunker', hex: spot.k }); if (a) return a; }
+  }
+
+  // 4. manoeuvre stacks
   const enemyTiles = Object.keys(tiles).filter(k => tiles[k].owner && tiles[k].owner !== pid);
   // land we could still grab: un-owned land touching our territory
   const frontier = new Set();
@@ -286,6 +406,8 @@ function botStep(s, pid, mem) {
     // empty transports wait at the dock for troops
     if (fleet && !carrying && movers.every(u => u.type === 'ark')) { mem.skip.add(k); continue; }
     const reach = E.reachable(s, pid, ids, k, idx);
+    const carryingAttackOnly = false;
+    const myDefHere = movers.reduce((a, u) => a + E.unitDef(s, u), 0), myAtkHere = movers.reduce((a, u) => a + E.unitAtk(s, u), 0);
     let best = null, bv = 0.5;
     for (const dest in reach) {
       const r = reach[dest];
@@ -299,6 +421,8 @@ function botStep(s, pid, mem) {
       if (r.kind === 'board') {
         const aboard = idx[dest].filter(u => !E.isSea(u.type)).length;
         v = stuck ? 7 - aboard : -1;
+      } else if (r.kind === 'attack' && !carryingAttackOnly && !K.noplan) {
+        continue;   // fights are the assault planner's job (it masses stacks and picks its moment)
       } else if (r.kind === 'attack') {
         const stage = path[path.length - 2];
         const c = E.combatCalc(s, pid, movers, stage, dest, false, idx);
@@ -345,9 +469,12 @@ function botStep(s, pid, mem) {
         // mass up: join a friendly stack on the front line so the next push has the numbers
         if (t.owner === pid && (idx[dest] || []).some(u => u.owner === pid) && E.neighbors(dest).some(n => (idx[n] || []).some(u => u.owner !== pid && !E.isAlly(s, pid, u.owner)))) v += 2.5;
         if (r.kind === 'move' && t.owner === pid && v < 1) continue;   // a step closer to the front is worth taking
-        let threat = 0; for (const n of E.neighbors(dest)) for (const u of idx[n] || []) if (u.owner !== pid) threat += E.UNITS[u.type].atk;
-        const myDef = movers.reduce((a, u) => a + E.UNITS[u.type].def, 0);
-        if (threat > myDef * 2) v -= 4;
+        let near = 0; for (const n of E.neighbors(dest)) for (const u of idx[n] || []) if (u.owner !== pid && !E.isAlly(s, pid, u.owner)) near += E.unitAtk(s, u);
+        const friends = (idx[dest] || []).filter(u => u.owner === pid).reduce((a, u) => a + E.unitDef(s, u), 0);
+        if (near > (myDefHere + friends) * 1.6) v -= 4 + near / 4 * K.guard;   // don't walk alone into a stronger enemy's reach
+        // massing: close on the war target together, joining friendly stacks on the way rather than trickling in
+        if (strat.goal.length && friends && (stuck || near) && E.stackFits(idx[dest].filter(u => u.owner === pid), movers)) v += 2 + Math.min(4, friends / 4) * K.guard;
+        if (movers.some(u => E.UNITS[u.type].heli) && !movers.some(u => u.type === 'grunt')) v -= heliDanger(s, pid, idx, dest) * 1.5 * K.heli;   // helicopters keep away from AA and riflemen
       }
       v += Math.random() * K.noise;
       if (v > bv) { bv = v; best = dest; }
@@ -447,7 +574,13 @@ function botStep(s, pid, mem) {
       if (d.ability === 'hunter') b += Math.min(1.6, strat.seen.veh * 0.25);
       if (['siege', 'titan'].includes(d.ability)) b += Math.min(1.5, strat.seen.fort * 0.5);
       return b; };
-    const scored = options.map(t => [t, (t === 'ark' ? 9 : unitValue(t) / Math.sqrt(E.unitCost(p, t))) + counter(t) + Math.random() * 0.5 + (E.unitCost(p, t) >= 5 ? 0.6 : 0)]).sort((a, b) => b[1] - a[1]);
+    // what to buy: early on, punch per dollar; once money is plentiful, punch per slot (a hex only holds 5).
+    // Under pressure, sturdiness counts double
+    const rich = Math.min(1, (s.turn.income || 0) / 45), pressed = Object.values(mem.threat || {}).reduce((a, v) => Math.max(a, v), 0) > 0;
+    const worth = t => { const d = E.UNITS[t], lv = (p.levels[t] || 0), a = d.atk + (d.atk ? lv : 0), df = d.def + lv, c = E.unitCost(p, t);
+      const power = a * (pressed ? 0.8 : 1.1) + df * (pressed ? 1.3 : 0.8) + Math.min(d.mv, 5) * 0.4 + (d.range ? 2 : 0);
+      return (power / c) * 3 * (1 - rich) + (power / 4) * rich; };
+    const scored = options.map(t => [t, (t === 'ark' ? 9 : K.deploy2 === false ? unitValue(t) / Math.sqrt(E.unitCost(p, t)) + (E.unitCost(p, t) >= 5 ? 0.6 : 0) : worth(t)) + counter(t) + Math.random() * 0.5]).sort((a, b) => b[1] - a[1]);
     const type = scored[0][0];
     const hexes = E.deployHexes(s, pid, type, idx);
     const goal = strat.goal.length ? strat.goal : enemyTiles.length ? enemyTiles : targets;
