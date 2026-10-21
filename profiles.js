@@ -101,6 +101,15 @@ function createProfiles(file, opts = {}) {
   }
   // dev servers only (SECTOR_DEV=1): coins for testing the store
   function grant(p, n) { p.coins += Math.max(0, n | 0); save(); }
-  return { open, view, buy, equip, finishGame, grant, get: id => db[id] };
+  // dev panel: look profiles up, and hand out coins or skins
+  function list(q, n = 50) {
+    q = String(q || '').toLowerCase();
+    return Object.values(db).filter(p => !q || p.id.startsWith(q) || (p.name || '').toLowerCase().includes(q) || (p.refCode || '').toLowerCase() === q)
+      .sort((a, b) => b.created - a.created).slice(0, n)
+      .map(p => ({ id: p.id, name: p.name || null, coins: p.coins, owned: p.owned.length, recruits: p.recruits || 0, created: p.created, games: (p.total || {}).games || 0, wins: (p.total || {}).wins || 0, refCode: p.refCode }));
+  }
+  function giveItem(p, item) { if (!C.ITEMS[item]) return 'No such item'; if (!p.owned.includes(item)) p.owned.push(item); save(); return null; }
+  function totals() { const all = Object.values(db); return { profiles: all.length, coins: all.reduce((a, p) => a + p.coins, 0), owned: all.reduce((a, p) => a + p.owned.length, 0), games: all.reduce((a, p) => a + ((p.total || {}).games || 0), 0) }; }
+  return { open, view, buy, equip, finishGame, grant, list, giveItem, totals, get: id => db[id] };
 }
 module.exports = { createProfiles, REF_COINS, WELCOME_COINS };

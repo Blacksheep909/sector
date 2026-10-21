@@ -35,7 +35,9 @@
   // ───────────── networking ─────────────
   function connect() {
     ws = new WebSocket((location.protocol === 'https:' ? 'wss://' : 'ws://') + location.host + '/ws');
-    ws.onopen = () => { if (token || joinedOnce) send({ t: 'hello', token, name: $('#nameIn').value || savedName(), profile: Locker.identity(), ref: Locker.ref() }); };
+    // ?watch=1 (the dev panel's SPECTATE link): watch the running game without joining it
+    const watching = /[?&]watch=1/.test(location.search);
+    ws.onopen = () => { if (watching) send({ t: 'hello', watch: true }); else if (token || joinedOnce) send({ t: 'hello', token, name: $('#nameIn').value || savedName(), profile: Locker.identity(), ref: Locker.ref() }); };
     ws.onmessage = ev => onMsg(JSON.parse(ev.data));
     ws.onclose = () => { if (closedFor) return; toast('Connection lost — reconnecting…', 'err'); setTimeout(connect, 1500); };
   }
