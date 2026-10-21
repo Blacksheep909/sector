@@ -88,8 +88,11 @@ const server = http.createServer((req, res) => {
     return res.end(JSON.stringify({ game: 'sector', version: VERSION, id: SERVER_ID, host: host ? host.name : null, players: lobby.players.length, humans: lobby.players.filter(p => !p.bot).length, inGame: !!game, round: game ? game.turn.round : 0, bots: game ? game.players.filter(p => p.alive && p.bot).length : lobby.players.filter(p => p.bot).length, port: PORT, lan: lanAddresses() }));
   }
   if (url === '/host' || url.startsWith('/host/')) return hostApi(req, res, url);
+  if (url === '/dev' && DEV_KEY) url = '/dev.html';
+  if (url.startsWith('/dev/api/')) return devApi(req, res, url);
   const name = url.replace(/^\/+/, '');
   if (!name || name.includes('..') || name.includes('\\')) { res.writeHead(403); return res.end(); }
+  if (name === 'dev.html' && !DEV_KEY) { res.writeHead(404); return res.end('not found'); }   // no key, no panel
   const rel = name === 'engine.js' ? (sea ? 'engine.js' : 'shared/engine.js') : name === 'cosmetics.js' ? (sea ? 'cosmetics.js' : 'shared/cosmetics.js') : 'public/' + name;
   const done = (err, data) => {
     if (err) { res.writeHead(404); return res.end('not found'); }
@@ -206,6 +209,8 @@ const undoStack = []; undoStack.owner = null;
 let fogMem = {};   // fog of war: what each commander has explored and last seen
 const fogFor = seat => seat ? (fogMem[seat] = fogMem[seat] || { explored: new Set(), seen: {} }) : null;
 function broadcastState(events, by, seq) {
+  // analytics: what gets deployed (every action, bots included, passes through here)
+  if (game && events) for (const e of events) if (e.e === 'deploy' && e.unit) { const t = game.tally = game.tally || { deploys: {} }; t.deploys[e.unit.type] = (t.deploys[e.unit.type] || 0) + 1; }
   if (game && game.players[game.turn.idx] && game.players[game.turn.idx].id !== undoStack.owner) undoStack.length = 0;
   setTimeout(sendNotes, 0);   // alliances may have changed who sees whose war-room marks
   for (const c of clients) { if (c.left) continue; const seat = seatFor(c); send(c, { t: 'state', state: E.view(game, seat, fogFor(seat)), events: filterEvents(events, seat), by, seq, seat, mine: controls(c, by), undo: undoStack.owner === seat ? undoStack.length : 0, timeLeft: game && game.turn.deadline ? Math.max(0, game.turn.deadline - (game.turn.pausedAt || Date.now())) : 0, paused: !!(game && game.turn.pausedAt) }); }
@@ -251,6 +256,8 @@ function onMessage(c, m) {
   switch (m.t) {
     case 'hello': {
       c.left = false;
+      // a watch link (the dev panel's SPECTATE): see the game without taking a seat
+      if (m.watch) { send(c, { t: 'welcome', you: null, spectator: true }); send(c, { t: 'lobby', lobby: lobbyView() }); if (game) send(c, { t: 'state', state: E.view(game, null), events: [] }); return; }
       let p = m.token && lobby.players.find(x => x.token === m.token);
       if (!p && game) { send(c, { t: 'welcome', you: null, spectator: true }); send(c, { t: 'lobby', lobby: lobbyView() }); send(c, { t: 'state', state: E.view(game, null), events: [] }); return; }
       if (!p) {
@@ -774,6 +781,7 @@ let tradeTimer = null, draftTimer = null, allyTimer = null;
 function payOut() {
   if (!game || game.phase !== 'over' || game.paid) return;
   game.paid = true;
+  logGame();
   const w = game.winner || {}, winners = w.pids || [w.pid];
   const land = id => E.ownedLand(game, id).length;
   const order = game.players.slice().sort((a, b) => (winners.includes(b.id) - winners.includes(a.id)) || (b.alive - a.alive) || land(b.id) - land(a.id));
@@ -926,6 +934,61 @@ function applyBot(cur, a) {
 }
 
 // ───────────────────────── host panel (this computer only) ─────────────────────────
+// ───────────── dev panel: /dev, analytics and full control. Off unless SECTOR_DEV_KEY is set ─────────────
+// (online, this check becomes "signed in with the whitelisted Google account"; the API behind it stays the same)
+const DEV_KEY = process.env.SECTOR_DEV_KEY || '';
+const ANALYTICS = process.env.SECTOR_ANALYTICS || path.join(process.env.APPDATA || os.homedir(), 'Sector', 'analytics.jsonl');
+function logGame() {
+  try {
+    const w = game.winner || {}, wp = game.players.find(p => p.id === w.pid);
+    const line = { at: Date.now(), mode: game.settings.mode, fog: game.settings.fog, teams: game.settings.teams, map: game.map.arch, size: game.settings.mapSize, rounds: game.turn.round,
+      players: game.players.map(p => ({ faction: p.faction, bot: p.bot, diff: p.diff || null, alive: p.alive, land: E.ownedLand(game, p.id).length, kills: p.stats.kills, won: (w.pids || [w.pid]).includes(p.id) })),
+      winner: wp ? { faction: wp.faction, bot: wp.bot, diff: wp.diff || null } : null, reason: w.reason || null, deploys: (game.tally || {}).deploys || {} };
+    fs.mkdirSync(path.dirname(ANALYTICS), { recursive: true }); fs.appendFileSync(ANALYTICS, JSON.stringify(line) + '\n');
+  } catch (e) { console.log('[analytics] ' + e.message); }
+}
+function readGames(max = 2000) {
+  try { return fs.readFileSync(ANALYTICS, 'utf8').trim().split('\n').slice(-max).map(l => { try { return JSON.parse(l); } catch (e) { return null; } }).filter(Boolean); } catch (e) { return []; }
+}
+function devApi(req, res, url) {
+  const json = (code, o) => { res.writeHead(code, { 'Content-Type': 'application/json', 'Cache-Control': 'no-store' }); res.end(JSON.stringify(o)); };
+  if (!DEV_KEY) { res.writeHead(404); return res.end(); }
+  const given = Buffer.from(String(req.headers['x-dev-key'] || '')), want = Buffer.from(DEV_KEY);
+  if (given.length !== want.length || !crypto.timingSafeEqual(given, want)) return json(401, { err: 'wrong key' });
+  const route = url.slice('/dev/api/'.length);
+  const done = body => {
+    let b = {}; try { b = body ? JSON.parse(body) : {}; } catch (e) { return json(400, { err: 'bad json' }); }
+    if (route === 'overview') {
+      const games = readGames(), fac = {}, dep = {};
+      for (const g of games) { for (const p of g.players) { const f = fac[p.faction] = fac[p.faction] || { played: 0, won: 0 }; f.played++; if (p.won) f.won++; } for (const t in g.deploys || {}) dep[t] = (dep[t] || 0) + g.deploys[t]; }
+      return json(200, {
+        version: VERSION, uptime: Date.now() - STARTED, memory: Math.round(process.memoryUsage().rss / 1048576), connections: [...clients].filter(c => !c.left).length,
+        lobby: lobby.players.map(p => ({ id: p.id, name: p.name, bot: p.bot, diff: p.diff || null, spectator: !!p.spectator, connected: p.bot || isConnected(p.id), profile: p.profileId ? p.profileId.slice(0, 8) : null })),
+        game: game ? { phase: game.phase, round: game.turn.round, mode: game.settings.mode, paused: !!game.paused, turn: (game.players[game.turn.idx] || {}).name,
+          players: game.players.map(p => ({ id: p.id, name: p.name, bot: p.bot, alive: p.alive, cash: p.cash, land: E.ownedLand(game, p.id).length, income: p.alive ? E.computeIncome(game, p.id).total : 0, army: Object.values(game.units).filter(u => u.owner === p.id).length, kills: p.stats.kills })) } : null,
+        profiles: profiles.totals(), store: C.dailyStore(),
+        analytics: { games: games.length, avgRounds: games.length ? +(games.reduce((a, g) => a + g.rounds, 0) / games.length).toFixed(1) : 0, botWins: games.filter(g => g.winner && g.winner.bot).length, factions: fac, deploys: dep, recent: games.slice(-12).reverse().map(g => ({ at: g.at, mode: g.mode, rounds: g.rounds, players: g.players.length, winner: g.winner, reason: g.reason })) },
+      });
+    }
+    if (route === 'profiles') {
+      // who's playing right now: their profile is on a seat in the running game
+      const live = new Set(game && game.phase !== 'over' ? lobby.players.filter(p => p.profileId && game.players.some(g => g.id === p.id)).map(p => p.profileId) : []);
+      return json(200, { profiles: profiles.list(b.q).map(p => ({ ...p, inGame: live.has(p.id) })) });
+    }
+    const pr = b.profile && profiles.get(b.profile);
+    if (route === 'grant') { if (!pr) return json(404, { err: 'no such profile' }); profiles.grant(pr, b.coins); return json(200, { ok: true, coins: pr.coins }); }
+    if (route === 'give') { if (!pr) return json(404, { err: 'no such profile' }); const e = profiles.giveItem(pr, String(b.item || '')); return e ? json(400, { err: e }) : json(200, { ok: true }); }
+    if (!game) return json(409, { err: 'no game running' });
+    if (route === 'cash') { const gp = game.players.find(p => p.id === b.pid); if (!gp) return json(404, { err: 'no such player' }); gp.cash = Math.max(0, gp.cash + (b.amount | 0)); game.log.push('🛠 The admin adjusted ' + gp.name + "'s treasury."); }
+    else if (route === 'pause') { game.paused = !!b.on; if (b.on) { clearTimeout(botTimer); clearTimeout(turnTimer); clearTimeout(idleTimer); } else resumeClock(); }
+    else if (route === 'end') { endGame(); return json(200, { ok: true }); }
+    else return json(404, { err: 'unknown route' });
+    game.v++; broadcastState([], null); afterChange();
+    return json(200, { ok: true });
+  };
+  if (req.method === 'POST') { let body = ''; req.on('data', d => { body += d; if (body.length > 1e5) req.destroy(); }); req.on('end', () => done(body)); }
+  else done('');
+}
 function hostApi(req, res, url) {
   const json = (code, o) => { res.writeHead(code, { 'Content-Type': 'application/json', 'Cache-Control': 'no-cache' }); res.end(JSON.stringify(o)); };
   if (!isLoopback(req)) return json(403, { err: 'host panel is only available on the host computer' });
