@@ -102,7 +102,7 @@
   // ───────── bots: labelled as bots, but some wear a skin ─────────
   function botLoadout(rng = Math.random) {
     const out = {}, buyable = slot => Object.values(ITEMS).filter(i => i.slot === slot && i.buy !== false);
-    for (const slot of ['territory', 'border', 'banner']) if (rng() < 0.08) { const l = buyable(slot); out[slot] = l[Math.floor(rng() * l.length)].id; }
+    for (const slot of ['territory', 'border', 'banner']) if (rng() < 0.035) { const l = buyable(slot); out[slot] = l[Math.floor(rng() * l.length)].id; }
     return out;
   }
   // a loadout from the client is only trusted for items the profile owns (the server checks; this tidies the shape)
