@@ -293,11 +293,11 @@ The same goes for water: a pocket of 12 or fewer sea hexes walled in by your coa
 
 ## Missions and the tutorial
 
-**🎯 MISSIONS & TUTORIAL** (front page or lobby) opens ten hand-built puzzle missions, each teaching one technique. Each is a fixed board with set armies, cash and cards, a goal and a turn limit: no resupply draws and no weather, so every mission has a solution to find. Sergeant Hale briefs you on each one, and the mission bar has a **HINT** button if you're stuck. Clear a mission to unlock the next; your first clear of each pays Valor.
+**🎯 MISSIONS & TUTORIAL** (front page or lobby) opens ten hand-built puzzle missions, each teaching one technique. Each is a fixed board with set armies, cash and cards, a goal and a turn limit: no resupply draws and no weather, so every mission has a solution to find. General Hale briefs you on each one, and the mission bar has a **HINT** button if you're stuck. Clear a mission to unlock the next; your first clear of each pays Valor.
 
 | # | Mission | Tier | Technique | First clear |
 |---|---|---|---|---|
-| 1 | Basic Training | Tutorial | Moving, capturing, deploying, attacking (Sergeant Hale walks you through it step by step) | 100 |
+| 1 | Basic Training | Tutorial | Moving, capturing, deploying, attacking (General Hale walks you through it step by step) | 100 |
 | 2 | Strength in Numbers | Easy | Pincer attacks | 150 |
 | 3 | Crossing | Easy | Rivers, bridges, combined arms | 200 |
 | 4 | Over the Mountains | Medium | Helicopters carry Grunts | 300 |

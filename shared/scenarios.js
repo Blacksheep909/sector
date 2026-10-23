@@ -33,7 +33,7 @@
   const SCENARIOS = [
     {
       id: 'basic', n: 1, name: 'Basic Training', tier: 'Tutorial', technique: 'Moving, capturing, deploying and attacking',
-      brief: 'Sergeant Hale walks you through the basics: claim land, raise troops, and take an enemy outpost.',
+      brief: 'General Hale walks you through the basics: claim land, raise troops, and take an enemy outpost.',
       turns: 4, reward: 100,
       players: { A: { name: 'You', cash: 0, arsenal: ['grunt'] }, B: { name: 'Outpost', ai: 'passive' } },
       income: { A: 4 },
@@ -49,7 +49,7 @@
       units: { g: [['A', 'grunt', 2]], obj: [['B', 'grunt', 1]] },
       goal: { type: 'capture', hexes: ['obj'] },
       guide: [
-        { text: 'Welcome to SECTOR, recruit. I\'m Sergeant Hale. Let\'s get you fighting fit. Click anywhere to continue.', wait: 'click' },
+        { text: 'Welcome to SECTOR, recruit. I\'m General Hale. Let\'s get you fighting fit. Click anywhere to continue.', wait: 'click' },
         { text: 'This is your **HQ**, the heart of your territory. Lose it and you\'re out of the war.', focus: 'hq', wait: 'click' },
         { text: 'Your goal today: take that enemy outpost, marked with the gold flag. You have 4 turns.', focus: 'obj', wait: 'click' },
         { text: 'First, your troops. **Click your Grunts** to select them.', focus: 'g', wait: 'select' },
