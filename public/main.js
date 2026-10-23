@@ -72,7 +72,7 @@
       case 'skipVote': if (curFight && curFight.att === m.att && curFight.to === m.to) skipStatus(m.pids); break;
       case 'ping': showPing(m); break;
       case 'emote': showEmote(m); break;
-      case 'chat': addLog(`<b style="--c:${m.color}">${esc(m.from)}:</b> ${esc(m.text)}`, 'chat'); SFX.click(); break;
+      case 'chat': addLog(`<b style="--c:${m.color}">${esc(m.from)}:</b> ${esc(m.text)}`, 'chat'); SFX.click(); if (m.bot) botBubble(m); break;
       case 'left': leftGame = true; token = null; try { localStorage.removeItem('sector.token'); } catch (e) {} you = null; realId = null; joinedOnce = false; backToMenu(); toast('You left the game'); break;
       case 'kicked': token = null; try { localStorage.removeItem('sector.token'); } catch (e) {}
         if (S) { leftGame = true; you = null; realId = null; joinedOnce = false; backToMenu(); toast('The host removed you from the game', 'err'); }
@@ -185,6 +185,12 @@
         dsel.innerHTML = Object.keys(E.DIFFICULTY).map(d => `<option value="${d}"${p.diff === d ? ' selected' : ''}>${E.DIFFICULTY[d].name}</option>`).join('') + `<option value="random"${p.diff === 'random' ? ' selected' : ''}>🎲 Random</option>`;
         dsel.disabled = !host; dsel.onchange = () => send({ t: 'botCfg', id: p.id, diff: dsel.value });
         r.insertBefore(dsel, r.querySelector('.tag'));
+        // personality: how it plays and what it says
+        const PZ = SectorPersonas, ps = el('select', 'diffsel persel'), cur = p.persona || 'random';
+        ps.innerHTML = `<option value="random"${cur === 'random' ? ' selected' : ''}>🎭 Random personality</option>` + PZ.IDS.map(k => `<option value="${k}"${cur === k ? ' selected' : ''}>${PZ.PERSONAS[k].icon} ${PZ.PERSONAS[k].name}</option>`).join('') + `<option value="none"${cur === 'none' ? ' selected' : ''}>· Plain (quiet)</option>`;
+        ps.title = PZ.PERSONAS[cur] ? PZ.PERSONAS[cur].blurb : cur === 'none' ? 'A standard bot that keeps quiet' : 'Picks one of the personalities when the game starts';
+        ps.disabled = !host; ps.onchange = () => send({ t: 'botCfg', id: p.id, persona: ps.value });
+        const fx = r.querySelector('.nm .fx'); if (fx) fx.replaceWith(ps); else r.querySelector('.nm').appendChild(ps);
       }
       if (p.local) {
         r.querySelector('.nm').innerHTML = `<input class="seat-name" value="${esc(p.name)}" maxlength="16"><div class="fx">${f ? f.name : ''} · this device</div>`;
@@ -230,7 +236,7 @@
       cl.appendChild(d);
     }
     const st = lobby.settings;
-    for (const [id, k] of [['#setMode', 'mode'], ['#setType', 'mapType'], ['#setSize', 'mapSize'], ['#setSpawns', 'spawns'], ['#setFog', 'fog'], ['#setEvents', 'events'], ['#setTimer', 'timer'], ['#setRounds', 'maxRounds'], ['#setSeed', 'seed'], ['#setTeams', 'teams'], ['#setSpeed', 'speed'], ['#setBank', 'bank']]) {
+    for (const [id, k] of [['#setMode', 'mode'], ['#setType', 'mapType'], ['#setSize', 'mapSize'], ['#setSpawns', 'spawns'], ['#setFog', 'fog'], ['#setEvents', 'events'], ['#setTimer', 'timer'], ['#setRounds', 'maxRounds'], ['#setSeed', 'seed'], ['#setTeams', 'teams'], ['#setSpeed', 'speed'], ['#setBank', 'bank'], ['#setBanter', 'banter']]) {
       const e = $(id); if (document.activeElement !== e) e.value = st[k] ?? ''; e.disabled = !host;
     }
     $('#startBtn').hidden = !host; $('#waitHost').hidden = host;
@@ -260,7 +266,7 @@
       SFX.click(); send({ t: 'dropSave', id: b.dataset.drop });
     });
   }
-  for (const [id, k] of [['#setMode', 'mode'], ['#setType', 'mapType'], ['#setSize', 'mapSize'], ['#setSpawns', 'spawns'], ['#setFog', 'fog'], ['#setEvents', 'events'], ['#setTimer', 'timer'], ['#setRounds', 'maxRounds'], ['#setSeed', 'seed'], ['#setTeams', 'teams'], ['#setSpeed', 'speed'], ['#setBank', 'bank']])
+  for (const [id, k] of [['#setMode', 'mode'], ['#setType', 'mapType'], ['#setSize', 'mapSize'], ['#setSpawns', 'spawns'], ['#setFog', 'fog'], ['#setEvents', 'events'], ['#setTimer', 'timer'], ['#setRounds', 'maxRounds'], ['#setSeed', 'seed'], ['#setTeams', 'teams'], ['#setSpeed', 'speed'], ['#setBank', 'bank'], ['#setBanter', 'banter']])
     $(id).addEventListener('change', e => send({ t: 'settings', settings: { [k]: e.target.value } }));
   $('#addBot').onclick = () => { SFX.click(); send({ t: 'addBot' }); };
   $('#addLocal').onclick = () => { SFX.click(); send({ t: 'addLocal' }); };
@@ -595,6 +601,19 @@
     Render.ring(m.hex, col, 70, 0.9, 5); setTimeout(() => Render.ring(m.hex, col, 70, 0.9, 5), 300);
     Render.float(m.hex, icon + ' ' + pName(m.pid).toUpperCase(), col, 16); SFX.select();
     addLog(`<b style="--c:${col}">${esc(pName(m.pid))}</b> pinged ${icon}`, 'chat');
+  }
+  // a bot's line pops up as a speech bubble under its name
+  // (kept in `saying` so it survives the chips being redrawn)
+  const saying = {};
+  function botBubble(m) {
+    saying[m.pid] = { text: m.text, color: m.color, until: Date.now() + 4500 };
+    const chip = [...document.querySelectorAll('#players .pchip')].find(c => c.dataset.pid === m.pid); if (chip) sayOn(chip, m.pid, true);
+  }
+  function sayOn(chip, pid, fresh) {
+    const q = saying[pid]; chip.querySelectorAll('.bot-say').forEach(b => b.remove());
+    if (!q || q.until < Date.now()) return;
+    const b = el('div', 'bot-say' + (fresh ? '' : ' stay'), esc(q.text)); b.style.setProperty('--pc', q.color); chip.appendChild(b);
+    setTimeout(() => b.classList.add('gone'), Math.max(0, q.until - Date.now() - 400)); setTimeout(() => b.remove(), q.until - Date.now() + 100);
   }
   function showEmote(m) {
     const p = S && S.players.find(x => x.id === m.pid); if (!p) return;
@@ -1196,8 +1215,11 @@
       const extra = S.map.beacon ? ` · ◆${p.koth}/3` : '';
       if (!p.alive) c.style.setProperty('--pc', '#5b6670');
       c.innerHTML = `<div class="av"><img src="${Art.iconURL('glyph', f ? f.glyph : 'shield', '#0b0f13', 48)}"></div><div><div class="pn">${esc(p.name)}${p.alive ? '' : ' <span class="out">☠ OUT</span>'}${p.team ? ` <span class="teamchip t${p.team}">${'ABCD'[p.team - 1]}</span>` : ''}${p.traitor ? ' <span class="out" title="Broke an alliance: -40% income and no new pacts">🗡 TRAITOR</span>' : ''}${moodTag(p)}</div><div class="ps"><span title="${counts[p.id] || 0} land hexes (what counts to win) + ${seas[p.id] || 0} sea">⬢ <b>${counts[p.id] || 0}</b></span><span>$<b>${p.cash}</b></span><span>🂠 <b>${p.tacticCount ?? p.tactics.length}</b></span>${extra}</div></div>`;
-      c.title = f ? f.name + ' — ' + f.perk + ': ' + f.desc : '';
+      const pz = p.persona && SectorPersonas.PERSONAS[p.persona];
+      if (pz) c.querySelector('.pn').insertAdjacentHTML('beforeend', ` <span class="pz-tag" title="${esc(pz.name + ': ' + pz.blurb)}">${pz.icon}</span>`);
+      c.title = (f ? f.name + ' — ' + f.perk + ': ' + f.desc : '') + (pz ? '\n' + pz.icon + ' ' + pz.name + ': ' + pz.blurb : '');
       c.onclick = () => { if (p.hq) Render.focus(p.hq); };
+      if (saying[p.id]) sayOn(c, p.id, false);
       const allied = E.isAlly(S, you, p.id), pact = allied && (S.allies || []).find(x => (x.a === p.id || x.b === p.id) && (x.a === you || x.b === you));
       if (allied) {
         const left = pact && pact.until ? pact.until - S.turn.round : 0;

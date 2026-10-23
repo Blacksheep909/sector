@@ -1581,3 +1581,15 @@ body.my-turn #hud::before { content: ''; position: fixed; inset: 0; pointer-even
 .co-btns { position: relative; z-index: 4; display: flex; gap: 12px; min-height: 52px; animation: fadeIn .4s; }
 .co-skip { position: absolute; bottom: 22px; z-index: 4; font-size: 12px; letter-spacing: 3px; text-transform: uppercase; color: #6c7a88; animation: seam 2s infinite; }
 @media (max-width: 640px) { .co-stage { transform: scale(.8); margin: -40px 0; } .co-name { font-size: 26px; } }
+
+/* ── bot personalities ── */
+.persel { max-width: 150px; }
+.pz-tag { font-size: 12px; filter: drop-shadow(0 1px 0 #000); }
+.bot-say { position: absolute; top: calc(100% + 10px); left: 50%; transform: translateX(-50%); z-index: 12; width: max-content; max-width: 240px; padding: 7px 11px; border-radius: 10px; background: #f4f1e6; color: #12161b; font-size: 13px; font-weight: 700; line-height: 1.25; text-align: center; white-space: normal;
+  border: 2px solid var(--pc, #888); box-shadow: 0 4px 0 rgba(0,0,0,.45), 0 0 18px rgba(0,0,0,.35); pointer-events: none; animation: saySay .35s cubic-bezier(.2,1.6,.4,1); transition: opacity .45s, transform .45s; }
+.bot-say::before { content: ''; position: absolute; top: -8px; left: 50%; margin-left: -7px; border: 7px solid transparent; border-top: 0; border-bottom: 8px solid var(--pc, #888); }
+.bot-say.gone { opacity: 0; transform: translateX(-50%) translateY(-6px); }
+@keyframes saySay { from { opacity: 0; transform: translateX(-50%) translateY(-8px) scale(.6); } }
+.bot-say.stay { animation: none; }
+.prow .nm .persel { display: block; margin-top: 3px; max-width: 100%; font-size: 11px; padding: 1px 4px; background: #0b1218; color: #c9d3dc; border: 1px solid var(--line); }
+.prow .nm { min-width: 90px; }
