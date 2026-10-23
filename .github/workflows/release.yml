@@ -1,10 +1,17 @@
 # Push a tag like v0.5.1 and GitHub builds Sector.exe and publishes a release post from docs/releases/<tag>.md.
+# Or run it by hand (Actions → release → Run workflow) with a version: it builds the current commit, creates that tag and
+# publishes the release. Left empty, a manual run only builds.
 name: release
 
 on:
   push:
     tags: ['v*']
   workflow_dispatch:
+    inputs:
+      tag:
+        description: 'Version to release, like v0.10.1 (empty: just build)'
+        required: false
+        default: ''
 
 permissions:
   contents: write
@@ -19,15 +26,17 @@ jobs:
       # Option B, a code-signing certificate file: WINDOWS_CERT_PFX (base64 of the .pfx), WINDOWS_CERT_PASSWORD
       HAS_AZURE_SIGNING: ${{ secrets.AZURE_CLIENT_ID != '' }}
       HAS_PFX_SIGNING: ${{ secrets.WINDOWS_CERT_PFX != '' }}
+      # the version being released: the pushed tag, or the one typed into a manual run
+      TAG: ${{ startsWith(github.ref, 'refs/tags/') && github.ref_name || inputs.tag }}
     steps:
       - uses: actions/checkout@v4
       - uses: actions/setup-node@v4
         with:
           node-version: 24
       - name: Release post exists for this tag
-        if: startsWith(github.ref, 'refs/tags/')
+        if: env.TAG != ''
         shell: pwsh
-        run: if (-not (Test-Path "docs/releases/${{ github.ref_name }}.md")) { throw "Write docs/releases/${{ github.ref_name }}.md first" }
+        run: if (-not (Test-Path "docs/releases/${{ env.TAG }}.md")) { throw "Write docs/releases/${{ env.TAG }}.md first" }
       - name: Bot-vs-bot smoke test
         run: node tools/sim.js domination 4 2
       - name: Engine checks
@@ -69,10 +78,12 @@ jobs:
         shell: pwsh
         run: Compress-Archive -Path server.js, profiles.js, package.json, shared, public, assets, "Start Sector.bat", README.md -DestinationPath dist/Sector-source.zip
       - name: Publish release
-        if: startsWith(github.ref, 'refs/tags/')
+        if: env.TAG != ''
         uses: softprops/action-gh-release@v2
         with:
+          tag_name: ${{ env.TAG }}
+          target_commitish: ${{ github.sha }}
           files: |
             dist/Sector.exe
             dist/Sector-source.zip
-          body_path: docs/releases/${{ github.ref_name }}.md
+          body_path: docs/releases/${{ env.TAG }}.md
