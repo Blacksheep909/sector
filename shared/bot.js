@@ -1,6 +1,9 @@
 /* SECTOR — heuristic bot. botStep returns one action at a time, or {a:'end'}. */
 'use strict';
 const E = require('./engine');
+const PZ = require('./personas');
+// this bot's personality settings ({} for a plain bot)
+const playOf = p => (p && p.persona && PZ.PERSONAS[p.persona] && PZ.PERSONAS[p.persona].play) || {};
 
 const BOT_NAMES = ['Vex', 'Kestrel', 'Morrow', 'Juno', 'Halcyon', 'Rook', 'Sable', 'Ajax', 'Nyx', 'Corvid'];
 
@@ -16,7 +19,8 @@ function cardScore(s, p, id) {
     if (p.arsenal.includes(id)) v = 2 + (E.UNITS[id].cost / 3);              // upgrade
     else v *= p.arsenal.length < 6 ? 1.4 : 1;
     if (d.cls === 'sea' && !hasCoast(s, p)) v *= 0.4;
-  } else v *= 0.85;
+    const taste = (playOf(p).cls || {})[d.cls]; if (taste) v *= 1 + taste * 0.25;
+  } else v *= 0.85 * (playOf(p).tactics || 1);
   return v;
 }
 function hasCoast(s, p) { return E.ownedLand(s, p.id).some(k => E.isCoastal(s, k)); }
@@ -121,7 +125,7 @@ function tradeReply(s, pid) {
   const cardVal = id => { const d = E.TACTICS[id]; return d ? d.cost + { common: 2, uncommon: 4, rare: 7, epic: 10, legendary: 14, mythic: 22 }[d.rarity] : 0; };
   const gain = t.give.cash + (t.cardIds || []).reduce((a, id) => a + cardVal(id), 0);
   const cost = t.get.cash;
-  const greed = { easy: 1, medium: 1.15, hard: 1.35, impossible: 1.6 }[p.diff] || 1.15;
+  const greed = ({ easy: 1, medium: 1.15, hard: 1.35, impossible: 1.6 }[p.diff] || 1.15) * (playOf(p).greed || 1);
   const leader = E.ownedLand(s, from.id).length > E.ownedLand(s, pid).length * 1.6;
   return { a: 'tradeReply', accept: cost <= p.cash && gain >= cost * greed && !(leader && cost > 0) };
 }
@@ -157,7 +161,7 @@ function sideStrength(s, idx, owner, near, r, atk) {
 }
 function botMem(s, pid) { s.botMem = s.botMem || {}; return s.botMem[pid] = s.botMem[pid] || {}; }
 function strategy(s, pid, idx) {
-  const p = E.player(s, pid), tiles = s.map.tiles, bm = botMem(s, pid);
+  const p = E.player(s, pid), tiles = s.map.tiles, bm = botMem(s, pid), pl = playOf(p);
   const th = threats(s, pid), mine = E.threatOf(s, pid);
   const rivals = s.players.filter(q => q.alive && q.id !== pid && !E.isAlly(s, pid, q.id));
   // how much of our border each rival shares
@@ -167,6 +171,8 @@ function strategy(s, pid, idx) {
   let focus = null, fv = -1e9;
   for (const q of rivals) {
     let v = (border[q.id] || 0) * 1.2 + (mine - th[q.id]) * 0.15 - E.moodOf(s, pid, q.id) * 0.08;
+    if (pl.prey && border[q.id]) v += (mine - th[q.id]) * 0.2 * pl.prey;          // a Warlord picks on the weakest neighbour
+    if (pl.grudge) v -= Math.min(0, E.moodOf(s, pid, q.id)) * 0.5 * pl.grudge;    // an Avenger hunts whoever hurt it
     if (p.vengeance && p.vengeance.vs === q.id) v += 40;                      // pay the traitor back
     if (th[q.id] > mine * 1.3 && th[q.id] === top) v += 18;                   // gang up on the runaway leader
     if (!border[q.id]) v -= 10;
@@ -194,10 +200,14 @@ const BOTX = (typeof process !== 'undefined' && process.env && process.env.BOTX 
 function botStep(s, pid, mem) {
   const p = E.player(s, pid);
   let K = SKILL[p.diff] || SKILL.medium;
+  const PL = playOf(p);
+  if (p.persona) {
+    K = { ...K, attack: K.attack + (PL.attack || 0) + (PL.late && s.turn.round < PL.late ? 0.05 : 0), guard: K.guard * (PL.guard || 1), tactics: Math.min(1, K.tactics * (PL.tactics || 1)), heli: Math.min(1.3, K.heli * (PL.heli || 1)), noise: K.noise + (PL.noise || 0) };
+  }
   if (BOTX.length) { K = { ...K }; for (const x of BOTX) { const [k, v] = x.split('='); if (v !== undefined) K[k] = +v; else K[k] = true; } }
   if (s.turn.stage === 'choose') {
     const c = choosePick(s, p, s.turn.offer);
-    const threshold = 2.4 + s.turn.income / 10 - (s.turn.round <= 3 ? 0.6 : 0);
+    const threshold = 2.4 + s.turn.income / 10 - (s.turn.round <= 3 ? 0.6 : 0) + (PL.income || 0);
     if (c && !c.scrap && c.value >= threshold) return { a: 'choose', pick: 'card', idx: c.idx, replace: c.replace };
     return { a: 'choose', pick: 'income' };
   }
@@ -285,6 +295,20 @@ function botStep(s, pid, mem) {
   if (enemyNear(p.hq, 3)) {
     const ring = E.neighbors(p.hq).filter(n => supLand.includes(n) && !tiles[n].struct && !tiles[n].contam);
     if (ring.length && p.cash >= E.structCost(p, 'bunker') + 4) { const a = tryOnce({ a: 'build', struct: 'bunker', hex: ring[0] }); if (a) return a; }
+  }
+
+  // personality builds: a Fortress walls its border and raises its HQ, a Tycoon builds its economy early
+  if (PL.build && !mem.persBuild) {
+    mem.persBuild = true;
+    const B = PL.build;
+    if (B.bunkers && p.cash >= E.structCost(p, 'bunker') + 8) {
+      const edge = supLand.filter(k => !tiles[k].struct && !tiles[k].contam && E.neighbors(k).some(n => tiles[n] && tiles[n].owner && tiles[n].owner !== pid && !E.isAlly(s, pid, tiles[n].owner)));
+      if (edge.length) { const k = edge.sort((a, b) => E.dist(a, p.hq) - E.dist(b, p.hq))[0]; const a = tryOnce({ a: 'build', struct: 'bunker', hex: k }); if (a) return a; }
+    }
+    if (B.hq && s.turn.round >= 6 && tiles[p.hq].owner === pid && tiles[p.hq].struct && tiles[p.hq].struct.type === 'hq' && (tiles[p.hq].struct.lvl || 1) < 3 && p.cash >= E.buildCost(s, p, 'hq', p.hq) + 6) { const a = tryOnce({ a: 'build', struct: 'hq', hex: p.hq }); if (a) return a; }
+    if (B.economy && p.cash >= E.structCost(p, 'warehouse') + 2 && Object.keys(tiles).filter(k => tiles[k].owner === pid && tiles[k].struct && tiles[k].struct.type === 'warehouse').length < 2 + Math.floor(s.turn.round / 8)) {
+      const spot = supLand.find(k => !tiles[k].struct && !tiles[k].contam && !enemyNear(k, 3)); if (spot) { const a = tryOnce({ a: 'build', struct: 'warehouse', hex: spot }); if (a) return a; }
+    }
   }
 
   // 3. ranged fire
@@ -499,7 +523,7 @@ function botStep(s, pid, mem) {
   const myPorts = Object.keys(tiles).filter(k => tiles[k].owner === pid && tiles[k].struct && tiles[k].struct.type === 'port');
   // sea prizes (rigs, fishing grounds, treasure islands) near our coast make a port worth it too
   const seaPrize = supLand.some(k => E.isCoastal(s, k) && E.area(k, 4).some(n => { const w = tiles[n]; return w && w.owner !== pid && ((E.isWater(w) && (w.res || w.fish)) || (!E.isWater(w) && w.poi && !w.owner && ['relic', 'cache', 'ruins'].includes(w.poi))); }));
-  const wantsNavy = stuck || p.arsenal.some(t => E.isSea(t) && t !== 'ark') || (seaPrize && s.turn.round >= 3);
+  const wantsNavy = stuck || p.arsenal.some(t => E.isSea(t) && t !== 'ark') || (seaPrize && s.turn.round >= 3) || (PL.navy && s.turn.round >= 2);
   if (wantsNavy && !myPorts.length && p.cash >= E.structCost(p, 'port') && !mem.portTried) {
     mem.portTried = true;
     let best = null, bv = 99;
@@ -516,7 +540,7 @@ function botStep(s, pid, mem) {
     }
   }
   const owns = type => Object.keys(tiles).filter(k => tiles[k].owner === pid && tiles[k].struct && tiles[k].struct.type === type).length;
-  if (!mem.upTried && p.cash >= 20) {
+  if (!mem.upTried && p.cash >= (PL.build && PL.build.economy ? 12 : 20)) {
     mem.upTried = true;
     const ups = Object.keys(tiles).filter(k => { const t = tiles[k]; return t.owner === pid && t.struct && ['warehouse', 'refinery'].includes(t.struct.type) && (t.struct.lvl || 1) < 3 && sup.has(k); });
     const k = ups.sort((a, b) => (tiles[a].struct.lvl || 1) - (tiles[b].struct.lvl || 1))[0];
@@ -566,13 +590,15 @@ function botStep(s, pid, mem) {
   const warships = mine.filter(u => E.isSea(u.type) && u.type !== 'ark').length, landUnits = mine.length - warships - myArks;
   const options = p.arsenal.filter(t => E.unitCost(p, t) <= p.cash && E.deployHexes(s, pid, t, idx).length)
     .filter(t => t !== 'ark' || (stuck && myArks < 2))
-    .filter(t => !E.isSea(t) || t === 'ark' || (warships < landUnits / 2 && Math.random() < 0.5));
+    .filter(t => !E.isSea(t) || t === 'ark' || (PL.navy ? warships < landUnits && Math.random() < 0.85 : warships < landUnits / 2 && Math.random() < 0.5));
   if (options.length) {
     // counter what the enemy fields: anti-air against air power, tank hunters against armour, siege against forts
     const counter = t => { const d = E.UNITS[t]; let b = 0;
       if (d.aa) b += Math.min(2.4, strat.seen.air * 0.5);
       if (d.ability === 'hunter') b += Math.min(1.6, strat.seen.veh * 0.25);
       if (['siege', 'titan'].includes(d.ability)) b += Math.min(1.5, strat.seen.fort * 0.5);
+      const pc = (PL.cls || {})[d.cls]; if (pc) b += pc * 0.6;
+      if (PL.def) b += d.def * PL.def * 0.15;
       return b; };
     // what to buy: early on, punch per dollar; once money is plentiful, punch per slot (a hex only holds 5).
     // Under pressure, sturdiness counts double
@@ -642,7 +668,7 @@ function diplomacy(s, pid, mem) {
   const pacts = (s.allies || []).filter(x => x.a === pid || x.b === pid);
   if (alive.length <= 1) return null;
   // how ruthless: harder bots betray sooner and more often
-  const ruthless = { easy: 0.4, medium: 0.7, hard: 1, impossible: 1.25 }[p.diff] || 0.7;
+  const pl = playOf(p), ruthless = ({ easy: 0.4, medium: 0.7, hard: 1, impossible: 1.25 }[p.diff] || 0.7) + (pl.ruthless || 0);
   const total = Object.values(th).reduce((a, v) => a + v, 0) || 1;
   const others = alive.filter(q => q.id !== pid && !E.isAlly(s, pid, q.id));
   for (const x of pacts) {
@@ -672,9 +698,9 @@ function diplomacy(s, pid, mem) {
       if (betrayReady(s, pid, o, p.diff)) { delete bm.plot; return { a: 'allyBreak', with: o }; }
     }
   }
-  if (alive.length <= 2 || p.traitor || s.allyOffer || pacts.length >= 2 || s.turn.round < 4) return null;
+  if (alive.length <= 2 || p.traitor || s.allyOffer || pacts.length >= 2 || s.turn.round < (pl.diplo ? 2 : 4)) return null;
   if ((mem.offered || 0) > 0 || (p._offerRound && s.turn.round - p._offerRound < 3)) return null;
-  if (!lead || th[lead] < mine * 1.25) return null;
+  if (!lead || th[lead] < mine * (pl.diplo ? 0.9 : 1.25)) return null;
   // ask the friendliest commander who isn't the leader and isn't already on our side
   let best = null, bm = -31;
   for (const q of alive) {
@@ -705,7 +731,8 @@ function battlePick(s, pid) {
     b.cards[side].push(c.id); const o = E.battleOdds(s); b.cards[side].pop();
     const gain = mine(o) - now, cost = E.TACTICS[c.id].cost;
     const worth = gain * stake - cost * (1.2 + (p.cash < 6 ? 2 : 0)) + (Math.random() - 0.5) * K.noise;
-    if (gain >= 0.06 && worth > 0 && (!best || worth > best.worth)) best = { uid: c.uid, worth };
+    const bold = playOf(p).cards;   // a Wildcard throws cards in on a whim
+    if (gain >= (bold ? 0.03 : 0.06) && (worth > 0 || (bold && Math.random() < 0.35)) && (!best || worth > best.worth)) best = { uid: c.uid, worth };
   }
   return best ? best.uid : null;
 }

@@ -10,7 +10,7 @@ const dist = path.join(root, 'dist');
 fs.mkdirSync(dist, { recursive: true });
 
 // 1. bundle server + shared modules into one CommonJS file (SEA can only `require` built-ins)
-const mods = { './shared/engine': 'shared/engine.js', './shared/bot': 'shared/bot.js', './engine': 'shared/engine.js', './shared/cosmetics': 'shared/cosmetics.js', './shared/scenarios': 'shared/scenarios.js', './profiles': 'profiles.js' };
+const mods = { './shared/engine': 'shared/engine.js', './shared/bot': 'shared/bot.js', './engine': 'shared/engine.js', './shared/cosmetics': 'shared/cosmetics.js', './shared/scenarios': 'shared/scenarios.js', './shared/personas': 'shared/personas.js', './personas': 'shared/personas.js', './profiles': 'profiles.js' };
 const version = process.env.SECTOR_BUILD_VERSION || JSON.parse(fs.readFileSync(path.join(root, 'package.json'), 'utf8')).version;
 let bundle = "'use strict';\nconst __SECTOR_VERSION = " + JSON.stringify(version) + ";\nconst __mods = {}, __cache = {};\nconst __req = require;\n";
 bundle += "function __require(id) { if (__mods[id]) { if (!__cache[id]) { const m = { exports: {} }; __cache[id] = m; __mods[id](m, m.exports, __require); } return __cache[id].exports; } return __req(id); }\n";
