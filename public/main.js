@@ -63,6 +63,7 @@
       case 'saved': toast('💾 Game saved. Resume it any time from the lobby.'); SFX.select(); break;
       case 'skipFx': if (curFight && curFight.att === m.att && curFight.to === m.to) fastForward = true; break;
       case 'battle': showBattle(m); break;
+      case 'scenarioResult': setTimeout(() => Missions.result(m), 900); break;
       case 'owPrompt': showOwPrompt(m); break;
       case 'owDone': { const r = $('#owPop'); if (r) r.remove(); break; }
       case 'notes': { const sig = JSON.stringify(m.notes || []); if (sig === notesSig) break; notesSig = sig; Render.ov.notes = (m.notes || []).flatMap(n => n.shapes.map(sh => ({ ...sh, pid: n.pid, color: pColor(n.pid) }))); Render.invalidate(); break; }   // only redraw the board when the marks changed
@@ -84,7 +85,7 @@
     while (msgQ.length) {
       if (window.SECTOR_PAUSE) break; // dev/screenshot hook: freeze incoming events
       const m = msgQ.shift();
-      if (!m.state) { S = null; you = realId || you; Render.setState(null); showMenu(); continue; }
+      if (!m.state) { S = null; you = realId || you; Render.setState(null); showMenu(); Missions.onState(null); continue; }
       if (m.seat && m.seat !== you) seatChange(m.seat, m.state);
       // pass & play: hide the hand while no local player is acting, so the next person can't peek
       document.body.classList.toggle('pp-idle', !!(m.state && localSeats().length && !needsAction(m.state, you)));
@@ -102,6 +103,7 @@
         if (m.paused && m.by && (m.by === you || m.mine)) send({ t: 'clockResume' });   // my fight finished playing: restart the turn clock
         applyState(m.state);
       }
+      Missions.onState(S, m.events);   // missions: the mission bar, objectives and Sergeant Hale's script
       if (m.seq && (m.mine || m.by === you) && pending.has(m.seq)) { pending.get(m.seq)(true); pending.delete(m.seq); }
     }
     processing = false;
@@ -2548,6 +2550,7 @@
   // ───────────── victory ─────────────
   function showVictory() {
     const v = $('#victory'); if (!v.hidden) return;
+    if (S.scenario) return;   // missions have their own result screen
     const w = S.winner; const wp = S.players.find(p => p.id === w.pid);
     const winners = w.pids || [w.pid];
     const mine = winners.includes(you);
@@ -2776,6 +2779,9 @@
   }
   $('#rulesBtn').onclick = showRules; $('#rulesBtn2').onclick = showRules;
   for (const b of ['#indexBtn', '#indexBtn2', '#indexBtn3']) $(b).onclick = () => { SFX.select(); Cards.showIndex(); };
+  // missions: from the lobby, or from the front page (enlist first, then the board opens)
+  $('#missionsBtn').onclick = () => { SFX.select(); Missions.board(); };
+  $('#missionsBtn3').onclick = () => { SFX.select(); if (!$('#nameIn').value.trim()) $('#nameIn').value = 'Recruit'; $('#joinBtn').click(); const t0 = Date.now(), w = setInterval(() => { if (!$('#lobbyBox').hidden) { clearInterval(w); Missions.board(); } else if (Date.now() - t0 > 8000) clearInterval(w); }, 150); };
 
   Locker.init({ send }); window.SECTOR_TOAST = t => toast(t, 'good');
   window.SECTOR_DEBUG = { resume: () => pump(), refresh: () => refreshAll(), victoryFx: () => showVictory(), crushFx: ev => obliterate(ev), combatFx: ev => showCombat(ev), send, state: () => S, you: () => you, plan: () => plan, planState: () => planState, act: doAction, click: onHexClick };

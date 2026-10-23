@@ -1418,3 +1418,42 @@ body.my-turn #hud::before { content: ''; position: fixed; inset: 0; pointer-even
 .card.cv-celestial .c-name { background: linear-gradient(90deg, #7af7ff, #ff9ae6, #fff3a8, #7af7ff); background-size: 200% 100%; -webkit-background-clip: text; background-clip: text; color: transparent !important; animation: cvName 4s linear infinite; }
 @keyframes cvName { to { background-position: 200% 0; } }
 .card.cv-celestial .c-art::after { content: ''; position: absolute; inset: 0; pointer-events: none; mix-blend-mode: color; background: radial-gradient(circle at 28% 30%, rgba(122,247,255,.9), transparent 55%), radial-gradient(circle at 78% 72%, rgba(255,110,220,.9), transparent 60%), #3b2a9a; }
+
+/* ── missions ── */
+.ms-panel { width: min(1180px, calc(100vw - 32px)); max-height: calc(100vh - 40px); overflow: auto; }
+.ms-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(210px, 1fr)); gap: 12px; margin-top: 12px; }
+.ms-card { --tc: #9fb3c8; position: relative; background: linear-gradient(160deg, #13202b, #0c141b); border: 3px solid color-mix(in srgb, var(--tc) 45%, #1d2a36); border-radius: 14px; padding: 12px 12px 10px; cursor: pointer; display: flex; flex-direction: column; gap: 6px; transition: transform .15s, border-color .15s, box-shadow .15s; min-height: 210px; }
+.ms-card:hover { transform: translateY(-3px); border-color: var(--tc); box-shadow: 0 0 18px color-mix(in srgb, var(--tc) 35%, transparent); }
+.ms-card .ms-n { position: absolute; top: 8px; right: 12px; font-family: var(--title); font-size: 34px; color: color-mix(in srgb, var(--tc) 55%, transparent); }
+.ms-card .ms-tier { font-size: 11px; font-weight: 800; letter-spacing: 1.5px; color: var(--tc); }
+.ms-card h3 { margin: 0; font-family: var(--title); letter-spacing: 1px; font-size: 18px; padding-right: 30px; }
+.ms-card .ms-tech { font-size: 12px; color: #ffd27a; font-weight: 700; }
+.ms-card .ms-brief { font-size: 12px; color: #aab7c4; flex: 1; }
+.ms-card .ms-foot { display: flex; justify-content: space-between; font-size: 12px; font-weight: 700; color: #cfd8e0; }
+.ms-card.done { box-shadow: inset 0 0 0 1px rgba(89,240,138,.35); } .ms-card.done .ms-foot span:last-child { color: #59f08a; }
+.ms-card.locked { cursor: not-allowed; filter: grayscale(.85) brightness(.6); }
+.ms-card.locked:hover { transform: none; box-shadow: none; }
+.ms-lock { position: absolute; inset: auto 10px 36px 10px; text-align: center; font-size: 12px; font-weight: 800; background: rgba(0,0,0,.6); border-radius: 8px; padding: 6px; }
+#missionBar { position: fixed; top: 146px; left: 50%; transform: translateX(-50%); z-index: 40; display: flex; align-items: center; gap: 10px; padding: 6px 10px; background: rgba(11,17,23,.92); border: 2px solid #2a3a48; border-radius: 12px; box-shadow: 0 4px 0 #000; font-size: 13px; white-space: nowrap; max-width: calc(100vw - 24px); overflow-x: auto; }
+#missionBar .mb-tag { --tc: #9fb3c8; background: var(--tc); color: #0b1117; font-weight: 800; font-size: 11px; letter-spacing: 1px; padding: 2px 8px; border-radius: 6px; }
+#missionBar .mb-goal { color: #ffd27a; } #missionBar .mb-turn { font-family: var(--title); letter-spacing: 1px; color: #fff; }
+#hale { position: fixed; left: 18px; bottom: 210px; z-index: 60; display: flex; align-items: flex-end; gap: 10px; max-width: min(520px, calc(100vw - 36px)); pointer-events: auto; }
+#hale.wide { max-width: min(600px, calc(100vw - 36px)); }
+#hale.pop { animation: halePop .35s cubic-bezier(.2,1.5,.4,1); }
+@keyframes halePop { from { transform: translateY(30px) scale(.9); opacity: 0; } to { transform: none; opacity: 1; } }
+#hale .hale-face { width: 84px; height: 84px; flex: none; border-radius: 50%; border: 3px solid #ffc53d; box-shadow: 0 4px 0 #000, 0 0 18px rgba(255,197,61,.35); background: #1b2630; }
+.hale-bubble { position: relative; background: #f4efe2; color: #1a1408; border: 3px solid #0b0f13; border-radius: 14px; padding: 10px 14px 10px; box-shadow: 0 5px 0 #000; font-size: 14.5px; line-height: 1.4; }
+.hale-bubble::before { content: ''; position: absolute; left: -12px; bottom: 18px; border: 8px solid transparent; border-right: 10px solid #0b0f13; }
+.hale-name { font-family: var(--title); font-size: 12px; letter-spacing: 1.5px; color: #8a5a10; margin-bottom: 3px; }
+.hale-text b { color: #a02020; }
+.hale-act { display: flex; gap: 6px; justify-content: flex-end; margin-top: 6px; } .hale-act:empty { display: none; }
+.mr { text-align: center; padding: 26px 36px; width: min(560px, calc(100vw - 32px)); display: flex; flex-direction: column; align-items: center; gap: 8px; }
+.mr .mr-face svg { width: 96px; height: 96px; border-radius: 50%; border: 3px solid #ffc53d; }
+.mr h1 { margin: 0; font-family: var(--title); letter-spacing: 2px; font-size: 38px; color: #59f08a; text-shadow: 0 5px 0 #000; }
+.mr.lost h1 { color: #ff4f5e; }
+.mr .mr-name { color: #aab7c4; font: 700 14px var(--ui); letter-spacing: 1px; text-shadow: none; } .mr .mr-why { font-size: 17px; } .mr .mr-quote { font-style: italic; color: #d6dde4; max-width: 440px; }
+.mr .row { display: flex; gap: 10px; flex-wrap: wrap; justify-content: center; margin-top: 8px; }
+@media (max-width: 760px) { #hale { bottom: 150px; left: 8px; } #hale .hale-face { width: 56px; height: 56px; } .hale-bubble { font-size: 13px; } }
+#missionsModal, #missionResult { position: fixed; inset: 0; z-index: 88; background: rgba(4,8,12,.84); display: grid; place-items: center; animation: fadeIn .2s; padding: 16px; }
+#missionsModal[hidden], #missionResult[hidden] { display: none; }
+#missionResult .mr { animation: popIn .3s cubic-bezier(.2,1.5,.5,1); }

@@ -6,6 +6,7 @@ const path = require('path');
 const os = require('os');
 const crypto = require('crypto');
 const E = require('./shared/engine');
+const SCN = require('./shared/scenarios');
 const { botStep, battlePick, draftStep, spawnStep, tradeReply, allyReply, BOT_NAMES } = require('./shared/bot');
 const C = require('./shared/cosmetics');
 const { createProfiles } = require('./profiles');
@@ -93,7 +94,7 @@ const server = http.createServer((req, res) => {
   const name = url.replace(/^\/+/, '');
   if (!name || name.includes('..') || name.includes('\\')) { res.writeHead(403); return res.end(); }
   if (name === 'dev.html' && !DEV_KEY) { res.writeHead(404); return res.end('not found'); }   // no key, no panel
-  const rel = name === 'engine.js' ? (sea ? 'engine.js' : 'shared/engine.js') : name === 'cosmetics.js' ? (sea ? 'cosmetics.js' : 'shared/cosmetics.js') : 'public/' + name;
+  const rel = name === 'engine.js' ? (sea ? 'engine.js' : 'shared/engine.js') : name === 'cosmetics.js' ? (sea ? 'cosmetics.js' : 'shared/cosmetics.js') : name === 'scenarios.js' ? (sea ? 'scenarios.js' : 'shared/scenarios.js') : 'public/' + name;
   const done = (err, data) => {
     if (err) { res.writeHead(404); return res.end('not found'); }
     res.writeHead(200, { 'Content-Type': MIME[path.extname(name)] || 'application/octet-stream', 'Cache-Control': 'no-cache' });
@@ -431,6 +432,18 @@ function onMessage(c, m) {
       broadcastState(r.events, null);
       return afterChange();
     }
+    case 'scenario': {
+      // a solo mission: the host plays it, anyone else in the lobby watches
+      if (game) return send(c, { t: 'err', msg: 'Finish or leave the current game first' });
+      if (c.pid !== lobby.hostId) return send(c, { t: 'err', msg: 'Only the host can start a mission' });
+      const lp = lobby.players.find(p => p.id === c.pid), sc = SCN.get(m.id); if (!lp || !sc) return;
+      game = SCN.build(sc.id, lp.id, lp.name, lp.color); game.v = 1; game.saveId = null; botMem = {}; fogMem = {};
+      game.players[0].cos = lp.cos || null;
+      console.log('[game] mission ' + sc.n + ': ' + sc.name);
+      broadcastLobby();
+      broadcastState([{ e: 'scenarioStart', id: sc.id }], null);
+      return afterChange();
+    }
     case 'clockResume': {
       if (!game || !game.turn.pausedAt) return;
       const cur = game.players[game.turn.idx]; if (!cur || !controls(c, cur.id)) return;
@@ -582,7 +595,7 @@ function pick(o, keys) { const r = {}; for (const k of keys) if (o && k in o) r[
 function endGame() {
   console.log('[game] returned to lobby');
   // ending a war early keeps it saved, so it can be resumed from the lobby
-  if (game && game.phase === 'play') writeSave(); else clearTimeout(saveTimer);
+  if (game && game.phase === 'play' && !game.scenario) writeSave(); else clearTimeout(saveTimer);
   for (const k in warNotes) delete warNotes[k]; for (const c of clients) c.notesSig = null;
   game = null; clearTimeout(botTimer); clearTimeout(turnTimer); clearTimeout(idleTimer);
   for (const p of lobby.players) p.ready = false;   // everyone readies up again for the next war
@@ -831,6 +844,14 @@ let tradeTimer = null, draftTimer = null, allyTimer = null;
 function payOut() {
   if (!game || game.phase !== 'over' || game.paid) return;
   game.paid = true;
+  if (game.scenario) {
+    // missions: first completion pays its Valor reward (no match coins)
+    const sc = SCN.get(game.scenario.id), hero = game.scenario.hero, won = game.winner && game.winner.pid === hero && !game.winner.failed;
+    const lp = lobby.players.find(x => x.id === hero), pr = lp && lp.profileId && profiles.get(lp.profileId);
+    const out = won && pr ? profiles.scenarioDone(pr, sc.id, sc.reward) : { first: false, valor: 0 };
+    for (const cl of clients) if (cl.pid === hero) send(cl, { t: 'scenarioResult', id: sc.id, won, failed: game.winner && game.winner.failed, ...out, profile: pr ? profiles.view(pr) : null });
+    return;
+  }
   logGame();
   const w = game.winner || {}, winners = w.pids || [w.pid];
   const land = id => E.ownedLand(game, id).length;
@@ -847,7 +868,7 @@ function payOut() {
 function afterChange(events) {
   clearTimeout(botTimer); clearTimeout(turnTimer); clearTimeout(idleTimer);
   payOut();
-  if (game && game.phase === 'play') scheduleSave();
+  if (game && game.phase === 'play' && !game.scenario) scheduleSave();
   else if (game && game.phase === 'over' && game.saveId) { clearTimeout(saveTimer); saveTimer = null; dropSave(game.saveId); game.saveId = null; }   // a finished war can't be resumed
   if (game && game.phase === 'spawn') {
     // bots pick their HQ quickly; humans get 60 seconds before one is chosen for them
@@ -917,7 +938,7 @@ function afterChange(events) {
     } else { game.turn.deadline = 0; game.turn.prevDeadline = 0; bankPid = null; }
   }
   if (game.turn.deadline && game.settings.bank && game.settings.bank !== 'off') game.turn.prevDeadline = game.turn.pausedAt ? game.turn.deadline + (Date.now() - game.turn.pausedAt) : game.turn.deadline;
-  if ((lp && lp.bot) || autoPids.has(cur.id)) {
+  if ((lp && lp.bot) || (!lp && cur.bot) || autoPids.has(cur.id)) {   // (a mission's enemies aren't in the lobby)
     let delay = 450;
     if (events) for (const e of events) {
       if (e.e === 'combat') delay = Math.max(delay, 5600);
@@ -969,7 +990,7 @@ function runBot() {
   if (!game || game.phase !== 'play' || game.paused || pendingOw || pendingBattle) return;
   const cur = E.current(game);
   const mem = botMem[cur.id + ':' + game.turn.round] || (botMem = {}, botMem[cur.id + ':' + game.turn.round] = { n: 0 });
-  let a = mem.n++ > 60 ? { a: 'end' } : botStep(game, cur.id, mem);
+  let a = mem.n++ > 60 || cur.scenarioAI === 'passive' ? { a: 'end' } : botStep(game, cur.id, mem);   // a mission's passive enemies just hold their ground
   // a bot's attack goes through the battle window too (instant unless a human holds a battle card)
   if (startBattle(cur.id, a, () => applyBot(cur, a))) return;
   applyBot(cur, a);
