@@ -2,6 +2,27 @@
 
 Every release, newest first. Each version also has its own post on the [Releases page](https://github.com/Blacksheep909/sector/releases).
 
+## v0.9.21
+
+**Bots with personalities: they play differently, and they talk.**
+
+- **🎭 Bot personas:** every bot now has a personality as well as a difficulty. Difficulty is how well it plays; persona is how it likes to play. Pick one under the bot's name in the lobby, or leave it on **Any persona** and each bot gets a different one when the game starts. The persona's icon sits next to the bot's name in game (hover it for a description).
+  - **⚔ Warlord:** attacks early, at worse odds, and goes after the leader. Never offers a pact.
+  - **🐢 Turtle:** rings its HQ with bunkers, keeps a bigger garrison, digs in on the front and only strikes when it's sure.
+  - **💰 Tycoon:** takes income over cards, builds and upgrades warehouses early, and is the easiest bot to trade with.
+  - **🐍 Schemer:** looks for allies from round 2, and breaks the pact once it has outgrown you.
+  - **🏴 Raider:** grabs crates, ruins and relics, picks on the weakest neighbour and shells your buildings.
+  - **⚓ Admiral:** builds a port early and sails more warships.
+  - **🛡 Paladin:** never betrays an ally, accepts pacts readily and never forgets a betrayal.
+- **💬 Bots talk:** bots say something in chat when it matters: hello on their first turn, a taunt when they beat you, a complaint when you beat them, panic when their HQ is under siege, and a lot to say about betrayals, pacts, trades and eliminations. Each persona has its own lines. They only chat about fights that involve a human, and only one small remark per round, so the chat doesn't fill up.
+- **Bots play more like people:**
+  - they stick with the war they started instead of switching targets every turn
+  - an enemy HQ left empty draws them in
+  - stacks that can't win where they stand **dig in** (any bot, not just Turtles)
+- In 40 four-bot test games, every persona won between 18% and 35% of the games it played (a fair share is 25%), so none of them is a trap.
+
+Bots covering for a player who dropped out or went AFK have no persona. They play it straight and stay quiet.
+
 ## v0.9.20
 
 **The open ocean is actually there now.**

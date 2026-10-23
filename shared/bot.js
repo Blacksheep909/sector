@@ -35,6 +35,23 @@ function choosePick(s, p, cards) {
   return act;
 }
 
+// persona weights (see E.PERSONAS). 1 / 0 is neutral: humans covered by a bot play it straight
+//  aggro: lowers the win chance needed to attack   push: pull towards the war target   mass: wait for bigger stacks
+//  econ: buildings and upgrades   navy: ports and warships   loot: crates, ruins, relics, shelling buildings
+//  betray: how ruthless with pacts   grudge: how long it remembers who hurt it   leader / weak: who it picks on
+//  dig: overwatch and digging in   card: draft cards over income   friendly: says yes to pacts   greed: in trades
+const PW = {
+  none: { aggro: 0, push: 1, mass: 1, econ: 1, navy: 1, loot: 1, betray: 1, grudge: 1, leader: 1, weak: 0, dig: 1, card: 0, friendly: 0, greed: 1 },
+  warlord: { aggro: 0.08, push: 1.4, mass: 0.7, econ: 0.6, navy: 0.9, loot: 0.8, betray: 1.1, grudge: 1.3, leader: 1.6, weak: 0, dig: 0.4, card: 0.5, friendly: -15, greed: 1.1 },
+  turtle: { aggro: -0.07, push: 0.75, mass: 1.5, econ: 1.1, navy: 0.8, loot: 0.7, betray: 0.5, grudge: 1, leader: 1, weak: 0, dig: 1.8, card: 0, friendly: 10, greed: 1.1 },
+  tycoon: { aggro: -0.03, push: 0.9, mass: 1.2, econ: 1.9, navy: 1.1, loot: 1.1, betray: 0.8, grudge: 0.8, leader: 1.2, weak: 0, dig: 1, card: -0.6, friendly: 15, greed: 0.9 },
+  schemer: { aggro: 0.03, push: 1.1, mass: 1, econ: 1.15, navy: 1, loot: 1, betray: 1.6, grudge: 1.2, leader: 1.3, weak: 0.5, dig: 1, card: 0.3, friendly: 30, greed: 1.3 },
+  raider: { aggro: 0.05, push: 0.9, mass: 0.6, econ: 0.8, navy: 1.1, loot: 2.2, betray: 1.2, grudge: 1, leader: 0.6, weak: 1.5, dig: 0.6, card: 0.4, friendly: 0, greed: 1.5 },
+  admiral: { aggro: 0.03, push: 1, mass: 1, econ: 1.1, navy: 1.8, loot: 1.3, betray: 1, grudge: 1, leader: 1, weak: 0, dig: 1, card: 0, friendly: 5, greed: 1.15 },
+  paladin: { aggro: -0.02, push: 1, mass: 1, econ: 0.9, navy: 1, loot: 0.9, betray: 0, grudge: 2, leader: 1.4, weak: -0.5, dig: 1, card: 0, friendly: 25, greed: 1 },
+};
+const personaOf = p => PW[p && p.bot && p.persona] || PW.none;
+
 const SKILL = {
   easy: { attack: 0.8, noise: 3, idle: 0.45, tactics: 0.3 },
   medium: { attack: 0.64, noise: 1.4, idle: 0.18, tactics: 0.7 },
@@ -49,7 +66,7 @@ function tradeReply(s, pid) {
   const cardVal = id => { const d = E.TACTICS[id]; return d ? d.cost + { common: 2, uncommon: 4, rare: 7, epic: 10, legendary: 14, mythic: 22 }[d.rarity] : 0; };
   const gain = t.give.cash + (t.cardIds || []).reduce((a, id) => a + cardVal(id), 0);
   const cost = t.get.cash;
-  const greed = { easy: 1, medium: 1.15, hard: 1.35, impossible: 1.6 }[p.diff] || 1.15;
+  const greed = ({ easy: 1, medium: 1.15, hard: 1.35, impossible: 1.6 }[p.diff] || 1.15) * personaOf(p).greed;
   const leader = E.ownedLand(s, from.id).length > E.ownedLand(s, pid).length * 1.6;
   return { a: 'tradeReply', accept: cost <= p.cash && gain >= cost * greed && !(leader && cost > 0) };
 }
@@ -85,7 +102,7 @@ function sideStrength(s, idx, owner, near, r, atk) {
 }
 function botMem(s, pid) { s.botMem = s.botMem || {}; return s.botMem[pid] = s.botMem[pid] || {}; }
 function strategy(s, pid, idx) {
-  const p = E.player(s, pid), tiles = s.map.tiles, bm = botMem(s, pid);
+  const p = E.player(s, pid), tiles = s.map.tiles, bm = botMem(s, pid), P = personaOf(p);
   const th = threats(s, pid), mine = E.threatOf(s, pid);
   const rivals = s.players.filter(q => q.alive && q.id !== pid && !E.isAlly(s, pid, q.id));
   // how much of our border each rival shares
@@ -94,12 +111,15 @@ function strategy(s, pid, idx) {
   const top = Math.max(0, ...Object.values(th));
   let focus = null, fv = -1e9;
   for (const q of rivals) {
-    let v = (border[q.id] || 0) * 1.2 + (mine - th[q.id]) * 0.15 - E.moodOf(s, pid, q.id) * 0.08;
-    if (p.vengeance && p.vengeance.vs === q.id) v += 40;                      // pay the traitor back
-    if (th[q.id] > mine * 1.3 && th[q.id] === top) v += 18;                   // gang up on the runaway leader
+    let v = (border[q.id] || 0) * 1.2 + (mine - th[q.id]) * 0.15 * (1 + P.weak) - E.moodOf(s, pid, q.id) * 0.08 * P.grudge;
+    if (p.vengeance && p.vengeance.vs === q.id) v += 40 * P.grudge;           // pay the traitor back
+    if (th[q.id] > mine * 1.3 && th[q.id] === top) v += 18 * P.leader;        // gang up on the runaway leader
     if (!border[q.id]) v -= 10;
+    if (bm.focus === q.id) v += 6;                                            // like a person, stick with the war you started
+    if (P.weak && q.alive && E.player(s, q.id).hq && !(idx[E.player(s, q.id).hq] || []).some(u => u.owner === q.id)) v += 5 * P.weak;   // an empty HQ is an invitation
     if (v > fv) { fv = v; focus = q.id; }
   }
+  bm.focus = focus;
   if (bm.plot && (s.turn.round - bm.plot.since > 6 || !E.isAlly(s, pid, bm.plot.vs))) delete bm.plot;
   const target = bm.plot ? bm.plot.vs : focus;
   const goal = target ? Object.keys(tiles).filter(k => tiles[k].owner === target) : [];
@@ -114,15 +134,15 @@ function strategy(s, pid, idx) {
     const def = (idx[sp] || []).filter(u => u.owner === pid).reduce((a, u) => a + E.unitDef(s, u), 0);
     if (atk > def) danger[sp] = atk - def;
   }
-  return { focus, target, goal, seen, danger };
+  return { focus, target, goal, seen, danger, P };
 }
 
 function botStep(s, pid, mem) {
   const p = E.player(s, pid);
-  const K = SKILL[p.diff] || SKILL.medium;
+  const K = SKILL[p.diff] || SKILL.medium, P = personaOf(p);
   if (s.turn.stage === 'choose') {
     const c = choosePick(s, p, s.turn.offer);
-    const threshold = 2.4 + s.turn.income / 10 - (s.turn.round <= 3 ? 0.6 : 0);
+    const threshold = 2.4 + s.turn.income / 10 - (s.turn.round <= 3 ? 0.6 : 0) - P.card;
     if (c && !c.scrap && c.value >= threshold) return { a: 'choose', pick: 'card', idx: c.idx, replace: c.replace };
     return { a: 'choose', pick: 'income' };
   }
@@ -207,9 +227,9 @@ function botStep(s, pid, mem) {
     if (t.res && !t.struct && !t.contam && p.cash >= E.structCost(p, 'refinery')) { const a = tryOnce({ a: 'build', struct: 'refinery', hex: k }); if (a) return a; }
   }
   if (!tiles[p.hq].struct || tiles[p.hq].struct.type !== 'hq') { /* lost */ }
-  if (enemyNear(p.hq, 3)) {
+  if (enemyNear(p.hq, 3) || (P.dig > 1.5 && s.turn.round >= 3 && enemyNear(p.hq, 6))) {
     const ring = E.neighbors(p.hq).filter(n => supLand.includes(n) && !tiles[n].struct && !tiles[n].contam);
-    if (ring.length && p.cash >= E.structCost(p, 'bunker') + 4) { const a = tryOnce({ a: 'build', struct: 'bunker', hex: ring[0] }); if (a) return a; }
+    if (ring.length && p.cash >= E.structCost(p, 'bunker') + (P.dig > 1.5 ? 2 : 4)) { const a = tryOnce({ a: 'build', struct: 'bunker', hex: ring[0] }); if (a) return a; }
   }
 
   // 3. ranged fire
@@ -222,7 +242,7 @@ function botStep(s, pid, mem) {
     const walk = E.reachable(s, pid, ids, k, idx);
     for (const t of targets) {
       // an empty enemy building we can just walk onto is better captured than shelled
-      if (!(idx[t] || []).length) { if (walk[t] && ['move', 'capture'].includes(walk[t].kind)) continue; const v = E.infraValue(s, t) * 0.8; if (v > bv && v >= 3) { bv = v; best = t; } continue; }   // shell undefended buildings
+      if (!(idx[t] || []).length) { if (walk[t] && ['move', 'capture'].includes(walk[t].kind)) continue; const v = E.infraValue(s, t) * 0.8 * Math.sqrt(P.loot); if (v > bv && v >= 3) { bv = v; best = t; } continue; }   // shell undefended buildings
       const c = E.combatCalc(s, pid, art, k, t, true, idx);
       const v = c.winProb * stackValue(idx[t]);
       if (c.winProb > 0.4 && v > bv) { bv = v; best = t; }
@@ -291,7 +311,8 @@ function botStep(s, pid, mem) {
     // keep a garrison at HQ when threatened
     if (k === p.hq && enemyNear(k, 4)) {
       const all = idx[k].filter(u => u.owner === pid);
-      if (all.length <= movers.length) movers = movers.slice().sort((a, b) => E.UNITS[b.type].def - E.UNITS[a.type].def).slice(1);
+      const keep = P.dig > 1.5 ? 2 : 1;
+      if (all.length - movers.length < keep) movers = movers.slice().sort((a, b) => E.UNITS[b.type].def - E.UNITS[a.type].def).slice(keep - (all.length - movers.length));
       if (!movers.length) { mem.skip.add(k); continue; }
     }
     // artillery / gunships that can still shoot later should stay put
@@ -320,7 +341,8 @@ function botStep(s, pid, mem) {
         const c = E.combatCalc(s, pid, movers, stage, dest, false, idx);
         const isHQ = t.struct && t.struct.type === 'hq';
         const neutralSite = !t.owner && (t.poi === 'village' || t.poi === 'fort');
-        const need = isHQ ? K.attack - 0.2 : K.attack;
+        // a warlord swings at worse odds; a turtle waits for a sure thing (but nobody passes up a weak stack next door forever)
+        const need = Math.max(0.3, (isHQ ? K.attack - 0.2 : K.attack) - P.aggro);
         if (carrying) continue;
         if (c.winProb < need) {
           // look for a second stack that can also hit this target (pincer)
@@ -340,31 +362,31 @@ function botStep(s, pid, mem) {
           }
           continue;
         }
-        v += c.winProb * (8 + stackValue(c.defenders) + (isHQ ? 80 : 0) + (t.struct ? 5 : 0) + (neutralSite ? 10 : 0) + (c.def.pid && c.def.pid === strat.target ? 6 : 0)) - (1 - c.winProb) * stackValue(movers);
+        v += c.winProb * (8 + stackValue(c.defenders) + (isHQ ? 80 : 0) + (t.struct ? 5 + 3 * (P.loot - 1) : 0) + (neutralSite ? 10 : 0) + (c.def.pid && c.def.pid === strat.target ? 6 * P.push : 0)) - (1 - c.winProb) * stackValue(movers) * P.mass;
       } else if (fleet) {
         // transports with cargo sail for un-owned coast; warships hunt enemies
-        for (const pk of path.slice(1)) if (tiles[pk].owner !== pid && E.isWater(tiles[pk])) v += tiles[pk].res ? 5 : tiles[pk].fish ? 4 : 1.2;
-        { const tt = tiles[dest]; if (tt && !E.isWater(tt) && (tt.poi === 'relic' || tt.poi === 'cache' || tt.poi === 'ruins')) v += 6; }
+        for (const pk of path.slice(1)) if (tiles[pk].owner !== pid && E.isWater(tiles[pk])) v += (tiles[pk].res ? 5 : tiles[pk].fish ? 4 : 1.2) * Math.sqrt(P.navy);
+        { const tt = tiles[dest]; if (tt && !E.isWater(tt) && (tt.poi === 'relic' || tt.poi === 'cache' || tt.poi === 'ruins')) v += 6 * P.loot; }
         if (carrying) v += (nearest(k, targets) - nearest(dest, targets)) * 2.5 + (nearest(dest, targets) <= 1 ? 4 : 0);
         else if (enemyTiles.length) v += (nearest(k, enemyTiles) - nearest(dest, enemyTiles)) * 0.6;
       } else {
         if (t.owner !== pid) v += t.owner ? 6 : 3;
-        if (t.poi === 'ruins' || t.poi === 'cache') v += 6;
+        if (t.poi === 'ruins' || t.poi === 'cache') v += 6 * P.loot;
         if (t.poi === 'fort' && !t.owner) v += 9;   // an abandoned FOB: a free forward base
-        if ((s.drops || []).some(d => path.includes(d.hex))) v += 8;   // supply drop on the way: first come, first served
-        if (t.poi === 'relic' && t.owner !== pid) v += 8;
-        if (t.res && t.owner !== pid) v += 4;
-        if (t.struct && t.owner !== pid) v += 6;
+        if ((s.drops || []).some(d => path.includes(d.hex))) v += 8 * P.loot;   // supply drop on the way: first come, first served
+        if (t.poi === 'relic' && t.owner !== pid) v += 8 * P.loot;
+        if (t.res && t.owner !== pid) v += 4 * Math.sqrt(P.econ);
+        if (t.struct && t.owner !== pid) v += 6 * P.loot;
         if (s.map.beacon === dest) v += 10;
-        if (strat.goal.length) v += walkGain('goal', strat.goal, k, dest) * 1.1 + walkGain('enemy', enemyTiles, k, dest) * 0.3;
-        else if (enemyTiles.length) v += walkGain('enemy', enemyTiles, k, dest) * 0.8;
-        if (t.owner && t.owner === strat.target) v += 3;
+        if (strat.goal.length) v += walkGain('goal', strat.goal, k, dest) * 1.1 * P.push + walkGain('enemy', enemyTiles, k, dest) * 0.3;
+        else if (enemyTiles.length) v += walkGain('enemy', enemyTiles, k, dest) * 0.8 * P.push;
+        if (t.owner && t.owner === strat.target) v += 3 * P.push;
         // mass up: join a friendly stack on the front line so the next push has the numbers
-        if (t.owner === pid && (idx[dest] || []).some(u => u.owner === pid) && E.neighbors(dest).some(n => (idx[n] || []).some(u => u.owner !== pid && !E.isAlly(s, pid, u.owner)))) v += 2.5;
+        if (t.owner === pid && (idx[dest] || []).some(u => u.owner === pid) && E.neighbors(dest).some(n => (idx[n] || []).some(u => u.owner !== pid && !E.isAlly(s, pid, u.owner)))) v += 2.5 * P.mass;
         if (r.kind === 'move' && t.owner === pid && v < 1) continue;   // a step closer to the front is worth taking
         let threat = 0; for (const n of E.neighbors(dest)) for (const u of idx[n] || []) if (u.owner !== pid) threat += E.UNITS[u.type].atk;
         const myDef = movers.reduce((a, u) => a + E.UNITS[u.type].def, 0);
-        if (threat > myDef * 2) v -= 4;
+        if (threat > myDef * 2) v -= 4 * Math.max(0.5, P.dig);
       }
       v += Math.random() * K.noise;
       if (v > bv) { bv = v; best = dest; }
@@ -389,7 +411,7 @@ function botStep(s, pid, mem) {
   const myPorts = Object.keys(tiles).filter(k => tiles[k].owner === pid && tiles[k].struct && tiles[k].struct.type === 'port');
   // sea prizes (rigs, fishing grounds, treasure islands) near our coast make a port worth it too
   const seaPrize = supLand.some(k => E.isCoastal(s, k) && E.area(k, 4).some(n => { const w = tiles[n]; return w && w.owner !== pid && ((E.isWater(w) && (w.res || w.fish)) || (!E.isWater(w) && w.poi && !w.owner && ['relic', 'cache', 'ruins'].includes(w.poi))); }));
-  const wantsNavy = stuck || p.arsenal.some(t => E.isSea(t) && t !== 'ark') || (seaPrize && s.turn.round >= 3);
+  const wantsNavy = stuck || p.arsenal.some(t => E.isSea(t) && t !== 'ark') || (seaPrize && s.turn.round >= 3) || (P.navy > 1.5 && s.turn.round >= 2 && supLand.some(k => E.isCoastal(s, k)));
   if (wantsNavy && !myPorts.length && p.cash >= E.structCost(p, 'port') && !mem.portTried) {
     mem.portTried = true;
     let best = null, bv = 99;
@@ -406,7 +428,7 @@ function botStep(s, pid, mem) {
     }
   }
   const owns = type => Object.keys(tiles).filter(k => tiles[k].owner === pid && tiles[k].struct && tiles[k].struct.type === type).length;
-  if (!mem.upTried && p.cash >= 20) {
+  if (!mem.upTried && p.cash >= 20 / Math.max(1, P.econ * 0.8)) {
     mem.upTried = true;
     const ups = Object.keys(tiles).filter(k => { const t = tiles[k]; return t.owner === pid && t.struct && ['warehouse', 'refinery'].includes(t.struct.type) && (t.struct.lvl || 1) < 3 && sup.has(k); });
     const k = ups.sort((a, b) => (tiles[a].struct.lvl || 1) - (tiles[b].struct.lvl || 1))[0];
@@ -416,7 +438,7 @@ function botStep(s, pid, mem) {
     mem.hqTried = true;
     if (p.cash >= E.buildCost(s, p, 'hq', p.hq) + 3) return { a: 'build', struct: 'hq', hex: p.hq };
   }
-  if (p.diff !== 'easy' && !mem.wareTried && p.cash >= E.structCost(p, 'warehouse') + 4 && owns('warehouse') < 1 + Math.floor(s.turn.round / 10)) {
+  if ((p.diff !== 'easy' || P.econ > 1.5) && !mem.wareTried && p.cash >= E.structCost(p, 'warehouse') + (P.econ > 1.5 ? 1 : 4) && owns('warehouse') < Math.round((1 + Math.floor(s.turn.round / 10)) * P.econ)) {
     mem.wareTried = true;
     const spot = supLand.find(k => !tiles[k].struct && !tiles[k].contam && !enemyNear(k, 3));
     if (spot) return { a: 'build', struct: 'warehouse', hex: spot };
@@ -447,7 +469,12 @@ function botStep(s, pid, mem) {
     mem.owDone = true;
     for (const k in idx) {
       const st = idx[k].filter(u => u.owner === pid && E.canAct(s, u) && E.UNITS[u.type].atk > 0 && !E.isSea(u.type));
-      if (st.length && k !== p.hq && enemyNear(k, 2) && Math.random() < 0.7) return { a: 'overwatch', from: k, units: st.map(u => u.id) };
+      if (!st.length || !enemyNear(k, 2)) continue;
+      // a stack that can't win a fight here digs in instead of standing in the open (turtles always do)
+      let threat = 0; for (const a of E.area(k, 2)) for (const u of idx[a] || []) if (u.owner !== pid && !E.isAlly(s, pid, u.owner)) threat += E.unitAtk(s, u);
+      const myDef = idx[k].filter(u => u.owner === pid).reduce((a, u) => a + E.unitDef(s, u), 0);
+      if ((threat > myDef || k === p.hq) && Math.random() < 0.35 * P.dig) return { a: 'digin', from: k, units: st.map(u => u.id) };
+      if (k !== p.hq && Math.random() < 0.7 * Math.min(1.3, P.dig)) return { a: 'overwatch', from: k, units: st.map(u => u.id) };
     }
   }
   // 6. deploy
@@ -456,7 +483,7 @@ function botStep(s, pid, mem) {
   const warships = mine.filter(u => E.isSea(u.type) && u.type !== 'ark').length, landUnits = mine.length - warships - myArks;
   const options = p.arsenal.filter(t => E.unitCost(p, t) <= p.cash && E.deployHexes(s, pid, t, idx).length)
     .filter(t => t !== 'ark' || (stuck && myArks < 2))
-    .filter(t => !E.isSea(t) || t === 'ark' || (warships < landUnits / 2 && Math.random() < 0.5));
+    .filter(t => !E.isSea(t) || t === 'ark' || (warships < landUnits / 2 * Math.sqrt(P.navy) && Math.random() < Math.min(0.8, 0.5 * Math.sqrt(P.navy))));
   if (options.length) {
     // counter what the enemy fields: anti-air against air power, tank hunters against armour, siege against forts
     const counter = t => { const d = E.UNITS[t]; let b = 0;
@@ -470,7 +497,7 @@ function botStep(s, pid, mem) {
     const goal = strat.goal.length ? strat.goal : enemyTiles.length ? enemyTiles : targets;
     let bs = hexes[0], bd = 99;
     const gf = walkField('deploy', goal);
-    for (const sp of hexes) { const md = (sp in gf ? gf[sp] : nearest(sp, goal) + 20) - (strat.danger[sp] ? 6 + strat.danger[sp] / 3 : 0); if (md < bd) { bd = md; bs = sp; } }
+    for (const sp of hexes) { const md = (sp in gf ? gf[sp] : nearest(sp, goal) + 20) - (strat.danger[sp] ? (6 + strat.danger[sp] / 3) * Math.max(0.6, P.dig) : 0); if (md < bd) { bd = md; bs = sp; } }
     const a = tryOnce({ a: 'deploy', unit: type, hex: bs, n: mem.deployN = (mem.deployN || 0) + 1 });
     if (a) { delete a.n; return a; }
   }
@@ -493,7 +520,9 @@ function allyReply(s, pid) {
   // worth it when someone else is the real danger, and we don't hate the one asking
   const danger = lead && th[lead] > Math.max(mine, from) * 1.15;
   const notTheBully = from < Math.max(mine, th[lead] || 0) * 1.25;
-  const accept = mood > 45 || (mood > -30 && danger && notTheBully);
+  const P = personaOf(E.player(s, pid));
+  // a schemer or paladin likes company; a warlord would rather go it alone
+  const accept = mood + P.friendly > 45 || (mood + P.friendly / 2 > -30 && danger && notTheBully) || (P.friendly >= 25 && mood > -10 && notTheBully);
   return { a: 'allyReply', accept };
 }
 // ready to betray: our strike force on their border beats what they keep there, nobody else is at our throat,
@@ -526,7 +555,8 @@ function diplomacy(s, pid, mem) {
   const pacts = (s.allies || []).filter(x => x.a === pid || x.b === pid);
   if (alive.length <= 1) return null;
   // how ruthless: harder bots betray sooner and more often
-  const ruthless = { easy: 0.4, medium: 0.7, hard: 1, impossible: 1.25 }[p.diff] || 0.7;
+  const P = personaOf(p);
+  const ruthless = ({ easy: 0.4, medium: 0.7, hard: 1, impossible: 1.25 }[p.diff] || 0.7) * P.betray;
   const total = Object.values(th).reduce((a, v) => a + v, 0) || 1;
   const others = alive.filter(q => q.id !== pid && !E.isAlly(s, pid, q.id));
   for (const x of pacts) {
@@ -534,7 +564,8 @@ function diplomacy(s, pid, mem) {
     const o = x.a === pid ? x.b : x.a;
     // 1. an ally who has become the runaway leader (or who we've come to hate) gets the knife
     const runaway = o === lead && th[o] > mine * (1.9 - ruthless * 0.3) && th[o] > total * 0.42;
-    if (runaway || E.moodOf(s, pid, o) < -45) return { a: 'allyBreak', with: o };
+    // a paladin keeps its word even to a giant, or to an ally it has come to hate: it just won't renew
+    if (ruthless > 0 && (runaway || E.moodOf(s, pid, o) < -45)) return { a: 'allyBreak', with: o };
     // 2. the common enemy is beaten: once every non-ally rival is weak, the pact has done its job
     const threatGone = others.length && others.every(q => th[q.id] < Math.min(mine, th[o]) * 0.45);
     // 3. opportunism: a feeble ally sitting on land next to ours, while we're the strongest on the board
@@ -542,6 +573,8 @@ function diplomacy(s, pid, mem) {
     const weakAlly = th[o] < mine * 0.45 * ruthless && borders && mine >= Math.max(...Object.values(th));
     // 4. endgame: with only this ally left besides us, someone has to win outright (shared wins are for the meek)
     const lastTwo = alive.length === 2 && ruthless >= 1 && mine > th[o] * 1.15;
+    // a schemer gets itchy: any ally it outgrows is a target, once the pact has bought it time
+    const itchy = P.betray > 1.5 && borders && mine > th[o] * 1.3 && s.turn.round - (x.since || 0) >= 6;
     const held = s.turn.round - (x.since || 0);   // pacts younger than 3 rounds are honoured
     // renewal: in the pact's last 2 rounds, keep it if it still pays (a shared enemy, no plot against them, no grudge)
     if (x.until && x.until - s.turn.round <= 2 && !(x.renew && x.renew[pid])) {
@@ -549,16 +582,17 @@ function diplomacy(s, pid, mem) {
       const stillUseful = !threatGone && !(lastTwo) && E.moodOf(s, pid, o) > -20;
       if (!plotting && stillUseful) return { a: 'allyRenew', with: o };
     }
-    if (held >= 3 && (threatGone || weakAlly || lastTwo) && (mem.betrayRoll = mem.betrayRoll ?? Math.random()) < 0.5 * ruthless) {
+    if (held >= 3 && (threatGone || weakAlly || lastTwo || itchy) && (mem.betrayRoll = mem.betrayRoll ?? Math.random()) < 0.5 * ruthless) {
       // a smart traitor strikes when it can: mass troops on the border first, break once the knife is in reach
       const bm = botMem(s, pid);
       if (!bm.plot || bm.plot.vs !== o) bm.plot = { vs: o, since: s.turn.round };
       if (betrayReady(s, pid, o, p.diff)) { delete bm.plot; return { a: 'allyBreak', with: o }; }
     }
   }
-  if (alive.length <= 2 || p.traitor || s.allyOffer || pacts.length >= 2 || s.turn.round < 4) return null;
+  const social = P.friendly >= 25;   // schemers and paladins go looking for friends early
+  if (alive.length <= 2 || p.traitor || s.allyOffer || pacts.length >= 2 || s.turn.round < (social ? 2 : 4)) return null;
   if ((mem.offered || 0) > 0 || (p._offerRound && s.turn.round - p._offerRound < 3)) return null;
-  if (!lead || th[lead] < mine * 1.25) return null;
+  if (!lead || th[lead] < mine * (social ? 0.9 : 1.25) || P.friendly < -10) return null;
   // ask the friendliest commander who isn't the leader and isn't already on our side
   let best = null, bm = -31;
   for (const q of alive) {

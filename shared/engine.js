@@ -224,6 +224,16 @@
     hard: { name: 'Hard', income: 1.1 },
     impossible: { name: 'Impossible', income: 1.5 },
   };
+  // bot personalities: how a bot plays and talks. Difficulty is how well it plays; persona is what it likes doing
+  const PERSONAS = {
+    warlord: { name: 'Warlord', icon: '⚔', desc: 'Attacks early and often, picks fights with the leader, never stops pushing.' },
+    turtle: { name: 'Turtle', icon: '🐢', desc: 'Digs in behind bunkers, masses huge stacks and only strikes when it is sure.' },
+    tycoon: { name: 'Tycoon', icon: '💰', desc: 'Builds an economy first, loves a good trade, then buys a bigger army than yours.' },
+    schemer: { name: 'Schemer', icon: '🐍', desc: 'Makes friends, makes plans, and breaks pacts the moment it pays.' },
+    raider: { name: 'Raider', icon: '🏴', desc: 'Grabs crates and ruins, hits the weakest, burns your warehouses and runs.' },
+    admiral: { name: 'Admiral', icon: '⚓', desc: 'Takes to the sea early: ports, warships and invasions from the coast.' },
+    paladin: { name: 'Paladin', icon: '🛡', desc: 'Keeps its word, defends its allies and never forgets a betrayal.' },
+  };
   const POI = {
     ruins: { name: 'Ruins', desc: 'First unit to arrive loots $4–10.' },
     cache: { name: 'Supply Cache', desc: 'First unit to arrive finds a tactic card: usually common or uncommon, sometimes rare, epic or even legendary.' },
@@ -579,7 +589,7 @@
     shuffled.forEach((p, i) => {
       const hq = pickSpawns ? null : spawnOrder[i];
       const pl = {
-        id: p.id, name: p.name, color: p.color, faction: p.faction, bot: !!p.bot, diff: p.bot ? (DIFFICULTY[p.diff] ? p.diff : 'medium') : null,
+        id: p.id, name: p.name, color: p.color, faction: p.faction, bot: !!p.bot, diff: p.bot ? (DIFFICULTY[p.diff] ? p.diff : 'medium') : null, persona: p.bot ? (PERSONAS[p.persona] ? p.persona : Object.keys(PERSONAS)[Math.floor(Math.random() * Object.keys(PERSONAS).length)]) : undefined,
         cash: ww ? 20 : 6, arsenal: ['grunt'], levels: {}, tactics: [], alive: true, hq, koth: 0, blitz: false, local: !!p.local, team: settings.teams === 'on' ? p.team : undefined,
         stats: { captured: 0, kills: 0, lost: 0, crates: 0 },
       };
@@ -2648,7 +2658,7 @@
 
   return {
     DIRS, key, parse, dist, neighbors, area, line, mulberry32, hashStr,
-    POI, WEATHER, isAlly, recordHistory, RARITY, RARITY_ORDER, CRATES, DROP_TIERS, SCRAP_VALUE, DECK_MAX, MAX_LEVEL, TERRAIN, DIFFICULTY, UNITS, TACTICS, STRUCTS, BUILD_ORDER, UPGRADABLE, MAX_SLVL, FACTIONS, COLORS, MAX_STACK, GRUNT_STACK, stackFits, CLASS_NAME, cardDef,
+    POI, WEATHER, isAlly, recordHistory, RARITY, RARITY_ORDER, CRATES, DROP_TIERS, SCRAP_VALUE, DECK_MAX, MAX_LEVEL, TERRAIN, DIFFICULTY, PERSONAS, UNITS, TACTICS, STRUCTS, BUILD_ORDER, UPGRADABLE, MAX_SLVL, FACTIONS, COLORS, MAX_STACK, GRUNT_STACK, stackFits, CLASS_NAME, cardDef,
     SNAPS, REACTIONS, INTEL_COST, intelCost, overwatchTriggers, overwatchFire, reactTactic, attackTarget, ECON, infraValue, econOf, AIR_STRIKES, airDefenders, interceptChance, generateMap, createGame, applyAction, spawnChoices, visionOf, startTurn, endTurn, simulateTurnStart, view, drawCards,
     player, current, buildIndex, canAct, moveAllow, ownedTiles, ownedLand, spawnPoints, musterHexes, supplySet, computeIncome, levelOf, unitAtk, unitDef,
     riders, tsarArea, moodOf, addMood, threatOf, rerollCost, bountyValue, reachable, pathTo, rangedTargets, deployHexes, buildHexes, buildError, isSea, isWater, isCoastal, movers, combatCalc, tacticTargets, unitCost, structCost, buildCost, structsOf, MAX_STRUCTS, conquestTarget, isLandTile, flakCovered,

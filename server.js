@@ -7,6 +7,7 @@ const os = require('os');
 const crypto = require('crypto');
 const E = require('./shared/engine');
 const { botStep, draftStep, spawnStep, tradeReply, allyReply, BOT_NAMES } = require('./shared/bot');
+const { chatter } = require('./shared/chatter');
 
 // ── self-update, step 2: the freshly downloaded exe is started with this flag. It waits for the old
 //    server to exit, copies itself over the old exe, starts it, and quits. No scripts involved. ──
@@ -160,7 +161,7 @@ const autoPids = new Set(); // dev: humans driven by the bot AI (SECTOR_DEV=1)
 
 function lobbyView() {
   return {
-    players: lobby.players.map(p => ({ id: p.id, name: p.name, color: p.color, faction: p.faction, bot: p.bot, diff: p.diff, local: !!p.local, controller: p.controller || null, spectator: !!p.spectator, team: p.team || 0, ready: isReady(p), away: !!p.away, afk: !!p.afk, connected: p.bot || isConnected(p.id) })),
+    players: lobby.players.map(p => ({ id: p.id, name: p.name, color: p.color, faction: p.faction, bot: p.bot, diff: p.diff, persona: p.persona, local: !!p.local, controller: p.controller || null, spectator: !!p.spectator, team: p.team || 0, ready: isReady(p), away: !!p.away, afk: !!p.afk, connected: p.bot || isConnected(p.id) })),
     hostId: lobby.hostId, settings: lobby.settings, inGame: !!game, saves: game ? [] : listSaves(), version: VERSION, lan: lanAddresses().map(a => 'http://' + a + ':' + PORT), port: PORT,
   };
 }
@@ -195,7 +196,18 @@ const fogFor = seat => seat ? (fogMem[seat] = fogMem[seat] || { explored: new Se
 function broadcastState(events, by, seq) {
   if (game && game.players[game.turn.idx] && game.players[game.turn.idx].id !== undoStack.owner) undoStack.length = 0;
   setTimeout(sendNotes, 0);   // alliances may have changed who sees whose war-room marks
+  botTalk(events);
   for (const c of clients) { if (c.left) continue; const seat = seatFor(c); send(c, { t: 'state', state: E.view(game, seat, fogFor(seat)), events: filterEvents(events, seat), by, seq, seat, mine: controls(c, by), undo: undoStack.owner === seat ? undoStack.length : 0, timeLeft: game && game.turn.deadline ? Math.max(0, game.turn.deadline - (game.turn.pausedAt || Date.now())) : 0, paused: !!(game && game.turn.pausedAt) }); }
+}
+// bots with a persona talk back in chat, a beat after the thing they're reacting to
+function botTalk(events) {
+  if (!game || !events || !events.length) return;
+  const g = game, lines = chatter(game, events);
+  lines.forEach((l, i) => setTimeout(() => {
+    if (game !== g) return;
+    const p = E.player(g, l.pid); if (!p) return;
+    for (const cl of clients) if (!cl.left) send(cl, { t: 'chat', from: p.name, color: p.color, text: l.text, bot: true });
+  }, 700 + i * 1100 + Math.random() * 600));
 }
 // ally war room: arrows and circles each commander draws on the map, shown only to them and their allies
 const warNotes = {};
@@ -315,7 +327,7 @@ function onMessage(c, m) {
       if (c.pid !== lobby.hostId || game || lobby.players.length >= 8) return;
       const used = new Set(lobby.players.map(p => p.name));
       const name = BOT_NAMES.find(n => !used.has(n)) || 'Bot';
-      lobby.players.push({ id: 'p' + nextPid++, token: null, name, color: freeColor(), faction: Object.keys(E.FACTIONS)[Math.floor(Math.random() * 5)], bot: true, diff: E.DIFFICULTY[m.diff] ? m.diff : 'medium' });
+      lobby.players.push({ id: 'p' + nextPid++, token: null, name, color: freeColor(), faction: Object.keys(E.FACTIONS)[Math.floor(Math.random() * 5)], bot: true, diff: E.DIFFICULTY[m.diff] ? m.diff : 'medium', persona: 'random' });
       return broadcastLobby();
     }
     case 'ready': {
@@ -335,6 +347,7 @@ function onMessage(c, m) {
       const b = lobby.players.find(p => p.id === m.id && p.bot); if (!b) return;
       if (m.diff && (E.DIFFICULTY[m.diff] || m.diff === 'random')) b.diff = m.diff;
       if (m.faction && E.FACTIONS[m.faction]) b.faction = m.faction;
+      if (m.persona && (E.PERSONAS[m.persona] || m.persona === 'random')) b.persona = m.persona;
       return broadcastLobby();
     }
     case 'spectate': {
@@ -366,7 +379,11 @@ function onMessage(c, m) {
     case 'start': {
       if (c.pid !== lobby.hostId || game) return;
       const diffs = Object.keys(E.DIFFICULTY);
-      const roster = lobby.players.filter(p => !p.spectator).map(p => p.bot && p.diff === 'random' ? { ...p, diff: diffs[Math.floor(Math.random() * diffs.length)] } : p);
+      // random personas are dealt so that bots in one game differ while there are personas to go round
+      const kinds = Object.keys(E.PERSONAS).filter(k => !lobby.players.some(p => p.bot && p.persona === k)).sort(() => Math.random() - 0.5);
+      const roster = lobby.players.filter(p => !p.spectator).map(p => !p.bot ? p : { ...p,
+        diff: p.diff === 'random' ? diffs[Math.floor(Math.random() * diffs.length)] : p.diff,
+        persona: E.PERSONAS[p.persona] ? p.persona : kinds.pop() || Object.keys(E.PERSONAS)[Math.floor(Math.random() * Object.keys(E.PERSONAS).length)] });
       if (roster.length < 2) return send(c, { t: 'err', msg: lobby.players.length < 2 ? 'Need at least 2 commanders (add a bot)' : 'Need at least 2 commanders who are playing, not spectating' });
       const host = lobby.players.find(p => p.id === c.pid); if (host) host.ready = true;   // pressing DEPLOY readies the host
       const waiting = notReady();
