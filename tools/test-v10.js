@@ -84,7 +84,7 @@ function crossing(s) {
 { // fog of war: a fallen commander's remembered land shows as neutral
   const roster = [0, 1, 2].map(i => ({ id: 'p' + i, name: 'P' + i, color: E.COLORS[i], faction: 'iron' }));
   const { state: s } = E.createGame({ mode: 'domination', mapSize: 'medium', fog: 'on' }, roster);
-  s.phase = 'play'; const T = s.map.tiles, dead = s.players[1], mem = { explored: new Set(), seen: {} };
+  s.phase = 'play'; s.weather = null; const T = s.map.tiles, dead = E.player(s, 'p1'),   /* (turn order is shuffled) */ mem = { explored: new Set(), seen: {} };   // (Clear weather would widen vision)
   const k = Object.keys(T).find(x => T[x].owner === dead.id);
   mem.explored.add(k); mem.seen[k] = { owner: dead.id, structs: [{ type: 'hq', owner: dead.id, lvl: 1 }] };
   for (const id in s.units) delete s.units[id];

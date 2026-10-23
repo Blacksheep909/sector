@@ -103,8 +103,31 @@ const Render = (() => {
       c.owner = t.owner; c.oc = t.owner && pc[t.owner] && t.fog !== 2 ? rgb(shade(pc[t.owner], 0.45)) : null;
     }
     if (S_._sup) delete S_._sup;
+    buildFrontiers();
     computeRoads();
     stateVer++;
+  }
+  // border auras animate every frame, so each commander who wears one gets their frontier as one path (in board units,
+  // lifted to each hex's height), rebuilt only when the board changes
+  const frontiers = {};
+  function buildFrontiers() {
+    for (const k in frontiers) delete frontiers[k];
+    if (typeof Skins === 'undefined' || !Skins.frontier) return;
+    const want = {}, hexes = {}; for (const pid in cosOf) if (cosOf[pid].border) { want[pid] = []; hexes[pid] = []; }
+    if (!Object.keys(want).length) return;
+    for (const k of order) {
+      const t = S_.map.tiles[k], c = tc[k]; if (!t.owner || !want[t.owner] || !c.oc) continue;
+      const nb = E.neighbors(k), wy = c.wy - c.h * (S / 34); hexes[t.owner].push({ wx: c.wx, wy });
+      for (let i = 0; i < 6; i++) { const n = S_.map.tiles[nb[EDGE_DIR[i]]]; if (n && n.owner === t.owner) continue; want[t.owner].push({ wx: c.wx, wy, i }); }
+    }
+    for (const pid in want) if (want[pid].length) { frontiers[pid] = Skins.frontier(want[pid], TILT, undefined, hexes[pid]); frontiers[pid].col = (tc[order.find(k => S_.map.tiles[k].owner === pid && tc[k].oc)] || {}).oc || '#fff'; }
+  }
+  function drawAuras(glow) {
+    const ids = Object.keys(frontiers); if (!ids.length) return;
+    const z = cam.z, view = { x0: cam.x - W / 2 / z - 40, x1: cam.x + W / 2 / z + 40, y0: cam.y - H / 2 / z - 60, y1: cam.y + H / 2 / z + 40 };
+    ctx.save(); ctx.transform(z, 0, 0, z, W / 2 - cam.x * z, H / 2 - cam.y * z);
+    for (const pid of ids) { const F = frontiers[pid], cs = cosOf[pid]; if (!cs || !cs.border) continue; F.view = view; if (glow) Skins.auraGlow(ctx, cs.border, F, F.col); else Skins.aura(ctx, cs.border, F, t, F.col); }
+    ctx.restore();
   }
   // roads: each commander's buildings are linked back to their HQ along the shortest route through their own land.
   // Recomputed from the board every time it changes, so a captured or cut-off hex breaks the road there.
@@ -382,7 +405,7 @@ const Render = (() => {
       const nb = E.neighbors(k);
       ctx.lineCap = 'round';
       ctx.beginPath();
-      const cs = cosOf[tile.owner], skinned = cs && (cs.border || cs.trim) && typeof Skins !== 'undefined', segs = skinned ? [] : null;
+      const cs = cosOf[tile.owner], skinned = cs && cs.trim && typeof Skins !== 'undefined', segs = skinned ? [] : null;
       for (let i = 0; i < 6; i++) {
         const n = S_.map.tiles[nb[EDGE_DIR[i]]];
         if (n && n.owner === tile.owner) continue;
@@ -390,7 +413,6 @@ const Render = (() => {
         ctx.moveTo(ax, ay); ctx.lineTo(bx, by);
         if (segs) { let nx = (ax + bx) / 2 - cx, ny = (ay + by) / 2 - cy; const l = Math.hypot(nx, ny) || 1; segs.push({ ax, ay, bx, by, nx: nx / l, ny: ny / l }); }
       }
-      if (skinned && cs.border) Skins.border(ctx, cs.border, z, c.oc, segs);   // border aura, under the line
       // the line itself: a border-line skin, or the plain one
       if (!(skinned && cs.trim && Skins.trim(ctx, cs.trim, z, c.oc, segs))) {
         ctx.strokeStyle = c.oc; ctx.globalAlpha = 0.28; ctx.lineWidth = 10 * z; ctx.stroke();
@@ -532,28 +554,56 @@ const Render = (() => {
     ctx.restore();
   }
   function bridgeCol(tile) { const p = tile.owner && S_.players.find(pl => pl.id === tile.owner); return p ? p.color : '#5a4630'; }
+  // an offshore platform: four legs standing in the sea, a deck with a helipad, a lattice derrick, a crane and a flare boom
   function drawRig(cx, cy, z, v, owner) {
-    const x = cx + 6 * z, y = cy - 2 * z;
+    const x = cx + 3 * z, y = cy + 1 * z; z *= 1.2;
     const op = owner && S_.players.find(p => p.id === owner), oc = op ? op.color : null;
+    const P = (dx, dy) => [x + dx * z, y + dy * z];
+    const line = (pts, col, w) => { ctx.strokeStyle = col; ctx.lineWidth = w * z; ctx.beginPath(); pts.forEach(([a, b], i) => i ? ctx.lineTo(...P(a, b)) : ctx.moveTo(...P(a, b))); ctx.stroke(); };
+    const poly = (pts, col) => { ctx.fillStyle = col; ctx.beginPath(); pts.forEach(([a, b], i) => i ? ctx.lineTo(...P(a, b)) : ctx.moveTo(...P(a, b))); ctx.closePath(); ctx.fill(); };
+    ctx.save(); ctx.lineCap = 'round'; ctx.lineJoin = 'round';
     // an owned rig sits in a ring of its owner's colour
-    if (oc) { ctx.save(); ctx.globalAlpha = 0.35; ctx.fillStyle = oc; ctx.beginPath(); ctx.ellipse(x, y + 5 * z, 15 * z, 6 * z, 0, 0, Math.PI * 2); ctx.fill(); ctx.globalAlpha = 1; ctx.strokeStyle = oc; ctx.lineWidth = 1.6 * z; ctx.stroke(); ctx.restore(); }
-    ctx.strokeStyle = '#2b3138'; ctx.lineWidth = 2 * z;
-    for (const dx of [-7, 7]) { ctx.beginPath(); ctx.moveTo(x + dx * z, y); ctx.lineTo(x + dx * z, y + 7 * z); ctx.stroke(); }
-    ctx.fillStyle = '#59626d'; ctx.fillRect(x - 10 * z, y - 4 * z, 20 * z, 5 * z);
-    ctx.fillStyle = oc || '#c9a53a'; ctx.fillRect(x - 10 * z, y - 4 * z, 20 * z, oc ? 2.2 * z : 1.5 * z);
-    ctx.strokeStyle = '#8e98a3'; ctx.lineWidth = 1.4 * z;
-    ctx.beginPath(); ctx.moveTo(x - 4 * z, y - 4 * z); ctx.lineTo(x, y - 20 * z); ctx.lineTo(x + 4 * z, y - 4 * z); ctx.moveTo(x - 2.5 * z, y - 10 * z); ctx.lineTo(x + 2.5 * z, y - 10 * z); ctx.stroke();
+    if (oc) { ctx.globalAlpha = 0.3; ctx.fillStyle = oc; ctx.beginPath(); ctx.ellipse(x, y + 8 * z, 17 * z, 6.5 * z, 0, 0, Math.PI * 2); ctx.fill(); ctx.globalAlpha = 1; ctx.strokeStyle = oc; ctx.lineWidth = 1.5 * z; ctx.stroke(); }
+    // legs, and the swell breaking round them
+    const ph = t * 2 + v * 10;
+    for (const [lx, ly] of [[-9, 4], [9, 4], [-7, 0], [7, 0]]) {
+      ctx.strokeStyle = 'rgba(220,240,255,.5)'; ctx.lineWidth = 0.8 * z; ctx.beginPath(); ctx.ellipse(...P(lx, ly + 6), (2.6 + Math.sin(ph + lx) * 0.5) * z, 1 * z, 0, 0, Math.PI * 2); ctx.stroke();
+      line([[lx, ly + 6], [lx, ly - 2]], '#2b3036', 2.4); line([[lx - 0.5, ly + 6], [lx - 0.5, ly - 2]], '#6d7680', 0.7);
+    }
+    line([[-9, 8], [-7, 3], [7, 3], [9, 8]], '#3a4148', 0.9);   // bracing between the legs
+    // the deck: top and front face
+    poly([[-13, -2], [11, -2], [13, 1], [-11, 1]], '#7c8792');
+    poly([[-11, 1], [13, 1], [13, 3.4], [-11, 3.4]], '#454d56');
+    line([[-11, 1], [13, 1]], oc || '#e0b33a', 1.1);   // deck edge in the owner's colour (hazard yellow when nobody holds it)
+    // modules: accommodation block with windows
+    poly([[-3, -2], [5, -2], [5, -7], [-3, -7]], '#d9dde1'); poly([[5, -2], [6.6, -0.6], [6.6, -5.6], [5, -7]], '#a6adb4');
+    ctx.fillStyle = '#2f3a46'; for (let i = 0; i < 3; i++) ctx.fillRect(...P(-2 + i * 2.4, -5.8), 1.4 * z, 1.1 * z);
+    // helipad, cantilevered off the right
+    ctx.fillStyle = '#39424b'; ctx.beginPath(); ctx.ellipse(...P(9.5, -3.2), 4.6 * z, 1.9 * z, 0, 0, Math.PI * 2); ctx.fill();
+    ctx.strokeStyle = '#e0b33a'; ctx.lineWidth = 0.6 * z; ctx.stroke();
+    ctx.fillStyle = '#ffffff'; ctx.font = `bold ${2.6 * z}px sans-serif`; ctx.textAlign = 'center'; ctx.textBaseline = 'middle'; ctx.fillText('H', ...P(9.5, -3.1));
+    // the derrick: a tapering lattice tower
+    const B = [[-10.5, -2], [-6.5, -2]], T = [[-9, -21], [-8, -21]];
+    line([B[0], T[0]], '#c8ced4', 1.1); line([B[1], T[1]], '#c8ced4', 1.1);
+    for (let i = 0; i < 4; i++) { const f0 = i / 4, f1 = (i + 1) / 4, lx = a => B[0][0] + (T[0][0] - B[0][0]) * a, rx = a => B[1][0] + (T[1][0] - B[1][0]) * a, yy = a => -2 - 19 * a; line([[lx(f0), yy(f0)], [rx(f1), yy(f1)]], '#9aa3ab', 0.5); line([[rx(f0), yy(f0)], [lx(f1), yy(f1)]], '#9aa3ab', 0.5); line([[lx(f1), yy(f1)], [rx(f1), yy(f1)]], '#9aa3ab', 0.5); }
+    poly([[-9.6, -21], [-7.4, -21], [-7.4, -22.6], [-9.6, -22.6]], '#e0b33a');
+    // crane: a boom angled out over the sea
+    line([[2, -7], [12, -15]], '#e0b33a', 1); line([[12, -15], [12, -9]], '#6d7680', 0.4);
+    // flare boom off the left, its flame flickering
+    line([[-11, -1], [-17, -9]], '#9aa3ab', 0.9);
     const f = 0.7 + 0.3 * Math.sin(t * 9 + v * 20);
-    ctx.fillStyle = `rgba(255,${150 + 60 * f | 0},40,.9)`; ctx.beginPath(); ctx.ellipse(x + 7 * z, y - 9 * z - f * 2 * z, 2 * z, 3.5 * z * f, 0, 0, Math.PI * 2); ctx.fill();
+    ctx.fillStyle = `rgba(255,${120 + 80 * f | 0},30,.9)`; ctx.beginPath(); ctx.ellipse(...P(-17.3, -11 - f), 1.6 * z, 3 * z * f, -0.3, 0, Math.PI * 2); ctx.fill();
+    ctx.fillStyle = 'rgba(255,240,180,.95)'; ctx.beginPath(); ctx.ellipse(...P(-17.2, -10.2 - f * 0.6), 0.7 * z, 1.4 * z * f, -0.3, 0, Math.PI * 2); ctx.fill();
     if (oc) {
-      // owner's flag on the derrick
-      const fx0 = x - 1 * z, fy = y - 20 * z;
-      ctx.strokeStyle = '#ddd'; ctx.lineWidth = 1.1 * z; ctx.beginPath(); ctx.moveTo(fx0, fy); ctx.lineTo(fx0, fy - 7 * z); ctx.stroke();
+      // the owner's flag on the derrick
+      const [fx0, fy] = P(-8.5, -22.6);
+      ctx.strokeStyle = '#ddd'; ctx.lineWidth = 0.9 * z; ctx.beginPath(); ctx.moveTo(fx0, fy); ctx.lineTo(fx0, fy - 7 * z); ctx.stroke();
       ctx.fillStyle = oc; ctx.beginPath(); ctx.moveTo(fx0, fy - 7 * z);
       for (let i = 0; i <= 4; i++) ctx.lineTo(fx0 + i * 2.2 * z, fy - 7 * z + Math.sin(t * 6 + i * 0.9 + v * 9) * 1.1 * z);
       for (let i = 4; i >= 0; i--) ctx.lineTo(fx0 + i * 2.2 * z, fy - 3 * z + Math.sin(t * 6 + i * 0.9 + v * 9) * 1.1 * z);
       ctx.fill();
     }
+    ctx.restore();
   }
   // a river hex is open water: ripples drift across it toward the hex it drains into
   function drawRiver(k, tile, cx, cy, z, s, flow) {
@@ -1092,6 +1142,7 @@ const Render = (() => {
       ctx.setTransform(DPR, 0, 0, DPR, 0, 0);
       bg();
       for (const k of order) drawTile(k, 'base');
+      drawAuras(true);   // their soft glow is baked in here; the moving parts are drawn every frame
       if (S_.fogOn) for (const k of order) if (S_.map.tiles[k].fog === 1) drawFog(k);
       // labels go on top of every tile, so taller neighbours never cut them off
       for (const f of late) f(); late.length = 0;
@@ -1104,6 +1155,7 @@ const Render = (() => {
     } else { if (!fills) { ctx.fillStyle = '#0d1d29'; ctx.fillRect(0, 0, W, H); } ctx.drawImage(lc, X0 + sx, Y0 + sy, lcam.w * ls, lcam.h * ls); }
     ctx.translate(sx, sy);
     drawWaterGlints();
+    drawAuras();
     const p1 = performance.now();
     for (const k of order) if (hasOverlay(k)) drawTile(k, 'overlay');
     for (const pa of ov.planArrows) drawPath(pa.path, pa.color, true, 0.85);

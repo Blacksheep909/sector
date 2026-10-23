@@ -65,7 +65,7 @@
       case 'battle': showBattle(m); break;
       case 'owPrompt': showOwPrompt(m); break;
       case 'owDone': { const r = $('#owPop'); if (r) r.remove(); break; }
-      case 'notes': Render.ov.notes = (m.notes || []).flatMap(n => n.shapes.map(sh => ({ ...sh, pid: n.pid, color: pColor(n.pid) }))); Render.invalidate(); break;
+      case 'notes': { const sig = JSON.stringify(m.notes || []); if (sig === notesSig) break; notesSig = sig; Render.ov.notes = (m.notes || []).flatMap(n => n.shapes.map(sh => ({ ...sh, pid: n.pid, color: pColor(n.pid) }))); Render.invalidate(); break; }   // only redraw the board when the marks changed
       case 'battleDone': { const r = $('#battlePop'); if (r) { r.classList.add('bp-out'); setTimeout(() => r.remove(), 220); } if (battleOpen) lastBattle = { key: battleOpen.key, at: Date.now() }; battleOpen = null; break; }
       case 'skipVote': if (curFight && curFight.att === m.att && curFight.to === m.to) skipStatus(m.pids); break;
       case 'ping': showPing(m); break;
@@ -485,7 +485,7 @@
   // the battle window: before the dice roll, both sides can throw battle cards in. Live odds, your playable cards, READY
   // the battle window IS the dice panel, before the roll: both armies, their bonuses, and the battle cards each side has
   // thrown in. Your battle cards rise up underneath; click one and it flies into your column (the other side sees it land)
-  let battleOpen = null;
+  let battleOpen = null, notesSig = '';
   const isHumanSeat = pid => { const lp = lobby && lobby.players.find(p => p.id === pid); return !!(lp && !lp.bot && !lp.away && lp.connected !== false); };
   function showBattle(m) {
     let p = $('#battlePop');
