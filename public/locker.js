@@ -35,7 +35,7 @@ const Locker = (() => {
     let p = $('#coinPill');
     if (!p) {
       p = el('div', 'coin-pill', ''); p.id = 'coinPill';
-      $('#menu').appendChild(p);
+      const bar = $('#mmRight'); if (bar) bar.prepend(p); else $('#menu').appendChild(p);   // the front menu's top bar
     }
     p.innerHTML = profile
       ? `<i class="vm"></i><b>${profile.coins.toLocaleString()}</b><button class="btn tiny" data-o="locker">LOCKER</button><button class="btn tiny${ordersReady() ? ' ping' : ''}" data-o="orders">ORDERS</button><button class="btn tiny gold${profile.freeCrates ? ' ping' : ''}" data-o="store">STORE</button>`

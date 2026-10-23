@@ -18,7 +18,7 @@ const URL = process.env.SECTOR_URL || 'http://localhost:3048';
   // ...and comes back (same token)
   const b2 = await launch({ url: URL, port: 9393 });
   await b2.evalJS(`localStorage.setItem('sector.token', ${JSON.stringify('TOK')}); location.reload(); true`.replace('TOK', tok)); await sleep(2500);
-  await b2.evalJS(`document.querySelector('#nameIn').value='Guest'; document.querySelector('#joinBtn') && !document.querySelector('#joinBox').hidden && document.querySelector('#joinBtn').click(); true`); await sleep(2500);
+  await b2.evalJS(`document.querySelector('#nameIn').value='Guest'; !document.querySelector('#home').hidden && document.querySelector('#joinBtn').click(); true`); await sleep(2500);
   console.log('after return:', await a.evalJS(`JSON.stringify((({bot,away})=>({bot,away}))(SECTOR_DEBUG.state().players.find(p=>p.id==='${seat}')))`), '| guest seat back:', await b2.evalJS(`SECTOR_DEBUG.you()`) === seat);
   // the host kicks the guest mid-game
   console.log('kick button shown:', await a.evalJS(`!!document.querySelector('.pchip .kickbtn')`));

@@ -19,23 +19,43 @@
     <h1 class="logo"><span>S</span><span>E</span><span>C</span><span>T</span><span>O</span><span>R</span></h1>
     <div class="tagline">CAPTURE · DEPLOY · DESTROY</div>
   </div>
-  <div id="netTabs" class="net-tabs"><button class="btn on" data-tab="host">HOST / PLAY HERE</button><button class="btn" data-tab="join">JOIN A GAME</button></div>
-  <div id="joinNet" class="panel join-net" hidden>
+  <!-- the top bar: who's online, your Valor, settings -->
+  <div id="mmBar" class="mm-bar">
+    <div class="mm-stats"><i class="live"></i><b id="mmOnline">–</b> online<span class="sep">·</span><b id="mmWars">–</b> wars raging</div>
+    <div class="mm-right" id="mmRight"><button id="setBtn" class="icon-btn" title="Settings">⚙</button></div>
+  </div>
+  <!-- the front page -->
+  <div id="home" class="home">
+    <div class="panel mm-card" id="cmdCard"></div>
+    <div class="mm-center">
+      <div class="mm-name"><label for="nameIn">CALLSIGN</label><input id="nameIn" maxlength="16" placeholder="Commander" autocomplete="off" spellcheck="false"></div>
+      <button id="playBtn" class="btn huge red"><span>PLAY</span><small id="playSub">jump into a war · bots fill empty seats</small></button>
+      <div class="mm-row">
+        <button id="createBtn" class="btn">＋ PRIVATE ROOM</button>
+        <div class="code-in"><input id="codeIn" placeholder="ROOM CODE" maxlength="5" autocomplete="off" spellcheck="false"><button id="codeGo" class="btn">JOIN</button></div>
+      </div>
+      <button class="btn gold mm-missions" id="missionsBtn3">🎯 MISSIONS &amp; TUTORIAL</button>
+      <div id="lanRow" class="mm-lan" hidden><span>ON A LAN?</span><button id="joinBtn" class="btn tiny">JOIN THE LAN LOBBY</button><button id="lanFind" class="btn tiny">FIND LAN GAMES</button></div>
+    </div>
+    <div class="mm-side">
+      <div class="panel mm-party" id="partyBox"></div>
+      <div class="panel mm-board" id="boardBox"></div>
+    </div>
+    <div class="panel mm-news" id="newsBox"></div>
+    <div class="mm-foot"><button class="linkbtn" id="rulesBtn3">HOW TO PLAY</button><span>·</span><button class="linkbtn" id="indexBtn3">CARD INDEX</button><span>·</span><span id="mmVer"></span></div>
+  </div>
+  <!-- LAN: find SECTOR servers on this network -->
+  <div id="joinNet" class="modal-bg" hidden><div class="panel join-net">
+    <div class="ix-head"><h2>LAN GAMES</h2><button class="icon-btn" id="lanClose">✕</button></div>
     <h3>FIND A GAME ON YOUR NETWORK</h3>
     <button id="scanBtn" class="btn big blue">SCAN NETWORK</button>
     <div id="scanList" class="scan-list"><div class="hint">Scans your Wi-Fi for SECTOR servers. Everyone must be on the same network.</div></div>
     <h3>OR ENTER AN ADDRESS</h3>
     <div class="row"><input id="joinAddr" placeholder="192.168.1.20:3000" autocomplete="off"><button id="joinGo" class="btn red">JOIN</button></div>
     <div id="recentList" class="scan-list"></div>
-  </div>
-  <div id="joinBox" class="panel join">
-    <label>CALLSIGN</label>
-    <input id="nameIn" maxlength="16" placeholder="Commander" autocomplete="off">
-    <button id="joinBtn" class="btn big red">ENLIST</button>
-    <div class="hint">Everyone on the same Wi-Fi / LAN opens this server's address to join.</div>
-    <button class="btn ghost" id="missionsBtn3">🎯 MISSIONS &amp; TUTORIAL</button>
-    <button class="btn ghost" id="indexBtn3">CARD INDEX</button>
-  </div>
+  </div></div>
+  <!-- in a room: its code, the countdown, and the way out -->
+  <div id="roomBar" class="room-bar" hidden></div>
   <div id="lobbyBox" class="lobby" hidden>
     <div class="panel lobby-players">
       <h3>COMMANDERS <span id="pCount"></span></h3>
@@ -58,7 +78,7 @@
       <div class="set"><label>Fog of war</label><select id="setFog"><option value="on">On (recommended)</option><option value="off">Off</option></select></div>
       <div class="set"><label>World events</label><select id="setEvents"><option value="on">On</option><option value="off">Off</option></select></div>
       <div class="set"><label>Spawns</label><select id="setSpawns"><option value="pick">Pick your HQ (recommended)</option><option value="random">Random</option></select></div>
-      <div class="set"><label>Turn timer</label><select id="setTimer"><option value="0">Off</option><option value="45">45s</option><option value="90">90s</option><option value="150">150s</option></select></div>
+      <div class="set"><label>Turn timer</label><select id="setTimer"><option value="0">Off</option><option value="45">45s</option><option value="60">60s</option><option value="90">90s</option><option value="150">150s</option></select></div>
       <div class="set"><label>Time bank</label><select id="setBank"><option value="off">Off</option><option value="3">3 min + 20s/turn</option><option value="6">6 min + 20s/turn</option></select></div>
       <div class="set"><label>Round limit</label><select id="setRounds"><option value="0">None</option><option value="15">15</option><option value="25">25</option><option value="40">40</option></select></div>
       <div class="set"><label>Game speed</label><select id="setSpeed"><option value="normal">Normal</option><option value="fast">Fast — quicker bot turns</option><option value="super">Superspeed</option></select></div>
@@ -159,6 +179,7 @@
 <script src="crates.js"></script>
 <script src="locker.js"></script>
 <script src="missions.js"></script>
+<script src="home.js"></script>
 <script src="main.js"></script>
 </body>
 </html>
