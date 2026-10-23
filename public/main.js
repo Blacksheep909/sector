@@ -144,7 +144,7 @@
         if (m.paused && m.by && (m.by === you || m.mine)) send({ t: 'clockResume' });   // my fight finished playing: restart the turn clock
         applyState(m.state);
       }
-      Missions.onState(S, m.events);   // missions: the mission bar, objectives and Sergeant Hale's script
+      Missions.onState(S, m.events);   // missions: the mission bar, objectives and General Hale's script
       if (m.seq && (m.mine || m.by === you) && pending.has(m.seq)) { pending.get(m.seq)(true); pending.delete(m.seq); }
     }
     processing = false;
@@ -1079,7 +1079,7 @@
   let menuGen = 0;
   function backToMenu() {
     menuGen++; Render.ov.notes = []; Render.extraUnits.length = 0;
-    Missions.onState(null);   // the mission bar and Sergeant Hale go with the mission
+    Missions.onState(null);   // the mission bar and General Hale go with the mission
     // anything a war put over the screen goes with it, or it would sit on top of the menu and swallow every click
     for (const id of ['#battlePop', '#owPop', '#crateOpen', '#mapReel', '#afkCover', '#autoEnd', '#boxSel']) { const e = $(id); if (e) e.remove(); }
     for (const id of ['#combat', '#allyPop', '#supply', '#crate', '#draft', '#tooltip']) { const e = $(id); if (e) e.hidden = true; }
