@@ -118,12 +118,13 @@ const Locker = (() => {
     const p = shell('STORE');
     p.classList.add('store-card');
     const tabs = el('div', 'ix-tabs st-tabs');
-    for (const [k, label] of [['shop', 'TODAY’S SHOP'], ['crates', 'CRATES' + (profile.freeCrates ? ` <span class="st-free">${profile.freeCrates} FREE</span>` : '')], ['factions', 'FACTIONS']]) {
+    for (const [k, label] of [['shop', 'TODAY’S SHOP'], ['crates', 'CRATES' + (profile.freeCrates ? ` <span class="st-free">${profile.freeCrates} FREE</span>` : '')], ['factions', 'FACTIONS'], ['valor', 'VALOR']]) {
       const b = el('button', 'btn' + (storeTab === k ? ' on' : ''), label); b.onclick = () => { storeTab = k; SFX.click(); drawStore(); }; tabs.appendChild(b);
     }
     p.appendChild(tabs);
     if (storeTab === 'crates') return drawCrates(p);
     if (storeTab === 'factions') return drawFactions(p);
+    if (storeTab === 'valor') return drawValor(p);
     const ends = Date.now() + profile.store.endsIn, left = () => { const ms = Math.max(0, ends - Date.now()), h = Math.floor(ms / 3.6e6), m = Math.floor(ms / 6e4) % 60; return h + 'h ' + String(m).padStart(2, '0') + 'm'; };
     const head = el('div', 'st-head', `<b>TODAY’S SHOP</b><span class="sub">new items in <i>${left()}</i></span>`);
     p.appendChild(head);
@@ -131,7 +132,6 @@ const Locker = (() => {
     const grid = el('div', 'lk-grid store');
     for (const id of profile.store.items) grid.appendChild(tile(C.ITEMS[id], true));
     p.appendChild(grid);
-    p.appendChild(el('div', 'st-packs', '<h3>VALOR PACKS</h3><div class="sub">Buying Valor arrives with accounts. Everything in the store is looks only: nothing you can buy changes the game.</div>'));
   }
   // factions: one to start with, the rest unlocked for good with Valor (they change how you play, so each is a real choice)
   function drawFactions(p) {
@@ -148,6 +148,16 @@ const Locker = (() => {
     }
     p.appendChild(grid);
     p.appendChild(el('div', 'sub st-note', 'Factions change how you play (each has its own perk and starting unit), but none is stronger than the rest. Earn Valor from wars, orders and missions.'));
+  }
+  // Valor packs: not on sale yet (they arrive with accounts), so this shows where they'll be and how to earn Valor meanwhile
+  function drawValor(p) {
+    const packs = [['Field Ration', 500], ['Supply Run', 1200], ['War Chest', 2800], ['Treasury', 6500]];
+    p.appendChild(el('div', 'st-head', '<b>VALOR PACKS</b><span class="sub">Coming with accounts</span>'));
+    const grid = el('div', 'vp-grid');
+    for (const [name, n] of packs) grid.appendChild(el('div', 'vp-card', `<div class="vp-medals">${'<i class="vm"></i>'.repeat(Math.min(5, 1 + packs.findIndex(x => x[1] === n)))}</div><h3>${esc(name)}</h3><div class="vp-n"><i class="vm"></i>${n.toLocaleString()}</div><button class="btn" disabled>SOON</button>`));
+    p.appendChild(grid);
+    p.appendChild(el('div', 'vp-earn', `<h3>EARN VALOR NOW</h3><div><b>Wars</b> pay Valor when they end: more for winning and fighting well.</div><div><b>Orders</b>: daily and weekly objectives, plus a free Field Crate for finishing every weekly order.</div><div><b>Missions</b> pay up to <i class="vm"></i>2,500 the first time you clear them.</div><div><b>Recruits</b>: <i class="vm"></i>250 for every friend who joins with your link and finishes a game.</div>`));
+    p.appendChild(el('div', 'sub st-note', 'Everything in the store is looks or a faction to play: nothing you can buy makes you stronger.'));
   }
   // card skins come out of these
   function drawCrates(p) {

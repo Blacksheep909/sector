@@ -427,7 +427,8 @@ function onMessage(c, m) {
       if (game) return send(c, { t: 'err', msg: 'Finish or leave the current game first' });
       if (c.pid !== lobby.hostId) return send(c, { t: 'err', msg: 'Only the host can start a mission' });
       const lp = lobby.players.find(p => p.id === c.pid), sc = SCN.get(m.id); if (!lp || !sc) return;
-      game = SCN.build(sc.id, lp.id, lp.name, lp.color); game.v = 1; game.saveId = null; botMem = {}; fogMem = {};
+      resetWar();
+      game = SCN.build(sc.id, lp.id, lp.name, lp.color); game.v = 1; game.saveId = null;
       game.players[0].cos = lp.cos || null;
       console.log('[game] mission ' + sc.n + ': ' + sc.name);
       broadcastLobby();
@@ -589,7 +590,8 @@ function startGame(c) {
   if (s.bank && s.bank !== 'off') s.timer = 0;   // the time bank replaces the per-turn timer
   for (const k in bankLeft) delete bankLeft[k]; bankKey = ''; bankPid = null;
   const r = E.createGame(s, roster);
-  game = r.state; botMem = {}; fogMem = {}; banterReset();
+  resetWar();
+  game = r.state;
   game.saveId = isPublic ? null : 'g' + Date.now().toString(36) + crypto.randomBytes(2).toString('hex');   // public wars aren't saved
   lobby.startAt = 0;
   console.log('[game] ' + code + ' started: ' + lobby.players.length + ' players, ' + s.mode + ', map ' + s.mapSize);
@@ -602,8 +604,19 @@ function pushLeave(seats) {
   while (game.log.length > 40) game.log.shift();
 }
 
+// everything one war leaves behind that must not leak into the next: an open battle window or overwatch prompt
+// would make the next war's bots wait for it forever (the enemy turn never comes)
+function resetWar() {
+  if (pendingBattle) clearTimeout(pendingBattle.timer); pendingBattle = null;
+  if (pendingOw) clearTimeout(pendingOw.timer); pendingOw = null;
+  for (const t of [botTimer, turnTimer, idleTimer, tradeTimer, draftTimer, allyTimer]) clearTimeout(t);
+  undoStack.length = 0; undoStack.owner = null;
+  turnKey = ''; actedKey = ''; bankKey = ''; bankPid = null; skipVotes.key = null;
+  botMem = {}; fogMem = {}; banterReset();
+}
 function endGame() {
   console.log('[game] ' + code + ' returned to lobby');
+  resetWar();
   // ending a war early keeps it saved, so it can be resumed from the lobby
   if (game && game.phase === 'play' && !game.scenario) writeSave(); else clearTimeout(saveTimer);
   for (const k in warNotes) delete warNotes[k]; for (const c of clients) c.notesSig = null;

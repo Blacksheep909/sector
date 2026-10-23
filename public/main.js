@@ -70,7 +70,10 @@
         joinedOnce = true; leftGame = false;
         break;
       case 'lobby': lobby = m.lobby; startDeadline = lobby.startIn ? Date.now() + lobby.startIn : 0; if (token && lobby.code) keepSeat(lobby.code, token); if (!S) renderLobby(); break;
-      case 'noRoom': keepSeat(null); token = null; lobby = null; if (!S) showHome(); if (m.code && m.code !== 'MAIN') toast('Room ' + m.code + ' has closed', 'err'); break;
+      case 'noRoom': {   // the room is gone (it closed, or the server restarted): a war on screen is dead, so go home
+        const was = !!S; keepSeat(null); token = null; lobby = null; you = null; realId = null;
+        if (was) { leftGame = true; backToMenu(); toast('That war has ended: the server was restarted', 'err'); } else { showHome(); if (m.code && m.code !== 'MAIN') toast('Room ' + m.code + ' has closed', 'err'); }
+        break; }
       case 'profile': Locker.set(m.profile); Home.render(); if (lobby && !S) renderLobby();
         if (m.faction && E.FACTIONS[m.faction]) { toast('✔ ' + E.FACTIONS[m.faction].name + ' unlocked: pick it in any lobby', 'good'); SFX.legendary(); }
         if (m.bought) { toast('✔ ' + SectorCosmetics.ITEMS[m.bought].name + ' is yours', 'good'); SFX.legendary(); } break;
@@ -1053,7 +1056,9 @@
   function backToMenu() {
     menuGen++; Render.ov.notes = []; Render.extraUnits.length = 0;
     Missions.onState(null);   // the mission bar and Sergeant Hale go with the mission
-    for (const id of ['#battlePop', '#owPop', '#crateOpen']) { const e = $(id); if (e) e.remove(); }
+    // anything a war put over the screen goes with it, or it would sit on top of the menu and swallow every click
+    for (const id of ['#battlePop', '#owPop', '#crateOpen', '#mapReel', '#afkCover', '#autoEnd', '#boxSel']) { const e = $(id); if (e) e.remove(); }
+    for (const id of ['#combat', '#allyPop', '#supply', '#crate', '#draft', '#tooltip']) { const e = $(id); if (e) e.hidden = true; }
     for (const id of ['#missionsModal', '#missionResult']) { const e = $(id); if (e) e.hidden = true; }
     battleOpen = null;
     S = null; Render.setState(null); msgQ = []; plan = []; sel = null; mode = null; passTo = null; unlocked = null; lastTurnKey = '';

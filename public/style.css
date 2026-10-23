@@ -1785,3 +1785,30 @@ body.at-home #map { filter: blur(2.5px) brightness(.55) saturate(.85); transform
 .fx-card .btn { font-family: var(--title); font-weight: 400; letter-spacing: 1px; }
 .fac-more { display: flex; align-items: center; justify-content: space-between; gap: 8px; padding: 8px 12px; border-radius: 10px; border: 2px dashed #2a3947; font-size: 13px; color: var(--dim); }
 .fac-more b { color: var(--ink); }
+
+#mapReel { pointer-events: none; }   /* just a show: never in the way of a click */
+
+/* Sergeant Hale talks from the bottom right, clear of the chat, build bar and deck */
+#hale { left: auto; right: 18px; bottom: 84px; flex-direction: row-reverse; }
+#hale .hale-bubble::before { left: auto; right: -12px; border-right: 8px solid transparent; border-left: 10px solid #0b0f13; }
+@media (max-width: 760px) { #hale { left: auto; right: 8px; bottom: 150px; } }
+/* the mission bar sits in the centre stack (under YOUR TURN); toasts follow below it */
+#missionBar { position: static; transform: none; }
+/* the deck's label stays on one line, clear of the card's hotkey */
+.bar-label { white-space: nowrap; }
+#deckBar { min-width: 170px; }
+/* game speed: the same square buttons as the rest of the top-right row */
+.speed-ctl { gap: 6px; background: none; border: 0; padding: 0; box-shadow: none; }
+.speed-ctl button { width: 34px; height: 34px; min-width: 0; border-radius: 9px; border: 3px solid var(--line); background: var(--panel2); color: var(--ink); font: 800 13px var(--ui, sans-serif); letter-spacing: -1.5px; box-shadow: 0 3px 0 #000; }
+.speed-ctl button:hover { color: #fff; background: #22323f; filter: brightness(1.1); }
+.speed-ctl button.on { color: #1d1404; background: var(--gold); border-color: var(--gold-d); }
+
+/* Valor packs */
+.vp-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(190px, 1fr)); gap: 12px; }
+.vp-card { display: flex; flex-direction: column; align-items: center; gap: 8px; padding: 16px 12px; border-radius: 14px; background: linear-gradient(160deg, #241d10, #0f0d08); border: 2px solid #4a3e24; }
+.vp-card h3 { margin: 0; }
+.vp-medals { display: flex; gap: 2px; min-height: 30px; align-items: center; } .vp-medals .vm { width: 26px; height: 26px; }
+.vp-n { font-family: var(--title); font-size: 24px; letter-spacing: 1px; color: var(--ink); display: flex; align-items: center; gap: 6px; } .vp-n .vm { width: 22px; height: 22px; }
+.vp-card .btn { width: 100%; font-family: var(--title); font-weight: 400; letter-spacing: 2px; }
+.vp-earn { margin-top: 14px; display: grid; grid-template-columns: repeat(2, 1fr); gap: 8px 16px; font-size: 13px; color: #b7c2cc; }
+.vp-earn h3 { grid-column: 1 / -1; margin: 0; } .vp-earn b { color: var(--ink); }

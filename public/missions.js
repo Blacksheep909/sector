@@ -70,7 +70,8 @@ const Missions = (() => {
   }
   function bar(st) {
     const sc = SC.get(st.scenario.id); if (!sc) return;
-    let b = $('#missionBar'); if (!b) { b = el('div', '', ''); b.id = 'missionBar'; document.body.appendChild(b); }
+    // the mission bar lives in the HUD's centre stack, under the turn banner, so nothing overlaps it
+    let b = $('#missionBar'); if (!b) { b = el('div', '', ''); b.id = 'missionBar'; ($('#centerStack') || document.body).appendChild(b); }
     const turn = Math.min(st.scenario.turns, st.scenario.heroTurns + 1);
     b.innerHTML = `<span class="mb-tag" style="--tc:${TIER[sc.tier] || '#9fb3c8'}">MISSION ${sc.n}</span><b>${esc(sc.name)}</b><span class="mb-goal">🎯 ${goalText(st)}</span><span class="mb-turn">TURN ${turn} / ${st.scenario.turns}</span>
       <button class="btn tiny" id="mbBrief">BRIEFING</button><button class="btn tiny gold" id="mbHint">HINT</button><button class="btn tiny" id="mbQuit">ABANDON</button>`;
