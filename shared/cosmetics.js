@@ -186,6 +186,10 @@
   function dailyObjectives(day = dayKey()) { return pick(DAILY, 3, seeded('daily:' + day)); }
   function weeklyObjectives(week = weekKey()) { return pick(WEEKLY, 2, seeded('weekly:' + week)); }
 
+  // ───────── factions: everyone starts with one; the rest are unlocked with Valor in the Store ─────────
+  const FACTION_START = 'iron', FACTION_PRICE = 1500;
+  const factionsOf = p => { const f = (p && p.factions) || []; return f.includes(FACTION_START) ? f : [FACTION_START, ...f]; };
+
   // ───────── bots: labelled as bots, but some wear a skin ─────────
   function botLoadout(rng = Math.random) {
     const out = {}, buyable = slot => Object.values(ITEMS).filter(i => i.slot === slot && i.buy !== false);
@@ -202,5 +206,5 @@
     return out;
   }
 
-  return { ITEMS, VARIANTS, SLOTS, LOOKS, BOXES, rollBox, DAILY, WEEKLY, DAY_SOFT, matchCoins, diminish, dayKey, weekKey, msToNextDay, dailyStore, dailyObjectives, weeklyObjectives, botLoadout, cleanLoadout };
+  return { FACTION_START, FACTION_PRICE, factionsOf, ITEMS, VARIANTS, SLOTS, LOOKS, BOXES, rollBox, DAILY, WEEKLY, DAY_SOFT, matchCoins, diminish, dayKey, weekKey, msToNextDay, dailyStore, dailyObjectives, weeklyObjectives, botLoadout, cleanLoadout };
 });

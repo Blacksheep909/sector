@@ -54,7 +54,7 @@ const Locker = (() => {
     p.querySelector('#lkClose').onclick = close; m.onclick = e => { if (e.target === m) close(); };
     return p;
   }
-  function show(which) { if (!profile) return; open = which; which === 'store' ? drawStore() : which === 'orders' ? drawOrders() : drawLocker(); }
+  function show(which, sub) { if (!profile) return; open = which; if (which === 'store' && sub) storeTab = sub; which === 'store' ? drawStore() : which === 'orders' ? drawOrders() : drawLocker(); }
   // the weekly crate is one order away
   const ordersReady = () => !!profile && !profile.weeklyCrate && profile.weekly.filter(o => !o.done).length === 1;
   const rar = id => C.ITEMS[id] ? E.RARITY[C.ITEMS[id].rarity] : E.RARITY.common;
@@ -118,11 +118,12 @@ const Locker = (() => {
     const p = shell('STORE');
     p.classList.add('store-card');
     const tabs = el('div', 'ix-tabs st-tabs');
-    for (const [k, label] of [['shop', 'TODAY’S SHOP'], ['crates', 'CRATES' + (profile.freeCrates ? ` <span class="st-free">${profile.freeCrates} FREE</span>` : '')]]) {
+    for (const [k, label] of [['shop', 'TODAY’S SHOP'], ['crates', 'CRATES' + (profile.freeCrates ? ` <span class="st-free">${profile.freeCrates} FREE</span>` : '')], ['factions', 'FACTIONS']]) {
       const b = el('button', 'btn' + (storeTab === k ? ' on' : ''), label); b.onclick = () => { storeTab = k; SFX.click(); drawStore(); }; tabs.appendChild(b);
     }
     p.appendChild(tabs);
     if (storeTab === 'crates') return drawCrates(p);
+    if (storeTab === 'factions') return drawFactions(p);
     const ends = Date.now() + profile.store.endsIn, left = () => { const ms = Math.max(0, ends - Date.now()), h = Math.floor(ms / 3.6e6), m = Math.floor(ms / 6e4) % 60; return h + 'h ' + String(m).padStart(2, '0') + 'm'; };
     const head = el('div', 'st-head', `<b>TODAY’S SHOP</b><span class="sub">new items in <i>${left()}</i></span>`);
     p.appendChild(head);
@@ -131,6 +132,22 @@ const Locker = (() => {
     for (const id of profile.store.items) grid.appendChild(tile(C.ITEMS[id], true));
     p.appendChild(grid);
     p.appendChild(el('div', 'st-packs', '<h3>VALOR PACKS</h3><div class="sub">Buying Valor arrives with accounts. Everything in the store is looks only: nothing you can buy changes the game.</div>'));
+  }
+  // factions: one to start with, the rest unlocked for good with Valor (they change how you play, so each is a real choice)
+  function drawFactions(p) {
+    const own = profile.factions || Object.keys(E.FACTIONS), price = C.FACTION_PRICE;
+    p.appendChild(el('div', 'st-head', `<b>FACTIONS</b><span class="sub">Unlock a faction once and play it in every war. You own <b>${own.length}</b> of ${Object.keys(E.FACTIONS).length}.</span>`));
+    const grid = el('div', 'fx-grid');
+    for (const [id, f] of Object.entries(E.FACTIONS)) {
+      const has = own.includes(id), start = id === C.FACTION_START;
+      const t = el('div', 'fx-card' + (has ? ' owned' : ''));
+      t.innerHTML = `<div class="fx-icon"><img src="${Art.iconURL('glyph', f.glyph, has ? '#ffc53d' : '#8fa1b3', 96)}"></div><h3>${esc(f.name)}</h3><div class="fx-perk"><b>${esc(f.perk)}</b>${esc(f.desc)}</div><div class="fx-start">Starts with <b>${esc(E.UNITS[f.starter].name)}</b></div>`;
+      if (has) t.appendChild(el('div', 'fx-own', start ? '✔ STARTER FACTION' : '✔ UNLOCKED'));
+      else { const b = el('button', 'btn gold', 'UNLOCK · <i class="vm"></i>' + price.toLocaleString()); b.disabled = profile.coins < price; b.title = b.disabled ? 'Need ' + price.toLocaleString() + ' Valor' : ''; b.onclick = () => { SFX.coin(4); b.disabled = true; send({ t: 'buyFaction', id }); }; t.appendChild(b); }
+      grid.appendChild(t);
+    }
+    p.appendChild(grid);
+    p.appendChild(el('div', 'sub st-note', 'Factions change how you play (each has its own perk and starting unit), but none is stronger than the rest. Earn Valor from wars, orders and missions.'));
   }
   // card skins come out of these
   function drawCrates(p) {

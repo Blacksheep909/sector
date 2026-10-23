@@ -71,7 +71,9 @@
         break;
       case 'lobby': lobby = m.lobby; startDeadline = lobby.startIn ? Date.now() + lobby.startIn : 0; if (token && lobby.code) keepSeat(lobby.code, token); if (!S) renderLobby(); break;
       case 'noRoom': keepSeat(null); token = null; lobby = null; if (!S) showHome(); if (m.code && m.code !== 'MAIN') toast('Room ' + m.code + ' has closed', 'err'); break;
-      case 'profile': Locker.set(m.profile); Home.render(); if (m.bought) { toast('✔ ' + SectorCosmetics.ITEMS[m.bought].name + ' is yours', 'good'); SFX.legendary(); } break;
+      case 'profile': Locker.set(m.profile); Home.render(); if (lobby && !S) renderLobby();
+        if (m.faction && E.FACTIONS[m.faction]) { toast('✔ ' + E.FACTIONS[m.faction].name + ' unlocked: pick it in any lobby', 'good'); SFX.legendary(); }
+        if (m.bought) { toast('✔ ' + SectorCosmetics.ITEMS[m.bought].name + ' is yours', 'good'); SFX.legendary(); } break;
       case 'reward': Locker.set(m.profile); setTimeout(() => Locker.reward(m.reward), 1600); break;
       case 'boxOpened': Locker.boxOpened(m); break;
       case 'state': if (leftGame) break; msgQ.push(m); pump(); break;
@@ -152,25 +154,35 @@
   addEventListener('pointerdown', () => setTimeout(menuMusic, 50), { passive: true });
   addEventListener('keydown', () => setTimeout(menuMusic, 50));
   function showMenu() { setTimeout(menuMusic, 50); $('#menu').hidden = false; $('#hud').hidden = true; $('#victory').hidden = true; $('#supply').hidden = true; if (lobby) renderLobby(); }
+  // your faction and colour follow you from room to room (the room may already have someone in that colour)
+  const prefs = () => { try { return JSON.parse(localStorage.getItem('sector.pref') || '{}'); } catch (e) { return {}; } };
+  const savePref = o => { try { localStorage.setItem('sector.pref', JSON.stringify({ ...prefs(), ...o })); } catch (e) {} };
+  let prefsFor = '';
+  function applyPrefs(me) {
+    const key = lobby.code + ':' + me.id; if (prefsFor === key || lobby.inGame) return; prefsFor = key;
+    const p = prefs(), want = {};
+    if (p.faction && E.FACTIONS[p.faction] && me.faction !== p.faction) want.faction = p.faction;
+    if (p.color && me.color !== p.color && !lobby.players.some(x => x.color === p.color && x.id !== me.id && !x.bot)) want.color = p.color;
+    if (Object.keys(want).length) send({ t: 'me', ...want });
+  }
   // the front page (not in a room) and the room lobby take turns on the menu screen
   // the front page's backdrop: a freshly generated war map drifting slowly behind the panels
   let backdrop = null;
   function startBackdrop() {
     if (S || backdrop) return;
     try {
-      const facs = Object.keys(E.FACTIONS), roster = ['#ff4f5e', '#36c9ff', '#ffc53d', '#59f08a', '#b06cff'].map((color, i) => ({ id: 'd' + i, name: 'D' + i, color, faction: facs[i % facs.length], bot: true }));
+      const facs = Object.keys(E.FACTIONS), roster = ['#ff4f5e', '#36c9ff', '#ffc53d', '#59f08a', '#b06cff'].map((color, i) => ({ id: 'd' + i, name: '', color, faction: facs[i % facs.length], bot: true }));
       const st = E.createGame({ mode: 'domination', mapSize: 'medium', spawns: 'random', fog: 'off', events: 'off', seed: 'menu' + Math.floor(Math.random() * 1e6) }, roster).state;
       // each commander already holds a patch around their HQ
       for (const p of st.players) if (p.hq) for (const k of E.area(p.hq, 3)) { const t = st.map.tiles[k]; if (t && E.isLandTile(t) && !t.owner) t.owner = p.id; }
-      backdrop = { st, dir: Math.random() * Math.PI * 2 };
+      st.units = {};   // just the land: no troops, no labels
+      backdrop = { st };
       Render.setState(st); Render.fitMap && Render.fitMap();
-      // it drifts in a slow circle, so it never wanders off the map
-      const drift = () => { if (!backdrop || S) return; if (!Home.opts.calm && !document.hidden && !$('#menu').hidden) { backdrop.dir += 0.0012; Render.pan(Math.cos(backdrop.dir) * 0.4, Math.sin(backdrop.dir) * 0.25); } backdrop.raf = requestAnimationFrame(drift); };
-      drift();
     } catch (e) { console.warn('menu backdrop', e); backdrop = null; }
   }
-  function stopBackdrop() { if (!backdrop) return; cancelAnimationFrame(backdrop.raf); backdrop = null; }
-  function showHome() { startBackdrop(); $('#home').hidden = false; $('#lobbyBox').hidden = true; $('#roomBar').hidden = true; $('#lobbyBox').dataset.show = ''; document.body.classList.remove('in-room'); Home.shown(); }
+  // the backdrop belongs to the front page only: rooms and games get a clean board
+  function stopBackdrop() { if (!backdrop) return; backdrop = null; if (!S) Render.setState(null); }
+  function showHome() { startBackdrop(); document.body.classList.add('at-home'); $('#home').hidden = false; $('#lobbyBox').hidden = true; $('#roomBar').hidden = true; $('#lobbyBox').dataset.show = ''; document.body.classList.remove('in-room'); Home.shown(); }
   $('#nameIn').value = savedName();
   const keepName = () => { const n = myName(); try { localStorage.setItem('sector.name', n); } catch (e) {} return n; };
   $('#nameIn').addEventListener('change', () => { send({ t: 'partyRename', name: keepName() }); Home.render(); });
@@ -208,7 +220,8 @@
     if (dragPid) return;   // don't rebuild the list under a drag in progress
     const me = lobby.players.find(p => p.id === (realId || you));
     if (!me) { showHome(); return; }
-    $('#home').hidden = true; $('#lobbyBox').hidden = false; $('#lobbyBox').dataset.show = '1'; document.body.classList.add('in-room');
+    $('#home').hidden = true; $('#lobbyBox').hidden = false; $('#lobbyBox').dataset.show = '1'; document.body.classList.add('in-room'); document.body.classList.remove('at-home'); stopBackdrop();
+    applyPrefs(me);
     renderRoomBar();
     const host = lobby.hostId === you, pub = lobby.kind === 'public';
     { const sp = lobby.players.filter(p => p.spectator).length; $('#pCount').textContent = (lobby.players.length - sp) + '/' + (lobby.cap || 8) + (sp ? ' · ' + sp + ' watching' : ''); }
@@ -280,17 +293,21 @@
     $('#addBot').hidden = !host;
     $('#lanBox').innerHTML = lobby.lan.length ? 'Friends on your network join at:<br>' + lobby.lan.map(u => `<b>${u}</b>`).join('<br>') : 'No network address found — local play only.';
     const fl = $('#factionList'); fl.innerHTML = '';
-    for (const id in E.FACTIONS) {
+    // only the factions you've unlocked; the rest wait in the Store
+    const owned = Locker.profile && Locker.profile.factions ? Locker.profile.factions : Object.keys(E.FACTIONS);
+    for (const id of Object.keys(E.FACTIONS).filter(k => owned.includes(k))) {
       const f = E.FACTIONS[id], d = el('div', 'fac' + (me.faction === id ? ' on' : ''));
       d.innerHTML = `<img src="${Art.iconURL('glyph', f.glyph, me.faction === id ? me.color : '#8fa1b3')}"><div><div class="fn">${f.name}</div><div class="fp"><b>${f.perk}:</b> ${f.desc}<br>Starts with <b>${E.UNITS[f.starter].name}</b></div></div>`;
-      d.onclick = () => { SFX.select(); send({ t: 'me', faction: id }); };
+      d.onclick = () => { SFX.select(); savePref({ faction: id }); send({ t: 'me', faction: id }); };
       fl.appendChild(d);
     }
+    { const locked = Object.keys(E.FACTIONS).length - owned.length;
+      if (locked > 0) { const u = el('div', 'fac-more', `<span>🔒 <b>${locked}</b> more faction${locked > 1 ? 's' : ''} to unlock</span><button class="btn tiny gold">STORE</button>`); u.querySelector('button').onclick = () => { SFX.select(); Locker.show('store', 'factions'); }; fl.appendChild(u); } }
     const cl = $('#colorList'); cl.innerHTML = ''; cl.classList.toggle('teamlock', teamsOn); cl.title = teamsOn ? 'Teams play in team colours' : '';
     for (const c of E.COLORS) {
       const taken = lobby.players.some(p => p.color === c && p.id !== you && !p.bot && !(p.local && p.controller === realId));
       const d = el('div', 'c' + (me.color === c ? ' on' : '') + (taken ? ' taken' : '')); d.style.background = c;
-      if (!taken) d.onclick = () => { SFX.click(); send({ t: 'me', color: c }); };
+      if (!taken) d.onclick = () => { SFX.click(); savePref({ color: c }); send({ t: 'me', color: c }); };
       cl.appendChild(d);
     }
     const st = lobby.settings;
@@ -361,7 +378,7 @@
 
   // ───────────── game entry / state ─────────────
   function enterGame(state) {
-    stopBackdrop();
+    stopBackdrop(); document.body.classList.remove('at-home');
     S = state; plan = []; for (const k in plans) delete plans[k]; sel = null; mode = null; lastTurnKey = ''; marches = {}; marchKey = '';
     SFX.music.stop();
     if (state.settings && state.settings.mapType === 'random' && (state.phase === 'draft' || state.phase === 'spawn')) showMapReel(state);
@@ -1035,6 +1052,10 @@
   let menuGen = 0;
   function backToMenu() {
     menuGen++; Render.ov.notes = []; Render.extraUnits.length = 0;
+    Missions.onState(null);   // the mission bar and Sergeant Hale go with the mission
+    for (const id of ['#battlePop', '#owPop', '#crateOpen']) { const e = $(id); if (e) e.remove(); }
+    for (const id of ['#missionsModal', '#missionResult']) { const e = $(id); if (e) e.hidden = true; }
+    battleOpen = null;
     S = null; Render.setState(null); msgQ = []; plan = []; sel = null; mode = null; passTo = null; unlocked = null; lastTurnKey = '';
     for (const k in plans) delete plans[k];
     Cards.hideDraft(); Cards.closeSupply(); Cards.closeCrate();
