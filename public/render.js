@@ -823,40 +823,32 @@ const Render = (() => {
     ctx.beginPath(); ctx.ellipse(x, y + 2 * z, 21 * z, 9 * z, 0, 0, Math.PI * 2); ctx.stroke(); ctx.restore();
   }
   // stack token: a team-coloured shield plate with a bold silhouette and a count
-  // a unit whose card wears a skin gets a matching rim, and a gem in the skin's rarity colour
-  const SKIN_GEM = { worn: '#3fd07a', foil: '#3fa0ff', gilded: '#c25cff', blackout: '#ffb52e', celestial: '#f4fbff' };
-  function cardSkinRing(x, y, r, z, v, col) {
-    ctx.save(); const R = r + 2.6 * z;
-    if (v === 'worn') {
-      ctx.strokeStyle = '#5a4a30'; ctx.lineWidth = 3 * z; ctx.beginPath(); ctx.arc(x, y, R, 0, Math.PI * 2); ctx.stroke();
-      ctx.strokeStyle = 'rgba(30,22,12,.7)'; ctx.lineWidth = 1 * z; ctx.setLineDash([2 * z, 3 * z]); ctx.stroke(); ctx.setLineDash([]);
-      ctx.fillStyle = 'rgba(225,210,165,.9)'; ctx.save(); ctx.translate(x + R * 0.7, y - R * 0.7); ctx.rotate(0.8); ctx.fillRect(-4 * z, -1.6 * z, 8 * z, 3.2 * z); ctx.restore();
-    } else if (v === 'foil') {
-      const g = ctx.createConicGradient ? ctx.createConicGradient(t * 1.5, x, y) : null;
-      if (g) { ['#ff7ad9', '#7af7ff', '#fff27a', '#9dff7a', '#ff7ad9'].forEach((c, i) => g.addColorStop(i / 4, c)); ctx.strokeStyle = g; } else ctx.strokeStyle = '#7af7ff';
-      ctx.lineWidth = 3 * z; ctx.beginPath(); ctx.arc(x, y, R, 0, Math.PI * 2); ctx.stroke();
-    } else if (v === 'gilded') {
-      ctx.strokeStyle = '#7a4c08'; ctx.lineWidth = 4.2 * z; ctx.beginPath(); ctx.arc(x, y, R, 0, Math.PI * 2); ctx.stroke();
-      ctx.strokeStyle = '#ffd56a'; ctx.lineWidth = 2.6 * z; ctx.stroke();
-      const a = (t * 1.2) % (Math.PI * 2); ctx.strokeStyle = '#fffbe6'; ctx.lineWidth = 2.6 * z; ctx.beginPath(); ctx.arc(x, y, R, a, a + 0.5); ctx.stroke();   // a glint running round
-    } else if (v === 'blackout') {
-      const pz = 0.6 + 0.4 * Math.sin(t * 2.5);
-      ctx.strokeStyle = '#05070a'; ctx.lineWidth = 4.4 * z; ctx.beginPath(); ctx.arc(x, y, R, 0, Math.PI * 2); ctx.stroke();
-      ctx.globalCompositeOperation = 'lighter'; ctx.strokeStyle = col; ctx.globalAlpha = pz; ctx.lineWidth = 1.4 * z; ctx.beginPath(); ctx.arc(x, y, R + 2 * z, 0, Math.PI * 2); ctx.stroke();
-    } else if (v === 'celestial') {
-      const g = ctx.createConicGradient ? ctx.createConicGradient(-t * 0.8, x, y) : null;
-      if (g) { ['#7af7ff', '#b9a7ff', '#ff7ad9', '#b9ff7a', '#7af7ff'].forEach((c, i) => g.addColorStop(i / 4, c)); ctx.strokeStyle = g; } else ctx.strokeStyle = '#b9a7ff';
-      ctx.lineWidth = 3.2 * z; ctx.beginPath(); ctx.arc(x, y, R, 0, Math.PI * 2); ctx.stroke();
-      ctx.globalCompositeOperation = 'lighter'; ctx.fillStyle = '#ffffff';
-      for (let i = 0; i < 3; i++) { const a = t * 1.4 + i * 2.09, sx = x + Math.cos(a) * (R + 3 * z), sy = y + Math.sin(a) * (R + 3 * z), s2 = (1.2 + 0.8 * Math.sin(t * 5 + i)) * z; ctx.beginPath(); ctx.moveTo(sx, sy - s2 * 2); ctx.lineTo(sx + s2 * 0.6, sy); ctx.lineTo(sx, sy + s2 * 2); ctx.lineTo(sx - s2 * 0.6, sy); ctx.closePath(); ctx.fill(); }
+  // a skinned card shows on the board as the backing behind its unit's icon. Returns true if the backing is light (the icon goes dark)
+  function skinBacking(x, y, R, z, skin) {
+    const disc = () => { ctx.beginPath(); ctx.arc(x, y, R, 0, Math.PI * 2); };
+    if (!skin) { ctx.fillStyle = 'rgba(8,12,16,.82)'; disc(); ctx.fill(); return false; }
+    ctx.save(); disc(); ctx.clip();
+    if (skin === 'worn') {
+      ctx.fillStyle = '#4a3b26'; ctx.fillRect(x - R, y - R, R * 2, R * 2);
+      ctx.strokeStyle = 'rgba(20,14,6,.55)'; ctx.lineWidth = 1 * z; ctx.beginPath(); ctx.moveTo(x - R, y - R * 0.3); ctx.lineTo(x + R, y + R * 0.5); ctx.moveTo(x - R * 0.2, y - R); ctx.lineTo(x + R * 0.4, y + R); ctx.stroke();
+    } else if (skin === 'foil') {
+      const g = ctx.createLinearGradient(x - R, y - R, x + R, y + R); ['#ff8ad9', '#8af7ff', '#fff28a', '#a6ff8a', '#ff8ad9'].forEach((c, i) => g.addColorStop(i / 4, c));
+      ctx.fillStyle = g; ctx.fillRect(x - R, y - R, R * 2, R * 2); ctx.fillStyle = 'rgba(255,255,255,.25)'; ctx.fillRect(x - R, y - R, R * 2, R * 0.7);
+    } else if (skin === 'gilded') {
+      const g = ctx.createRadialGradient(x - R * 0.3, y - R * 0.35, 0, x, y, R * 1.1); g.addColorStop(0, '#fff2b0'); g.addColorStop(0.5, '#f0bf3e'); g.addColorStop(1, '#9a6510');
+      ctx.fillStyle = g; ctx.fillRect(x - R, y - R, R * 2, R * 2);
+    } else if (skin === 'blackout') {
+      ctx.fillStyle = '#000'; ctx.fillRect(x - R, y - R, R * 2, R * 2);
+      ctx.strokeStyle = 'rgba(255,255,255,.35)'; ctx.lineWidth = 1 * z; ctx.beginPath(); ctx.arc(x, y, R - 1.2 * z, 0, Math.PI * 2); ctx.stroke();
+    } else if (skin === 'celestial') {
+      const g = ctx.createRadialGradient(x, y, 0, x, y, R); g.addColorStop(0, '#5a3fc0'); g.addColorStop(0.6, '#2a1a6a'); g.addColorStop(1, '#0b0820');
+      ctx.fillStyle = g; ctx.fillRect(x - R, y - R, R * 2, R * 2);
+      const g2 = ctx.createRadialGradient(x - R * 0.4, y - R * 0.3, 0, x - R * 0.4, y - R * 0.3, R * 0.8); g2.addColorStop(0, 'rgba(122,247,255,.55)'); g2.addColorStop(1, 'rgba(122,247,255,0)');
+      ctx.fillStyle = g2; ctx.fillRect(x - R, y - R, R * 2, R * 2);
+      ctx.fillStyle = '#fff'; for (const [a, b, s2] of [[0.55, -0.5, 1], [-0.6, 0.45, 0.8], [0.3, 0.6, 0.7], [-0.15, -0.7, 0.6], [0.7, 0.2, 0.6]]) { ctx.beginPath(); ctx.arc(x + a * R, y + b * R, s2 * z, 0, Math.PI * 2); ctx.fill(); }
     }
-    ctx.globalCompositeOperation = 'source-over'; ctx.globalAlpha = 1;
-    // the rarity gem, bottom right
-    const gx = x + R * 0.72, gy = y + R * 0.72, gs = 3.6 * z;
-    ctx.fillStyle = '#0a0e12'; ctx.beginPath(); ctx.moveTo(gx, gy - gs - 1.2 * z); ctx.lineTo(gx + gs + 1.2 * z, gy); ctx.lineTo(gx, gy + gs + 1.2 * z); ctx.lineTo(gx - gs - 1.2 * z, gy); ctx.closePath(); ctx.fill();
-    ctx.fillStyle = SKIN_GEM[v] || '#fff'; ctx.beginPath(); ctx.moveTo(gx, gy - gs); ctx.lineTo(gx + gs, gy); ctx.lineTo(gx, gy + gs); ctx.lineTo(gx - gs, gy); ctx.closePath(); ctx.fill();
-    ctx.fillStyle = 'rgba(255,255,255,.7)'; ctx.beginPath(); ctx.moveTo(gx, gy - gs); ctx.lineTo(gx + gs * 0.5, gy - gs * 0.5); ctx.lineTo(gx, gy); ctx.lineTo(gx - gs * 0.5, gy - gs * 0.5); ctx.closePath(); ctx.fill();
     ctx.restore();
+    return skin === 'foil' || skin === 'gilded';
   }
   function drawToken(x, y, units, owner, z, opts = {}) {
     const p = S_.players.find(pl => pl.id === owner); const col = p ? p.color : '#aaa';
@@ -871,9 +863,9 @@ const Render = (() => {
     // ground shadow
     ctx.fillStyle = 'rgba(0,0,0,.45)'; ctx.beginPath(); ctx.ellipse(x, y + 1 * z, r * 1.0, r * 0.38, 0, 0, Math.PI * 2); ctx.fill();
     const ty = y - r * 0.95 + bob;
-    const spr = tokenSprite(top.type, units.length, col, !!exhausted, r, z);
+    const skin = !opts.ghost && cosOf[owner] && cosOf[owner].cards ? cosOf[owner].cards[top.type] || null : null;
+    const spr = tokenSprite(top.type, units.length, col, !!exhausted, r, z, skin);
     { const a0 = ctx.globalAlpha; if (exhausted) ctx.globalAlpha = a0 * 0.6; ctx.drawImage(spr.cv, x - spr.ox, ty - spr.oy, spr.w, spr.h); ctx.globalAlpha = a0; }
-    { const cv = cosOf[owner] && cosOf[owner].cards && cosOf[owner].cards[top.type]; if (cv && !opts.ghost) cardSkinRing(x, ty, r, z, cv, col); }   // the card's skin shows on the board
     if (d.heli) {
       // a helicopter's main rotor, spinning above the token
       const ry = ty - r * 1.08, spin = t * (exhausted ? 6 : 22), w = r * 1.25;
@@ -918,8 +910,8 @@ const Render = (() => {
   }
   // cached token bodies, keyed by unit, stack size, colour, state and zoom (zoom is bucketed so sprites get reused)
   const sprites = new Map();
-  function tokenSprite(type, n, col, exhausted, r, z) {
-    const zb = Math.round(z * 20) / 20, key = type + '|' + Math.min(n, 99) + '|' + col + '|' + exhausted + '|' + zb + '|' + r.toFixed(1) + '|' + DPR;
+  function tokenSprite(type, n, col, exhausted, r, z, skin) {
+    const zb = Math.round(z * 20) / 20, key = type + '|' + Math.min(n, 99) + '|' + col + '|' + exhausted + '|' + zb + '|' + r.toFixed(1) + '|' + DPR + '|' + (skin || '');
     let sp = sprites.get(key);
     if (sp) return sp;
     if (sprites.size > 600) sprites.clear();
@@ -930,8 +922,9 @@ const Render = (() => {
     const x = ox, ty = oy, d = E.UNITS[type];
     for (let i = Math.min(2, n - 1); i >= 1; i--) plate(x, ty + i * 4.5 * z, r, '#0a0e12', col, z, 2);
     plate(x, ty, r, exhausted ? mixHex(col, '#20262c', 0.55) : col, '#0a0e12', z, 3);
-    ctx.fillStyle = 'rgba(8,12,16,.82)'; ctx.beginPath(); ctx.arc(x, ty, r * 0.66, 0, Math.PI * 2); ctx.fill();
-    Art.drawIcon(ctx, 'unit', type, x, ty, r * 0.5, exhausted ? '#8a9299' : '#ffffff');
+    // the icon's backing: dark as standard, or the card skin's look (the outline stays in the owner's colour)
+    const light = skinBacking(x, ty, r * 0.66, z, skin);
+    Art.drawIcon(ctx, 'unit', type, x, ty, r * 0.5, exhausted ? '#8a9299' : light ? '#1a1408' : '#ffffff');
     if (d.rarity === 'legendary') { ctx.fillStyle = '#ffb52e'; ctx.strokeStyle = '#000'; ctx.lineWidth = 1.5 * z; star(x, ty - r - 3 * z, 5.5 * z); ctx.stroke(); }
     if (n > 1) {
       const bx = x + r * 0.95, by = ty - r * 0.7;
