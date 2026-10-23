@@ -1,5 +1,5 @@
-/* SECTOR — bot personalities: how each one plays, and what it says.
-   Shared by the server (the bot reads `play`, the banter reads `lines`) and the client (names and blurbs in the lobby).
+/* SECTOR — bot personalities: how each one plays, and what it says. Server only: players never see which bot is which,
+   they just notice it (the bot reads `play`, the banter reads `lines`). The host turns them on or off in the war settings.
    `play` nudges the bot's normal judgement rather than replacing it, so a Hard Warlord is still a Hard bot. */
 (function (root, factory) {
   if (typeof module === 'object' && module.exports) module.exports = factory();

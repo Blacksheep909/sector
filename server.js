@@ -95,7 +95,7 @@ const server = http.createServer((req, res) => {
   const name = url.replace(/^\/+/, '');
   if (!name || name.includes('..') || name.includes('\\')) { res.writeHead(403); return res.end(); }
   if (name === 'dev.html' && !DEV_KEY) { res.writeHead(404); return res.end('not found'); }   // no key, no panel
-  const rel = name === 'engine.js' ? (sea ? 'engine.js' : 'shared/engine.js') : name === 'cosmetics.js' ? (sea ? 'cosmetics.js' : 'shared/cosmetics.js') : name === 'scenarios.js' ? (sea ? 'scenarios.js' : 'shared/scenarios.js') : name === 'personas.js' ? (sea ? 'personas.js' : 'shared/personas.js') : 'public/' + name;
+  const rel = name === 'engine.js' ? (sea ? 'engine.js' : 'shared/engine.js') : name === 'cosmetics.js' ? (sea ? 'cosmetics.js' : 'shared/cosmetics.js') : name === 'scenarios.js' ? (sea ? 'scenarios.js' : 'shared/scenarios.js') : 'public/' + name;
   const done = (err, data) => {
     if (err) { res.writeHead(404); return res.end('not found'); }
     res.writeHead(200, { 'Content-Type': MIME[path.extname(name)] || 'application/octet-stream', 'Cache-Control': 'no-cache' });
@@ -159,7 +159,7 @@ setInterval(() => {
 }, 6000);
 
 // ───────────────────────── lobby / game ─────────────────────────
-const lobby = { players: [], hostId: null, settings: { mode: 'domination', mapSize: 'medium', mapType: 'random', spawns: 'pick', fog: 'on', events: 'on', timer: 0, maxRounds: 0, conquestPct: 60, seed: '', teams: 'off', speed: 'fast', bank: 'off', banter: 'on' } };
+const lobby = { players: [], hostId: null, settings: { mode: 'domination', mapSize: 'medium', mapType: 'random', spawns: 'pick', fog: 'on', events: 'on', timer: 0, maxRounds: 0, conquestPct: 60, seed: '', teams: 'off', speed: 'fast', bank: 'off', personas: 'on' } };
 let game = null;           // engine state
 // profiles live next to the saved games; SECTOR_OG_UNTIL=YYYY-MM-DD gives early accounts the Founder skins
 const profiles = createProfiles(process.env.SECTOR_PROFILES || path.join(process.env.APPDATA || os.homedir(), 'Sector', 'profiles.json'), { ogUntil: process.env.SECTOR_OG_UNTIL });
@@ -169,7 +169,7 @@ const autoPids = new Set(); // dev: humans driven by the bot AI (SECTOR_DEV=1)
 
 function lobbyView() {
   return {
-    players: lobby.players.map(p => ({ id: p.id, name: p.name, color: p.color, faction: p.faction, bot: p.bot, diff: p.diff, persona: p.bot ? p.persona || 'random' : null, local: !!p.local, controller: p.controller || null, spectator: !!p.spectator, team: p.team || 0, cos: p.cos || null, ready: isReady(p), away: !!p.away, afk: !!p.afk, connected: p.bot || isConnected(p.id) })),
+    players: lobby.players.map(p => ({ id: p.id, name: p.name, color: p.color, faction: p.faction, bot: p.bot, diff: p.diff, local: !!p.local, controller: p.controller || null, spectator: !!p.spectator, team: p.team || 0, cos: p.cos || null, ready: isReady(p), away: !!p.away, afk: !!p.afk, connected: p.bot || isConnected(p.id) })),
     hostId: lobby.hostId, settings: lobby.settings, inGame: !!game, saves: game ? [] : listSaves(), version: VERSION, lan: lanAddresses().map(a => 'http://' + a + ':' + PORT), port: PORT,
   };
 }
@@ -335,7 +335,7 @@ function onMessage(c, m) {
       }
       return broadcastLobby();
     }
-    case 'settings': if (c.pid !== lobby.hostId || game) return; Object.assign(lobby.settings, pick(m.settings, ['mode', 'mapSize', 'mapType', 'spawns', 'fog', 'events', 'timer', 'maxRounds', 'conquestPct', 'seed', 'teams', 'speed', 'bank', 'banter'])); for (const p of lobby.players) if (p.id !== lobby.hostId) p.ready = false; return broadcastLobby();
+    case 'settings': if (c.pid !== lobby.hostId || game) return; Object.assign(lobby.settings, pick(m.settings, ['mode', 'mapSize', 'mapType', 'spawns', 'fog', 'events', 'timer', 'maxRounds', 'conquestPct', 'seed', 'teams', 'speed', 'bank', 'personas'])); for (const p of lobby.players) if (p.id !== lobby.hostId) p.ready = false; return broadcastLobby();
     case 'addLocal': {
       if (game || !c.pid || lobby.players.length >= 8) return;
       const n = lobby.players.filter(p => p.local).length + 2;
@@ -357,7 +357,7 @@ function onMessage(c, m) {
       // a new bot takes the difficulty of the bot above it (so filling a lobby with Hard bots is one setting, not five)
       const prev = [...lobby.players].reverse().find(p => p.bot);
       const diff = E.DIFFICULTY[m.diff] || m.diff === 'random' ? m.diff : prev ? prev.diff : 'medium';
-      lobby.players.push({ id: 'p' + nextPid++, token: null, name, color: freeColor(), faction: Object.keys(E.FACTIONS)[Math.floor(Math.random() * 5)], bot: true, diff, persona: 'random', cos: C.botLoadout() });
+      lobby.players.push({ id: 'p' + nextPid++, token: null, name, color: freeColor(), faction: Object.keys(E.FACTIONS)[Math.floor(Math.random() * 5)], bot: true, diff, cos: C.botLoadout() });
       return broadcastLobby();
     }
     case 'openBox': {
@@ -394,7 +394,6 @@ function onMessage(c, m) {
       const b = lobby.players.find(p => p.id === m.id && p.bot); if (!b) return;
       if (m.diff && (E.DIFFICULTY[m.diff] || m.diff === 'random')) b.diff = m.diff;
       if (m.faction && E.FACTIONS[m.faction]) b.faction = m.faction;
-      if (m.persona && (PZ.PERSONAS[m.persona] || m.persona === 'random' || m.persona === 'none')) b.persona = m.persona;
       return broadcastLobby();
     }
     case 'spectate': {
@@ -426,7 +425,7 @@ function onMessage(c, m) {
     case 'start': {
       if (c.pid !== lobby.hostId || game) return;
       const diffs = Object.keys(E.DIFFICULTY);
-      const roster = lobby.players.filter(p => !p.spectator).map(p => p.bot ? { ...p, diff: p.diff === 'random' ? diffs[Math.floor(Math.random() * diffs.length)] : p.diff, persona: p.persona === 'none' ? null : PZ.PERSONAS[p.persona] ? p.persona : PZ.pick() } : p);
+      const roster = lobby.players.filter(p => !p.spectator).map(p => p.bot ? { ...p, diff: p.diff === 'random' ? diffs[Math.floor(Math.random() * diffs.length)] : p.diff, persona: lobby.settings.personas === 'off' ? null : PZ.pick() } : p);   // each bot gets a hidden personality
       if (roster.length < 2) return send(c, { t: 'err', msg: lobby.players.length < 2 ? 'Need at least 2 commanders (add a bot)' : 'Need at least 2 commanders who are playing, not spectating' });
       const host = lobby.players.find(p => p.id === c.pid); if (host) host.ready = true;   // pressing DEPLOY readies the host
       const waiting = notReady();
@@ -685,7 +684,7 @@ function loadSave(c, id) {
   for (const cl of clients) if (cl.pid && remap.has(cl.pid)) cl.pid = remap.get(cl.pid);
   lobby.hostId = remap.get(lobby.hostId) || lobby.hostId;
   lobby.players = players;
-  Object.assign(lobby.settings, pick(g.settings, ['mode', 'mapSize', 'mapType', 'spawns', 'fog', 'events', 'timer', 'maxRounds', 'conquestPct', 'teams', 'speed', 'bank', 'banter']));
+  Object.assign(lobby.settings, pick(g.settings, ['mode', 'mapSize', 'mapType', 'spawns', 'fog', 'events', 'timer', 'maxRounds', 'conquestPct', 'teams', 'speed', 'bank', 'personas']));
   // clocks were wall-clock times when saved: restart this turn's
   g.turn.pausedAt = 0; g.paused = false;
   g.turn.deadline = g.settings.timer ? Date.now() + g.settings.timer * 1000 : 0; g.turn.prevDeadline = 0;
@@ -997,12 +996,12 @@ function forceEnd(pid) {
   const r = E.applyAction(game, pid, { a: 'end' });
   if (r.ok || ev.length) { game.log.push('⏱ ' + (E.player(game, pid) || {}).name + ' ran out of time.'); game.v++; broadcastState(ev.concat(r.ok ? r.events : []), pid); afterChange(r.events); }
 }
-// ── bot banter: a bot with a personality comments on the war (Bot chatter setting; never more than a line every few seconds) ──
+// ── bot banter: a bot with a personality comments on the war (Bot personalities setting; never more than a line every few seconds) ──
 const BIG_TACTICS = ['nuke', 'tsar', 'orbital', 'carpet', 'emp', 'strategic', 'regime', 'buster'];
 let banterAt = {}, banterLast = 0, greeted = new Set();
 function banterReset() { banterAt = {}; banterLast = 0; greeted = new Set(); }
 function botSay(pid, kind, vars = {}, o = {}) {
-  if (!game || !pid || (game.settings && game.settings.banter === 'off') || game.scenario) return;
+  if (!game || !pid || (game.settings && game.settings.personas === 'off') || game.scenario) return;
   const p = E.player(game, pid); if (!p || !p.bot || !p.persona) return;
   const now = Date.now();
   if (!o.force && (now - (banterAt[pid] || 0) < 25000 || now - banterLast < 5000)) return;
