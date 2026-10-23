@@ -105,8 +105,28 @@ All of them set `PORT` themselves, and SECTOR reads it. The `Dockerfile` already
 ### Things to know before hosting publicly
 
 - **Anyone with the address can press PLAY** and join a public war. Private rooms need their code, so share codes only with the people you want to play.
-- **Free tiers sleep.** A sleeping server restarts fresh, and any game in progress is lost (games live in memory).
-- **No accounts or passwords:** players reconnect with a token stored in their browser.
+- **Free tiers sleep.** A sleeping server restarts fresh, and any game in progress is lost (games live in memory). Private wars are autosaved, so their hosts can resume them.
+- **Passwords never reach the server.** Players are guests (a key kept in their browser) until they sign in with Google or Discord.
+
+### Launch checklist
+
+1. `SECTOR_PUBLIC=1` (the Docker image sets it).
+2. `SECTOR_URL=https://playsector.io`, and the Google and Discord keys (see [Accounts](#accounts-sign-in-with-google-and-discord)). Keys go in the host's secret settings, never in the repository.
+3. `SECTOR_TRUST_PROXY=1` when the server sits behind Cloudflare, so limits apply to each player's own address and not to Cloudflare's.
+4. `SECTOR_START_VALOR=0` (the 30,000 testing grant is on until you set this).
+5. `SECTOR_AUTH_MOCK` **unset**. It lets anyone sign in as anyone, for tests only.
+6. `SECTOR_PROFILES` and `SECTOR_SAVES` on storage that survives restarts and redeploys, backed up now and then. The profiles file is every commander's progress.
+7. `SECTOR_DEV_KEY`, if you use the dev panel, a long random string (32+ characters).
+
+### What the server protects against
+
+- **Bad or hostile messages:** each message is handled on its own, so one that hits a bug is logged and dropped instead of stopping the server. Messages over 128 KB close the connection.
+- **Floods:** 40 messages a second per connection (a connection that keeps flooding is closed), chat at one message per 0.6 s and six per 10 s, room and sign-in actions at bursts of 5 then 2 a second, and at most 16 connections per address (`SECTOR_MAX_PER_IP`).
+- **Names and chat:** cleaned before anyone sees them. Fancy-font letters become plain ones, invisible and stacked characters go, links and addresses are removed, swearing is masked, and names that are offensive or look official ("Admin", "Server") are refused.
+- **Other players' things:** profiles need their secret, saves can only be resumed or deleted by the commander who owns them, only the host runs a room, and prices and items are checked on the server.
+- **The page itself:** a Content-Security-Policy lets the browser run only this server's scripts, so text a player typed can never run as code.
+
+`tools/pentest.js` attacks a public-mode server in all of these ways (and more) and fails on anything that gets through. Run it after changing how messages are handled.
 
 ## Ports and protocols
 

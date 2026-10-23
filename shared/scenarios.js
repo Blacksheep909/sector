@@ -232,7 +232,7 @@
       hints: ['The guard in the woods blocks the only road for your tanks, and attacking it would leave them stuck there. Something else should deal with it.', 'Turn 1: the Basilisk shells the guard; the tanks drive through to the hex beside the HQ; the Stormcrow flies its Grunts to the clearing on the other side.', 'Turn 2: no single card is enough. Ready two that stack, like Rally with Fix Bayonets, then attack the HQ with both stacks at once (Shift-click).'],
     },
   ];
-  const byId = {}; SCENARIOS.forEach(s => { byId[s.id] = s; });
+  const byId = Object.create(null); SCENARIOS.forEach(s => { byId[s.id] = s; });
 
   // build the starting state for a mission. heroId: the id of the human playing it
   function build(id, heroId, heroName, color) {

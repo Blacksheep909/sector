@@ -31,6 +31,7 @@
       <div class="mm-name"><label for="nameIn">CALLSIGN</label><input id="nameIn" maxlength="16" placeholder="Commander" autocomplete="off" spellcheck="false"></div>
       <button id="playBtn" class="btn huge red"><span>PLAY</span><small id="playSub">join an open war, or host your own</small></button>
       <div class="mm-row">
+        <button id="soloBtn" class="btn" title="You against bots, saved to your account as you play. Invite a friend any time.">🎮 SINGLEPLAYER</button>
         <button id="createBtn" class="btn">＋ PRIVATE ROOM</button>
         <div class="code-in"><input id="codeIn" placeholder="ROOM CODE" maxlength="5" autocomplete="off" spellcheck="false"><button id="codeGo" class="btn">JOIN</button></div>
       </div>
@@ -88,7 +89,7 @@
       <button id="startBtn" class="btn big red">DEPLOY</button>
       <button id="readyBtn" class="btn big green" hidden>READY UP</button>
       <div id="waitHost" class="hint" hidden>Waiting for the host to start…</div>
-      <div id="saveBox" class="saves" hidden><h3>SAVED WARS</h3><div id="saveList"></div></div>
+      <div id="saveBox" class="saves" hidden><h3>YOUR SAVED WARS <span class="sub" id="saveCount"></span></h3><div id="saveList"></div></div>
       <button class="btn ghost" id="rulesBtn2">HOW TO PLAY</button>
       <button class="btn ghost" id="indexBtn2">CARD INDEX</button>
     </div>
@@ -150,6 +151,7 @@
     <button class="btn big" id="escIndex">CARD INDEX</button>
     <button class="btn big" id="escSound">SOUND: ON</button>
     <button class="btn big" id="escAuto" title="End your turn automatically when nothing is left to do">AUTO-END TURN: ON</button>
+    <button class="btn big" id="escInvite" hidden title="Copy a link a friend can open to join this war (they take over a bot)">🔗 INVITE A FRIEND</button>
     <button class="btn big blue" id="escSave" hidden title="Wars also save themselves after every move">SAVE GAME</button>
     <button class="btn big blue" id="escServer" hidden>SERVER PANEL</button>
     <button class="btn big gold" id="escLeave">LEAVE GAME</button>

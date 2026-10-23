@@ -1858,3 +1858,9 @@ body:has(#hand > *) #hale { bottom: 250px; }
 body.calm .ul-rays { animation: ulFade .8s ease-out both; }
 body.calm .unlock-fx::after, body.calm .ul-spark { display: none; }
 .st-head #stAll { margin-left: auto; font-family: var(--body, inherit); letter-spacing: 1px; }
+.rb-kind.solo { background: #2f6fe0; color: #fff; }
+#saveCount { font-family: var(--body, inherit); letter-spacing: 0; font-size: 12px; margin-left: 6px; }
+/* SINGLEPLAYER and PRIVATE ROOM side by side, the room code on a row of its own */
+.mm-row { grid-template-columns: minmax(0, 1fr) minmax(0, 1fr); }
+.mm-row > .code-in { grid-column: 1 / -1; }
+@media (max-width: 420px) { .mm-row > .btn { font-size: 13px; letter-spacing: .5px; } }

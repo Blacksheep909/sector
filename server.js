@@ -5,12 +5,14 @@ const fs = require('fs');
 const path = require('path');
 const os = require('os');
 const crypto = require('crypto');
+const zlib = require('zlib');
 const E = require('./shared/engine');
 const SCN = require('./shared/scenarios');
 const { botStep, battlePick, draftStep, spawnStep, tradeReply, allyReply, BOT_NAMES } = require('./shared/bot');
 const C = require('./shared/cosmetics');
 const PZ = require('./shared/personas');
 const { createProfiles } = require('./profiles');
+const F = require('./filter');
 
 // ── self-update, step 2: the freshly downloaded exe is started with this flag. It waits for the old
 //    server to exit, copies itself over the old exe, starts it, and quits. No scripts involved. ──
@@ -72,15 +74,33 @@ if (TUI) {
   console.log = console.info = console.warn = console.error = w;
   process.on('uncaughtException', e => w('[crash] ' + (e && e.stack || e)));
 }
+// online (no dashboard): an unexpected error is logged, never the end of every war on the server
+else { process.on('uncaughtException', e => console.error('[crash] ' + (e && e.stack || e))); process.on('unhandledRejection', e => console.error('[crash] ' + (e && e.stack || e))); }
 // the host panel only answers the host's own computer. Requests relayed by a tunnel or reverse proxy (Cloudflare Tunnel,
 // ngrok, a cloud load balancer) also arrive from 127.0.0.1, so anything carrying forwarding headers is treated as remote,
 // and SECTOR_PUBLIC=1 switches the panel off entirely for internet-facing servers
 const FWD = ['x-forwarded-for', 'x-real-ip', 'forwarded', 'cf-connecting-ip', 'true-client-ip', 'x-forwarded-host', 'fly-client-ip'];
+// a name a player typed: cleaned up, or null (and they're told) when it isn't allowed
+function cleanName(raw, c) { const n = F.name(raw); if (!n && raw && String(raw).trim() && c) send(c, { t: 'err', msg: 'That callsign isn’t allowed. Pick another.' }); return n; }
+// lobby settings: only the values the menus offer
+const SETTING_OK = { mode: ['domination', 'conquest', 'koth', 'worldwar'], mapType: ['random', 'continent', 'pangaea', 'twin', 'archipelago', 'inland', 'crescent', 'ocean'], mapSize: ['small', 'medium', 'large', 'huge'], spawns: ['pick', 'random'], fog: ['on', 'off'], events: ['on', 'off'], timer: ['0', '45', '60', '90', '150'], maxRounds: ['0', '15', '25', '40'], teams: ['off', 'on'], speed: ['normal', 'fast', 'super', 'max'], bank: ['off', '3', '6'], personas: ['on', 'off'] };
+function cleanSettings(s) {
+  const out = {}; if (!s || typeof s !== 'object') return out;
+  for (const k in SETTING_OK) if (k in s && SETTING_OK[k].includes(String(s[k]))) out[k] = ['timer', 'maxRounds'].includes(k) ? +s[k] : String(s[k]);
+  if ('conquestPct' in s && Number.isFinite(+s.conquestPct)) out.conquestPct = Math.max(30, Math.min(100, Math.round(+s.conquestPct)));
+  if ('seed' in s) out.seed = F.tidy(s.seed, 20).replace(/[^\p{L}\p{N} _-]/gu, '');
+  return out;
+}
 // where a connection comes from, as the console shows it
 const addrOf = c => { const a = (c.socket.remoteAddress || '').replace('::ffff:', ''); return a === '127.0.0.1' || a === '::1' ? 'this PC' : a; };
 const isLoopback = req => !process.env.SECTOR_PUBLIC && ['127.0.0.1', '::1', '::ffff:127.0.0.1'].includes(req.socket.remoteAddress) && !FWD.some(h => req.headers[h]);
 
 // ───────────────────────── http ─────────────────────────
+// the browser is told to run scripts only from this server (so text a player typed can never run as code), not to guess
+// file types, and not to let other sites frame the game. Styles may be inline (the UI sets them), fonts come from Google;
+// a LAN server also lets the page look for other SECTOR servers on the network
+const SECURITY_HEADERS = { 'X-Content-Type-Options': 'nosniff', 'Referrer-Policy': 'same-origin', 'X-Frame-Options': 'SAMEORIGIN' };
+const CSP = "default-src 'self'; script-src 'self'; style-src 'self' 'unsafe-inline' https://fonts.googleapis.com; font-src 'self' data: https://fonts.gstatic.com; img-src 'self' data: blob:; media-src 'self' data: blob:; connect-src 'self' ws: wss:" + (process.env.SECTOR_PUBLIC ? '' : ' http:') + "; object-src 'none'; base-uri 'none'; form-action 'self'; frame-ancestors 'self'";
 const server = http.createServer((req, res) => {
   let url;
   try { url = decodeURIComponent(req.url.split('?')[0]); } catch (e) { res.writeHead(400); return res.end(); }
@@ -100,12 +120,12 @@ const server = http.createServer((req, res) => {
   if (url === '/dev' && DEV_KEY) url = '/dev.html';
   if (url.startsWith('/dev/api/')) return devApi(req, res, url);
   const name = url.replace(/^\/+/, '');
-  if (!name || name.includes('..') || name.includes('\\')) { res.writeHead(403); return res.end(); }
+  if (!name || name.includes('..') || name.includes('\\') || /[\x00-\x1f]/.test(name)) { res.writeHead(403); return res.end(); }
   if (name === 'dev.html' && !DEV_KEY) { res.writeHead(404); return res.end('not found'); }   // no key, no panel
   const rel = name === 'engine.js' ? (sea ? 'engine.js' : 'shared/engine.js') : name === 'cosmetics.js' ? (sea ? 'cosmetics.js' : 'shared/cosmetics.js') : name === 'scenarios.js' ? (sea ? 'scenarios.js' : 'shared/scenarios.js') : 'public/' + name;
   const done = (err, data) => {
     if (err) { res.writeHead(404); return res.end('not found'); }
-    res.writeHead(200, { 'Content-Type': MIME[path.extname(name)] || 'application/octet-stream', 'Cache-Control': 'no-cache' });
+    res.writeHead(200, { 'Content-Type': MIME[path.extname(name)] || 'application/octet-stream', 'Cache-Control': 'no-cache', ...SECURITY_HEADERS, ...(name.endsWith('.html') && name !== 'dev.html' ? { 'Content-Security-Policy': CSP } : {}) });
     res.end(data);
   };
   if (sea) { try { done(null, Buffer.from(sea.getAsset(rel))); } catch (e) { done(e); } }
@@ -114,12 +134,24 @@ const server = http.createServer((req, res) => {
 
 // ───────────────────────── minimal websocket ─────────────────────────
 const sockets = new Set();   // every open connection, in a room or on the front menu
+// limits on what one connection (or one address) can throw at the server
+const MAX_MSG = 128 * 1024, MSG_PER_SEC = 40, MAX_PER_IP = +process.env.SECTOR_MAX_PER_IP || 16;
+// the player's address: behind Cloudflare (or another proxy) every connection comes from the proxy, so SECTOR_TRUST_PROXY=1
+// reads the address the proxy passes on. Only set it behind a proxy, or anyone could claim any address
+function clientIp(req) {
+  if (process.env.SECTOR_TRUST_PROXY) { const h = req.headers['cf-connecting-ip'] || String(req.headers['x-forwarded-for'] || '').split(',')[0].trim(); if (h) return h; }
+  return String(req.socket.remoteAddress || '').replace('::ffff:', '');
+}
 server.on('upgrade', (req, socket) => {
-  if (req.headers['upgrade'] !== 'websocket') return socket.destroy();
+  if (req.headers['upgrade'] !== 'websocket' || !req.headers['sec-websocket-key']) return socket.destroy();
+  const ip = clientIp(req);
+  if ([...sockets].filter(x => x.ip === ip).length >= MAX_PER_IP) { socket.end('HTTP/1.1 429 Too Many Requests\r\n\r\n'); return; }
   const accept = crypto.createHash('sha1').update(req.headers['sec-websocket-key'] + '258EAFA5-E914-47DA-95CA-C5AB0DC85B11').digest('base64');
   socket.write('HTTP/1.1 101 Switching Protocols\r\nUpgrade: websocket\r\nConnection: Upgrade\r\nSec-WebSocket-Accept: ' + accept + '\r\n\r\n');
   socket.setNoDelay(true);
-  const client = { socket, buf: Buffer.alloc(0), pid: null, frags: [], seen: Date.now(), cid: crypto.randomBytes(6).toString('hex'), room: null, party: null, name: null, profileId: null, origin: originOf(req) };
+  const client = { socket, ip, buf: Buffer.alloc(0), pid: null, frags: [], seen: Date.now(), cid: crypto.randomBytes(6).toString('hex'), room: null, party: null, name: null, profileId: null, origin: originOf(req), rateAt: 0, rateN: 0, dropped: 0, chats: [], roomAt: 0, roomTokens: 5 };
+  // chat: one message per 0.6s and six per ten seconds
+  client.chatOk = () => { const now = Date.now(); client.chats = client.chats.filter(t => now - t < 10000); if (client.chats.length >= 6 || now - (client.chats[client.chats.length - 1] || 0) < 600) return false; client.chats.push(now); return true; };
   sockets.add(client);
   socket.on('data', d => { client.buf = Buffer.concat([client.buf, d]); readFrames(client); });
   const close = () => { if (!sockets.has(client)) return; sockets.delete(client); onSocketClose(client); };
@@ -135,6 +167,7 @@ function readFrames(c) {
     if (len === 126) { if (c.buf.length < 4) return; len = c.buf.readUInt16BE(2); off = 4; }
     else if (len === 127) { if (c.buf.length < 10) return; len = Number(c.buf.readBigUInt64BE(2)); off = 10; }
     const maskOff = off; if (masked) off += 4;
+    if (len > MAX_MSG || c.frags.reduce((a, f) => a + f.length, 0) + len > MAX_MSG) { try { c.socket.destroy(); } catch (e) {} return; }   // far bigger than any real message
     if (c.buf.length < off + len) return;
     const payload = Buffer.from(c.buf.subarray(off, off + len));
     if (masked) for (let i = 0; i < len; i++) payload[i] ^= c.buf[maskOff + (i & 3)];
@@ -143,7 +176,13 @@ function readFrames(c) {
     if (op === 9) { sendFrame(c, payload, 10); continue; }
     if (op === 1 || op === 0) {
       c.frags.push(payload);
-      if (fin) { const text = Buffer.concat(c.frags).toString('utf8'); c.frags = []; let msg; try { msg = JSON.parse(text); } catch (e) { continue; } route(c, msg); }
+      if (!fin) continue;
+      const text = Buffer.concat(c.frags).toString('utf8'); c.frags = []; let msg; try { msg = JSON.parse(text); } catch (e) { continue; }
+      // a flood is dropped, and a connection that keeps flooding is closed
+      const now = Date.now(); if (now - c.rateAt >= 1000) { c.rateAt = now; c.rateN = 0; }
+      if (++c.rateN > MSG_PER_SEC) { if (++c.dropped > 200) { try { c.socket.destroy(); } catch (e) {} return; } continue; }
+      // one bad message never takes the server down: it's logged and the server carries on
+      try { route(c, msg); } catch (e) { console.error('[msg] ' + String(msg && msg.t).slice(0, 20) + ' failed: ' + (e && e.stack || e)); }
     }
   }
 }
@@ -187,7 +226,7 @@ function lobbyView() {
   return {
     code, kind, cap: isPublic ? PUBLIC_SEATS : 8,
     players: lobby.players.map(p => ({ id: p.id, name: p.name, handle: p.handle || null, color: p.color, faction: p.faction, bot: p.bot, diff: p.diff, local: !!p.local, controller: p.controller || null, spectator: !!p.spectator, team: p.team || 0, cos: p.cos || null, ready: isReady(p), away: !!p.away, afk: !!p.afk, connected: p.bot || isConnected(p.id) })),
-    hostId: lobby.hostId, settings: lobby.settings, inGame: !!game, saves: game || isPublic ? [] : savesFor((lobby.players.find(p => p.id === lobby.hostId) || {}).profileId), version: VERSION, lan: lanAddresses().map(a => 'http://' + a + ':' + PORT), port: PORT,
+    hostId: lobby.hostId, solo: !!lobby.solo, saveCap: profiles.SAVE_CAP, settings: lobby.settings, inGame: !!game, saves: game || isPublic ? [] : savesFor((lobby.players.find(p => p.id === lobby.hostId) || {}).profileId), version: VERSION, lan: lanAddresses().map(a => 'http://' + a + ':' + PORT), port: PORT,
   };
 }
 // ready-up: every human commander (not bots, spectators or pass-and-play seats, whose device owner readies for them) must be ready
@@ -284,7 +323,7 @@ function onMessage(c, m) {
       if (!p) {
         if (lobby.players.filter(x => !x.bot || !isPublic).length >= (isPublic ? PUBLIC_SEATS : 8)) return send(c, { t: 'err', msg: 'That room is full' });
         if (isPublic) { const bot = lobby.players.find(x => x.bot); if (bot && lobby.players.length >= PUBLIC_SEATS) lobby.players = lobby.players.filter(x => x !== bot); }
-        p = { id: 'p' + nextPid++, token: crypto.randomBytes(12).toString('hex'), name: String(m.name || 'Commander').slice(0, 16), color: freeColor(), faction: pickFaction(c), bot: false };
+        p = { id: 'p' + nextPid++, token: crypto.randomBytes(12).toString('hex'), name: cleanName(m.name, c) || 'Commander', color: freeColor(), faction: pickFaction(c), bot: false };
         lobby.players.push(p);
         note(p.name + ' joined from ' + addrOf(c));
       } else if (!isConnected(p.id)) note(p.name + ' reconnected');
@@ -331,7 +370,7 @@ function onMessage(c, m) {
       }
       const lp = lobby.players.find(p => p.id === m.id && p.bot), gp = game.players.find(p => p.id === m.id);
       if (!lp || !gp || !gp.alive || !gp.bot) return send(c, { t: 'err', msg: 'That seat is not a bot any more' });
-      const name = String(m.name || 'Commander').slice(0, 16), was = gp.name.replace(/ \(bot\)$/, '');
+      const name = cleanName(m.name, c) || 'Commander', was = gp.name.replace(/ \(bot\)$/, '');
       lp.bot = false; lp.diff = null; lp.spectator = false; lp.token = crypto.randomBytes(12).toString('hex'); lp.name = name;
       gp.bot = false; gp.diff = null; gp.name = name;
       c.pid = lp.id; botMem = {};
@@ -344,7 +383,7 @@ function onMessage(c, m) {
     }
     case 'me': {
       const p = lobby.players.find(x => x.id === c.pid); if (!p || game) return;
-      if (m.name) p.name = String(m.name).slice(0, 16);
+      if (m.name) p.name = cleanName(m.name, c) || p.name;
       if (m.faction && E.FACTIONS[m.faction] && factionsFor(c).includes(m.faction)) p.faction = m.faction;
       if (m.color && E.COLORS.includes(m.color) && m.color !== p.color) {
         // a human-held colour stays locked; a bot holding it swaps to your old colour so nobody clashes
@@ -354,7 +393,7 @@ function onMessage(c, m) {
       }
       return broadcastLobby();
     }
-    case 'settings': if (c.pid !== lobby.hostId || game) return; Object.assign(lobby.settings, pick(m.settings, ['mode', 'mapSize', 'mapType', 'spawns', 'fog', 'events', 'timer', 'maxRounds', 'conquestPct', 'seed', 'teams', 'speed', 'bank', 'personas'])); for (const p of lobby.players) if (p.id !== lobby.hostId) p.ready = false; return broadcastLobby();
+    case 'settings': if (c.pid !== lobby.hostId || game) return; Object.assign(lobby.settings, cleanSettings(m.settings)); for (const p of lobby.players) if (p.id !== lobby.hostId) p.ready = false; return broadcastLobby();
     case 'addLocal': {
       if (game || !c.pid || isPublic || lobby.players.length >= 8) return;   // shared-screen players are for rooms of your own
       const n = lobby.players.filter(p => p.local).length + 2;
@@ -364,7 +403,7 @@ function onMessage(c, m) {
     case 'seatCfg': {
       const sp = lobby.players.find(p => p.id === m.id && p.local && p.controller === c.pid);
       if (!sp || game) return;
-      if (m.name) sp.name = String(m.name).slice(0, 16);
+      if (m.name) sp.name = cleanName(m.name, c) || sp.name;
       if (m.faction && E.FACTIONS[m.faction] && factionsFor(c).includes(m.faction)) sp.faction = m.faction;   // pass & play seats use the device owner's factions
       if (m.color && E.COLORS.includes(m.color) && !lobby.players.some(x => x.color === m.color && x !== sp)) sp.color = m.color;
       return broadcastLobby();
@@ -425,6 +464,12 @@ function onMessage(c, m) {
       return broadcastLobby();
     }
     case 'start': if (c.pid !== lobby.hostId || game) return; return startGame(c);
+    case 'soloSetup': {
+      if (c.pid !== lobby.hostId || game || isPublic || lobby.players.length !== 1) return;
+      lobby.solo = true; lobby.settings.spawns = 'random';
+      for (let i = 0; i < 3; i++) onMessage(c, { t: 'addBot' });
+      return broadcastLobby();
+    }
     case 'scenario': {
       // a solo mission: the host plays it, anyone else in the lobby watches
       if (game) return send(c, { t: 'err', msg: 'Finish or leave the current game first' });
@@ -524,7 +569,8 @@ function onMessage(c, m) {
     }
     case 'chat': {
       const p = lobby.players.find(x => x.id === c.pid);
-      const text = String(m.text || '').slice(0, 140).trim(); if (!text) return;
+      if (!c.chatOk()) return send(c, { t: 'err', msg: 'Slow down: one message at a time' });
+      const text = F.chat(m.text); if (!text) return;
       for (const cl of clients) send(cl, { t: 'chat', from: p ? p.name : 'Spectator', color: p ? p.color : '#888', text });
       if (p && !p.bot) banterReply(text);
       return;
@@ -548,7 +594,7 @@ function onMessage(c, m) {
       return;
     }
     case 'loadSave': if (c.pid !== lobby.hostId || game) return; return loadSave(c, m.id);
-    case 'dropSave': if (c.pid !== lobby.hostId || game) return; dropSave(m.id); return broadcastLobby();
+    case 'dropSave': { if (c.pid !== lobby.hostId || game) return; const h = lobby.players.find(p => p.id === lobby.hostId); if (h && h.profileId && savesFor(h.profileId).some(s => s.id === m.id)) dropSave(m.id, h.profileId); return broadcastLobby(); }
     case 'toLobby': if (c.pid !== lobby.hostId || !game) return; console.log('[game] host ' + c.pid + ' ended the game'); endGame(); return;
     case 'ping': return send(c, { t: 'pong' });
     case 'alive': {
@@ -597,7 +643,9 @@ function startGame(c) {
   const r = E.createGame(s, roster);
   resetWar();
   game = r.state;
-  game.saveId = isPublic ? null : 'g' + Date.now().toString(36) + crypto.randomBytes(2).toString('hex');   // public wars aren't saved
+  // a private war is saved for the commander who started it (public wars aren't saved)
+  const owner = !isPublic && (lobby.players.find(p => p.id === lobby.hostId) || {}).profileId;
+  game.saveId = owner ? 'g' + Date.now().toString(36) + crypto.randomBytes(4).toString('hex') : null; game.saveOwner = owner || null;
   console.log('[game] ' + code + ' started: ' + lobby.players.length + ' players, ' + s.mode + ', map ' + s.mapSize);
   broadcastLobby();
   broadcastState(r.events, null);
@@ -636,20 +684,22 @@ function writeSave() {
   if (!game || game.phase !== 'play' || !game.saveId) return null;
   const fog = {}; for (const k in fogMem) fog[k] = { explored: [...fogMem[k].explored], seen: fogMem[k].seen };
   const seats = lobby.players.filter(p => game.players.some(g => g.id === p.id)).map(p => pick(p, ['id', 'name', 'color', 'faction', 'bot', 'diff', 'persona', 'local', 'controller', 'team', 'profileId']));
+  const owner = profiles.get(game.saveOwner); if (!owner) return null;
   const data = { v: 1, version: VERSION, id: game.saveId, savedAt: Date.now(), title: saveTitle(game), round: game.turn.round, mode: game.settings.mode, game, fog, seats, bank: bankLeft };
   try {
     fs.mkdirSync(SAVE_DIR, { recursive: true });
-    const f = savePath(game.saveId); fs.writeFileSync(f + '.tmp', JSON.stringify(data)); fs.renameSync(f + '.tmp', f);
-    saveList = null;
-    // keep the newest few
-    const old = listSaves().slice(SAVE_KEEP); for (const o of old) try { fs.unlinkSync(savePath(o.id)); } catch (e) {}
-    if (old.length) saveList = null;
+    const f = saveFile(game.saveId); fs.writeFileSync(f + '.tmp', zlib.gzipSync(JSON.stringify(data))); fs.renameSync(f + '.tmp', f);
+    // on the owner's list; a war past their save slots pushes out their oldest
+    const dropped = profiles.recordSave(owner, { id: data.id, title: data.title, round: data.round, mode: data.mode, savedAt: data.savedAt, humans: seats.filter(p => !p.bot).map(p => p.name) });
+    for (const id of dropped) dropSave(id);
     return data;
   } catch (e) { console.log('[save] failed: ' + e.message); return null; }
 }
 function scheduleSave() { if (!saveTimer && game && game.phase === 'play' && game.saveId) saveTimer = setTimeout(writeSave, 3000); }
 function loadSave(c, id) {
-  let d; try { d = JSON.parse(fs.readFileSync(savePath(id), 'utf8')); } catch (e) { return send(c, { t: 'err', msg: 'That save could not be read' }); }
+  const host = lobby.players.find(p => p.id === lobby.hostId), pr = host && host.profileId && profiles.get(host.profileId);
+  if (!pr || !profiles.savesOf(pr).some(s => s.id === id)) return send(c, { t: 'err', msg: 'That save isn’t yours' });
+  const d = readSave(id); if (!d) return send(c, { t: 'err', msg: 'That save could not be read' });
   if (!d || !d.game || !d.game.players) return send(c, { t: 'err', msg: 'That save is damaged' });
   const g = d.game, seats = d.seats || [];
   const num = id => +(String(id).match(/\d+/) || [0])[0];
@@ -873,7 +923,7 @@ function afterChange(events) {
   clearTimeout(botTimer); clearTimeout(turnTimer); clearTimeout(idleTimer);
   payOut();
   if (game && game.phase === 'play' && !game.scenario) scheduleSave();
-  else if (game && game.phase === 'over' && game.saveId) { clearTimeout(saveTimer); saveTimer = null; dropSave(game.saveId); game.saveId = null; }   // a finished war can't be resumed
+  else if (game && game.phase === 'over' && game.saveId) { clearTimeout(saveTimer); saveTimer = null; dropSave(game.saveId, game.saveOwner); game.saveId = null; }   // a finished war can't be resumed
   if (game && game.phase === 'spawn') {
     // bots pick their HQ quickly; humans get 60 seconds before one is chosen for them
     clearTimeout(draftTimer);
@@ -1094,31 +1144,40 @@ return {
 
 // profiles live next to the saved games; SECTOR_OG_UNTIL=YYYY-MM-DD gives early accounts the Founder skins
 const profiles = createProfiles(process.env.SECTOR_PROFILES || path.join(process.env.APPDATA || os.homedir(), 'Sector', 'profiles.json'), { ogUntil: process.env.SECTOR_OG_UNTIL, startValor: process.env.SECTOR_START_VALOR ?? 30000 });   // a starting grant while the store is being tested (SECTOR_START_VALOR=0 turns it off)
-// ───────────── saved games: every war in progress autosaves to its own file, and the host can resume it from the lobby ─────────────
+// ───────────── saved games: each commander's own wars, autosaved as they play (the newest SAVE_CAP are kept) ─────────────
+// A save belongs to the commander who started the war, travels with their account, and only they can resume or delete
+// it. The war itself is a gzipped file (a few KB); the list of a commander's saves lives on their profile.
 const SAVE_DIR = process.env.SECTOR_SAVES || path.join(process.env.APPDATA || os.homedir(), 'Sector', 'saves');
-const SAVE_KEEP = 20;
-let saveList = null;
-const savePath = id => path.join(SAVE_DIR, String(id).replace(/[^a-z0-9_-]/gi, '') + '.json');
+const saveFile = id => path.join(SAVE_DIR, String(id).replace(/[^a-z0-9_-]/gi, '') + '.json.gz');
 function saveTitle(g) {
   const mode = { domination: 'Domination', conquest: 'Conquest', koth: 'Beacon', worldwar: 'World War' }[g.settings.mode] || g.settings.mode;
   return mode + ' · round ' + g.turn.round + ' · ' + g.players.filter(p => p.alive).map(p => p.name.replace(/ \(bot\)$/, '')).join(', ');
 }
-function dropSave(id) { try { fs.unlinkSync(savePath(id)); } catch (e) {} saveList = null; }
-function listSaves() {
-  if (saveList) return saveList;
-  let files = []; try { files = fs.readdirSync(SAVE_DIR).filter(f => f.endsWith('.json')); } catch (e) {}
-  const out = [];
-  for (const f of files) {
+function readSave(id) {
+  try { return JSON.parse(zlib.gunzipSync(fs.readFileSync(saveFile(id))).toString('utf8')); }
+  catch (e) { try { return JSON.parse(fs.readFileSync(saveFile(id).replace(/\.gz$/, ''), 'utf8')); } catch (e2) { return null; } }   // saves from before v0.10.3
+}
+function dropSave(id, ownerId) {
+  for (const f of [saveFile(id), saveFile(id).replace(/\.gz$/, '')]) try { fs.unlinkSync(f); } catch (e) {}
+  const pr = ownerId && profiles.get(ownerId); if (pr) profiles.forgetSave(pr, id);
+}
+// saves from before v0.10.3 (plain files, no owner) move onto the account of the first commander who played in them
+(function migrateSaves() {
+  let files = []; try { files = fs.readdirSync(SAVE_DIR).filter(f => /^[a-z0-9_-]+\.json$/i.test(f)); } catch (e) { return; }
+  const all = files.map(f => { try { return { f, d: JSON.parse(fs.readFileSync(path.join(SAVE_DIR, f), 'utf8')) }; } catch (e) { return null; } }).filter(Boolean);
+  for (const { f, d } of all.sort((x, y) => (x.d.savedAt || 0) - (y.d.savedAt || 0))) {   // oldest first, so the newest end up kept
     try {
-      const d = JSON.parse(fs.readFileSync(path.join(SAVE_DIR, f), 'utf8'));
-      if (!d || !d.game || !d.id) continue;
-      out.push({ id: d.id, title: d.title, round: d.round, mode: d.mode, savedAt: d.savedAt, humans: (d.seats || []).filter(p => !p.bot).map(p => p.name), profiles: (d.seats || []).map(p => p.profileId).filter(Boolean) });
+      const seat = d && d.game && (d.seats || []).find(s => !s.bot && s.profileId && profiles.get(s.profileId));
+      if (!seat || d.game.phase !== 'play') continue;
+      d.game.saveOwner = seat.profileId;
+      fs.writeFileSync(saveFile(d.id), zlib.gzipSync(JSON.stringify(d)));
+      for (const id of profiles.recordSave(profiles.get(seat.profileId), { id: d.id, title: d.title, round: d.round, mode: d.mode, savedAt: d.savedAt, humans: (d.seats || []).filter(s => !s.bot).map(s => s.name) })) dropSave(id);
+      fs.unlinkSync(path.join(SAVE_DIR, f));
     } catch (e) {}
   }
-  return (saveList = out.sort((a, b) => b.savedAt - a.savedAt));
-}
-// the saves a host may resume: on a LAN server, all of them; online, only wars their profile fought in
-const savesFor = profileId => listSaves().filter(sv => !process.env.SECTOR_PUBLIC || (profileId && sv.profiles.includes(profileId)));
+})();
+// the saves a host may resume: their own
+const savesFor = profileId => { const pr = profileId && profiles.get(profileId); return pr ? profiles.savesOf(pr) : []; };
 function pick(o, keys) { const r = {}; for (const k of keys) if (o && k in o) r[k] = o[k]; return r; }
 
 // ───────────────────────── rooms, the front menu and parties ─────────────────────────
@@ -1181,14 +1240,20 @@ function onSocketClose(c) {
 }
 // a profile on this connection (the browser keeps its id and secret until accounts arrive)
 function auth(c, m) {
-  if (m.name) c.name = String(m.name).slice(0, 16);
+  if (m.name) c.name = cleanName(m.name, c) || c.name;
   if (!m.profile) return null;
   const pr = profiles.open(m.profile.id, m.profile.secret, c.name, m.ref);
   if (pr) { c.profileId = pr.id; if (!c.name && pr.name) c.name = pr.name; send(c, { t: 'profile', profile: profiles.view(pr) }); }
   return pr;
 }
+const ROOM_OPS = new Set(['quick', 'create', 'solo', 'join', 'scenario', 'partyCreate', 'partyJoin', 'publicProfile', 'leaderboard', 'authStart']);
 function route(c, m) {
   if (!m || typeof m.t !== 'string') return;
+  // opening rooms and parties, sign-ins and lookups cost the server real work: bursts of 5, then 2 a second
+  if (ROOM_OPS.has(m.t)) {
+    const now = Date.now(); c.roomTokens = Math.min(5, c.roomTokens + (now - c.roomAt) / 500); c.roomAt = now;
+    if (c.roomTokens < 1) return send(c, { t: 'err', msg: 'Slow down a moment' }); c.roomTokens--;
+  }
   switch (m.t) {
     case 'auth': auth(c, m); send(c, { t: 'menu', ...menuStats(), mode: process.env.SECTOR_PUBLIC ? 'public' : 'lan', version: VERSION, you: c.cid, logins: providersOn() }); return partySync(c.party);
     case 'menu': return send(c, { t: 'menu', ...menuStats(), mode: process.env.SECTOR_PUBLIC ? 'public' : 'lan', version: VERSION, you: c.cid, logins: providersOn() });
@@ -1207,6 +1272,8 @@ function route(c, m) {
       const room = quickRoom(n); enterRoom(c, room); bringParty(c, room); return;
     }
     case 'create': { auth(c, m); const room = openRoom('private'); enterRoom(c, room); bringParty(c, room); return; }
+    // SINGLEPLAYER: a private room of your own with three bots ready, your saved wars, and an invite link for a friend
+    case 'solo': { auth(c, m); const room = openRoom('private'); enterRoom(c, room); room.onMessage(c, { t: 'soloSetup' }); return; }
     case 'join': {
       auth(c, m);
       const code = String(m.code || '').trim().toUpperCase();
@@ -1291,7 +1358,7 @@ function route(c, m) {
       return;
     }
     case 'partyLead': { const pt = c.party; if (!pt || pt.leader !== c) return; const t = [...pt.members].find(x => x.cid === m.cid); if (t) { pt.leader = t; partySync(pt); } return; }
-    case 'partyRename': { if (!m.name) return; c.name = String(m.name).slice(0, 16); const pr = c.profileId && profiles.get(c.profileId); if (pr) profiles.rename(pr, c.name); return partySync(c.party); }
+    case 'partyRename': { const nm = m.name && cleanName(m.name, c); if (!nm) return; c.name = nm; const pr = c.profileId && profiles.get(c.profileId); if (pr) profiles.rename(pr, c.name); return partySync(c.party); }
   }
   if (!c.room) return;
   c.room.onMessage(c, m); settle(c);
