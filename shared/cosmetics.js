@@ -212,5 +212,7 @@
     return out;
   }
 
+  // plain dictionaries: '__proto__', 'constructor' and the like are never items, crates or slots (see engine.js)
+  for (const t of [ITEMS, VARIANTS, SLOTS, BOXES, PRICE, CARD_MULT]) Object.setPrototypeOf(t, null);
   return { OFF_ROTATION, priceOf, FACTION_START, FACTION_PRICE, factionsOf, ITEMS, VARIANTS, SLOTS, LOOKS, BOXES, rollBox, DAILY, WEEKLY, DAY_SOFT, matchCoins, diminish, dayKey, weekKey, msToNextDay, dailyStore, dailyObjectives, weeklyObjectives, botLoadout, cleanLoadout };
 });

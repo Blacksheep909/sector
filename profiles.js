@@ -44,6 +44,7 @@ function createProfiles(file, opts = {}) {
     // a starting grant of Valor (opts.startValor): once per commander, new or already made
     if (startValor && !p.startValor) { p.coins += startValor; p.startValor = startValor; }
     if (name) p.name = String(name).slice(0, 16);
+    if (!Number.isFinite(p.coins) || p.coins < 0) p.coins = 0;   // never NaN or negative, whatever happened before
     roll(p); save();
     return p;
   }
@@ -65,6 +66,7 @@ function createProfiles(file, opts = {}) {
     if (!it || it.buy === false) return 'That can’t be bought';
     if (p.owned.includes(itemId)) return 'Already yours';
     const price = C.priceOf(itemId);
+    if (!(price > 0)) return 'That can’t be bought';
     if (p.coins < price) return 'Need ' + price.toLocaleString() + ' Valor';
     p.coins -= price; p.owned.push(itemId); save();
     return null;
@@ -185,9 +187,18 @@ function createProfiles(file, opts = {}) {
   // a key for one more device (a browser that just signed in); the commander's other keys keep working
   function addDevice(p) { const s = crypto.randomBytes(24).toString('hex'); p.devices = (p.devices || []).concat(hash(s)).slice(-20); save(); return s; }
   function unlink(p, provider) { if (p.links && p.links[provider]) { delete p.links[provider]; save(); } }
+  // saved wars: the newest SAVE_CAP of each commander's own (the files live in the saves folder; this is their list)
+  const SAVE_CAP = 5;
+  const savesOf = p => p.saves || [];
+  function recordSave(p, meta) {
+    const list = [meta, ...savesOf(p).filter(s => s.id !== meta.id)];
+    p.saves = list.slice(0, SAVE_CAP); save();
+    return list.slice(SAVE_CAP).map(s => s.id);
+  }
+  function forgetSave(p, id) { if (savesOf(p).some(s => s.id === id)) { p.saves = savesOf(p).filter(s => s.id !== id); save(); } }
   function rename(p, name) { if (!name) return; p.name = String(name).slice(0, 16); save(); }
   function giveItem(p, item) { if (!C.ITEMS[item]) return 'No such item'; if (!p.owned.includes(item)) p.owned.push(item); save(); return null; }
   function totals() { const all = Object.values(db); return { profiles: all.length, coins: all.reduce((a, p) => a + p.coins, 0), owned: all.reduce((a, p) => a + p.owned.length, 0), games: all.reduce((a, p) => a + ((p.total || {}).games || 0), 0) }; }
-  return { open, view, buy, equip, openBox, finishGame, scenarioDone, grant, list, giveItem, totals, publicView, leaderboard, rename, buyFaction, linkAccount, addDevice, unlink, get: id => db[id] };
+  return { SAVE_CAP: 5, savesOf, recordSave, forgetSave, open, view, buy, equip, openBox, finishGame, scenarioDone, grant, list, giveItem, totals, publicView, leaderboard, rename, buyFaction, linkAccount, addDevice, unlink, get: id => db[id] };
 }
 module.exports = { createProfiles, REF_COINS, WELCOME_COINS };

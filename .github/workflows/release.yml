@@ -76,7 +76,7 @@ jobs:
           Remove-Item $pfx
       - name: Zip portable source
         shell: pwsh
-        run: Compress-Archive -Path server.js, profiles.js, package.json, shared, public, assets, "Start Sector.bat", README.md -DestinationPath dist/Sector-source.zip
+        run: Compress-Archive -Path server.js, profiles.js, filter.js, package.json, shared, public, assets, "Start Sector.bat", README.md -DestinationPath dist/Sector-source.zip
       - name: Publish release
         if: env.TAG != ''
         uses: softprops/action-gh-release@v2

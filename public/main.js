@@ -211,6 +211,7 @@
   const go = msg => { joinedOnce = true; leftGame = false; SFX.select(); send({ ...msg, name: keepName(), profile: Locker.identity(), ref: Locker.ref() }); };
   $('#playBtn').onclick = () => go({ t: 'quick' });
   $('#createBtn').onclick = () => go({ t: 'create' });
+  $('#soloBtn').onclick = () => go({ t: 'solo' });
   $('#codeGo').onclick = () => { const code = $('#codeIn').value.trim().toUpperCase(); if (code.length < 4) { toast('Enter a room or party code', 'err'); SFX.error(); return; } go({ t: 'join', code }); $('#codeIn').value = ''; };
   $('#codeIn').addEventListener('keydown', e => { if (e.key === 'Enter') $('#codeGo').click(); });
   $('#codeIn').addEventListener('input', e => { e.target.value = e.target.value.toUpperCase().replace(/[^A-Z0-9]/g, ''); });
@@ -220,10 +221,10 @@
   function renderRoomBar() {
     const rb = $('#roomBar'); rb.hidden = false;
     const pub = lobby.kind === 'public', main = lobby.code === 'MAIN', link = location.origin + '/?room=' + lobby.code;
-    const key = [lobby.code, lobby.kind, lobby.inGame].join(); if (rb.dataset.key === key) return; rb.dataset.key = key;
+    const key = [lobby.code, lobby.kind, lobby.inGame, lobby.solo].join(); if (rb.dataset.key === key) return; rb.dataset.key = key;
     // public: anyone pressing PLAY can land here until it deploys · private: only people with the code or link
-    rb.innerHTML = `<div class="rb-kind${pub ? ' pub' : ''}">${pub ? 'PUBLIC WAR' : main ? 'LAN LOBBY' : 'PRIVATE ROOM'}</div>` + (main ? '<div class="rb-code"><span class="sub">everyone who opens this server’s address lands here</span></div>'
-      : `<div class="rb-code"><span>CODE</span><b>${esc(lobby.code)}</b><button class="btn tiny" id="rbCopy">🔗 COPY INVITE LINK</button><span class="sub">${pub ? 'open: anyone who presses PLAY can join until it deploys' : 'invite only'}</span></div>`) + `<button class="btn" id="rbLeave">◂ LEAVE</button>`;
+    rb.innerHTML = `<div class="rb-kind${pub ? ' pub' : lobby.solo ? ' solo' : ''}">${pub ? 'PUBLIC WAR' : main ? 'LAN LOBBY' : lobby.solo ? 'SINGLEPLAYER' : 'PRIVATE ROOM'}</div>` + (main ? '<div class="rb-code"><span class="sub">everyone who opens this server’s address lands here</span></div>'
+      : `<div class="rb-code"><span>CODE</span><b>${esc(lobby.code)}</b><button class="btn tiny" id="rbCopy">${lobby.solo ? '🔗 INVITE A FRIEND' : '🔗 COPY INVITE LINK'}</button><span class="sub">${pub ? 'open: anyone who presses PLAY can join until it deploys' : lobby.solo ? 'you against bots · a friend can join any time and take over a bot' : 'invite only'}</span></div>`) + `<button class="btn" id="rbLeave">◂ LEAVE</button>`;
     const cp = $('#rbCopy'); if (cp) cp.onclick = () => { try { navigator.clipboard.writeText(link); toast('Invite link copied'); } catch (e) { toast(link); } SFX.click(); };
     $('#rbLeave').onclick = () => { SFX.click(); send({ t: 'leave' }); };
   }
@@ -346,6 +347,7 @@
   function renderSaves(host) {
     const box = $('#saveBox'), list = lobby.saves || [];
     box.hidden = !host || !list.length; if (box.hidden) return;
+    $('#saveCount').textContent = list.length + '/' + (lobby.saveCap || 5) + (list.length >= (lobby.saveCap || 5) ? ' · a new war replaces the oldest' : '');
     const ago = t => { const m = Math.round((Date.now() - t) / 60000); return m < 1 ? 'just now' : m < 60 ? m + 'm ago' : m < 1440 ? Math.round(m / 60) + 'h ago' : Math.round(m / 1440) + 'd ago'; };
     const key = JSON.stringify(list.map(s => [s.id, s.savedAt]));
     if (box.dataset.key === key) return; box.dataset.key = key;
@@ -1064,6 +1066,7 @@
     const host = lobby && lobby.hostId === realId;
     $('#escEnd').hidden = !host;
     $('#escSave').hidden = !host || S.phase !== 'play';
+    $('#escInvite').hidden = !lobby || lobby.kind === 'public' || lobby.code === 'MAIN' || S.phase === 'over' || !!S.scenario;
     $('#escInfo').textContent = (S.phase === 'over' ? 'Game over' : 'Round ' + S.turn.round) + ' · ' + (lobby ? lobby.players.length : S.players.length) + ' commanders' + (host ? ' · you are the host' : '');
     $('#escSound').textContent = 'SOUND: ' + (SFX.muted ? 'OFF' : 'ON');
     $('#escAuto').textContent = 'AUTO-END TURN: ' + (autoEndOff ? 'OFF' : 'ON');
@@ -1155,6 +1158,7 @@
   $('#escIndex').onclick = () => { closeEsc(); Cards.showIndex(); };
   $('#escSound').onclick = () => { const m = SFX.toggle(); setTimeout(menuMusic, 50); $('#escSound').textContent = 'SOUND: ' + (m ? 'OFF' : 'ON'); $('#muteBtn').textContent = m ? '✕' : '♪'; };
   $('#escSave').onclick = () => { SFX.click(); send({ t: 'saveGame' }); };
+  $('#escInvite').onclick = () => { const link = location.origin + '/?room=' + lobby.code; try { navigator.clipboard.writeText(link); toast('Invite link copied: a friend who opens it can take over a bot'); } catch (e) { toast(link); } SFX.click(); };
   $('#escLeave').onclick = () => {
     if ($('#escLeave').dataset.armed !== '1' && myP() && S.phase === 'play') { $('#escLeave').dataset.armed = '1'; $('#escLeave').textContent = 'CLICK AGAIN TO LEAVE'; setTimeout(() => { $('#escLeave').dataset.armed = ''; if (!$('#escMenu').hidden) openEsc(); }, 2500); return; }
     $('#escLeave').dataset.armed = '';

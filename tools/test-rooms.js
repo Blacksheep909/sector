@@ -51,6 +51,12 @@ const until = async (f, ms = 8000) => { const t = Date.now(); while (Date.now() 
     ok(a.lobby && a.lobby.code !== b.lobby.code, 'a war that has deployed takes nobody else from PLAY');
     ok(b.state && b.state.players.length >= 4 && b.state.players.filter(p => p.bot).length >= 2, 'bots fill the empty seats (' + (b.state ? b.state.players.length : 0) + ' commanders)');
     ok(b.state && b.state.settings.timer === 60, 'public wars have a turn clock');
+    // ── singleplayer: a private room of your own with three bots ready ──
+    b.send({ t: 'leave' }); c.send({ t: 'leave' }); await until(() => !b.lobby && !c.lobby);
+    b.send({ t: 'solo' });
+    ok(await until(() => b.lobby && b.lobby.solo && b.lobby.kind === 'private' && b.lobby.hostId === b.you && b.lobby.players.filter(p => p.bot).length === 3), 'SINGLEPLAYER opens a room of your own with three bots');
+    c.send({ t: 'join', code: b.lobby.code });
+    ok(await until(() => c.lobby && c.lobby.code === b.lobby.code), 'a friend joins a singleplayer war with its invite code');
     // ── parties ──
     b.send({ t: 'leave' }); c.send({ t: 'leave' }); a.send({ t: 'leave' });
     await until(() => !a.lobby && !b.lobby && !c.lobby);

@@ -12,6 +12,11 @@ Every release, newest first. Each version also has its own post on the [Releases
 - **Every country flag costs the same** (1,500 Valor).
 - **Unlock animations.** Buying a look or unlocking a faction plays a reveal: a flash, rays in its rarity colour, sparks, and an **EQUIP NOW** button.
 - **30,000 Valor to start, for testing.** Every commander gets it once, new or existing (server hosts: `SECTOR_START_VALOR`, set it to 0 to turn it off).
+- **🎮 Singleplayer.** A new button on the front page opens a war of your own with three bots ready to go. **INVITE A FRIEND** (in the lobby or the Esc menu) copies a link; a friend who opens it can take over a bot.
+- **Saved wars belong to your account.** Wars you start in a room of your own save themselves to your commander, so signing in on another device brings them with you. You keep your 5 most recent; resume or delete them from your lobby. Older saves move onto the account of the commander who played them.
+- **Clean chat and names.** Links and addresses are removed, swearing is masked, fancy-font text shows as plain letters, stacked "zalgo" marks and invisible characters are stripped, and offensive or official-looking names are refused (you're told, and keep your old one).
+- **Security hardening.** Fixed a crafted purchase that could turn Valor into an invalid number and make everything free; saves can no longer be loaded or deleted by anyone but their owner; a web address with a hidden character could crash the server. One bad message can no longer stop the server, and oversized messages, floods and too many connections from one address are cut off. Lobby settings only accept the values the menus offer, and pages carry a Content-Security-Policy. `tools/pentest.js` checks all of this.
+- **Fix: the Docker image** was missing a file and wouldn't start.
 - **Recruits count when they make an account.** A friend who joins with your recruit link now pays out when they sign in with Google or Discord (you get 250 Valor, they get 100), instead of after their first game. Each login belongs to one commander, so every recruit has to be a real account.
 - **Missions from anywhere.** Picking a mission while you're sitting in a public war (or someone else's room) takes you out of it into a room of your own, instead of doing nothing.
 

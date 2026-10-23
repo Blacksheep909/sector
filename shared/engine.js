@@ -2743,6 +2743,9 @@
     return c;
   }
 
+  // lookup tables are plain dictionaries: a name sent by a player like '__proto__' or 'constructor' is simply not in them
+  // (on an ordinary object those names find JavaScript's built-ins, which once let a crafted buy turn Valor into NaN)
+  for (const t of [RARITY, CRATES, DROP_TIERS, TURN_ODDS, TERRAIN, UNITS, TACTICS, STRUCTS, FACTIONS, DIFFICULTY, POI, WEATHER, TEAM_COLORS, TEAM_NAMES, CLASS_NAME]) Object.setPrototypeOf(t, null);
   return {
     DIRS, key, parse, dist, neighbors, area, line, mulberry32, hashStr,
     POI, WEATHER, isAlly, recordHistory, RARITY, RARITY_ORDER, CRATES, DROP_TIERS, SCRAP_VALUE, DECK_MAX, MAX_LEVEL, TERRAIN, DIFFICULTY, UNITS, TACTICS, STRUCTS, BUILD_ORDER, UPGRADABLE, MAX_SLVL, FACTIONS, ROLL_BASE, COLORS, TEAM_COLORS, TEAM_NAMES, teamColor, MAX_STACK, GRUNT_STACK, stackFits, CLASS_NAME, cardDef,
