@@ -2697,7 +2697,7 @@
   function view(s, pid, mem) {
     const c = JSON.parse(JSON.stringify(s));
     if (c.phase !== 'over') { delete c.heat; delete c.flips; delete c.bigBattle; }
-    delete c.botMem;   // bot plans stay secret   // end-of-game report data stays secret until the end
+    delete c.botMem; for (const q of c.players) delete q.persona;   // bot plans (and personalities) stay secret   // end-of-game report data stays secret until the end
     const pl = pid && c.players.find(p => p.id === pid);
     if (s.settings.fog === 'on' && pl && pl.alive && c.phase === 'play') {
       // real fog of war: unexplored hexes are unknown; explored-but-unseen hexes show what you last saw

@@ -185,12 +185,6 @@
         dsel.innerHTML = Object.keys(E.DIFFICULTY).map(d => `<option value="${d}"${p.diff === d ? ' selected' : ''}>${E.DIFFICULTY[d].name}</option>`).join('') + `<option value="random"${p.diff === 'random' ? ' selected' : ''}>🎲 Random</option>`;
         dsel.disabled = !host; dsel.onchange = () => send({ t: 'botCfg', id: p.id, diff: dsel.value });
         r.insertBefore(dsel, r.querySelector('.tag'));
-        // personality: how it plays and what it says
-        const PZ = SectorPersonas, ps = el('select', 'diffsel persel'), cur = p.persona || 'random';
-        ps.innerHTML = `<option value="random"${cur === 'random' ? ' selected' : ''}>🎭 Random personality</option>` + PZ.IDS.map(k => `<option value="${k}"${cur === k ? ' selected' : ''}>${PZ.PERSONAS[k].icon} ${PZ.PERSONAS[k].name}</option>`).join('') + `<option value="none"${cur === 'none' ? ' selected' : ''}>· Plain (quiet)</option>`;
-        ps.title = PZ.PERSONAS[cur] ? PZ.PERSONAS[cur].blurb : cur === 'none' ? 'A standard bot that keeps quiet' : 'Picks one of the personalities when the game starts';
-        ps.disabled = !host; ps.onchange = () => send({ t: 'botCfg', id: p.id, persona: ps.value });
-        const fx = r.querySelector('.nm .fx'); if (fx) fx.replaceWith(ps); else r.querySelector('.nm').appendChild(ps);
       }
       if (p.local) {
         r.querySelector('.nm').innerHTML = `<input class="seat-name" value="${esc(p.name)}" maxlength="16"><div class="fx">${f ? f.name : ''} · this device</div>`;
@@ -236,7 +230,7 @@
       cl.appendChild(d);
     }
     const st = lobby.settings;
-    for (const [id, k] of [['#setMode', 'mode'], ['#setType', 'mapType'], ['#setSize', 'mapSize'], ['#setSpawns', 'spawns'], ['#setFog', 'fog'], ['#setEvents', 'events'], ['#setTimer', 'timer'], ['#setRounds', 'maxRounds'], ['#setSeed', 'seed'], ['#setTeams', 'teams'], ['#setSpeed', 'speed'], ['#setBank', 'bank'], ['#setBanter', 'banter']]) {
+    for (const [id, k] of [['#setMode', 'mode'], ['#setType', 'mapType'], ['#setSize', 'mapSize'], ['#setSpawns', 'spawns'], ['#setFog', 'fog'], ['#setEvents', 'events'], ['#setTimer', 'timer'], ['#setRounds', 'maxRounds'], ['#setSeed', 'seed'], ['#setTeams', 'teams'], ['#setSpeed', 'speed'], ['#setBank', 'bank'], ['#setPersonas', 'personas']]) {
       const e = $(id); if (document.activeElement !== e) e.value = st[k] ?? ''; e.disabled = !host;
     }
     $('#startBtn').hidden = !host; $('#waitHost').hidden = host;
@@ -266,7 +260,7 @@
       SFX.click(); send({ t: 'dropSave', id: b.dataset.drop });
     });
   }
-  for (const [id, k] of [['#setMode', 'mode'], ['#setType', 'mapType'], ['#setSize', 'mapSize'], ['#setSpawns', 'spawns'], ['#setFog', 'fog'], ['#setEvents', 'events'], ['#setTimer', 'timer'], ['#setRounds', 'maxRounds'], ['#setSeed', 'seed'], ['#setTeams', 'teams'], ['#setSpeed', 'speed'], ['#setBank', 'bank'], ['#setBanter', 'banter']])
+  for (const [id, k] of [['#setMode', 'mode'], ['#setType', 'mapType'], ['#setSize', 'mapSize'], ['#setSpawns', 'spawns'], ['#setFog', 'fog'], ['#setEvents', 'events'], ['#setTimer', 'timer'], ['#setRounds', 'maxRounds'], ['#setSeed', 'seed'], ['#setTeams', 'teams'], ['#setSpeed', 'speed'], ['#setBank', 'bank'], ['#setPersonas', 'personas']])
     $(id).addEventListener('change', e => send({ t: 'settings', settings: { [k]: e.target.value } }));
   $('#addBot').onclick = () => { SFX.click(); send({ t: 'addBot' }); };
   $('#addLocal').onclick = () => { SFX.click(); send({ t: 'addLocal' }); };
@@ -1215,9 +1209,7 @@
       const extra = S.map.beacon ? ` · ◆${p.koth}/3` : '';
       if (!p.alive) c.style.setProperty('--pc', '#5b6670');
       c.innerHTML = `<div class="av"><img src="${Art.iconURL('glyph', f ? f.glyph : 'shield', '#0b0f13', 48)}"></div><div><div class="pn">${esc(p.name)}${p.alive ? '' : ' <span class="out">☠ OUT</span>'}${p.team ? ` <span class="teamchip t${p.team}">${'ABCD'[p.team - 1]}</span>` : ''}${p.traitor ? ' <span class="out" title="Broke an alliance: -40% income and no new pacts">🗡 TRAITOR</span>' : ''}${moodTag(p)}</div><div class="ps"><span title="${counts[p.id] || 0} land hexes (what counts to win) + ${seas[p.id] || 0} sea">⬢ <b>${counts[p.id] || 0}</b></span><span>$<b>${p.cash}</b></span><span>🂠 <b>${p.tacticCount ?? p.tactics.length}</b></span>${extra}</div></div>`;
-      const pz = p.persona && SectorPersonas.PERSONAS[p.persona];
-      if (pz) c.querySelector('.pn').insertAdjacentHTML('beforeend', ` <span class="pz-tag" title="${esc(pz.name + ': ' + pz.blurb)}">${pz.icon}</span>`);
-      c.title = (f ? f.name + ' — ' + f.perk + ': ' + f.desc : '') + (pz ? '\n' + pz.icon + ' ' + pz.name + ': ' + pz.blurb : '');
+      c.title = f ? f.name + ' — ' + f.perk + ': ' + f.desc : '';
       c.onclick = () => { if (p.hq) Render.focus(p.hq); };
       if (saying[p.id]) sayOn(c, p.id, false);
       const allied = E.isAlly(S, you, p.id), pact = allied && (S.allies || []).find(x => (x.a === p.id || x.b === p.id) && (x.a === you || x.b === you));
