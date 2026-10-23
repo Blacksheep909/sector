@@ -598,7 +598,7 @@
     shuffled.forEach((p, i) => {
       const hq = pickSpawns ? null : spawnOrder[i];
       const pl = {
-        id: p.id, name: p.name, color: p.color, faction: p.faction, bot: !!p.bot, diff: p.bot ? (DIFFICULTY[p.diff] ? p.diff : 'medium') : null,
+        id: p.id, name: p.name, color: p.color, faction: p.faction, bot: !!p.bot, diff: p.bot ? (DIFFICULTY[p.diff] ? p.diff : 'medium') : null, persona: p.bot && p.persona ? p.persona : null,
         cash: ww ? 20 : 6, arsenal: ['grunt'], levels: {}, tactics: [], alive: true, hq, koth: 0, blitz: false, local: !!p.local, team: settings.teams === 'on' ? p.team : undefined, cos: p.cos || null,
         stats: { captured: 0, kills: 0, lost: 0, crates: 0 },
       };

@@ -9,6 +9,7 @@ const E = require('./shared/engine');
 const SCN = require('./shared/scenarios');
 const { botStep, battlePick, draftStep, spawnStep, tradeReply, allyReply, BOT_NAMES } = require('./shared/bot');
 const C = require('./shared/cosmetics');
+const PZ = require('./shared/personas');
 const { createProfiles } = require('./profiles');
 
 // ── self-update, step 2: the freshly downloaded exe is started with this flag. It waits for the old
@@ -94,7 +95,7 @@ const server = http.createServer((req, res) => {
   const name = url.replace(/^\/+/, '');
   if (!name || name.includes('..') || name.includes('\\')) { res.writeHead(403); return res.end(); }
   if (name === 'dev.html' && !DEV_KEY) { res.writeHead(404); return res.end('not found'); }   // no key, no panel
-  const rel = name === 'engine.js' ? (sea ? 'engine.js' : 'shared/engine.js') : name === 'cosmetics.js' ? (sea ? 'cosmetics.js' : 'shared/cosmetics.js') : name === 'scenarios.js' ? (sea ? 'scenarios.js' : 'shared/scenarios.js') : 'public/' + name;
+  const rel = name === 'engine.js' ? (sea ? 'engine.js' : 'shared/engine.js') : name === 'cosmetics.js' ? (sea ? 'cosmetics.js' : 'shared/cosmetics.js') : name === 'scenarios.js' ? (sea ? 'scenarios.js' : 'shared/scenarios.js') : name === 'personas.js' ? (sea ? 'personas.js' : 'shared/personas.js') : 'public/' + name;
   const done = (err, data) => {
     if (err) { res.writeHead(404); return res.end('not found'); }
     res.writeHead(200, { 'Content-Type': MIME[path.extname(name)] || 'application/octet-stream', 'Cache-Control': 'no-cache' });
@@ -158,7 +159,7 @@ setInterval(() => {
 }, 6000);
 
 // ───────────────────────── lobby / game ─────────────────────────
-const lobby = { players: [], hostId: null, settings: { mode: 'domination', mapSize: 'medium', mapType: 'random', spawns: 'pick', fog: 'on', events: 'on', timer: 0, maxRounds: 0, conquestPct: 60, seed: '', teams: 'off', speed: 'fast', bank: 'off' } };
+const lobby = { players: [], hostId: null, settings: { mode: 'domination', mapSize: 'medium', mapType: 'random', spawns: 'pick', fog: 'on', events: 'on', timer: 0, maxRounds: 0, conquestPct: 60, seed: '', teams: 'off', speed: 'fast', bank: 'off', banter: 'on' } };
 let game = null;           // engine state
 // profiles live next to the saved games; SECTOR_OG_UNTIL=YYYY-MM-DD gives early accounts the Founder skins
 const profiles = createProfiles(process.env.SECTOR_PROFILES || path.join(process.env.APPDATA || os.homedir(), 'Sector', 'profiles.json'), { ogUntil: process.env.SECTOR_OG_UNTIL });
@@ -168,7 +169,7 @@ const autoPids = new Set(); // dev: humans driven by the bot AI (SECTOR_DEV=1)
 
 function lobbyView() {
   return {
-    players: lobby.players.map(p => ({ id: p.id, name: p.name, color: p.color, faction: p.faction, bot: p.bot, diff: p.diff, local: !!p.local, controller: p.controller || null, spectator: !!p.spectator, team: p.team || 0, cos: p.cos || null, ready: isReady(p), away: !!p.away, afk: !!p.afk, connected: p.bot || isConnected(p.id) })),
+    players: lobby.players.map(p => ({ id: p.id, name: p.name, color: p.color, faction: p.faction, bot: p.bot, diff: p.diff, persona: p.bot ? p.persona || 'random' : null, local: !!p.local, controller: p.controller || null, spectator: !!p.spectator, team: p.team || 0, cos: p.cos || null, ready: isReady(p), away: !!p.away, afk: !!p.afk, connected: p.bot || isConnected(p.id) })),
     hostId: lobby.hostId, settings: lobby.settings, inGame: !!game, saves: game ? [] : listSaves(), version: VERSION, lan: lanAddresses().map(a => 'http://' + a + ':' + PORT), port: PORT,
   };
 }
@@ -214,6 +215,7 @@ function broadcastState(events, by, seq) {
   if (game && events) for (const e of events) if (e.e === 'deploy' && e.unit) { const t = game.tally = game.tally || { deploys: {} }; t.deploys[e.unit.type] = (t.deploys[e.unit.type] || 0) + 1; }
   if (game && game.players[game.turn.idx] && game.players[game.turn.idx].id !== undoStack.owner) undoStack.length = 0;
   setTimeout(sendNotes, 0);   // alliances may have changed who sees whose war-room marks
+  banter(events);
   for (const c of clients) { if (c.left) continue; const seat = seatFor(c); send(c, { t: 'state', state: E.view(game, seat, fogFor(seat)), events: filterEvents(events, seat), by, seq, seat, mine: controls(c, by), undo: undoStack.owner === seat ? undoStack.length : 0, timeLeft: game && game.turn.deadline ? Math.max(0, game.turn.deadline - (game.turn.pausedAt || Date.now())) : 0, paused: !!(game && game.turn.pausedAt) }); }
 }
 // ally war room: arrows and circles each commander draws on the map, shown only to them and their allies
@@ -333,7 +335,7 @@ function onMessage(c, m) {
       }
       return broadcastLobby();
     }
-    case 'settings': if (c.pid !== lobby.hostId || game) return; Object.assign(lobby.settings, pick(m.settings, ['mode', 'mapSize', 'mapType', 'spawns', 'fog', 'events', 'timer', 'maxRounds', 'conquestPct', 'seed', 'teams', 'speed', 'bank'])); for (const p of lobby.players) if (p.id !== lobby.hostId) p.ready = false; return broadcastLobby();
+    case 'settings': if (c.pid !== lobby.hostId || game) return; Object.assign(lobby.settings, pick(m.settings, ['mode', 'mapSize', 'mapType', 'spawns', 'fog', 'events', 'timer', 'maxRounds', 'conquestPct', 'seed', 'teams', 'speed', 'bank', 'banter'])); for (const p of lobby.players) if (p.id !== lobby.hostId) p.ready = false; return broadcastLobby();
     case 'addLocal': {
       if (game || !c.pid || lobby.players.length >= 8) return;
       const n = lobby.players.filter(p => p.local).length + 2;
@@ -355,7 +357,7 @@ function onMessage(c, m) {
       // a new bot takes the difficulty of the bot above it (so filling a lobby with Hard bots is one setting, not five)
       const prev = [...lobby.players].reverse().find(p => p.bot);
       const diff = E.DIFFICULTY[m.diff] || m.diff === 'random' ? m.diff : prev ? prev.diff : 'medium';
-      lobby.players.push({ id: 'p' + nextPid++, token: null, name, color: freeColor(), faction: Object.keys(E.FACTIONS)[Math.floor(Math.random() * 5)], bot: true, diff, cos: C.botLoadout() });
+      lobby.players.push({ id: 'p' + nextPid++, token: null, name, color: freeColor(), faction: Object.keys(E.FACTIONS)[Math.floor(Math.random() * 5)], bot: true, diff, persona: 'random', cos: C.botLoadout() });
       return broadcastLobby();
     }
     case 'openBox': {
@@ -392,6 +394,7 @@ function onMessage(c, m) {
       const b = lobby.players.find(p => p.id === m.id && p.bot); if (!b) return;
       if (m.diff && (E.DIFFICULTY[m.diff] || m.diff === 'random')) b.diff = m.diff;
       if (m.faction && E.FACTIONS[m.faction]) b.faction = m.faction;
+      if (m.persona && (PZ.PERSONAS[m.persona] || m.persona === 'random' || m.persona === 'none')) b.persona = m.persona;
       return broadcastLobby();
     }
     case 'spectate': {
@@ -423,7 +426,7 @@ function onMessage(c, m) {
     case 'start': {
       if (c.pid !== lobby.hostId || game) return;
       const diffs = Object.keys(E.DIFFICULTY);
-      const roster = lobby.players.filter(p => !p.spectator).map(p => p.bot && p.diff === 'random' ? { ...p, diff: diffs[Math.floor(Math.random() * diffs.length)] } : p);
+      const roster = lobby.players.filter(p => !p.spectator).map(p => p.bot ? { ...p, diff: p.diff === 'random' ? diffs[Math.floor(Math.random() * diffs.length)] : p.diff, persona: p.persona === 'none' ? null : PZ.PERSONAS[p.persona] ? p.persona : PZ.pick() } : p);
       if (roster.length < 2) return send(c, { t: 'err', msg: lobby.players.length < 2 ? 'Need at least 2 commanders (add a bot)' : 'Need at least 2 commanders who are playing, not spectating' });
       const host = lobby.players.find(p => p.id === c.pid); if (host) host.ready = true;   // pressing DEPLOY readies the host
       const waiting = notReady();
@@ -432,7 +435,7 @@ function onMessage(c, m) {
       if (s.bank && s.bank !== 'off') s.timer = 0;   // the time bank replaces the per-turn timer
       for (const k in bankLeft) delete bankLeft[k]; bankKey = ''; bankPid = null;
       const r = E.createGame(s, roster);
-      game = r.state; botMem = {}; fogMem = {};
+      game = r.state; botMem = {}; fogMem = {}; banterReset();
       game.saveId = 'g' + Date.now().toString(36) + crypto.randomBytes(2).toString('hex');
       console.log('[game] started: ' + lobby.players.length + ' players, ' + s.mode + ', map ' + s.mapSize);
       broadcastLobby();
@@ -538,6 +541,7 @@ function onMessage(c, m) {
       const p = lobby.players.find(x => x.id === c.pid);
       const text = String(m.text || '').slice(0, 140).trim(); if (!text) return;
       for (const cl of clients) send(cl, { t: 'chat', from: p ? p.name : 'Spectator', color: p ? p.color : '#888', text });
+      if (p && !p.bot) banterReply(text);
       return;
     }
     case 'leave': {
@@ -623,7 +627,7 @@ function writeSave() {
   clearTimeout(saveTimer); saveTimer = null;
   if (!game || game.phase !== 'play' || !game.saveId) return null;
   const fog = {}; for (const k in fogMem) fog[k] = { explored: [...fogMem[k].explored], seen: fogMem[k].seen };
-  const seats = lobby.players.filter(p => game.players.some(g => g.id === p.id)).map(p => pick(p, ['id', 'name', 'color', 'faction', 'bot', 'diff', 'local', 'controller', 'team']));
+  const seats = lobby.players.filter(p => game.players.some(g => g.id === p.id)).map(p => pick(p, ['id', 'name', 'color', 'faction', 'bot', 'diff', 'persona', 'local', 'controller', 'team']));
   const data = { v: 1, version: VERSION, id: game.saveId, savedAt: Date.now(), title: saveTitle(game), round: game.turn.round, mode: game.settings.mode, game, fog, seats, bank: bankLeft };
   try {
     fs.mkdirSync(SAVE_DIR, { recursive: true });
@@ -669,7 +673,7 @@ function loadSave(c, id) {
       gp.bot = false; gp.away = false; gp.afk = false;
       continue;
     }
-    players.push({ id: gp.id, name: gp.name, color: gp.color, faction: gp.faction, team: gp.team || 0, bot: true, diff: gp.diff || sv.diff || 'medium', local: false, controller: null, token: null, _local: sv.local ? sv.controller : null });
+    players.push({ id: gp.id, name: gp.name, color: gp.color, faction: gp.faction, team: gp.team || 0, bot: true, diff: gp.diff || sv.diff || 'medium', persona: gp.persona || null, local: false, controller: null, token: null, _local: sv.local ? sv.controller : null });
   }
   // pass & play seats come back if the person who held the device is here
   for (const p of players) {
@@ -681,7 +685,7 @@ function loadSave(c, id) {
   for (const cl of clients) if (cl.pid && remap.has(cl.pid)) cl.pid = remap.get(cl.pid);
   lobby.hostId = remap.get(lobby.hostId) || lobby.hostId;
   lobby.players = players;
-  Object.assign(lobby.settings, pick(g.settings, ['mode', 'mapSize', 'mapType', 'spawns', 'fog', 'events', 'timer', 'maxRounds', 'conquestPct', 'teams', 'speed', 'bank']));
+  Object.assign(lobby.settings, pick(g.settings, ['mode', 'mapSize', 'mapType', 'spawns', 'fog', 'events', 'timer', 'maxRounds', 'conquestPct', 'teams', 'speed', 'bank', 'banter']));
   // clocks were wall-clock times when saved: restart this turn's
   g.turn.pausedAt = 0; g.paused = false;
   g.turn.deadline = g.settings.timer ? Date.now() + g.settings.timer * 1000 : 0; g.turn.prevDeadline = 0;
@@ -993,10 +997,50 @@ function forceEnd(pid) {
   const r = E.applyAction(game, pid, { a: 'end' });
   if (r.ok || ev.length) { game.log.push('⏱ ' + (E.player(game, pid) || {}).name + ' ran out of time.'); game.v++; broadcastState(ev.concat(r.ok ? r.events : []), pid); afterChange(r.events); }
 }
+// ── bot banter: a bot with a personality comments on the war (Bot chatter setting; never more than a line every few seconds) ──
+const BIG_TACTICS = ['nuke', 'tsar', 'orbital', 'carpet', 'emp', 'strategic', 'regime', 'buster'];
+let banterAt = {}, banterLast = 0, greeted = new Set();
+function banterReset() { banterAt = {}; banterLast = 0; greeted = new Set(); }
+function botSay(pid, kind, vars = {}, o = {}) {
+  if (!game || !pid || (game.settings && game.settings.banter === 'off') || game.scenario) return;
+  const p = E.player(game, pid); if (!p || !p.bot || !p.persona) return;
+  const now = Date.now();
+  if (!o.force && (now - (banterAt[pid] || 0) < 25000 || now - banterLast < 5000)) return;
+  if (Math.random() > (o.chance ?? 1)) return;
+  const text = PZ.line(p.persona, kind, vars); if (!text) return;
+  banterAt[pid] = now; banterLast = now;
+  setTimeout(() => { if (game) for (const cl of clients) send(cl, { t: 'chat', from: p.name, color: p.color, text, pid, bot: true }); }, o.delay ?? 600 + Math.random() * 900);
+}
+function banter(events) {
+  if (!game || !events || game.phase !== 'play' && !events.some(e => e.e === 'win')) return;
+  const nm = id => (E.player(game, id) || {}).name || 'you', human = id => { const q = E.player(game, id); return !!q && !q.bot; };
+  const toward = id => human(id) ? 1 : 0.15;   // bots mostly talk to people, not to each other
+  for (const e of events) {
+    if (e.e === 'combat' && !e.ranged && e.att && e.def && e.def.pid) {
+      const a = e.att.pid, d = e.def.pid, big = (e.att.units || []).length + (e.def.units || []).length >= 6;
+      if (e.attWin) { botSay(a, 'win', { name: nm(d) }, { chance: (e.winProb < 0.5 || big ? 0.7 : 0.25) * toward(d) }); botSay(d, 'loss', { name: nm(a) }, { chance: (big ? 0.5 : 0.2) * toward(a) }); }
+      else { botSay(d, 'hold', { name: nm(a) }, { chance: (big ? 0.65 : 0.3) * toward(a) }); botSay(a, 'loss', { name: nm(d) }, { chance: 0.3 * toward(d) }); }
+    } else if (e.e === 'siege') { botSay(e.pid, 'hq', { name: nm(e.victim) }, { force: true }); botSay(e.victim, 'hqLost', { name: nm(e.pid) }, { force: true, delay: 2200 }); }
+    else if (e.e === 'eliminate') { botSay(e.by, 'kill', { name: nm(e.pid) }, { force: true }); botSay(e.pid, 'dead', {}, { force: true, delay: 2000 }); }
+    else if (e.e === 'ally' && e.status === 'offer') botSay(e.from, 'offer', { name: nm(e.to) }, { force: human(e.to), chance: human(e.to) ? 1 : 0.35 });
+    else if (e.e === 'ally' && e.status === 'breaking') { botSay(e.from, 'betray', { name: nm(e.to) }, { force: true }); botSay(e.to, 'betrayed', { name: nm(e.from) }, { force: true, delay: 2400 }); }
+    else if (e.e === 'tactic' && BIG_TACTICS.includes(e.id)) botSay(e.pid, 'big', {}, { chance: 0.7 });
+    else if (e.e === 'win') for (const id of e.pids || [e.pid]) botSay(id, 'victory', {}, { force: true, delay: 1500 });
+  }
+}
+// someone typed in chat: a bot they named answers back (and now and then one butts in anyway)
+function banterReply(text) {
+  if (!game || game.phase !== 'play') return;
+  const bots = game.players.filter(p => p.bot && p.alive && p.persona), low = text.toLowerCase();
+  const named = bots.find(p => low.includes(p.name.replace(/ \(bot\)$/, '').toLowerCase()));
+  const who = named || (Math.random() < 0.15 ? bots[Math.floor(Math.random() * bots.length)] : null);
+  if (who) botSay(who.id, 'reply', {}, { force: !!named, chance: named ? 0.9 : 1, delay: 1400 + Math.random() * 1600 });
+}
 function runBot() {
   if (!game || game.phase !== 'play' || game.paused || pendingOw || pendingBattle) return;
   const cur = E.current(game);
   const mem = botMem[cur.id + ':' + game.turn.round] || (botMem = {}, botMem[cur.id + ':' + game.turn.round] = { n: 0 });
+  if (mem.n === 0 && game.turn.round === 1 && !greeted.has(cur.id)) { greeted.add(cur.id); botSay(cur.id, 'start', {}, { chance: 0.55 }); }
   let a = mem.n++ > 60 || cur.scenarioAI === 'passive' ? { a: 'end' } : botStep(game, cur.id, mem);   // a mission's passive enemies just hold their ground
   // a bot's attack goes through the battle window too (instant unless a human holds a battle card)
   if (startBattle(cur.id, a, () => applyBot(cur, a))) return;

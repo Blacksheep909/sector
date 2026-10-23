@@ -22,7 +22,7 @@ bundle += '(function (require) {\n' + fs.readFileSync(path.join(root, 'server.js
 fs.writeFileSync(path.join(dist, 'sector-bundle.js'), bundle);
 
 // 2. SEA config with every client file as an embedded asset
-const assets = { 'engine.js': path.join(root, 'shared', 'engine.js'), 'cosmetics.js': path.join(root, 'shared', 'cosmetics.js'), 'scenarios.js': path.join(root, 'shared', 'scenarios.js') };
+const assets = { 'engine.js': path.join(root, 'shared', 'engine.js'), 'cosmetics.js': path.join(root, 'shared', 'cosmetics.js'), 'scenarios.js': path.join(root, 'shared', 'scenarios.js'), 'personas.js': path.join(root, 'shared', 'personas.js') };
 for (const f of fs.readdirSync(path.join(root, 'public'))) assets['public/' + f] = path.join(root, 'public', f);
 const cfg = { main: path.join(dist, 'sector-bundle.js'), output: path.join(dist, 'sea-prep.blob'), disableExperimentalSEAWarning: true, useCodeCache: false, assets };
 fs.writeFileSync(path.join(dist, 'sea-config.json'), JSON.stringify(cfg, null, 2));
