@@ -56,7 +56,7 @@ function lanAddresses() {
 let sea = null;
 try { sea = require('node:sea'); if (!sea.isSea()) sea = null; } catch (e) { sea = null; }
 // in a real terminal the server draws a live dashboard; log lines go to its activity feed and a log file
-const TUI = !!process.stdout.isTTY && !process.env.SECTOR_PLAIN;
+const TUI = (!!process.stdout.isTTY || process.env.SECTOR_TUI === '1') && !process.env.SECTOR_PLAIN;   // SECTOR_TUI=1 forces the dashboard (tests)
 const LOG_FILE = path.join(os.tmpdir(), 'sector-server.log');
 const activity = [];
 function note(text) {
@@ -76,6 +76,8 @@ if (TUI) {
 // ngrok, a cloud load balancer) also arrive from 127.0.0.1, so anything carrying forwarding headers is treated as remote,
 // and SECTOR_PUBLIC=1 switches the panel off entirely for internet-facing servers
 const FWD = ['x-forwarded-for', 'x-real-ip', 'forwarded', 'cf-connecting-ip', 'true-client-ip', 'x-forwarded-host', 'fly-client-ip'];
+// where a connection comes from, as the console shows it
+const addrOf = c => { const a = (c.socket.remoteAddress || '').replace('::ffff:', ''); return a === '127.0.0.1' || a === '::1' ? 'this PC' : a; };
 const isLoopback = req => !process.env.SECTOR_PUBLIC && ['127.0.0.1', '::1', '::ffff:127.0.0.1'].includes(req.socket.remoteAddress) && !FWD.some(h => req.headers[h]);
 
 // ───────────────────────── http ─────────────────────────
@@ -166,12 +168,12 @@ setInterval(() => {
 // ───────────────────────── a room: one lobby and its war ─────────────────────────
 // Everything from here to the end of createRoom belongs to a single room. Rooms share nothing but profiles,
 // so online each one can live in its own isolated worker (one Cloudflare Durable Object per room, say).
-const PUBLIC_SEATS = 6, PUBLIC_MIN = 4, PUBLIC_WAIT = +process.env.SECTOR_PUBLIC_WAIT || 30000, PUBLIC_FULL_WAIT = 6000;
+const PUBLIC_SEATS = 6, PUBLIC_MIN = 4;
 // quick-play rooms: a standard war with a turn clock, so strangers can't stall it
 const PUBLIC_SETTINGS = { mode: 'domination', mapSize: 'small', mapType: 'random', spawns: 'random', fog: 'on', events: 'on', timer: 60, maxRounds: 0, conquestPct: 60, seed: '', teams: 'off', speed: 'fast', bank: 'off', personas: 'on' };
 function createRoom(code, kind) {
 const clients = new Set();   // the connections in this room
-const lobby = { players: [], hostId: null, kind, code, startAt: 0, settings: kind === 'public' ? { ...PUBLIC_SETTINGS } : { mode: 'domination', mapSize: 'medium', mapType: 'random', spawns: 'pick', fog: 'on', events: 'on', timer: 0, maxRounds: 0, conquestPct: 60, seed: '', teams: 'off', speed: 'fast', bank: 'off', personas: 'on' } };
+const lobby = { players: [], hostId: null, kind, code, settings: kind === 'public' ? { ...PUBLIC_SETTINGS } : { mode: 'domination', mapSize: 'medium', mapType: 'random', spawns: 'pick', fog: 'on', events: 'on', timer: 0, maxRounds: 0, conquestPct: 60, seed: '', teams: 'off', speed: 'fast', bank: 'off', personas: 'on' } };
 const isPublic = kind === 'public';
 // the factions a connection may play: what its profile has unlocked (no profile, as with tools and tests: all of them)
 const factionsFor = c => { const pr = c && c.profileId && profiles.get(c.profileId); return pr ? C.factionsOf(pr) : Object.keys(E.FACTIONS); };
@@ -183,7 +185,7 @@ const autoPids = new Set(); // dev: humans driven by the bot AI (SECTOR_DEV=1)
 
 function lobbyView() {
   return {
-    code, kind, cap: isPublic ? PUBLIC_SEATS : 8, startIn: lobby.startAt ? Math.max(0, lobby.startAt - Date.now()) : 0,
+    code, kind, cap: isPublic ? PUBLIC_SEATS : 8,
     players: lobby.players.map(p => ({ id: p.id, name: p.name, handle: p.handle || null, color: p.color, faction: p.faction, bot: p.bot, diff: p.diff, local: !!p.local, controller: p.controller || null, spectator: !!p.spectator, team: p.team || 0, cos: p.cos || null, ready: isReady(p), away: !!p.away, afk: !!p.afk, connected: p.bot || isConnected(p.id) })),
     hostId: lobby.hostId, settings: lobby.settings, inGame: !!game, saves: game || isPublic ? [] : savesFor((lobby.players.find(p => p.id === lobby.hostId) || {}).profileId), version: VERSION, lan: lanAddresses().map(a => 'http://' + a + ':' + PORT), port: PORT,
   };
@@ -290,8 +292,8 @@ function onMessage(c, m) {
       c.pid = p.id;
       // the player's profile (coins, skins): their loadout shows on their seat for everyone
       { const pr = c.profileId && profiles.get(c.profileId); if (pr) { p.profileId = pr.id; p.handle = pr.refCode; p.cos = C.cleanLoadout(pr.equipped, pr.owned, pr.cards); } }
-      if (!isPublic && (!lobby.hostId || !lobby.players.some(x => x.id === lobby.hostId && !x.bot))) lobby.hostId = p.id;   // public rooms have no host
-      if (isPublic && !game && !lobby.startAt) lobby.startAt = Date.now() + PUBLIC_WAIT;
+      // the first commander in hosts it (public wars too: whoever opened it picks the settings and presses DEPLOY)
+      if (!lobby.hostId || !lobby.players.some(x => x.id === lobby.hostId && !x.bot)) lobby.hostId = p.id;
       send(c, { t: 'welcome', you: p.id, token: p.token });
       broadcastLobby();
       if (game) { const seat = seatFor(c); send(c, { t: 'state', state: E.view(game, seat, fogFor(seat)), events: [], seat }); afterChange(); }
@@ -354,7 +356,7 @@ function onMessage(c, m) {
     }
     case 'settings': if (c.pid !== lobby.hostId || game) return; Object.assign(lobby.settings, pick(m.settings, ['mode', 'mapSize', 'mapType', 'spawns', 'fog', 'events', 'timer', 'maxRounds', 'conquestPct', 'seed', 'teams', 'speed', 'bank', 'personas'])); for (const p of lobby.players) if (p.id !== lobby.hostId) p.ready = false; return broadcastLobby();
     case 'addLocal': {
-      if (game || !c.pid || lobby.players.length >= 8) return;
+      if (game || !c.pid || isPublic || lobby.players.length >= 8) return;   // shared-screen players are for rooms of your own
       const n = lobby.players.filter(p => p.local).length + 2;
       lobby.players.push({ id: 'p' + nextPid++, token: null, name: 'Player ' + n, color: freeColor(), faction: pickFaction(c), bot: false, local: true, controller: c.pid });
       return broadcastLobby();
@@ -368,7 +370,7 @@ function onMessage(c, m) {
       return broadcastLobby();
     }
     case 'addBot': {
-      if (c.pid !== lobby.hostId || game || lobby.players.length >= 8) return;
+      if (c.pid !== lobby.hostId || game || lobby.players.length >= (isPublic ? PUBLIC_SEATS : 8)) return;
       const used = new Set(lobby.players.map(p => p.name));
       const name = BOT_NAMES.find(n => !used.has(n)) || 'Bot';
       // a new bot takes the difficulty of the bot above it (so filling a lobby with Hard bots is one setting, not five)
@@ -427,6 +429,7 @@ function onMessage(c, m) {
       // a solo mission: the host plays it, anyone else in the lobby watches
       if (game) return send(c, { t: 'err', msg: 'Finish or leave the current game first' });
       if (c.pid !== lobby.hostId) return send(c, { t: 'err', msg: 'Only the host can start a mission' });
+      if (isPublic) return send(c, { t: 'err', msg: 'Missions are played in a room of your own' });
       const lp = lobby.players.find(p => p.id === c.pid), sc = SCN.get(m.id); if (!lp || !sc) return;
       resetWar();
       game = SCN.build(sc.id, lp.id, lp.name, lp.color); game.v = 1; game.saveId = null;
@@ -581,6 +584,7 @@ function onMessage(c, m) {
 }
 function startGame(c) {
   if (game) return;
+  if (isPublic) fillSeats();
   const diffs = Object.keys(E.DIFFICULTY);
   const roster = lobby.players.filter(p => !p.spectator).map(p => p.bot ? { ...p, diff: p.diff === 'random' ? diffs[Math.floor(Math.random() * diffs.length)] : p.diff, persona: lobby.settings.personas === 'off' ? null : PZ.pick() } : p);   // each bot gets a hidden personality
   if (roster.length < 2) return c && send(c, { t: 'err', msg: lobby.players.length < 2 ? 'Need at least 2 commanders (add a bot)' : 'Need at least 2 commanders who are playing, not spectating' });
@@ -594,7 +598,6 @@ function startGame(c) {
   resetWar();
   game = r.state;
   game.saveId = isPublic ? null : 'g' + Date.now().toString(36) + crypto.randomBytes(2).toString('hex');   // public wars aren't saved
-  lobby.startAt = 0;
   console.log('[game] ' + code + ' started: ' + lobby.players.length + ' players, ' + s.mode + ', map ' + s.mapSize);
   broadcastLobby();
   broadcastState(r.events, null);
@@ -801,7 +804,6 @@ const BANK_INC = 20000, bankLeft = {};
 let bankKey = '', bankPid = null;
 const AFK_MS = +process.env.SECTOR_AFK_MS || 120000;   // no turn timer: a turn with no sign of life ends after this
 let turnKey = '', turnStartAt = 0, actedKey = '';
-const addrOf = c => { const a = (c.socket.remoteAddress || '').replace('::ffff:', ''); return a === '127.0.0.1' || a === '::1' ? 'this PC' : a; };
 const AWAY_GRACE = +process.env.SECTOR_AWAY_MS || 30000;
 // seats of a commander who dropped out: a bot plays them until they reconnect (temporary) or for good (left / kicked)
 function botifySeats(seats, forGood) {
@@ -1048,21 +1050,13 @@ function applyBot(cur, a) {
 }
 
 
-// ── public rooms start themselves: a countdown from the first arrival (shorter once full), then bots fill the empty seats ──
-function tick() {
-  if (!isPublic || game) return;
-  const humans = lobby.players.filter(p => !p.bot && !p.spectator);
-  if (!humans.length) { if (lobby.startAt) { lobby.startAt = 0; broadcastLobby(); } return; }
-  if (!lobby.startAt) { lobby.startAt = Date.now() + PUBLIC_WAIT; broadcastLobby(); }
-  if (humans.length >= PUBLIC_SEATS && lobby.startAt - Date.now() > PUBLIC_FULL_WAIT) { lobby.startAt = Date.now() + PUBLIC_FULL_WAIT; broadcastLobby(); }
-  if (Date.now() < lobby.startAt) return;
-  const used = new Set(lobby.players.map(p => p.name));
-  while (lobby.players.filter(p => !p.spectator).length < Math.max(PUBLIC_MIN, humans.length + 1)) {
+// ── a public war deploys with at least PUBLIC_MIN commanders: bots fill the empty seats ──
+function fillSeats() {
+  const humans = lobby.players.filter(p => !p.bot && !p.spectator).length, used = new Set(lobby.players.map(p => p.name));
+  while (lobby.players.length < PUBLIC_SEATS && lobby.players.filter(p => !p.spectator).length < Math.max(PUBLIC_MIN, humans + 1)) {
     const name = BOT_NAMES.find(n => !used.has(n)) || 'Bot'; used.add(name);
     lobby.players.push({ id: 'p' + nextPid++, token: null, name, color: freeColor(), faction: Object.keys(E.FACTIONS)[Math.floor(Math.random() * 5)], bot: true, diff: 'medium', cos: C.botLoadout() });
   }
-  lobby.settings.mapSize = lobby.players.length > 4 ? 'medium' : 'small';
-  startGame(null);
 }
 // equipping a skin in the menu shows on your seat straight away
 function profileChanged(c, pr) {
@@ -1091,10 +1085,10 @@ function admin(route, b) {
 }
 const humans = () => lobby.players.filter(p => !p.bot && !p.spectator).length;
 return {
-  code, kind, clients, onMessage, onDisconnect, tick, destroy, admin, profileChanged, isConnected, seatsOf, humans,
+  code, kind, clients, onMessage, onDisconnect, destroy, admin, profileChanged, isConnected, seatsOf, humans,
   get lobby() { return lobby; }, get game() { return game; },
   // room for n more people to join before it starts?
-  open: n => isPublic && !game && !dead && humans() + n <= PUBLIC_SEATS && (!lobby.startAt || lobby.startAt - Date.now() > 2500),
+  open: n => isPublic && !game && !dead && humans() + n <= PUBLIC_SEATS,
 };
 }
 
@@ -1221,8 +1215,13 @@ function route(c, m) {
       return enterRoom(c, room);
     }
     case 'leave': leaveRoom(c); return;
-    // a mission straight from the front menu: it gets a private room of its own
-    case 'scenario': if (!c.room) { auth(c, m); enterRoom(c, openRoom('private')); } break;
+    // a mission gets a private room of its own, unless you're hosting a room's lobby (then everyone there watches).
+    // From a public war or someone else's room you step out of it first.
+    case 'scenario': {
+      const r = c.room, hosting = r && r.kind !== 'public' && !r.game && r.lobby.hostId === c.pid;
+      if (!hosting) { auth(c, m); enterRoom(c, openRoom('private')); }
+      break;
+    }
     // ── profile: works anywhere, in a room or on the menu ──
     case 'openBox': {
       const pr = c.profileId && profiles.get(c.profileId);
@@ -1297,11 +1296,10 @@ function route(c, m) {
   if (!c.room) return;
   c.room.onMessage(c, m); settle(c);
 }
-// rooms tick (public countdowns) and close once everyone has gone for a while
+// rooms close once everyone has gone for a while
 const ROOM_IDLE = { lobby: 90000, play: 5 * 60000 };
 setInterval(() => {
   for (const [code, r] of rooms) {
-    r.tick();
     if (r.clients.size) { r.emptySince = 0; continue; }
     if (code === MAIN && !r.game) continue;   // the classic lobby stays open
     r.emptySince = r.emptySince || Date.now();
@@ -1556,8 +1554,14 @@ const A = { r: '\x1b[0m', b: '\x1b[1m', red: fg('#ff4f5e'), gold: fg('#ffc53d'),
 const vis = s => s.replace(/\x1b\[[0-9;]*m/g, '').length;
 const pad = (s, n) => s + ' '.repeat(Math.max(0, n - vis(s)));
 let quitArm = 0, lastPhase = null;
+// the dashboard never takes the server down with it: a drawing error is logged once (logging redraws the dashboard,
+// so an error that repeated on every draw would loop forever and starve the games)
+let tuiFailed = false;
 function tuiDraw() {
   if (!TUI) return;
+  try { tuiPaint(); tuiFailed = false; } catch (e) { if (tuiFailed) return; tuiFailed = true; note('[console] ' + (e && e.stack || e)); }
+}
+function tuiPaint() {
   const out = process.stdout, cols = Math.max(50, out.columns || 80), rows = Math.max(20, out.rows || 30), W = Math.min(cols - 4, 76);
   const rule = '  ' + A.dim + '─'.repeat(W) + A.r, L = [], label = t => '  ' + A.gold + A.b + pad(t, 12) + A.r;
   const f = focusRoom(), lobby = f ? f.lobby : { players: [], hostId: null }, game = f ? f.game : null, clients = f ? f.clients : new Set(), st = menuStats();

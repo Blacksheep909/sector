@@ -1728,9 +1728,7 @@ body.in-room .title-wrap .tagline { display: none; }
 .rb-code { flex: 1; display: flex; align-items: center; gap: 10px; }
 .rb-code > span:first-child { font-size: 10px; letter-spacing: 2px; font-weight: 800; color: var(--dim); }
 .rb-code b { font-family: var(--title); font-weight: 400; font-size: 26px; letter-spacing: 6px; color: var(--ink); }
-.rb-count { flex: 1; display: flex; align-items: baseline; gap: 10px; }
-.rb-count b { font-family: var(--title); font-weight: 400; font-size: 26px; letter-spacing: 2px; color: #59f08a; min-width: 70px; }
-.rb-count span { font-size: 12px; color: var(--dim); }
+.rb-code .sub { font-size: 12px; letter-spacing: 0; font-weight: 400; color: var(--dim); }
 .nm.linked { cursor: pointer; } .nm.linked:hover { text-decoration: underline; text-decoration-color: var(--gold); }
 
 /* settings: calm and quiet */
