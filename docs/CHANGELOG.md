@@ -4,8 +4,9 @@ Every release, newest first. Each version also has its own post on the [Releases
 
 ## v0.10.2
 
-**Fixes for frozen screens, the tutorial and overlapping menus.**
+**Accounts with Google and Discord, and fixes for frozen screens, the tutorial and overlapping menus.**
 
+- **🔐 Accounts: sign in with Google or Discord.** Your commander card has **Save your progress** buttons: link your commander (Valor, skins, factions, record) to a Google or Discord login, then sign in on any other device or browser to pick it up there. Signing out starts a fresh guest commander in that browser. The server never sees a password. Server hosts switch each provider on with its keys (see [Hosting → Accounts](HOSTING.md#accounts-sign-in-with-google-and-discord)); until then the buttons don't show.
 - **Fix: everything stopped working after pressing Leave straight after DEPLOY.** The "Rolling the battlefield" reel stayed on top of the front page and swallowed every click. Leaving a war now clears every overlay it put up, and the reel never blocks clicks.
 - **Fix: a mission (or war) could hang on the enemy's turn**, so End Turn seemed to do nothing. If the previous war in the same room ended with a battle window or overwatch prompt still open, the next war's bots waited for it forever. Every new war, mission and return to the lobby now starts clean.
 - **Fix: a dead game screen after the server restarted.** If you were mid-war when the server restarted (an update, say), the game screen stayed up and nothing responded. You're now taken back to the front page with a message.

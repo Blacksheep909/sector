@@ -34,7 +34,28 @@ One process like this comfortably holds many small wars. Scale it up before scal
 - **Profiles** move from `profiles.json` to D1 or KV, and the hand-rolled WebSocket code is replaced by the Workers WebSocket API (with hibernation).
 - Static files (`public/`, `shared/`) are served as Worker assets.
 
-**Before opening it to the public:** real accounts (today a profile is a secret kept in the browser), rate limits on joins and chat, a chat filter, and backups of profile data.
+**Before opening it to the public:** set up accounts (below), rate limits on joins and chat, a chat filter, and backups of profile data.
+
+## Accounts: sign in with Google and Discord
+
+Players can save their commander (Valor, skins, factions, record) to a Google or Discord login, then sign in on any device to get it back. Without accounts set up, a commander lives in the browser that made it.
+
+Each provider switches on by itself once its two keys are set; the sign-in buttons only appear for the ones that are.
+
+| Variable | What it is |
+|---|---|
+| `SECTOR_URL` | The game's public address, like `https://playsector.io`. Logins come back to `SECTOR_URL/auth/<provider>/callback`. If unset, the address the player used is used (fine on one machine; set it online). |
+| `GOOGLE_CLIENT_ID`, `GOOGLE_CLIENT_SECRET` | From a Google OAuth client. |
+| `DISCORD_CLIENT_ID`, `DISCORD_CLIENT_SECRET` | From a Discord application. |
+| `SECTOR_PROFILES` | Where profiles (and their linked logins) are saved. Put it on persistent storage. |
+
+**Google:** in [Google Cloud Console](https://console.cloud.google.com/), create a project, set up the **OAuth consent screen** (External, app name SECTOR, scopes `openid`, `email`, `profile`), then **Credentials → Create credentials → OAuth client ID → Web application**. Add the authorised redirect URI `https://playsector.io/auth/google/callback` (and `http://localhost:3000/auth/google/callback` to test on your own PC). Copy the client ID and secret.
+
+**Discord:** in the [Discord Developer Portal](https://discord.com/developers/applications), create an application, open **OAuth2**, add the redirect `https://playsector.io/auth/discord/callback` (and the localhost one to test), and copy the client ID and secret (**Reset Secret** shows it).
+
+How it works: the player is sent to Google or Discord, approves, and comes back with a one-time code. The server swaps that (with your app's secret) for the player's account ID, name and email, and links it to their commander. The server never sees a password. If that login already has a commander, the browser switches to it; otherwise the commander they're playing is saved to the login. Signing out starts a fresh guest commander in that browser, and signing in again brings the saved one back.
+
+Keep the client secrets secret: set them as environment variables (or your host's secrets), never in the repository. `SECTOR_AUTH_MOCK=1` adds a fake "Test login" for automated tests; never turn it on for a real server.
 
 ## Public mode
 

@@ -34,7 +34,8 @@ function createProfiles(file, opts = {}) {
   function open(id, secret, name, ref) {
     if (typeof id !== 'string' || !/^[a-f0-9]{24,64}$/.test(id) || typeof secret !== 'string' || secret.length < 16 || secret.length > 128) return null;
     let p = db[id];
-    if (p && p.secret !== hash(secret)) return null;
+    // the browser's own key, or one handed to another device when it signed in to this commander's account
+    if (p && p.secret !== hash(secret) && !(p.devices || []).includes(hash(secret))) return null;
     if (!p) {
       p = db[id] = { id, secret: hash(secret), created: Date.now(), coins: 0, owned: [], equipped: {}, cards: {}, total: {}, refCode: newCode(), referredBy: null, refPaid: false, recruits: 0 };
       if (ref) { const r = Object.values(db).find(q => q.refCode === String(ref).toUpperCase().slice(0, 8) && q.id !== id); if (r) p.referredBy = r.id; }
@@ -50,7 +51,7 @@ function createProfiles(file, opts = {}) {
     roll(p);
     const store = C.dailyStore();
     return {
-      name: p.name || null, handle: p.refCode, total: p.total || {}, factions: C.factionsOf(p), coins: p.coins, scenarios: p.scenarios || [], owned: p.owned, equipped: p.equipped, cards: p.cards, refCode: p.refCode, recruits: p.recruits, earnedToday: p.earned.amount, daySoft: C.DAY_SOFT,
+      name: p.name || null, handle: p.refCode, total: p.total || {}, factions: C.factionsOf(p), links: linksView(p), coins: p.coins, scenarios: p.scenarios || [], owned: p.owned, equipped: p.equipped, cards: p.cards, refCode: p.refCode, recruits: p.recruits, earnedToday: p.earned.amount, daySoft: C.DAY_SOFT,
       daily: objList(C.dailyObjectives(), p.day), weekly: objList(C.weeklyObjectives(), p.week), weeklyCrate: !!p.week.crate, freeCrates: p.freeCrates || 0,
       store: { day: store.day, items: store.items, endsIn: C.msToNextDay() },
     };
@@ -160,9 +161,26 @@ function createProfiles(file, opts = {}) {
     p.coins -= C.FACTION_PRICE; p.factions = [...own, id]; save();
     return null;
   }
+  // ── accounts: a commander linked to a Google or Discord login, so it can be signed in to from anywhere ──
+  const maskEmail = e => e ? String(e).replace(/^(.)(.*)(@.*)$/, (m, a, b, c) => a + '•'.repeat(Math.min(6, b.length)) + c) : null;
+  const linksView = p => Object.fromEntries(Object.entries(p.links || {}).map(([k, v]) => [k, { name: v.name || null, email: maskEmail(v.email) }]));
+  const byLink = (provider, uid) => Object.values(db).find(q => q.links && q.links[provider] && q.links[provider].id === String(uid));
+  // a login comes back from Google or Discord: if that login already has a commander, that's the one you get;
+  // otherwise it's attached to the commander you're playing now (so nothing you've earned is lost)
+  function linkAccount(cur, provider, info) {
+    const uid = String(info.id), other = byLink(provider, uid);
+    const rec = { id: uid, name: info.name ? String(info.name).slice(0, 40) : null, email: info.email ? String(info.email).slice(0, 80) : null, at: Date.now() };
+    if (other) { other.links[provider] = rec; save(); return { profile: other, switched: !cur || other.id !== cur.id }; }
+    if (!cur) return null;
+    cur.links = cur.links || {}; cur.links[provider] = rec; save();
+    return { profile: cur, switched: false };
+  }
+  // a key for one more device (a browser that just signed in); the commander's other keys keep working
+  function addDevice(p) { const s = crypto.randomBytes(24).toString('hex'); p.devices = (p.devices || []).concat(hash(s)).slice(-20); save(); return s; }
+  function unlink(p, provider) { if (p.links && p.links[provider]) { delete p.links[provider]; save(); } }
   function rename(p, name) { if (!name) return; p.name = String(name).slice(0, 16); save(); }
   function giveItem(p, item) { if (!C.ITEMS[item]) return 'No such item'; if (!p.owned.includes(item)) p.owned.push(item); save(); return null; }
   function totals() { const all = Object.values(db); return { profiles: all.length, coins: all.reduce((a, p) => a + p.coins, 0), owned: all.reduce((a, p) => a + p.owned.length, 0), games: all.reduce((a, p) => a + ((p.total || {}).games || 0), 0) }; }
-  return { open, view, buy, equip, openBox, finishGame, scenarioDone, grant, list, giveItem, totals, publicView, leaderboard, rename, buyFaction, get: id => db[id] };
+  return { open, view, buy, equip, openBox, finishGame, scenarioDone, grant, list, giveItem, totals, publicView, leaderboard, rename, buyFaction, linkAccount, addDevice, unlink, get: id => db[id] };
 }
 module.exports = { createProfiles, REF_COINS, WELCOME_COINS };
