@@ -66,7 +66,8 @@
       case 'owPrompt': showOwPrompt(m); break;
       case 'owDone': { const r = $('#owPop'); if (r) r.remove(); break; }
       case 'notes': Render.ov.notes = (m.notes || []).flatMap(n => n.shapes.map(sh => ({ ...sh, pid: n.pid, color: pColor(n.pid) }))); Render.invalidate(); break;
-      case 'battleDone': { const r = $('#battlePop'); if (r) r.remove(); battleOpen = null; break; }
+      case 'battleDone': { const r = $('#battlePop'); if (r) { r.classList.add('bp-out'); setTimeout(() => r.remove(), 220); } if (battleOpen) lastBattle = { key: battleOpen.key, at: Date.now() }; battleOpen = null; break; }
+      case 'skipVote': if (curFight && curFight.att === m.att && curFight.to === m.to) skipStatus(m.pids); break;
       case 'ping': showPing(m); break;
       case 'emote': showEmote(m); break;
       case 'chat': addLog(`<b style="--c:${m.color}">${esc(m.from)}:</b> ${esc(m.text)}`, 'chat'); SFX.click(); break;
@@ -482,34 +483,84 @@
       onPick: async (idx, replace) => done(await act({ a: 'prepick', pick: 'card', idx, replace })), onIncome: async () => done(await act({ a: 'prepick', pick: 'income' })), onReroll: async () => false });
   }
   // the battle window: before the dice roll, both sides can throw battle cards in. Live odds, your playable cards, READY
+  // the battle window IS the dice panel, before the roll: both armies, their bonuses, and the battle cards each side has
+  // thrown in. Your battle cards rise up underneath; click one and it flies into your column (the other side sees it land)
   let battleOpen = null;
+  const isHumanSeat = pid => { const lp = lobby && lobby.players.find(p => p.id === pid); return !!(lp && !lp.bot && !lp.away && lp.connected !== false); };
   function showBattle(m) {
     let p = $('#battlePop');
-    const fresh = !battleOpen || battleOpen.hex !== m.hex || battleOpen.att !== m.att;
-    if (fresh) { battleOpen = { hex: m.hex, att: m.att, max: m.ms, n: 0 }; if (p) p.remove(); p = null; }
-    battleOpen.max = Math.max(battleOpen.max, m.ms);
-    if (!p) {
+    const key = m.att + '>' + m.hex;
+    if (!battleOpen || battleOpen.key !== key || !p) {
+      if (p) p.remove();
       p = el('div', '', ''); p.id = 'battlePop'; document.body.appendChild(p);
-      if (m.you) { Render.focus(m.hex); Render.ring(m.hex, m.you === m.def ? '#ff4f5e' : '#ffc53d', 70, 0.8, 5); if (m.you === m.def) SFX.alarm(); else SFX.select(); }
+      battleOpen = { key, hex: m.hex, att: m.att, def: m.def, max: m.ms, shown: { att: 0, def: 0 }, hand: '' };
+      const side = (role, pid, units) => `<div class="cb-side bp-side" style="--pc:${pid ? pColor(pid) : '#aaa'}" data-side="${role === 'DEFENDER' ? 'def' : 'att'}">
+        <div class="cb-role">${role}</div><div class="cb-name">${esc(pid ? pName(pid) : 'Garrison')}</div>
+        <div class="cb-units"></div><div class="bp-thrown"></div><div class="cb-bon"></div>
+        <div class="cb-calc"><div class="cb-box chips">0</div><div class="cb-x">×</div><div class="cb-box mult">0</div></div><div class="bp-who"></div></div>`;
+      p.innerHTML = `<div class="cb bp">${side('ATTACKER', m.att)}<div class="cb-vs">VS</div>${side('DEFENDER', m.def)}</div>
+        <div class="bp-odds"><i></i><em></em><span></span></div>
+        <div class="bp-hand"></div>
+        <div class="bp-foot"><div class="rp-bar"><i></i></div><div class="bp-act"></div></div>`;
+      for (const [sd, list] of [['att', m.attUnits || []], ['def', m.defUnits || []]]) {
+        const cu = p.querySelector(`[data-side="${sd}"] .cb-units`);
+        list.forEach((t, i) => { const card = Cards.make(t, { mini: true }); card.classList.add('cb-card'); card.style.setProperty('--n', list.length); card.style.setProperty('--i', i); cu.appendChild(card); });
+      }
+      if (m.you) { Render.focus(m.hex); Render.ring(m.hex, m.you === m.def ? '#ff4f5e' : '#ffc53d', 70, 0.8, 5); if (m.you === m.def) SFX.alarm(); else SFX.whoosh(); }
     }
-    const thrown = m.cards.att.length + m.cards.def.length;
-    if (thrown > battleOpen.n) { battleOpen.n = thrown; SFX.card(); p.classList.remove('bp-bump'); void p.offsetWidth; p.classList.add('bp-bump'); }
-    const pa = m.winProb == null ? 50 : Math.round(m.winProb * 100), mine = m.you === m.def ? 100 - pa : pa;
-    const side = (pid, chips, mult, cards, bon) => `<div class="bp-side" style="--c:${pColor(pid)}"><b>${esc(pName(pid))}</b><span class="bp-score">${chips} × (d6 + ${mult})</span>
-      <div class="bp-thrown">${cards.map(id => `<span class="bp-card">${esc(E.TACTICS[id].name)}</span>`).join('') || '<i>no cards</i>'}</div>
-      <div class="bp-bon">${bon.filter(b => !b.note && !b.card).map(b => `<span>${esc(b.label)} ${b.chips ? '+' + b.chips + '⬢' : ''}${b.mult ? (b.mult > 0 ? '+' : '') + b.mult + '×' : ''}</span>`).join('')}</div></div>`;
-    p.innerHTML = `<div class="rp-h">⚔ BATTLE${m.you ? (m.you === m.def ? ' — YOU\'RE DEFENDING' : ' — YOU\'RE ATTACKING') : ''}</div>
-      <div class="bp-odds"><i style="width:${pa}%;background:${pColor(m.att)}"></i><em style="background:${pColor(m.def) || '#666'}"></em><span>${pa}% attack wins</span></div>
-      <div class="bp-cols">${side(m.att, m.attChips, m.attMult, m.cards.att, m.attBonuses)}<div class="bp-vs">VS</div>${side(m.def, m.defChips, m.defMult, m.cards.def, m.defBonuses)}</div>
-      ${m.you && m.hand.length ? `<div class="sub">Throw cards in before the dice roll (up to ${E.BATTLE_MAX} a side). Your odds: <b>${mine}%</b></div><div class="rp-cards"></div>` : m.you ? '' : '<div class="sub">Both sides are deciding…</div>'}
-      <div class="rp-bar"><i style="width:${Math.max(0, m.ms / battleOpen.max * 100)}%"></i></div>
-      ${m.you && !m.ready ? `<button class="btn bp-go" id="bpReady">${m.you === m.def ? 'HOLD' : 'FIGHT'} <small>Space</small></button>` : m.you ? '<div class="sub">Ready — waiting on the other side…</div>' : ''}`;
-    const row = p.querySelector('.rp-cards');
-    if (row) for (const cd of m.hand) {
-      const d = E.TACTICS[cd.id], b = el('button', 'btn bp-play r-' + d.rarity, `${esc(d.name)} <small>$${d.cost}</small>`);
-      b.title = d.desc; b.onclick = () => { SFX.select(); b.disabled = true; send({ t: 'battleCard', uid: cd.uid }); };
-      row.appendChild(b);
+    const B = battleOpen; B.max = Math.max(B.max, m.ms); B.last = m;
+    // each side: chips × mult, its non-card bonuses, and the cards thrown so far (new ones slam in)
+    for (const [sd, pid, chips, mult, bon, cards] of [['att', m.att, m.attChips, m.attMult, m.attBonuses, m.cards.att], ['def', m.def, m.defChips, m.defMult, m.defBonuses, m.cards.def]]) {
+      const S2 = p.querySelector(`[data-side="${sd}"]`);
+      S2.querySelector('.chips').textContent = chips; S2.querySelector('.mult').textContent = 'd6+' + mult;
+      S2.querySelector('.cb-bon').innerHTML = bon.filter(b => !b.note && !b.card).map(b => `<div class="cb-b"><span>${esc(b.label)}</span><span class="v ${b.chips ? 'c' : 'm'}">+${b.chips || b.mult} ${b.chips ? 'Chips' : 'Mult'}</span></div>`).join('');
+      const th = S2.querySelector('.bp-thrown');
+      for (let i = B.shown[sd]; i < cards.length; i++) {
+        const c = Cards.make(cards[i], { mini: true }); c.classList.add('bp-tc'); th.appendChild(c);
+        if (pid !== you) { SFX.card(); Render.float(m.hex, '🃏 ' + E.TACTICS[cards[i]].name.toUpperCase(), pColor(pid), 15); }
+        S2.classList.remove('bp-bump'); void S2.offsetWidth; S2.classList.add('bp-bump');
+      }
+      B.shown[sd] = cards.length;
+      // who's still choosing
+      const who = S2.querySelector('.bp-who');
+      if (!pid) who.innerHTML = '';
+      else if (!(m.humans || []).includes(pid)) who.innerHTML = isHumanSeat(pid) ? '<span class="ok">no cards to play</span>' : '<span class="ok">🤖 decided</span>';
+      else who.innerHTML = (m.readyPids || []).includes(pid) ? '<span class="ok">✔ READY</span>' : '<span class="wait">choosing cards…</span>';
     }
+    const pa = m.winProb == null ? 50 : Math.round(m.winProb * 100);
+    const od = p.querySelector('.bp-odds'); od.querySelector('i').style.cssText = `width:${pa}%;background:${pColor(m.att)}`; od.querySelector('em').style.background = m.def ? pColor(m.def) : '#666';
+    od.querySelector('span').textContent = m.you ? (m.you === m.def ? (100 - pa) + '% you hold' : pa + '% you break through') : pa + '% attack wins';
+    p.querySelector('.rp-bar i').style.width = Math.max(0, m.ms / B.max * 100) + '%';
+    // your battle cards, raised up: the ones you can throw in are lit, the rest show why not
+    const me = myP(), playable = new Set((m.hand || []).map(c => c.uid));
+    const mine = m.you && me ? me.tactics.filter(c => E.TACTICS[c.id].target === 'battle') : [];
+    const hk = mine.map(c => c.uid + (playable.has(c.uid) ? '+' : '-')).join(',') + (m.ready ? 'r' : '');
+    if (hk !== B.hand) {
+      B.hand = hk;
+      const hand = p.querySelector('.bp-hand'); hand.innerHTML = '';
+      const side = m.you === m.def ? 'def' : 'att';
+      mine.forEach((cd, i) => {
+        const d = E.TACTICS[cd.id], ok = playable.has(cd.uid) && !m.ready, card = Cards.make(cd.id);
+        card.classList.add('bp-hc'); card.style.setProperty('--i', i); card.style.setProperty('--n', mine.length);
+        if (!ok) { card.classList.add('off'); card.title = m.ready ? 'You said you were ready' : d.battle !== 'any' && d.battle !== side ? (d.battle === 'def' ? 'Defence card' : 'Attack card') : me.cash < d.cost ? 'Need $' + d.cost : 'Up to ' + E.BATTLE_MAX + ' cards a fight'; }
+        else card.onclick = () => {
+          if (card.classList.contains('flying')) return;
+          // the card flies from your hand into your column
+          const from = card.getBoundingClientRect(), to = p.querySelector(`[data-side="${side}"] .bp-thrown`).getBoundingClientRect();
+          const ghost = card.cloneNode(true); ghost.classList.add('bp-ghost'); Object.assign(ghost.style, { left: from.left + 'px', top: from.top + 'px', width: from.width + 'px', height: from.height + 'px' });
+          document.body.appendChild(ghost); card.classList.add('flying');
+          requestAnimationFrame(() => { ghost.style.transform = `translate(${to.left + to.width / 2 - from.left - from.width / 2}px, ${to.top - from.top - from.height * 0.3}px) scale(.45) rotate(-8deg)`; ghost.style.opacity = '0.2'; });
+          setTimeout(() => ghost.remove(), 420);
+          SFX.card(); send({ t: 'battleCard', uid: cd.uid });
+        };
+        hand.appendChild(card);
+      });
+      if (m.you && !mine.length) hand.innerHTML = '<div class="sub">No battle cards in hand</div>';
+    }
+    const act = p.querySelector('.bp-act');
+    const others = [m.att, m.def].filter(pid => pid && pid !== m.you && (m.humans || []).includes(pid) && !(m.readyPids || []).includes(pid));
+    act.innerHTML = m.you && !m.ready ? `<button class="btn bp-go" id="bpReady">${m.you === m.def ? 'HOLD' : 'ROLL'} ▶ <small>Space</small></button>`
+      : `<div class="sub">${others.length ? 'Waiting for ' + others.map(pName).map(esc).join(', ') + '…' : 'Rolling…'}</div>`;
     const rb = $('#bpReady'); if (rb) rb.onclick = () => { SFX.click(); send({ t: 'battleReady' }); rb.disabled = true; };
   }
   addEventListener('keydown', e => { if (battleOpen && (e.code === 'Space' || e.key === 'Enter') && $('#bpReady') && !['INPUT', 'TEXTAREA'].includes(document.activeElement.tagName)) { e.preventDefault(); $('#bpReady').click(); } });
@@ -1720,9 +1771,21 @@
   let curFight = null;
   function skipAnim() {
     if (!animating && !curFight) return;
+    // human against human: both have to ask, and each sees that the other has
+    if (curFight && curFight.def && isHumanSeat(curFight.att) && isHumanSeat(curFight.def) && (curFight.att === you || curFight.def === you)) {
+      if (curFight.voted) return;
+      curFight.voted = true; send({ t: 'skipFx', att: curFight.att, def: curFight.def, to: curFight.to }); skipStatus([you]);
+      return;
+    }
     fastForward = true;
     if (curFight) send({ t: 'skipFx', att: curFight.att, def: curFight.def, to: curFight.to });
   }
+  function skipStatus(pids) {
+    const box = $('#combat'); if (!box || box.hidden || !curFight) return;
+    let st = box.querySelector('.cb-skip'); if (!st) { st = el('div', 'cb-skip', ''); box.appendChild(st); }
+    st.innerHTML = [curFight.att, curFight.def].map(pid => `<span style="--pc:${pColor(pid)}" class="${pids.includes(pid) ? 'on' : ''}">${pids.includes(pid) ? '⏩' : '⏸'} ${esc(pName(pid))}${pids.includes(pid) ? ' skipped' : pid === you ? ' — Space to skip' : ' watching'}</span>`).join('');
+  }
+  let lastBattle = null;
   function combatSeq(ev) {
     return new Promise(async (resolve, reject) => { try {
       const box = $('#combat'); box.innerHTML = ''; box.hidden = false;
@@ -1730,9 +1793,11 @@
       box.onclick = () => skipAnim();
       curFight = { att: ev.att.pid, def: ev.def.pid || null, to: ev.to };
       const wrap = el('div', 'cb');
+      const cont = lastBattle && lastBattle.key === ev.att.pid + '>' + ev.to && Date.now() - lastBattle.at < 4000; if (cont) lastBattle = null;
+      const nap = ms => sleep(cont ? Math.min(ms, 30) : ms);
       const side = (role, data, name, color) => {
         const s = el('div', 'cb-side'); s.style.setProperty('--pc', color);
-        s.innerHTML = `<div class="cb-role">${role}</div><div class="cb-name">${esc(name)}</div><div class="cb-units"></div><div class="cb-bon"></div><div class="cb-calc"><div class="cb-box chips">0</div><div class="cb-x">×</div><div class="cb-box mult">0</div></div><div class="cb-die"></div><div class="cb-score">0</div>`;
+        s.innerHTML = `<div class="cb-role">${role}</div><div class="cb-name">${esc(name)}</div><div class="cb-units"></div><div class="bp-thrown"></div><div class="cb-bon"></div><div class="cb-calc"><div class="cb-box chips">0</div><div class="cb-x">×</div><div class="cb-box mult">0</div></div><div class="cb-die"></div><div class="cb-score">0</div>`;
         dieFace(s.querySelector('.cb-die'), 1);
         return s;
       };
@@ -1742,8 +1807,8 @@
       wrap.append(A, vs, D);
       wrap.appendChild(el('div', 'cb-odds', `pre-battle odds ${Math.round(ev.winProb * 100)}% · click to skip`));
       box.appendChild(wrap);
-      SFX.whoosh();
-      await sleep(250);
+      if (!cont) SFX.whoosh();
+      await nap(250);
       const sides = [[A, ev.att], [D, ev.def]];
       // units → chips
       const unitChips = (data, isAtt) => data.units.map(t => isAtt ? E.UNITS[t].atk : E.UNITS[t].def);
@@ -1760,21 +1825,24 @@
           const box = s.querySelector('.chips'); box.textContent = counters[si]; box.classList.remove('hit'); void box.offsetWidth; box.classList.add('hit');
         });
         SFX.chip(note++);
-        await sleep(170);
+        await nap(170);
       }
+      // the battle cards each side threw in
+      if (ev.cards) sides.forEach(([s], si) => { for (const id of ev.cards[si ? 'def' : 'att'] || []) { const c = Cards.make(id, { mini: true }); c.classList.add('bp-tc'); s.querySelector('.bp-thrown').appendChild(c); } });
       // bonuses
       const mults = [0, 0];
       const maxB = Math.max(ev.att.bonuses.length, ev.def.bonuses.length);
       for (let i = 0; i < maxB; i++) {
         sides.forEach(([s, d], si) => {
           const b = d.bonuses[i]; if (!b) return;
-          const row = el('div', 'cb-b', `<span>${b.label}</span><span class="v ${b.chips ? 'c' : 'm'}">+${b.chips || b.mult} ${b.chips ? 'Chips' : 'Mult'}</span>`);
+          const row = el('div', 'cb-b', b.chips || b.mult ? `<span>${b.label}</span><span class="v ${b.chips ? 'c' : 'm'}">${b.mult < 0 ? '' : '+'}${b.chips || b.mult} ${b.chips ? 'Chips' : 'Mult'}</span>` : `<span>${b.label}</span>`);
           s.querySelector('.cb-bon').appendChild(row);
+          if (!b.chips && !b.mult) return;
           if (b.chips) { counters[si] += b.chips; const bx = s.querySelector('.chips'); bx.textContent = counters[si]; bx.classList.remove('hit'); void bx.offsetWidth; bx.classList.add('hit'); }
           else { mults[si] += b.mult; const bx = s.querySelector('.mult'); bx.textContent = '+' + mults[si]; bx.classList.remove('hit'); void bx.offsetWidth; bx.classList.add('hit'); }
         });
         SFX.mult(i);
-        await sleep(260);
+        await nap(260);
       }
       sides.forEach(([s, d]) => { s.querySelector('.chips').textContent = d.chips; });
       // dice: thrown into the tray (drag & fling yours, the other is thrown for you)

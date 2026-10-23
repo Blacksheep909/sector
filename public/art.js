@@ -1041,6 +1041,54 @@ const Art = (() => {
     poly(c, [0.1, -0.25, w, 0.15, w, 0.28, 0.1, 0.18]); c.fill(); poly(c, [-0.1, -0.25, -w, 0.15, -w, 0.28, -0.1, 0.18]); c.fill();
     poly(c, [0.08, 0.42, 0.36, 0.62, 0.36, 0.72, 0.06, 0.62]); c.fill(); poly(c, [-0.08, 0.42, -0.36, 0.62, -0.36, 0.72, -0.06, 0.62]); c.fill();
   };
+  // battle cards
+  Object.assign(TACTIC, {
+    // a heater shield, braced
+    holdfast(c) {
+      c.beginPath(); c.moveTo(-0.72, -0.82); c.lineTo(0.72, -0.82); c.lineTo(0.72, -0.1); c.quadraticCurveTo(0.68, 0.6, 0, 0.95); c.quadraticCurveTo(-0.68, 0.6, -0.72, -0.1); c.closePath(); c.fill();
+      sh(c, () => { c.beginPath(); c.moveTo(0, -0.82); c.lineTo(0.72, -0.82); c.lineTo(0.72, -0.1); c.quadraticCurveTo(0.68, 0.6, 0, 0.95); c.closePath(); c.fill(); });
+      c.save(); c.globalCompositeOperation = 'destination-out'; rr(c, -0.07, -0.6, 0.14, 1.1, 0.04); c.fill(); rr(c, -0.45, -0.25, 0.9, 0.14, 0.04); c.fill(); c.restore();
+    },
+    // a rifle with its bayonet fixed, at the charge
+    bayonets(c) {
+      c.save(); c.rotate(-0.62);
+      rr(c, -0.95, -0.06, 1.2, 0.13, 0.03); c.fill();                       // barrel and stock line
+      poly(c, [-0.95, -0.06, -0.55, -0.06, -0.5, 0.2, -0.95, 0.24]); c.fill();   // stock
+      rr(c, -0.2, 0.06, 0.08, 0.2, 0.02); c.fill();                          // magazine
+      poly(c, [0.25, -0.02, 0.98, 0.02, 0.25, 0.08]); c.fill();               // the blade
+      sh(c, () => { rr(c, 0.2, -0.08, 0.07, 0.2, 0.02); c.fill(); });
+      c.restore();
+    },
+    // shells coming down in a creeping barrage
+    barrage(c) {
+      for (const [x, y] of [[-0.55, -0.35], [0.05, -0.6], [0.55, -0.15]]) {
+        c.save(); c.translate(x, y); c.rotate(0.45);
+        c.beginPath(); c.moveTo(0, 0.55); c.quadraticCurveTo(0.17, 0.35, 0.15, 0.05); c.lineTo(0.15, -0.25); c.lineTo(-0.15, -0.25); c.lineTo(-0.15, 0.05); c.quadraticCurveTo(-0.17, 0.35, 0, 0.55); c.fill();
+        sh(c, () => { c.fillRect(-0.15, -0.12, 0.3, 0.07); });
+        c.globalAlpha = 0.5; c.fillRect(-0.04, -0.75, 0.08, 0.42); c.restore();
+      }
+      c.beginPath(); c.ellipse(0, 0.82, 0.85, 0.12, 0, 0, Math.PI * 2); c.fill();
+    },
+    // fresh troops coming up: three helmets, one more on the way
+    reserves(c) {
+      for (const [x, y, k] of [[-0.5, 0.15, 0.9], [0.5, 0.15, 0.9], [0, -0.05, 1.05]]) {
+        c.save(); c.translate(x, y); c.scale(k, k);
+        c.beginPath(); c.arc(0, 0.1, 0.42, Math.PI, 0); c.lineTo(0.52, 0.18); c.lineTo(-0.52, 0.18); c.closePath(); c.fill();
+        sh(c, () => { c.fillRect(-0.52, 0.1, 1.04, 0.08); });
+        rr(c, -0.24, 0.24, 0.48, 0.5, 0.12); c.fill();
+        c.restore();
+      }
+      rr(c, 0.62, -0.92, 0.12, 0.42, 0.03); c.fill(); rr(c, 0.47, -0.77, 0.42, 0.12, 0.03); c.fill();
+    },
+    // a die that can't come up low, on a level line
+    steady(c) {
+      c.save(); c.rotate(-0.12); rr(c, -0.62, -0.78, 1.24, 1.24, 0.2); c.fill();
+      c.globalCompositeOperation = 'destination-out';
+      for (const [x, y] of [[-0.3, -0.46], [0, -0.16], [0.3, 0.14]]) { c.beginPath(); c.arc(x, y, 0.12, 0, Math.PI * 2); c.fill(); }
+      c.restore();
+      rr(c, -0.9, 0.7, 1.8, 0.1, 0.04); c.fill(); rr(c, -0.06, 0.58, 0.12, 0.34, 0.04); c.fill();
+    },
+  });
   Object.assign(TACTIC, {
     // M18 smoke grenade with a plume
     smoke(c) {

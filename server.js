@@ -283,6 +283,17 @@ function onMessage(c, m) {
       const human = [m.att, m.def].map(side).filter(p => p && !p.bot);
       const mine = seatsOf(c);
       if (human.length && !human.some(p => mine.includes(p.id))) return;
+      // human against human: it only skips once both have asked (each sees that the other has)
+      const live = human.filter(p => humanAt(p.id));
+      if (live.length >= 2) {
+        const key = m.att + '>' + m.def + '@' + m.to;
+        if (!skipVotes.key || skipVotes.key !== key || Date.now() - skipVotes.at > 30000) Object.assign(skipVotes, { key, at: Date.now(), pids: new Set() });
+        for (const p of live) if (mine.includes(p.id)) skipVotes.pids.add(p.id);
+        const all = live.every(p => skipVotes.pids.has(p.id));
+        for (const cl of clients) send(cl, all ? { t: 'skipFx', att: m.att, def: m.def, to: m.to } : { t: 'skipVote', att: m.att, def: m.def, to: m.to, pids: [...skipVotes.pids] });
+        if (all) skipVotes.key = null;
+        return;
+      }
       for (const cl of clients) if (cl !== c) send(cl, { t: 'skipFx', att: m.att, def: m.def, to: m.to });
       return;
     }
@@ -688,6 +699,7 @@ const BOT_PACE = { normal: 1, fast: 0.6, super: 0.12, max: 0.02 };
 // bots decide on the spot; a connected human holding a playable card gets a window (READY ends it early)
 const BATTLE_MS = 8000, BATTLE_CAP = 20000, BATTLED = Symbol('battled');
 let pendingBattle = null;
+const skipVotes = { key: null, at: 0, pids: new Set() };   // a human-vs-human fight skips only when both have asked
 function humanAt(pid) { const lp = lobby.players.find(x => x.id === pid); return !!(lp && !autoPids.has(pid) && !lp.bot && !lp.away && isConnected(lp.local ? lp.controller : lp.id)); }
 function botBattleCards() {
   for (let round = 0; round < 6 && game && game.battle; round++) {
@@ -725,6 +737,8 @@ function battleTick() {
     if (!side && !watcher && game.settings.fog === 'on') continue;   // in the fog, only the two sides (and spectators) see it coming
     send(cl, { t: 'battle', hex: b.hex, att: b.att, def: b.def, ms: pb.until - Date.now(), cards: b.cards, winProb: calc ? calc.winProb : null,
       attBonuses: calc ? calc.att.bonuses : [], defBonuses: calc ? calc.def.bonuses : [], attChips: calc ? calc.att.chips : 0, defChips: calc ? calc.def.chips : 0, attMult: calc ? calc.att.mult : 0, defMult: calc ? calc.def.mult : 0,
+      attUnits: b.units.map(id => game.units[id]).filter(Boolean).map(u => u.type), defUnits: calc ? calc.defenders.map(u => u.type) : [],
+      humans: pb.humans, readyPids: [...pb.ready],
       you: side || null, hand: side && pb.humans.includes(side) ? E.battleHand(game, side).map(x => ({ uid: x.uid, id: x.id })) : [], ready: side ? pb.ready.has(side) : true });
   }
   pb.timer = setTimeout(battleTick, Math.min(1000, Math.max(50, pb.until - Date.now())));
