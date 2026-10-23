@@ -556,7 +556,7 @@ const Render = (() => {
   function bridgeCol(tile) { const p = tile.owner && S_.players.find(pl => pl.id === tile.owner); return p ? p.color : '#5a4630'; }
   // an offshore platform: four legs standing in the sea, a deck with a helipad, a lattice derrick, a crane and a flare boom
   function drawRig(cx, cy, z, v, owner) {
-    const x = cx + 3 * z, y = cy + 1 * z; z *= 1.2;
+    const x = cx + 1.5 * z, y = cy - 1 * z; z *= 0.8;   // sized so the whole platform, flare boom included, sits inside its hex
     const op = owner && S_.players.find(p => p.id === owner), oc = op ? op.color : null;
     const P = (dx, dy) => [x + dx * z, y + dy * z];
     const line = (pts, col, w) => { ctx.strokeStyle = col; ctx.lineWidth = w * z; ctx.beginPath(); pts.forEach(([a, b], i) => i ? ctx.lineTo(...P(a, b)) : ctx.moveTo(...P(a, b))); ctx.stroke(); };
@@ -823,6 +823,41 @@ const Render = (() => {
     ctx.beginPath(); ctx.ellipse(x, y + 2 * z, 21 * z, 9 * z, 0, 0, Math.PI * 2); ctx.stroke(); ctx.restore();
   }
   // stack token: a team-coloured shield plate with a bold silhouette and a count
+  // a unit whose card wears a skin gets a matching rim, and a gem in the skin's rarity colour
+  const SKIN_GEM = { worn: '#3fd07a', foil: '#3fa0ff', gilded: '#c25cff', blackout: '#ffb52e', celestial: '#f4fbff' };
+  function cardSkinRing(x, y, r, z, v, col) {
+    ctx.save(); const R = r + 2.6 * z;
+    if (v === 'worn') {
+      ctx.strokeStyle = '#5a4a30'; ctx.lineWidth = 3 * z; ctx.beginPath(); ctx.arc(x, y, R, 0, Math.PI * 2); ctx.stroke();
+      ctx.strokeStyle = 'rgba(30,22,12,.7)'; ctx.lineWidth = 1 * z; ctx.setLineDash([2 * z, 3 * z]); ctx.stroke(); ctx.setLineDash([]);
+      ctx.fillStyle = 'rgba(225,210,165,.9)'; ctx.save(); ctx.translate(x + R * 0.7, y - R * 0.7); ctx.rotate(0.8); ctx.fillRect(-4 * z, -1.6 * z, 8 * z, 3.2 * z); ctx.restore();
+    } else if (v === 'foil') {
+      const g = ctx.createConicGradient ? ctx.createConicGradient(t * 1.5, x, y) : null;
+      if (g) { ['#ff7ad9', '#7af7ff', '#fff27a', '#9dff7a', '#ff7ad9'].forEach((c, i) => g.addColorStop(i / 4, c)); ctx.strokeStyle = g; } else ctx.strokeStyle = '#7af7ff';
+      ctx.lineWidth = 3 * z; ctx.beginPath(); ctx.arc(x, y, R, 0, Math.PI * 2); ctx.stroke();
+    } else if (v === 'gilded') {
+      ctx.strokeStyle = '#7a4c08'; ctx.lineWidth = 4.2 * z; ctx.beginPath(); ctx.arc(x, y, R, 0, Math.PI * 2); ctx.stroke();
+      ctx.strokeStyle = '#ffd56a'; ctx.lineWidth = 2.6 * z; ctx.stroke();
+      const a = (t * 1.2) % (Math.PI * 2); ctx.strokeStyle = '#fffbe6'; ctx.lineWidth = 2.6 * z; ctx.beginPath(); ctx.arc(x, y, R, a, a + 0.5); ctx.stroke();   // a glint running round
+    } else if (v === 'blackout') {
+      const pz = 0.6 + 0.4 * Math.sin(t * 2.5);
+      ctx.strokeStyle = '#05070a'; ctx.lineWidth = 4.4 * z; ctx.beginPath(); ctx.arc(x, y, R, 0, Math.PI * 2); ctx.stroke();
+      ctx.globalCompositeOperation = 'lighter'; ctx.strokeStyle = col; ctx.globalAlpha = pz; ctx.lineWidth = 1.4 * z; ctx.beginPath(); ctx.arc(x, y, R + 2 * z, 0, Math.PI * 2); ctx.stroke();
+    } else if (v === 'celestial') {
+      const g = ctx.createConicGradient ? ctx.createConicGradient(-t * 0.8, x, y) : null;
+      if (g) { ['#7af7ff', '#b9a7ff', '#ff7ad9', '#b9ff7a', '#7af7ff'].forEach((c, i) => g.addColorStop(i / 4, c)); ctx.strokeStyle = g; } else ctx.strokeStyle = '#b9a7ff';
+      ctx.lineWidth = 3.2 * z; ctx.beginPath(); ctx.arc(x, y, R, 0, Math.PI * 2); ctx.stroke();
+      ctx.globalCompositeOperation = 'lighter'; ctx.fillStyle = '#ffffff';
+      for (let i = 0; i < 3; i++) { const a = t * 1.4 + i * 2.09, sx = x + Math.cos(a) * (R + 3 * z), sy = y + Math.sin(a) * (R + 3 * z), s2 = (1.2 + 0.8 * Math.sin(t * 5 + i)) * z; ctx.beginPath(); ctx.moveTo(sx, sy - s2 * 2); ctx.lineTo(sx + s2 * 0.6, sy); ctx.lineTo(sx, sy + s2 * 2); ctx.lineTo(sx - s2 * 0.6, sy); ctx.closePath(); ctx.fill(); }
+    }
+    ctx.globalCompositeOperation = 'source-over'; ctx.globalAlpha = 1;
+    // the rarity gem, bottom right
+    const gx = x + R * 0.72, gy = y + R * 0.72, gs = 3.6 * z;
+    ctx.fillStyle = '#0a0e12'; ctx.beginPath(); ctx.moveTo(gx, gy - gs - 1.2 * z); ctx.lineTo(gx + gs + 1.2 * z, gy); ctx.lineTo(gx, gy + gs + 1.2 * z); ctx.lineTo(gx - gs - 1.2 * z, gy); ctx.closePath(); ctx.fill();
+    ctx.fillStyle = SKIN_GEM[v] || '#fff'; ctx.beginPath(); ctx.moveTo(gx, gy - gs); ctx.lineTo(gx + gs, gy); ctx.lineTo(gx, gy + gs); ctx.lineTo(gx - gs, gy); ctx.closePath(); ctx.fill();
+    ctx.fillStyle = 'rgba(255,255,255,.7)'; ctx.beginPath(); ctx.moveTo(gx, gy - gs); ctx.lineTo(gx + gs * 0.5, gy - gs * 0.5); ctx.lineTo(gx, gy); ctx.lineTo(gx - gs * 0.5, gy - gs * 0.5); ctx.closePath(); ctx.fill();
+    ctx.restore();
+  }
   function drawToken(x, y, units, owner, z, opts = {}) {
     const p = S_.players.find(pl => pl.id === owner); const col = p ? p.color : '#aaa';
     const top = strongest(units); const d = E.UNITS[top.type];
@@ -838,6 +873,7 @@ const Render = (() => {
     const ty = y - r * 0.95 + bob;
     const spr = tokenSprite(top.type, units.length, col, !!exhausted, r, z);
     { const a0 = ctx.globalAlpha; if (exhausted) ctx.globalAlpha = a0 * 0.6; ctx.drawImage(spr.cv, x - spr.ox, ty - spr.oy, spr.w, spr.h); ctx.globalAlpha = a0; }
+    { const cv = cosOf[owner] && cosOf[owner].cards && cosOf[owner].cards[top.type]; if (cv && !opts.ghost) cardSkinRing(x, ty, r, z, cv, col); }   // the card's skin shows on the board
     if (d.heli) {
       // a helicopter's main rotor, spinning above the token
       const ry = ty - r * 1.08, spin = t * (exhausted ? 6 : 22), w = r * 1.25;

@@ -29,7 +29,7 @@ const Locker = (() => {
   const variant = cardId => (profile && profile.cards && profile.cards[cardId]) || null;
   const bannerClass = cos => cos && cos.banner ? ' bn-' + cos.banner : '';
 
-  // ── the coin pill on the menu ──
+  // ── the Valor pill on the menu (Valor is the in-game currency: medals for service) ──
   function pill() {
     let p = $('#coinPill');
     if (!p) {
@@ -37,7 +37,7 @@ const Locker = (() => {
       $('#menu').appendChild(p);
     }
     p.innerHTML = profile
-      ? `<span class="coin">◉</span><b>${profile.coins.toLocaleString()}</b><button class="btn tiny" data-o="locker">LOCKER</button><button class="btn tiny gold" data-o="store">STORE</button>`
+      ? `<i class="vm"></i><b>${profile.coins.toLocaleString()}</b><button class="btn tiny" data-o="locker">LOCKER</button><button class="btn tiny gold" data-o="store">STORE</button>`
       : `<span class="sub">Enlist to load your skins</span>`;
     p.querySelectorAll('[data-o]').forEach(b => b.onclick = () => { SFX.select(); show(b.dataset.o); });
   }
@@ -47,7 +47,7 @@ const Locker = (() => {
     let m = $('#lockerModal'); if (!m) { m = el('div', 'modal-bg'); m.id = 'lockerModal'; document.body.appendChild(m); }
     m.hidden = false; m.innerHTML = '';
     const p = el('div', 'panel locker-card');
-    p.innerHTML = `<div class="ix-head"><h2>${title}</h2><div class="lk-coins"><span class="coin">◉</span><b>${profile ? profile.coins.toLocaleString() : 0}</b></div><button class="icon-btn" id="lkClose">✕</button></div>`;
+    p.innerHTML = `<div class="ix-head"><h2>${title}</h2><div class="lk-coins"><i class="vm"></i><b>${profile ? profile.coins.toLocaleString() : 0}</b></div><button class="icon-btn" id="lkClose">✕</button></div>`;
     m.appendChild(p);
     const close = () => { m.hidden = true; open = null; SFX.click(); };
     p.querySelector('#lkClose').onclick = close; m.onclick = e => { if (e.target === m) close(); };
@@ -72,8 +72,8 @@ const Locker = (() => {
       b.onclick = () => { SFX.select(); send({ t: 'equip', slot: it.slot, item: it.slot !== 'card' && isOn(it) ? null : it.id }); };
       act.appendChild(b);
     } else if (it.buy === false) act.appendChild(el('span', 'sub', it.id.includes('recruit') ? '🎖 Earned by recruiting' : '🏅 Never sold'));
-    else if (it.slot !== 'card' && !inStore && !C.dailyStore(profile.store.day).items.includes(it.id)) act.appendChild(el('span', 'sub', '◉ ' + it.price.toLocaleString() + ' · when it’s in the store'));
-    else { const b = el('button', 'btn tiny gold', '◉ ' + it.price.toLocaleString()); b.disabled = profile.coins < it.price; b.onclick = () => { SFX.coin(4); send({ t: 'buy', item: it.id }); }; act.appendChild(b); }
+    else if (it.slot !== 'card' && !inStore && !C.dailyStore(profile.store.day).items.includes(it.id)) act.appendChild(el('span', 'sub', '<i class="vm"></i>' + it.price.toLocaleString() + ' · when it’s in the store'));
+    else { const b = el('button', 'btn tiny gold', '<i class="vm"></i>' + it.price.toLocaleString()); b.disabled = profile.coins < it.price; b.onclick = () => { SFX.coin(4); send({ t: 'buy', item: it.id }); }; act.appendChild(b); }
     t.appendChild(act);
     return t;
   }
@@ -104,7 +104,7 @@ const Locker = (() => {
   }
   function recruitBox() {
     const link = location.origin + '/?ref=' + profile.refCode;
-    const b = el('div', 'lk-recruit', `<span>🎖 <b>Recruit:</b> friends who join with your link and finish a game earn you <b>◉ 250</b> each (3 earn the Recruiter banner) · recruited <b>${profile.recruits}</b></span><code>${esc(link)}</code><button class="btn tiny">COPY</button>`);
+    const b = el('div', 'lk-recruit', `<span>🎖 <b>Recruit:</b> friends who join with your link and finish a game earn you <b><i class="vm"></i>250</b> each (3 earn the Recruiter banner) · recruited <b>${profile.recruits}</b></span><code>${esc(link)}</code><button class="btn tiny">COPY</button>`);
     b.querySelector('button').onclick = () => { try { navigator.clipboard.writeText(link); toastish('Link copied'); } catch (e) {} };
     return b;
   }
@@ -121,23 +121,35 @@ const Locker = (() => {
     for (const id of profile.store.items) grid.appendChild(tile(C.ITEMS[id], true));
     p.appendChild(grid);
     const obj = el('div', 'st-obj');
-    const row = o => `<div class="ob${o.done ? ' done' : ''}"><span>${esc(o.text)}</span><div class="bar"><i style="width:${Math.round(o.have / o.need * 100)}%"></i></div><b>${o.done ? '✔' : o.have + '/' + o.need}</b><em>◉ ${o.coins}</em></div>`;
+    const row = o => `<div class="ob${o.done ? ' done' : ''}"><span>${esc(o.text)}</span><div class="bar"><i style="width:${Math.round(o.have / o.need * 100)}%"></i></div><b>${o.done ? '✔' : o.have + '/' + o.need}</b><em><i class="vm"></i>${o.coins}</em></div>`;
     obj.innerHTML = `<div><h3>DAILY</h3>${profile.daily.map(row).join('')}</div><div><h3>WEEKLY</h3>${profile.weekly.map(row).join('')}</div>`
-      + `<div class="sub st-note">Matches pay coins too: more for winning and fighting well. The more you've earned today (◉ ${profile.earnedToday.toLocaleString()} so far), the less each extra match adds, so play when you like without grinding.</div>`;
+      + `<div class="sub st-note">Matches pay Valor too: more for winning and fighting well. The more you've earned today (<i class="vm"></i>${profile.earnedToday.toLocaleString()} so far), the less each extra match adds, so play when you like without grinding.</div>`;
     p.appendChild(obj);
-    p.appendChild(el('div', 'st-packs', '<h3>COIN PACKS</h3><div class="sub">Buying coins arrives with accounts. Everything in the store is looks only: nothing you can buy changes the game.</div>'));
+    p.appendChild(el('div', 'st-packs', '<h3>VALOR PACKS</h3><div class="sub">Buying Valor arrives with accounts. Everything in the store is looks only: nothing you can buy changes the game.</div>'));
   }
 
   // ── after a game: what you earned ──
   function reward(r) {
     const lines = [];
-    if (r.match) lines.push(`Match · <b>◉ ${r.match}</b>` + (r.base > r.match ? ` <span class="sub">(◉ ${r.base} before today's tapering)</span>` : ''));
+    if (r.match) lines.push(`Match · <b><i class="vm"></i>${r.match}</b>` + (r.base > r.match ? ` <span class="sub">(<i class="vm"></i>${r.base} before today's tapering)</span>` : ''));
     else if (r.why) lines.push(`<span class="sub">${esc(r.why)}</span>`);
-    for (const o of r.objectives || []) lines.push(`✔ ${esc(o.text)} · <b>◉ ${o.coins}</b>`);
-    if (r.referral) lines.push(`🎖 Welcome bonus for joining with a friend's link · <b>◉ ${r.referral}</b>`);
+    for (const o of r.objectives || []) lines.push(`✔ ${esc(o.text)} · <b><i class="vm"></i>${o.coins}</b>`);
+    if (r.referral) lines.push(`🎖 Welcome bonus for joining with a friend's link · <b><i class="vm"></i>${r.referral}</b>`);
     if (!lines.length) return;
-    const b = el('div', 'reward-pop', `<h3>REWARDS</h3>${lines.map(l => `<div>${l}</div>`).join('')}`);
-    document.body.appendChild(b); SFX.coin(6);
+    const total = (r.match || 0) + (r.objectives || []).reduce((a, o) => a + o.coins, 0) + (r.referral || 0);
+    const b = el('div', 'reward-pop', `<h3>VALOR EARNED</h3><div class="rw-total"><i class="vm big"></i><b>+0</b></div>${lines.map((l, i) => `<div style="animation-delay:${0.25 + i * 0.18}s">${l}</div>`).join('')}`);
+    document.body.appendChild(b);
+    // the total counts up with a rising chime, and medals spin off toward your Valor pill
+    const tb = b.querySelector('.rw-total b'), t0 = performance.now(), dur = Math.min(1600, 500 + total * 2);
+    let lastStep = -1;
+    const tick = now => { const k = Math.min(1, (now - t0) / dur), e = 1 - Math.pow(1 - k, 3), v = Math.round(total * e); tb.textContent = '+' + v.toLocaleString(); const st = Math.floor(e * 12); if (st > lastStep) { lastStep = st; SFX.coin(1 + st % 6); } if (k < 1) requestAnimationFrame(tick); else { tb.parentElement.classList.add('done'); SFX.rare(); } };
+    requestAnimationFrame(tick);
+    const pillEl = $('#coinPill'), to = pillEl && pillEl.getBoundingClientRect(), from = b.querySelector('.rw-total').getBoundingClientRect();
+    if (to && to.width) for (let i = 0; i < Math.min(14, 4 + Math.round(total / 40)); i++) setTimeout(() => {
+      const m = el('i', 'vm fly'); m.style.left = (from.left + 20 + Math.random() * 40) + 'px'; m.style.top = (from.top + 10) + 'px'; document.body.appendChild(m);
+      requestAnimationFrame(() => { m.style.transform = `translate(${to.left + 20 - from.left - 40}px, ${to.top + 10 - from.top - 10}px) rotate(${360 + Math.random() * 360}deg) scale(.7)`; m.style.opacity = '0.4'; });
+      setTimeout(() => { m.remove(); if (pillEl) { pillEl.classList.remove('bump'); void pillEl.offsetWidth; pillEl.classList.add('bump'); } }, 750);
+    }, 400 + i * 90);
     setTimeout(() => b.classList.add('gone'), 7000); setTimeout(() => b.remove(), 7600);
     b.onclick = () => b.remove();
   }

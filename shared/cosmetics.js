@@ -40,7 +40,7 @@
     't-circuit': { slot: 'territory', name: 'Circuit Board', rarity: 'epic', price: 1400, desc: 'Copper traces, solder pads and chips on green board.' },
     't-splinter': { slot: 'territory', name: 'Splinter Camo', rarity: 'rare', price: 1000, desc: 'Hard-edged splinters of green and brown, with rain streaks.' },
     't-nightvision': { slot: 'territory', name: 'Night Vision', rarity: 'epic', price: 1400, desc: 'Seen through the goggles: green phosphor, grain and scan lines.' },
-    't-lava': { slot: 'territory', name: 'Molten', rarity: 'legendary', price: 2400, desc: 'Black rock split by glowing cracks of lava.' },
+    't-lava': { slot: 'territory', name: 'Molten', rarity: 'mythic', price: 2400, desc: 'Black rock split by glowing cracks of lava.' },
     't-jolly': { slot: 'territory', name: 'Jolly Roger', rarity: 'legendary', price: 2400, desc: 'Black as night, with a skull and crossbones over your HQ.' },
     't-dazzle': { slot: 'territory', name: 'Dazzle', rarity: 'legendary', price: 2200, desc: 'Razzle-dazzle, the warship camouflage of 1917: slabs of hard stripes at clashing angles.' },
     't-tiger': { slot: 'territory', name: 'Tiger Stripe', rarity: 'epic', price: 1400, desc: 'Long, ragged jungle stripes.' },
@@ -49,11 +49,11 @@
     't-desert': { slot: 'territory', name: 'Desert Camo', rarity: 'rare', price: 900, desc: 'Three-colour desert camouflage.' },
     't-arctic': { slot: 'territory', name: 'Arctic Camo', rarity: 'rare', price: 1000, desc: 'Snow white with grey and slate.' },
     't-digital': { slot: 'territory', name: 'Digital Camo', rarity: 'rare', price: 1100, desc: 'Pixelated MARPAT-style camouflage.' },
-    't-carbon': { slot: 'territory', name: 'Carbon Fibre', rarity: 'uncommon', price: 600, desc: 'A woven carbon weave.' },
+    't-carbon': { slot: 'territory', name: 'Carbon Fibre', rarity: 'common', price: 600, desc: 'A woven carbon weave.' },
     't-hazard': { slot: 'territory', name: 'Hazard', rarity: 'uncommon', price: 600, desc: 'Black and yellow chevrons.' },
     't-founder': { slot: 'territory', name: 'Founder’s Laurel', rarity: 'legendary', buy: false, desc: 'For commanders who made an account in SECTOR’s first months: gold rays and a laurel wreath round your HQ. Never sold.' },
     // auras: animated light round your frontier
-    'b-neon': { slot: 'border', name: 'Neon', rarity: 'rare', price: 800, desc: 'A gas tube in your colour, flickering faintly like a real one.' },
+    'b-neon': { slot: 'border', name: 'Neon', rarity: 'uncommon', price: 800, desc: 'A gas tube in your colour, flickering faintly like a real one.' },
     'b-pulse': { slot: 'border', name: 'Sonar', rarity: 'rare', price: 900, desc: 'A ring of light ripples out from your border while a ping races round it.' },
     'b-frost': { slot: 'border', name: 'Frostline', rarity: 'rare', price: 900, desc: 'Icy light with crystals catching the sun and snow drifting off the edge.' },
     'b-static': { slot: 'border', name: 'Static', rarity: 'rare', price: 950, desc: 'Live electricity: the arc re-forms a dozen times a second and throws sparks.' },
@@ -65,11 +65,11 @@
     'b-blood': { slot: 'border', name: 'Blood Moon', rarity: 'epic', price: 1500, desc: 'Deep crimson light that beats like a heart.' },
     'b-stars': { slot: 'border', name: 'Starfield', rarity: 'epic', price: 1500, desc: 'A band of night sky round your land, stars twinkling in it.' },
     'b-void': { slot: 'border', name: 'Void', rarity: 'legendary', price: 2400, desc: 'Dark matter: a black rim, a violet edge, and tendrils that reach out and pull back.' },
-    'b-aurora': { slot: 'border', name: 'Aurora', rarity: 'legendary', price: 2600, desc: 'The northern lights: curtains of green, teal and violet rising from your border.' },
+    'b-aurora': { slot: 'border', name: 'Aurora', rarity: 'mythic', price: 2600, desc: 'The northern lights: curtains of green, teal and violet rising from your border.' },
     'b-solar': { slot: 'border', name: 'Solar Flare', rarity: 'legendary', price: 2600, desc: 'A white-hot corona with flares licking outward.' },
     // border lines: the frontier line itself, always in your colour
     'h-tactical': { slot: 'trim', name: 'Map Boundary', rarity: 'uncommon', price: 500, desc: 'A hard line with ticks along the outside, like a boundary on a military map.' },
-    'h-double': { slot: 'trim', name: 'Double Line', rarity: 'uncommon', price: 450, desc: 'A bevelled double rule in your colour.' },
+    'h-double': { slot: 'trim', name: 'Double Line', rarity: 'common', price: 450, desc: 'A bevelled double rule in your colour.' },
     'h-hazard': { slot: 'trim', name: 'Hazard Tape', rarity: 'uncommon', price: 500, desc: 'Yellow and black tape edged in your colour.' },
     'h-plate': { slot: 'trim', name: 'Steel Plate', rarity: 'rare', price: 800, desc: 'Riveted armour plate round your land.' },
     'h-sandbag': { slot: 'trim', name: 'Sandbags', rarity: 'rare', price: 900, desc: 'Two staggered courses of sandbags along every border.' },
@@ -79,9 +79,9 @@
     'h-barbed': { slot: 'trim', name: 'Barbed Wire', rarity: 'epic', price: 1300, desc: 'Concertina razor wire on wooden pickets.' },
     'h-teeth': { slot: 'trim', name: 'Dragon’s Teeth', rarity: 'epic', price: 1300, desc: 'Two rows of concrete tank traps along the frontier.' },
     'h-pylons': { slot: 'trim', name: 'Power Lines', rarity: 'epic', price: 1300, desc: 'Pylons at every corner with cables sagging between them.' },
-    'h-laser': { slot: 'trim', name: 'Laser Fence', rarity: 'legendary', price: 2000, desc: 'A white-hot beam between emitter posts, glowing in your colour.' },
+    'h-laser': { slot: 'trim', name: 'Laser Fence', rarity: 'mythic', price: 2000, desc: 'A white-hot beam between emitter posts, glowing in your colour.' },
     // banners: your name card
-    'n-carbon': { slot: 'banner', name: 'Carbon', rarity: 'uncommon', price: 400, desc: 'A carbon-fibre name card.' },
+    'n-carbon': { slot: 'banner', name: 'Carbon', rarity: 'common', price: 400, desc: 'A carbon-fibre name card.' },
     'n-usa': { slot: 'banner', name: 'Old Glory', rarity: 'rare', price: 700, desc: 'Stars and stripes behind your name.' },
     'n-uk': { slot: 'banner', name: 'Union', rarity: 'rare', price: 700, desc: 'The Union flag behind your name.' },
     'n-nato': { slot: 'banner', name: 'Alliance', rarity: 'rare', price: 700, desc: 'Navy and the compass star.' },
@@ -92,17 +92,35 @@
     'n-recruiter': { slot: 'banner', name: 'Recruiter', rarity: 'epic', buy: false, desc: 'Bring 3 friends who make an account and finish a game.' },
   };
   // every card comes in three versions
+  // one of every rarity, uncommon to mythic
   const VARIANTS = {
+    worn: { name: 'Battle-Worn', rarity: 'uncommon', price: 120, desc: 'Scuffed, taped up and stencilled: it has seen some fighting.' },
     foil: { name: 'Foil', rarity: 'rare', price: 250, desc: 'A rainbow holographic sheen.' },
     gilded: { name: 'Gilded', rarity: 'epic', price: 600, desc: 'Gold frame and a gold-washed picture.' },
     blackout: { name: 'Blackout', rarity: 'legendary', price: 1200, desc: 'Matte black, the picture in negative, and a glowing edge.' },
+    celestial: { name: 'Celestial', rarity: 'mythic', price: 2400, desc: 'Night sky and drifting stars inside a shifting aurora frame. The rarest version there is.' },
   };
   const CARD_MULT = { common: 1, uncommon: 1, rare: 1.25, epic: 1.5, legendary: 2, mythic: 2.5 };
   const cardIds = () => Object.keys(E.UNITS).concat(Object.keys(E.TACTICS).filter(id => !id.startsWith('drop_') || id === 'drop_rare'));
+  // every card's mythic version has a name of its own
+  const MYTHIC_NAME = {
+    grunt: 'Valhalla', skitter: 'Phantom Limb', thumper: 'Thunderclap', barracuda: 'Moonshark', stinger: 'Starwasp', corpsman: 'Seraphic', jackal: 'Anubis', coyote: 'Trickster',
+    lancer: 'Comet', warden: 'All-Seeing', sapper: 'Supernova', scorpion: 'Antares', bulwark: 'Aegis Eternal', hornet: 'Nebula', mauler: 'Dreadnought Prime', ark: 'Covenant',
+    marlin: 'Tidecaller', basilisk: 'Gorgon', ranger: 'Pathfinder', skyguard: 'Heavenward', hellcat: 'Inferno Queen', wraith: 'Revenant', kraken: 'Leviathan Deep', goliath: 'Colossus',
+    valkyrie: 'Einherjar', wren: 'Hummingstar', ravager: 'Starfall', stormcrow: 'Odin’s Raven', phantom: 'Ghost Protocol', hailstorm: 'Meteor Shower', sentinel: 'Watcher of Worlds', bastion: 'Celestial Keep',
+    leviathan: 'World Serpent', titan: 'Atlas', seraph: 'Archangel', banshee: 'Wailing Star', carrier: 'Starhaven', oracle: 'Pythia', trident: 'Poseidon', abyssal: 'Event Horizon',
+    ambush: 'Shadowfall', holdfast: 'Unbroken', bayonets: 'Starsteel', barrage: 'Skyfire', reserves: 'Legion', steady: 'Fate’s Hand', smoke: 'Nebular Veil', march: 'Long Night',
+    rally: 'Clarion', fortify: 'Bastion of Stars', conscript: 'The Many', kamikaze: 'Shooting Star', gunrun: 'Wild Hunt', airstrike: 'Heaven’s Wrath', heli: 'Skyborne', sabotage: 'Saboteur Saint',
+    embargo: 'Iron Curtain', bounty: 'Golden Contract', precision: 'Needle of God', strategic: 'Firestorm', quarry: 'Worldbreaker', spy: 'Nightingale', bonds: 'Treasury of Stars', blitz: 'Lightning War',
+    drop_rare: 'Manna', emp: 'Solar Wind', buster: 'Bunkerfall', carpet: 'Rain of Stars', orbital: 'Kinetic Halo', nuke: 'Sunrise', mutiny: 'Turncoat Crown', tsar: 'Doomsday', regime: 'New Dawn', aegis: 'Celestial Ward',
+  };
   for (const cid of cardIds()) for (const v in VARIANTS) {
-    const d = E.cardDef(cid), V = VARIANTS[v];
-    ITEMS['c-' + cid + '-' + v] = { slot: 'card', card: cid, variant: v, name: V.name + ' ' + d.name, rarity: V.rarity, price: Math.round(V.price * (CARD_MULT[d.rarity] || 1) / 10) * 10, desc: V.desc };
+    const d = E.cardDef(cid), V = VARIANTS[v], mythic = v === 'celestial' && MYTHIC_NAME[cid];
+    ITEMS['c-' + cid + '-' + v] = { slot: 'card', card: cid, variant: v, name: mythic ? mythic + ' ' + d.name : V.name + ' ' + d.name, rarity: V.rarity, price: Math.round(V.price * (CARD_MULT[d.rarity] || 1) / 10) * 10, desc: mythic ? 'Mythic. ' + V.desc : V.desc };
   }
+  // what a look costs follows its rarity: the rarer it is, the more it costs (cards are priced above, by version)
+  const PRICE = { common: 200, uncommon: 450, rare: 900, epic: 1500, legendary: 2400, mythic: 3600 }, SLOT_PRICE = { territory: 1, border: 1, trim: 0.85, banner: 0.6 };
+  for (const id in ITEMS) { const it = ITEMS[id]; if (it.slot !== 'card' && it.buy !== false && PRICE[it.rarity]) it.price = Math.round(PRICE[it.rarity] * SLOT_PRICE[it.slot] / 50) * 50; }
   for (const id in ITEMS) ITEMS[id].id = id;
   const SLOTS = { territory: 'Territory', border: 'Auras', trim: 'Border Lines', banner: 'Banners', card: 'Cards' };
   const LOOKS = ['territory', 'border', 'trim', 'banner'];   // the slots worn on the map and name card (cards are per card)
@@ -156,12 +174,15 @@
   function botLoadout(rng = Math.random) {
     const out = {}, buyable = slot => Object.values(ITEMS).filter(i => i.slot === slot && i.buy !== false);
     for (const slot of LOOKS) if (rng() < 0.035) { const l = buyable(slot); out[slot] = l[Math.floor(rng() * l.length)].id; }
+    if (rng() < 0.035) { const l = buyable('card'), it = l[Math.floor(rng() * l.length)]; out.cards = { [it.card]: it.variant }; }
     return out;
   }
   // a loadout from the client is only trusted for items the profile owns (the server checks; this tidies the shape)
-  function cleanLoadout(eq, owned) {
+  // cards: the card versions equipped ({ cardId: variant }), shown to everyone on the board and in fights
+  function cleanLoadout(eq, owned, cards) {
     const out = {}, has = id => ITEMS[id] && (!owned || owned.includes(id));
     for (const slot of LOOKS) if (eq && has(eq[slot]) && ITEMS[eq[slot]].slot === slot) out[slot] = eq[slot];
+    if (cards) for (const cid in cards) if (has('c-' + cid + '-' + cards[cid])) (out.cards = out.cards || {})[cid] = cards[cid];
     return out;
   }
 
