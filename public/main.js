@@ -34,9 +34,12 @@
   function keepSeat(room, tk) { seat = room && tk ? { room, token: tk } : null; try { seat ? localStorage.setItem('sector.seat', JSON.stringify(seat)) : localStorage.removeItem('sector.seat'); } catch (e) {} }
   // links: /?room=CODE joins a room, /?party=CODE joins a party (read once, then tidied out of the address bar)
   const qs = new URLSearchParams(location.search), urlRoom = (qs.get('room') || '').toUpperCase(), urlParty = (qs.get('party') || '').toUpperCase();
-  if (urlRoom || urlParty) try { history.replaceState(null, '', location.pathname + (qs.get('watch') ? '?watch=1' : '')); } catch (e) {}
-  let firstOpen = true;
-  const myName = () => $('#nameIn').value.trim() || savedName() || 'Commander';
+  // back from signing in with Google or Discord: a one-time code to collect, or what went wrong
+  let loginCode = qs.get('login') || '', loginError = qs.get('loginError') || '';
+  if (urlRoom || urlParty || loginCode || loginError) try { history.replaceState(null, '', location.pathname + (qs.get('watch') ? '?watch=1' : '')); } catch (e) {}
+  let firstOpen = true, sessionStart = () => {};
+  const typedName = () => $('#nameIn').value.trim() || savedName();
+  const myName = () => typedName() || (Locker.profile && Locker.profile.name) || 'Commander';
 
   Render.init($('#map'));
 
@@ -46,14 +49,20 @@
     // ?watch=1 (the dev panel's SPECTATE link): watch the running game without joining it
     const watching = /[?&]watch=1/.test(location.search);
     ws.onopen = () => {
+      if (loginCode) { send({ t: 'authClaim', code: loginCode }); loginCode = ''; return; }   // the rest follows authDone
+      openSession();
+    };
+    function openSession() {
       // the front menu first (profile, online counts, party), then back into the room you were in, or the one a link points to
-      send({ t: 'auth', name: myName(), profile: Locker.identity(), ref: Locker.ref() });
+      send({ t: 'auth', name: typedName() || undefined, profile: Locker.identity(), ref: Locker.ref() });   // no callsign typed: keep the commander's own
       if (watching) send({ t: 'hello', watch: true, room: urlRoom || undefined });
       else if (seat) send({ t: 'hello', room: seat.room, token: seat.token, name: myName() });
       else if (firstOpen && urlRoom) send({ t: 'join', code: urlRoom, name: myName() });
       if (firstOpen && urlParty) send({ t: 'partyJoin', code: urlParty, name: myName() });
       firstOpen = false;
-    };
+      if (loginError) { toast(loginError, 'err'); loginError = ''; }
+    }
+    sessionStart = openSession;
     ws.onmessage = ev => onMsg(JSON.parse(ev.data));
     ws.onclose = () => { if (closedFor) return; toast('Connection lost — reconnecting…', 'err'); setTimeout(connect, 1500); };
   }
@@ -70,11 +79,19 @@
         joinedOnce = true; leftGame = false;
         break;
       case 'lobby': lobby = m.lobby; startDeadline = lobby.startIn ? Date.now() + lobby.startIn : 0; if (token && lobby.code) keepSeat(lobby.code, token); if (!S) renderLobby(); break;
+      case 'authGo': location.href = m.url; break;   // off to Google or Discord
+      case 'authDone':
+        if (!m.ok) toast(m.msg || 'Sign-in failed', 'err');
+        else {
+          if (m.identity) { Locker.setIdentity(m.identity); keepSeat(null); token = null; $('#nameIn').value = ''; try { localStorage.removeItem('sector.name'); } catch (e) {} }   // this login already had a commander: play that one, under its own name
+          toast('✔ Signed in with ' + ({ google: 'Google', discord: 'Discord' }[m.provider] || m.provider) + (m.name ? ' as ' + m.name : '') + (m.switched ? ': welcome back' : ': your progress is saved to this login'), 'good'); SFX.legendary();
+        }
+        sessionStart(); break;
       case 'noRoom': {   // the room is gone (it closed, or the server restarted): a war on screen is dead, so go home
         const was = !!S; keepSeat(null); token = null; lobby = null; you = null; realId = null;
         if (was) { leftGame = true; backToMenu(); toast('That war has ended: the server was restarted', 'err'); } else { showHome(); if (m.code && m.code !== 'MAIN') toast('Room ' + m.code + ' has closed', 'err'); }
         break; }
-      case 'profile': Locker.set(m.profile); Home.render(); if (lobby && !S) renderLobby();
+      case 'profile': Locker.set(m.profile); if (!$('#nameIn').value.trim() && m.profile.name) $('#nameIn').value = m.profile.name; Home.render(); if (lobby && !S) renderLobby();
         if (m.faction && E.FACTIONS[m.faction]) { toast('✔ ' + E.FACTIONS[m.faction].name + ' unlocked: pick it in any lobby', 'good'); SFX.legendary(); }
         if (m.bought) { toast('✔ ' + SectorCosmetics.ITEMS[m.bought].name + ' is yours', 'good'); SFX.legendary(); } break;
       case 'reward': Locker.set(m.profile); setTimeout(() => Locker.reward(m.reward), 1600); break;

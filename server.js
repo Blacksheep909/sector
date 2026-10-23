@@ -93,6 +93,7 @@ const server = http.createServer((req, res) => {
     res.writeHead(200, { 'Content-Type': 'application/json', 'Cache-Control': 'max-age=300' });
     return res.end(JSON.stringify(news()));
   }
+  if (url.startsWith('/auth/')) return authCallback(req, res, url);
   if (url === '/host' || url.startsWith('/host/')) return hostApi(req, res, url);
   if (url === '/dev' && DEV_KEY) url = '/dev.html';
   if (url.startsWith('/dev/api/')) return devApi(req, res, url);
@@ -116,7 +117,7 @@ server.on('upgrade', (req, socket) => {
   const accept = crypto.createHash('sha1').update(req.headers['sec-websocket-key'] + '258EAFA5-E914-47DA-95CA-C5AB0DC85B11').digest('base64');
   socket.write('HTTP/1.1 101 Switching Protocols\r\nUpgrade: websocket\r\nConnection: Upgrade\r\nSec-WebSocket-Accept: ' + accept + '\r\n\r\n');
   socket.setNoDelay(true);
-  const client = { socket, buf: Buffer.alloc(0), pid: null, frags: [], seen: Date.now(), cid: crypto.randomBytes(6).toString('hex'), room: null, party: null, name: null, profileId: null };
+  const client = { socket, buf: Buffer.alloc(0), pid: null, frags: [], seen: Date.now(), cid: crypto.randomBytes(6).toString('hex'), room: null, party: null, name: null, profileId: null, origin: originOf(req) };
   sockets.add(client);
   socket.on('data', d => { client.buf = Buffer.concat([client.buf, d]); readFrames(client); });
   const close = () => { if (!sockets.has(client)) return; sockets.delete(client); onSocketClose(client); };
@@ -1195,8 +1196,8 @@ function auth(c, m) {
 function route(c, m) {
   if (!m || typeof m.t !== 'string') return;
   switch (m.t) {
-    case 'auth': auth(c, m); send(c, { t: 'menu', ...menuStats(), mode: process.env.SECTOR_PUBLIC ? 'public' : 'lan', version: VERSION, you: c.cid }); return partySync(c.party);
-    case 'menu': return send(c, { t: 'menu', ...menuStats(), mode: process.env.SECTOR_PUBLIC ? 'public' : 'lan', version: VERSION, you: c.cid });
+    case 'auth': auth(c, m); send(c, { t: 'menu', ...menuStats(), mode: process.env.SECTOR_PUBLIC ? 'public' : 'lan', version: VERSION, you: c.cid, logins: providersOn() }); return partySync(c.party);
+    case 'menu': return send(c, { t: 'menu', ...menuStats(), mode: process.env.SECTOR_PUBLIC ? 'public' : 'lan', version: VERSION, you: c.cid, logins: providersOn() });
     case 'hello': {
       // joining (or rejoining, with a seat token) a room by its code; no code means the classic lobby
       if (m.profile || m.name) auth(c, m);
@@ -1247,6 +1248,25 @@ function route(c, m) {
       if (m.t === 'equip') { if (c.room) c.room.profileChanged(c, pr); partySync(c.party); }
       return;
     }
+    // ── accounts ──
+    case 'authStart': {
+      const prov = PROVIDERS[m.provider];
+      if (!prov || !providersOn().includes(m.provider)) return send(c, { t: 'err', msg: 'Signing in with that isn\u2019t set up on this server' });
+      if (!c.profileId) return send(c, { t: 'err', msg: 'Your profile hasn\u2019t loaded yet' });
+      const state = crypto.randomBytes(18).toString('hex');
+      authStates.set(state, { provider: m.provider, profileId: c.profileId, origin: c.origin, at: Date.now() });
+      return send(c, { t: 'authGo', url: prov.authUrl(state, redirectUri(c.origin, m.provider), m) });
+    }
+    case 'authClaim': {
+      const cl = claims.get(String(m.code || '')); claims.delete(String(m.code || ''));
+      if (!cl || Date.now() - cl.at > 5 * 60000) return send(c, { t: 'authDone', ok: false, msg: 'That sign-in expired. Try again.' });
+      return send(c, { t: 'authDone', ok: true, provider: cl.provider, name: cl.name, switched: cl.switched, identity: cl.identity });
+    }
+    case 'authUnlink': {
+      const pr = c.profileId && profiles.get(c.profileId); if (!pr) return;
+      profiles.unlink(pr, String(m.provider || ''));
+      return send(c, { t: 'profile', profile: profiles.view(pr) });
+    }
     case 'publicProfile': { const v = profiles.publicView(String(m.handle || '')); return send(c, v ? { t: 'publicProfile', profile: v } : { t: 'err', msg: 'No such commander' }); }
     case 'leaderboard': return send(c, { t: 'leaderboard', period: m.period === 'all' ? 'all' : 'week', rows: profiles.leaderboard(m.period === 'all' ? 'all' : 'week') });
     // ── parties ──
@@ -1292,6 +1312,75 @@ setInterval(() => {
 // the room the server console, host panel and dev panel look at: a war in progress, else the classic lobby
 const focusRoom = () => [...rooms.values()].find(r => r.game && r.game.phase === 'play') || rooms.get(MAIN) || [...rooms.values()][0] || null;
 const allSeats = () => [...rooms.values()].flatMap(r => r.lobby.players.map(p => ({ p, r })));
+// ───────────────────────── accounts: sign in with Google or Discord ─────────────────────────
+// Standard OAuth: the player is sent to Google or Discord, approves, and comes back to /auth/<provider>/callback with a
+// one-time code. The server swaps it (with the app's secret) for who they are, links that login to their commander, and
+// hands the browser a single-use claim code. Each provider switches on once its keys are set (see docs/HOSTING.md).
+// SECTOR_URL fixes the public address (https://playsector.io); otherwise the address the player used is used.
+const enc = o => Object.entries(o).filter(([, v]) => v != null).map(([k, v]) => encodeURIComponent(k) + '=' + encodeURIComponent(v)).join('&');
+const PROVIDERS = {
+  google: {
+    name: 'Google', id: process.env.GOOGLE_CLIENT_ID, secret: process.env.GOOGLE_CLIENT_SECRET,
+    authUrl: (state, redirect) => 'https://accounts.google.com/o/oauth2/v2/auth?' + enc({ client_id: PROVIDERS.google.id, redirect_uri: redirect, response_type: 'code', scope: 'openid email profile', state, prompt: 'select_account' }),
+    token: 'https://oauth2.googleapis.com/token', me: 'https://openidconnect.googleapis.com/v1/userinfo',
+    who: u => ({ id: u.sub, name: u.name || u.email, email: u.email }),
+  },
+  discord: {
+    name: 'Discord', id: process.env.DISCORD_CLIENT_ID, secret: process.env.DISCORD_CLIENT_SECRET,
+    authUrl: (state, redirect) => 'https://discord.com/oauth2/authorize?' + enc({ client_id: PROVIDERS.discord.id, redirect_uri: redirect, response_type: 'code', scope: 'identify email', state, prompt: 'none' }),
+    token: 'https://discord.com/api/oauth2/token', me: 'https://discord.com/api/users/@me',
+    who: u => ({ id: u.id, name: u.global_name || u.username, email: u.email }),
+  },
+  // testing only (SECTOR_AUTH_MOCK=1): a pretend provider that skips the trip, so the whole flow can be tested offline
+  mock: process.env.SECTOR_AUTH_MOCK ? {
+    name: 'Test login', id: 'mock', secret: 'mock',
+    authUrl: (state, redirect, m) => redirect + '?' + enc({ state, code: 'mock:' + String((m && m.mockUser) || 'tester').slice(0, 40) }),
+  } : null,
+};
+const providersOn = () => Object.keys(PROVIDERS).filter(k => PROVIDERS[k] && PROVIDERS[k].id && PROVIDERS[k].secret);
+const authStates = new Map(), claims = new Map();
+setInterval(() => { const old = Date.now() - 10 * 60000; for (const [k, v] of authStates) if (v.at < old) authStates.delete(k); for (const [k, v] of claims) if (v.at < old) claims.delete(k); }, 60000).unref();
+function originOf(req) {
+  if (process.env.SECTOR_URL) return process.env.SECTOR_URL.replace(/\/+$/, '');
+  const proto = String(req.headers['x-forwarded-proto'] || (req.socket.encrypted ? 'https' : 'http')).split(',')[0].trim();
+  return (proto === 'https' ? 'https' : 'http') + '://' + String(req.headers['x-forwarded-host'] || req.headers.host || 'localhost:' + PORT).split(',')[0].trim();
+}
+const redirectUri = (origin, provider) => origin + '/auth/' + provider + '/callback';
+// a small HTTPS request (form body in, JSON out)
+function fetchJson(method, url, { form, headers = {} } = {}) {
+  return new Promise((resolve, reject) => {
+    const body = form ? enc(form) : null, u = new URL(url);
+    const r = require('https').request({ method, hostname: u.hostname, path: u.pathname + u.search, headers: { Accept: 'application/json', 'User-Agent': 'sector-game/' + VERSION, ...(body ? { 'Content-Type': 'application/x-www-form-urlencoded', 'Content-Length': Buffer.byteLength(body) } : {}), ...headers }, timeout: 10000 }, res => {
+      let d = ''; res.on('data', x => { d += x; }); res.on('end', () => { try { const j = JSON.parse(d); if (res.statusCode >= 400) reject(new Error(j.error_description || j.error || 'HTTP ' + res.statusCode)); else resolve(j); } catch (e) { reject(new Error('Bad reply from ' + u.hostname)); } });
+    });
+    r.on('error', reject); r.on('timeout', () => r.destroy(new Error('Timed out talking to ' + u.hostname)));
+    if (body) r.write(body); r.end();
+  });
+}
+async function authCallback(req, res, url) {
+  const m = url.match(/^\/auth\/([a-z]+)\/callback$/), q = new URL(req.url, 'http://x').searchParams;
+  const back = (origin, params) => { res.writeHead(302, { Location: (origin || '') + '/?' + enc(params), 'Cache-Control': 'no-store' }); res.end(); };
+  const st = authStates.get(q.get('state') || ''); authStates.delete(q.get('state') || '');
+  if (!m || !st || st.provider !== m[1]) return back(st && st.origin, { loginError: 'That sign-in link expired. Try again.' });
+  if (q.get('error')) return back(st.origin, { loginError: 'Sign-in was cancelled.' });
+  const prov = PROVIDERS[m[1]];
+  try {
+    let info;
+    if (m[1] === 'mock') { const who = String(q.get('code') || '').replace(/^mock:/, ''); info = { id: 'mock-' + who, name: who, email: who + '@example.com' }; }
+    else {
+      const tok = await fetchJson('POST', prov.token, { form: { client_id: prov.id, client_secret: prov.secret, grant_type: 'authorization_code', code: q.get('code'), redirect_uri: redirectUri(st.origin, m[1]) } });
+      info = prov.who(await fetchJson('GET', prov.me, { headers: { Authorization: 'Bearer ' + tok.access_token } }));
+    }
+    if (!info || !info.id) throw new Error('No account id came back');
+    const cur = profiles.get(st.profileId), r = profiles.linkAccount(cur, m[1], info);
+    if (!r) throw new Error('No commander to link');
+    // the browser gets a key to the commander it should now be playing (its own, or the one this login already had)
+    const code = crypto.randomBytes(18).toString('hex');
+    claims.set(code, { at: Date.now(), provider: m[1], name: info.name || prov.name, switched: r.switched, identity: r.switched ? { id: r.profile.id, secret: profiles.addDevice(r.profile) } : null });
+    note('A commander signed in with ' + prov.name);
+    back(st.origin, { login: code });
+  } catch (e) { console.log('[auth] ' + m[1] + ': ' + e.message); back(st.origin, { loginError: 'Couldn’t sign in with ' + prov.name + ': ' + e.message }); }
+}
 // ── news for the front menu: the latest releases from the changelog ──
 let newsCache = null;
 function news() {

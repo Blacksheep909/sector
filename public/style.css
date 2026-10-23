@@ -1812,3 +1812,12 @@ body.at-home #map { filter: blur(2.5px) brightness(.55) saturate(.85); transform
 .vp-card .btn { width: 100%; font-family: var(--title); font-weight: 400; letter-spacing: 2px; }
 .vp-earn { margin-top: 14px; display: grid; grid-template-columns: repeat(2, 1fr); gap: 8px 16px; font-size: 13px; color: #b7c2cc; }
 .vp-earn h3 { grid-column: 1 / -1; margin: 0; } .vp-earn b { color: var(--ink); }
+
+/* accounts on the commander card */
+.acct { display: flex; flex-direction: column; gap: 6px; padding: 8px; border-radius: 10px; background: #0b1218; border: 1px solid #1a2631; }
+.acct-t { display: flex; flex-direction: column; gap: 1px; text-align: center; } .acct-t b { font-size: 12px; letter-spacing: 1.5px; color: var(--gold); }
+.acct-b { display: flex; align-items: center; justify-content: center; gap: 8px; font-size: 13px; padding: 6px 10px; }
+.acct-google { --c: #ffffff; --d: #9aa5b1; color: #1f1f1f; } .acct-discord { --c: #5865F2; --d: #3b45b5; color: #fff; }
+.acct.on { flex-direction: row; align-items: center; gap: 8px; font-size: 13px; } .acct.on > div { flex: 1; min-width: 0; } .acct.on .sub { white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.acct-ic { display: inline-grid; place-items: center; width: 22px; height: 22px; border-radius: 50%; background: #1a2631; flex: none; } .acct-google .acct-ic { background: transparent; }
+.acct.off { text-align: center; line-height: 1.4; }

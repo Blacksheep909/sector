@@ -53,7 +53,7 @@ const Home = (() => {
   function drawCard() {
     const box = $('#cmdCard'); if (!box) return;
     const p = Locker.profile;
-    const key = JSON.stringify([p && p.equipped, p && p.total, p && p.handle, nameOf(), p && p.scenarios && p.scenarios.length]);
+    const key = JSON.stringify([p && p.equipped, p && p.total, p && p.handle, nameOf(), p && p.scenarios && p.scenarios.length, p && p.links, stats && stats.logins]);
     if (key === cardKey) return; cardKey = key;
     if (!p) { box.innerHTML = '<h3>COMMANDER</h3><div class="sub">Loading your profile…</div>'; return; }
     const t = p.total || {}, eq = p.equipped || {};
@@ -63,10 +63,33 @@ const Home = (() => {
       <div class="cc-grid"><div><b>${t.games || 0}</b><span>wars</span></div><div><b>${t.games ? Math.round((t.wins || 0) / t.games * 100) : 0}%</b><span>won</span></div><div><b>${(p.scenarios || []).length}/10</b><span>missions</span></div></div>
       <div class="cc-row"><span>Banner</span><b>${esc(itemName(eq.banner))}</b></div><div class="cc-row"><span>Border</span><b>${esc(itemName(eq.border))}</b></div>
       <button class="btn gold cc-go" id="ccLocker">CUSTOMIZE</button>
+      ${accountBox(p)}
       <div class="cc-id" title="Your public commander ID: friends can look you up with it">ID <b>${esc(p.handle || '—')}</b></div>`;
     try { Skins.preview(box.querySelector('canvas'), 'territory', eq.territory || null, '#36a3ff'); } catch (e) {}
     box.querySelector('#ccLocker').onclick = () => { sfx('select'); Locker.show('locker'); };
+    box.querySelectorAll('[data-login]').forEach(b => b.onclick = () => { sfx('select'); b.disabled = true; send({ t: 'authStart', provider: b.dataset.login }); setTimeout(() => { b.disabled = false; }, 4000); });
+    const so = box.querySelector('#ccSignOut'); if (so) so.onclick = () => signOut(so);
     box.querySelector('.cc-chip').onclick = () => p.handle && profile(p.handle);
+  }
+
+  // ── accounts: save your commander to a Google or Discord login ──
+  const LOGIN = { google: { name: 'Google', icon: '<svg viewBox="0 0 24 24" width="16" height="16"><path fill="#4285F4" d="M23.5 12.3c0-.8-.1-1.6-.2-2.3H12v4.4h6.5a5.6 5.6 0 0 1-2.4 3.6v3h3.9c2.2-2.1 3.5-5.1 3.5-8.7z"/><path fill="#34A853" d="M12 24c3.2 0 6-1.1 8-2.9l-3.9-3c-1.1.7-2.5 1.2-4.1 1.2-3.1 0-5.8-2.1-6.7-5H1.3v3.1A12 12 0 0 0 12 24z"/><path fill="#FBBC05" d="M5.3 14.3a7.2 7.2 0 0 1 0-4.6V6.6H1.3a12 12 0 0 0 0 10.8z"/><path fill="#EA4335" d="M12 4.8c1.8 0 3.3.6 4.6 1.8l3.4-3.4A12 12 0 0 0 1.3 6.6l4 3.1c.9-2.9 3.6-4.9 6.7-4.9z"/></svg>' },
+    discord: { name: 'Discord', icon: '<svg viewBox="0 0 24 24" width="16" height="16"><path fill="#fff" d="M20.3 4.4A19.8 19.8 0 0 0 15.4 3l-.6 1.3a18.4 18.4 0 0 0-5.6 0L8.6 3a19.7 19.7 0 0 0-4.9 1.4C.6 9 -.3 13.6.1 18.1a19.9 19.9 0 0 0 6 3l1.3-2.1a12.9 12.9 0 0 1-2-1l.5-.4a14.2 14.2 0 0 0 12.2 0l.5.4c-.6.4-1.3.7-2 1l1.3 2.1a19.8 19.8 0 0 0 6-3c.5-5.2-.9-9.8-3.6-13.7zM8 15.4c-1.2 0-2.2-1.1-2.2-2.4s1-2.4 2.2-2.4 2.2 1.1 2.2 2.4-1 2.4-2.2 2.4zm8 0c-1.2 0-2.2-1.1-2.2-2.4s1-2.4 2.2-2.4 2.2 1.1 2.2 2.4-1 2.4-2.2 2.4z"/></svg>' },
+    mock: { name: 'Test login', icon: '🧪' } };
+  function accountBox(p) {
+    const on = (stats && stats.logins) || [], links = p.links || {}, linked = Object.keys(links);
+    if (linked.length) {
+      const k = linked[0], l = links[k];
+      return `<div class="acct on"><span class="acct-ic">${(LOGIN[k] || {}).icon || ''}</span><div><b>${esc(l.name || (LOGIN[k] || {}).name)}</b><div class="sub">Saved to ${esc((LOGIN[k] || {}).name || k)}${l.email ? ' · ' + esc(l.email) : ''}</div></div><button class="linkbtn" id="ccSignOut">SIGN OUT</button></div>`;
+    }
+    if (!on.length) return `<div class="acct off sub">Accounts aren't set up on this server yet, so your commander lives in this browser.</div>`;
+    return `<div class="acct"><div class="acct-t"><b>SAVE YOUR PROGRESS</b><span class="sub">Keep your Valor, skins and record on any device</span></div>${on.map(k => `<button class="btn acct-b acct-${k}" data-login="${k}"><span class="acct-ic">${(LOGIN[k] || {}).icon || ''}</span>${esc((LOGIN[k] || {}).name || k)}</button>`).join('')}</div>`;
+  }
+  // signing out: this browser starts a fresh guest commander (your saved one waits on your login)
+  function signOut(btn) {
+    if (btn.dataset.armed !== '1') { btn.dataset.armed = '1'; btn.textContent = 'SURE?'; setTimeout(() => { btn.dataset.armed = ''; btn.textContent = 'SIGN OUT'; }, 3000); return; }
+    sfx('click'); const id = Locker.newIdentity(); cardKey = '';
+    send({ t: 'auth', name: nameOf(), profile: id }); toast('Signed out. Sign in again any time to get your commander back.');
   }
 
   // ── party: friends who queue together ──

@@ -9,7 +9,10 @@ const Locker = (() => {
   let storeTab = 'shop';
   let tab = 'territory', cardFilter = 'owned', search = '';
 
-  // this device's profile key (until accounts arrive, the browser holds it)
+  // this device's key to its commander. Signing in with Google or Discord can swap it for the key to that login's
+  // commander (setIdentity); signing out starts a fresh guest commander (newIdentity)
+  function setIdentity(o) { try { localStorage.setItem('sector.pid', o.id); localStorage.setItem('sector.psecret', o.secret); } catch (e) {} }
+  function newIdentity() { try { localStorage.removeItem('sector.pid'); localStorage.removeItem('sector.psecret'); } catch (e) {} profile = null; return identity(); }
   function identity() {
     try {
       let id = localStorage.getItem('sector.pid'), secret = localStorage.getItem('sector.psecret');
@@ -234,5 +237,5 @@ const Locker = (() => {
     setTimeout(() => b.classList.add('gone'), 7000); setTimeout(() => b.remove(), 7600);
     b.onclick = () => b.remove();
   }
-  return { init, identity, ref, set, show, variant, bannerClass, reward, boxOpened, get profile() { return profile; } };
+  return { init, identity, setIdentity, newIdentity, ref, set, show, variant, bannerClass, reward, boxOpened, get profile() { return profile; } };
 })();
