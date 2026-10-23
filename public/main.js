@@ -78,7 +78,7 @@
         if (m.token) { token = m.token; if (lobby && lobby.code) keepSeat(lobby.code, token); }
         joinedOnce = true; leftGame = false;
         break;
-      case 'lobby': lobby = m.lobby; startDeadline = lobby.startIn ? Date.now() + lobby.startIn : 0; if (token && lobby.code) keepSeat(lobby.code, token); if (!S) renderLobby(); break;
+      case 'lobby': lobby = m.lobby; if (token && lobby.code) keepSeat(lobby.code, token); if (!S) renderLobby(); break;
       case 'authGo': location.href = m.url; break;   // off to Google or Discord
       case 'authDone':
         if (!m.ok) toast(m.msg || 'Sign-in failed', 'err');
@@ -216,23 +216,16 @@
   // LAN servers: the classic lobby everyone on this address shares
   $('#joinBtn').onclick = () => go({ t: 'hello' });
   // in a room: its code (or the public countdown) and the way back out
-  let startDeadline = 0;
   function renderRoomBar() {
     const rb = $('#roomBar'); rb.hidden = false;
     const pub = lobby.kind === 'public', main = lobby.code === 'MAIN', link = location.origin + '/?room=' + lobby.code;
     const key = [lobby.code, lobby.kind, lobby.inGame].join(); if (rb.dataset.key === key) return; rb.dataset.key = key;
-    rb.innerHTML = (pub ? `<div class="rb-kind pub">PUBLIC WAR</div><div class="rb-count"><b id="rbCount">…</b><span id="rbCountSub">until deployment · bots fill the empty seats</span></div>`
-      : `<div class="rb-kind">${main ? 'LAN LOBBY' : 'PRIVATE ROOM'}</div>` + (main ? '<div class="rb-code"><span class="sub">everyone who opens this server’s address lands here</span></div>'
-      : `<div class="rb-code"><span>CODE</span><b>${esc(lobby.code)}</b><button class="btn tiny" id="rbCopy">🔗 COPY INVITE LINK</button></div>`)) + `<button class="btn" id="rbLeave">◂ LEAVE</button>`;
+    // public: anyone pressing PLAY can land here until it deploys · private: only people with the code or link
+    rb.innerHTML = `<div class="rb-kind${pub ? ' pub' : ''}">${pub ? 'PUBLIC WAR' : main ? 'LAN LOBBY' : 'PRIVATE ROOM'}</div>` + (main ? '<div class="rb-code"><span class="sub">everyone who opens this server’s address lands here</span></div>'
+      : `<div class="rb-code"><span>CODE</span><b>${esc(lobby.code)}</b><button class="btn tiny" id="rbCopy">🔗 COPY INVITE LINK</button><span class="sub">${pub ? 'open: anyone who presses PLAY can join until it deploys' : 'invite only'}</span></div>`) + `<button class="btn" id="rbLeave">◂ LEAVE</button>`;
     const cp = $('#rbCopy'); if (cp) cp.onclick = () => { try { navigator.clipboard.writeText(link); toast('Invite link copied'); } catch (e) { toast(link); } SFX.click(); };
     $('#rbLeave').onclick = () => { SFX.click(); send({ t: 'leave' }); };
   }
-  setInterval(() => {
-    if (!lobby || lobby.kind !== 'public' || S) return;
-    const left = startDeadline ? Math.max(0, Math.ceil((startDeadline - Date.now()) / 1000)) : 0, c = $('#rbCount'), w = $('#waitHost');
-    if (c) c.textContent = startDeadline ? (left ? left + 's' : 'DEPLOYING') : 'waiting';
-    if (w && !w.hidden) w.textContent = startDeadline ? (left ? 'Deploying in ' + left + 's · bots fill the empty seats' : 'Deploying…') : 'Waiting for commanders…';
-  }, 250);
 
   let dragPid = null;   // the lobby row being dragged to another team
   function renderLobby() {
@@ -245,9 +238,8 @@
     renderRoomBar();
     const host = lobby.hostId === you, pub = lobby.kind === 'public';
     { const sp = lobby.players.filter(p => p.spectator).length; $('#pCount').textContent = (lobby.players.length - sp) + '/' + (lobby.cap || 8) + (sp ? ' · ' + sp + ' watching' : ''); }
-    // public wars: standard settings, no host, no bots to add (they fill the empty seats when the countdown ends)
-    $('#addBot').parentElement.hidden = pub; $('#lanBox').hidden = pub || lobby.code !== 'MAIN'; $('#missionsBtn').hidden = pub;
-    document.querySelector('.lobby-settings h3').textContent = pub ? 'WAR SETTINGS · STANDARD' : 'WAR SETTINGS';
+    // public wars: hosted like any room, but no ready-up, no shared-screen players and no missions; bots fill the empty seats on DEPLOY
+    $('#addBot').parentElement.hidden = !host && pub; $('#addLocal').hidden = pub; $('#lanBox').hidden = pub || lobby.code !== 'MAIN'; $('#missionsBtn').hidden = pub;
     const pl = $('#playerList'); pl.innerHTML = '';
     const teamsOn = lobby.settings.teams === 'on';
     const canMove = p => host || p.id === realId || (p.local && p.controller === realId);
@@ -338,14 +330,16 @@
     renderSaves(host);
     // ready-up: guests toggle READY; the host's DEPLOY waits until every guest is ready
     const meRow = lobby.players.find(p => p.id === realId);
-    const waiting = lobby.players.filter(p => !p.bot && !p.local && !p.spectator && !p.ready && p.id !== lobby.hostId);
+    const waiting = pub ? [] : lobby.players.filter(p => !p.bot && !p.local && !p.spectator && !p.ready && p.id !== lobby.hostId);
     const rb = $('#readyBtn');
     rb.hidden = host || !meRow || meRow.spectator || pub;
     if (meRow) { rb.textContent = meRow.ready ? '✔ READY — CLICK TO CANCEL' : 'READY UP'; rb.classList.toggle('green', !meRow.ready); rb.classList.toggle('on', !!meRow.ready); }
     $('#startBtn').classList.toggle('waiting', waiting.length > 0);
     $('#startBtn').textContent = waiting.length ? 'WAITING FOR ' + waiting.length + ' TO READY' : 'DEPLOY';
     $('#startBtn').title = waiting.length ? 'Not ready: ' + waiting.map(p => p.name).join(', ') : '';
-    if (!pub) $('#waitHost').textContent = meRow && meRow.ready ? 'Ready! Waiting for the host to start…' : 'Ready up so the host can start.';
+    const hostName = (lobby.players.find(p => p.id === lobby.hostId) || {}).name || 'the host';
+    $('#waitHost').textContent = pub ? 'Waiting for ' + hostName + ' to deploy · bots fill the empty seats' : meRow && meRow.ready ? 'Ready! Waiting for the host to start…' : 'Ready up so the host can start.';
+    if (pub) $('#startBtn').title = 'Bots fill the empty seats';
   }
   // saved wars: the host can resume one; whoever's here with a matching name gets their seat back
   function renderSaves(host) {

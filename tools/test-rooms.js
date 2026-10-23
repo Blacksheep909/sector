@@ -37,10 +37,18 @@ const until = async (f, ms = 8000) => { const t = Date.now(); while (Date.now() 
     b.send({ t: 'leave' });
     ok(await until(() => !b.lobby && a.lobby.players.length === 1), 'leaving a room puts you back on the menu and frees the seat');
     // ── quick play: public rooms ──
-    b.send({ t: 'quick' }); c.send({ t: 'quick' });
-    ok(await until(() => b.lobby && c.lobby && b.lobby.kind === 'public' && b.lobby.code === c.lobby.code), 'PLAY puts two strangers in the same public room');
-    ok(b.lobby.hostId === null && b.lobby.startIn > 0, 'public rooms have no host and count down');
-    ok(await until(() => b.state && b.state.phase !== 'over' && c.state, 9000), 'the public room starts itself');
+    b.send({ t: 'quick' }); await until(() => b.lobby && b.you);
+    ok(b.lobby.kind === 'public' && b.lobby.hostId === b.you, 'PLAY with no open war opens a public one, hosted by you');
+    c.send({ t: 'quick' });
+    ok(await until(() => c.lobby && c.lobby.kind === 'public' && b.lobby.code === c.lobby.code && b.lobby.players.length === 2), 'PLAY puts the next commander in that open war');
+    c.send({ t: 'settings', settings: { mapSize: 'large' } }); c.send({ t: 'start' }); await sleep(400);
+    ok(b.lobby.settings.mapSize !== 'large' && !b.state, 'only the host changes the settings or deploys');
+    b.send({ t: 'settings', settings: { mapSize: 'medium' } });
+    ok(await until(() => c.lobby.settings.mapSize === 'medium'), 'the host can change the settings');
+    b.send({ t: 'start' });
+    ok(await until(() => b.state && b.state.phase !== 'over' && c.state, 9000), 'the host deploys it');
+    a.send({ t: 'quick' }); await until(() => a.lobby);
+    ok(a.lobby && a.lobby.code !== b.lobby.code, 'a war that has deployed takes nobody else from PLAY');
     ok(b.state && b.state.players.length >= 4 && b.state.players.filter(p => p.bot).length >= 2, 'bots fill the empty seats (' + (b.state ? b.state.players.length : 0) + ' commanders)');
     ok(b.state && b.state.settings.timer === 60, 'public wars have a turn clock');
     // ── parties ──

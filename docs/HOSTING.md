@@ -6,13 +6,12 @@ SECTOR is a single Node.js process (`server.js`) with no dependencies. Players o
 
 One server runs any number of **rooms**, each with its own lobby and war. Rooms share nothing but player profiles.
 
-- **PLAY** (quick play) drops you into a **public room** that's filling up, or opens a new one. Public rooms have no host and standard settings (Domination, fog on, a 60-second turn clock). They count down 30 seconds from the first arrival, or 6 once all 6 seats are taken, then bots fill the empty seats. Public wars aren't saved.
+- **PLAY** (quick play) drops you into a **public room** that's filling up, or opens a new one. Whoever opens a public room hosts it: they start from the standard settings (Domination, fog on, a 60-second turn clock), can change them, and press DEPLOY when they're ready; bots fill the empty seats (at least 4 commanders). Anyone else pressing PLAY lands in it until it deploys (up to 6 people). Public wars have no ready-up, no shared-screen players and no missions, and aren't saved.
 - **＋ PRIVATE ROOM** opens a room with a 5-letter code. You're the host with every setting. Share the code, or the invite link `https://your-address/?room=CODE`.
 - **Parties:** friends group up on the front menu (invite link `/?party=CODE`). When the leader presses PLAY or opens a private room, everyone in the party who's on the front menu comes along.
 - **The LAN lobby** (`MAIN`) is the classic one-lobby server: on a LAN server the front menu shows **JOIN THE LAN LOBBY**, and older clients land there too.
 - Empty rooms close by themselves: after 90 seconds in the lobby, or 5 minutes for a private war in progress, which is saved first so its host can resume it.
 
-`SECTOR_PUBLIC_WAIT` (milliseconds) changes the public countdown.
 
 ## Going to playsector.io
 

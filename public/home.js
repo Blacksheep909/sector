@@ -46,7 +46,7 @@ const Home = (() => {
     $('#mmOnline').textContent = stats.online.toLocaleString(); $('#mmWars').textContent = stats.wars.toLocaleString();
     $('#mmVer').textContent = 'v' + stats.version + (stats.mode === 'lan' ? ' · LAN server' : '');
     $('#lanRow').hidden = stats.mode !== 'lan';
-    $('#playSub').textContent = stats.waiting ? stats.waiting + ' commander' + (stats.waiting > 1 ? 's' : '') + ' waiting for a war' : 'jump into a war · bots fill empty seats';
+    $('#playSub').textContent = stats.waiting ? stats.waiting + ' commander' + (stats.waiting > 1 ? 's' : '') + ' in open wars · join one' : 'join an open war, or host your own';
   }
 
   // ── your commander card: banner, territory skin, record, and the way into the Locker ──
