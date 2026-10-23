@@ -2,6 +2,19 @@
 
 Every release, newest first. Each version also has its own post on the [Releases page](https://github.com/Blacksheep909/sector/releases).
 
+## v0.10.2
+
+**Fixes for frozen screens, the tutorial and overlapping menus.**
+
+- **Fix: everything stopped working after pressing Leave straight after DEPLOY.** The "Rolling the battlefield" reel stayed on top of the front page and swallowed every click. Leaving a war now clears every overlay it put up, and the reel never blocks clicks.
+- **Fix: a mission (or war) could hang on the enemy's turn**, so End Turn seemed to do nothing. If the previous war in the same room ended with a battle window or overwatch prompt still open, the next war's bots waited for it forever. Every new war, mission and return to the lobby now starts clean.
+- **Fix: a dead game screen after the server restarted.** If you were mid-war when the server restarted (an update, say), the game screen stayed up and nothing responded. You're now taken back to the front page with a message.
+- **Sergeant Hale moved to the bottom right**, so he no longer covers the chat, the build bar or the deck. The mission bar now sits under the turn banner instead of overlapping it, and messages appear below it.
+- **The game speed buttons** match the other buttons in the top-right row.
+- **The deck's label** stays on one line instead of running under the first card.
+- **Valor Packs have their own Store tab** (they arrive with accounts), with a guide to earning Valor in the meantime.
+- **For developers:** `tools/ui-audit.js` opens every screen and checks every button can be clicked and nothing errors; `tools/fuzz-rooms.js` throws thousands of random actions at a server from several clients and reports any crash.
+
 ## v0.10.1
 
 **Factions to unlock, and a pile of front-menu fixes.**
