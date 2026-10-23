@@ -30,6 +30,8 @@ a.coins = 5000; { const card = Object.keys(C.ITEMS).find(id => C.ITEMS[id].slot 
   f.coins = 100; ok(P.buyFaction(f, 'volt').startsWith('Need'), 'unlocking a faction costs Valor');
   f.coins = C.FACTION_PRICE; ok(!P.buyFaction(f, 'volt') && f.coins === 0 && P.view(f).factions.includes('volt'), 'unlocking pays ' + C.FACTION_PRICE + ' and adds it');
   ok(P.buyFaction(f, 'volt') === 'Already yours' && P.buyFaction(f, C.FACTION_START) === 'Already yours', 'nothing is bought twice'); }
+{ const m = P.open('e'.repeat(32), 'w'.repeat(20), 'M'), c0 = m.coins; const r1 = P.scenarioDone(m, 'basic', 100), r2 = P.scenarioDone(m, 'basic', 100);
+  ok(r1.first && r1.valor === 100 && !r2.first && r2.valor === 0 && m.coins === c0 + 100, 'a mission pays its Valor on the first clear only'); }
 a.cards = {}; a.owned.push('c-grunt-foil');
 ok(P.equip(a, 'territory', 't-usa') === 'Not yours', 'you can only wear what you own');
 ok(!P.equip(a, 'card', 'c-grunt-foil') && a.cards.grunt === 'foil' && !P.equip(a, 'card', 'c-grunt-foil') && !a.cards.grunt, 'equipping a card version twice takes it off');

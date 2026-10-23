@@ -404,9 +404,16 @@
     if (state.settings && state.settings.mapType === 'random' && (state.phase === 'draft' || state.phase === 'spawn')) showMapReel(state);
     $('#menu').hidden = true; $('#hud').hidden = false; $('#victory').hidden = true;
     Render.setState(state);
-    Render.fitMap();
     const me = myP();
-    if (me && me.hq) setTimeout(() => Render.focus(me.hq, Math.max(Render.cam.z, 1.05)), 300);
+    if (state.scenario) {
+      // a mission board is small: show all of it, in the space the HUD leaves free (under the banner and mission bar,
+      // above the build bar and deck), so the objective is never off screen
+      const fit = () => { const cs = $('#centerStack').getBoundingClientRect(); Render.fitMap({ l: 40, r: 40, t: Math.max(150, cs.bottom + 30), b: 200 }); };
+      fit(); setTimeout(fit, 350);
+    } else {
+      Render.fitMap();
+      if (me && me.hq) setTimeout(() => Render.focus(me.hq, Math.max(Render.cam.z, 1.05)), 300);
+    }
     $('#log').innerHTML = ''; for (const l of state.log.filter(logWorthy).slice(-6)) addLog(esc(l));
     applyState(state, true);
   }
@@ -1718,7 +1725,7 @@
     const ds = S; const anyReady = Object.values(ds.units).some(u => u.owner === you && E.canAct(ds, u));
     b.classList.toggle('pulse', mine && !anyReady);
   }
-  $('#endBtn').onclick = async () => { if (!isMyTurn() || animating) return; mode = null; sel = null; SFX.click(); await act({ a: 'end' }); };
+  $('#endBtn').onclick = async () => { if (!isMyTurn() || animating) return; if (Missions.holdEnd()) { SFX.error(); return; } mode = null; sel = null; SFX.click(); await act({ a: 'end' }); };
 
   let titleBlink = null;
   function renderTurnPill() {
