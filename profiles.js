@@ -61,7 +61,7 @@ function createProfiles(file, opts = {}) {
     if (!it || it.buy === false) return 'That can’t be bought';
     if (p.owned.includes(itemId)) return 'Already yours';
     if (it.slot !== 'card' && !C.dailyStore().items.includes(itemId)) return 'Not in today’s store';
-    if (p.coins < it.price) return 'Need ' + it.price + ' coins';
+    if (p.coins < it.price) return 'Need ' + it.price + ' Valor';
     p.coins -= it.price; p.owned.push(itemId); save();
     return null;
   }

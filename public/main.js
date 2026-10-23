@@ -486,6 +486,8 @@
   // the battle window IS the dice panel, before the roll: both armies, their bonuses, and the battle cards each side has
   // thrown in. Your battle cards rise up underneath; click one and it flies into your column (the other side sees it land)
   let battleOpen = null, notesSig = '';
+  // the version of a card its owner has equipped (Foil, Gilded…), so everyone sees their skins in a fight
+  const vOf = (pid, id) => { const p = S && S.players.find(q => q.id === pid); return (p && p.cos && p.cos.cards && p.cos.cards[id]) || null; };
   const isHumanSeat = pid => { const lp = lobby && lobby.players.find(p => p.id === pid); return !!(lp && !lp.bot && !lp.away && lp.connected !== false); };
   function showBattle(m) {
     let p = $('#battlePop');
@@ -504,7 +506,7 @@
         <div class="bp-foot"><div class="rp-bar"><i></i></div><div class="bp-act"></div></div>`;
       for (const [sd, list] of [['att', m.attUnits || []], ['def', m.defUnits || []]]) {
         const cu = p.querySelector(`[data-side="${sd}"] .cb-units`);
-        list.forEach((t, i) => { const card = Cards.make(t, { mini: true }); card.classList.add('cb-card'); card.style.setProperty('--n', list.length); card.style.setProperty('--i', i); cu.appendChild(card); });
+        list.forEach((t, i) => { const card = Cards.make(t, { mini: true, variant: vOf(sd === 'att' ? m.att : m.def, t) }); card.classList.add('cb-card'); card.style.setProperty('--n', list.length); card.style.setProperty('--i', i); cu.appendChild(card); });
       }
       if (m.you) { Render.focus(m.hex); Render.ring(m.hex, m.you === m.def ? '#ff4f5e' : '#ffc53d', 70, 0.8, 5); if (m.you === m.def) SFX.alarm(); else SFX.whoosh(); }
     }
@@ -516,7 +518,7 @@
       S2.querySelector('.cb-bon').innerHTML = bon.filter(b => !b.note && !b.card).map(b => `<div class="cb-b"><span>${esc(b.label)}</span><span class="v ${b.chips ? 'c' : 'm'}">+${b.chips || b.mult} ${b.chips ? 'Chips' : 'Mult'}</span></div>`).join('');
       const th = S2.querySelector('.bp-thrown');
       for (let i = B.shown[sd]; i < cards.length; i++) {
-        const c = Cards.make(cards[i], { mini: true }); c.classList.add('bp-tc'); th.appendChild(c);
+        const c = Cards.make(cards[i], { mini: true, variant: vOf(pid, cards[i]) }); c.classList.add('bp-tc'); th.appendChild(c);
         if (pid !== you) { SFX.card(); Render.float(m.hex, '🃏 ' + E.TACTICS[cards[i]].name.toUpperCase(), pColor(pid), 15); }
         S2.classList.remove('bp-bump'); void S2.offsetWidth; S2.classList.add('bp-bump');
       }
@@ -1819,7 +1821,7 @@
         sides.forEach(([s, d], si) => {
           const t = d.units[i]; if (!t) return;
           // each unit is dealt in as its card, fanned when the stack is big
-          const cu = s.querySelector('.cb-units'), card = Cards.make(t, { mini: true }); card.classList.add('cb-card');
+          const cu = s.querySelector('.cb-units'), card = Cards.make(t, { mini: true, variant: vOf(si ? ev.def.pid : ev.att.pid, t) }); card.classList.add('cb-card');
           card.style.setProperty('--n', d.units.length); card.style.setProperty('--i', i); cu.appendChild(card);
           counters[si] += unitChips(d, si === 0)[i];
           const box = s.querySelector('.chips'); box.textContent = counters[si]; box.classList.remove('hit'); void box.offsetWidth; box.classList.add('hit');
@@ -1828,7 +1830,7 @@
         await nap(170);
       }
       // the battle cards each side threw in
-      if (ev.cards) sides.forEach(([s], si) => { for (const id of ev.cards[si ? 'def' : 'att'] || []) { const c = Cards.make(id, { mini: true }); c.classList.add('bp-tc'); s.querySelector('.bp-thrown').appendChild(c); } });
+      if (ev.cards) sides.forEach(([s], si) => { for (const id of ev.cards[si ? 'def' : 'att'] || []) { const c = Cards.make(id, { mini: true, variant: vOf(si ? ev.def.pid : ev.att.pid, id) }); c.classList.add('bp-tc'); s.querySelector('.bp-thrown').appendChild(c); } });
       // bonuses
       const mults = [0, 0];
       const maxB = Math.max(ev.att.bonuses.length, ev.def.bonuses.length);

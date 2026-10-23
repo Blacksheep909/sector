@@ -270,7 +270,7 @@ function onMessage(c, m) {
       if (p.away && game) { c.pid = p.id; returnSeats(p); }
       c.pid = p.id;
       // the player's profile (coins, skins): their loadout shows on their seat for everyone
-      if (m.profile) { const pr = profiles.open(m.profile.id, m.profile.secret, p.name, m.ref); if (pr) { p.profileId = pr.id; p.cos = C.cleanLoadout(pr.equipped, pr.owned); send(c, { t: 'profile', profile: profiles.view(pr) }); } }
+      if (m.profile) { const pr = profiles.open(m.profile.id, m.profile.secret, p.name, m.ref); if (pr) { p.profileId = pr.id; p.cos = C.cleanLoadout(pr.equipped, pr.owned, pr.cards); send(c, { t: 'profile', profile: profiles.view(pr) }); } }
       if (!lobby.hostId || !lobby.players.some(x => x.id === lobby.hostId && !x.bot)) lobby.hostId = p.id;
       send(c, { t: 'welcome', you: p.id, token: p.token });
       broadcastLobby();
@@ -364,7 +364,7 @@ function onMessage(c, m) {
       const err = m.t === 'buy' ? profiles.buy(pr, String(m.item || '')) : m.t === 'equip' ? profiles.equip(pr, String(m.slot || ''), m.item ? String(m.item) : null) : null;
       if (err) return send(c, { t: 'err', msg: err });
       send(c, { t: 'profile', profile: profiles.view(pr), bought: m.t === 'buy' ? m.item : null });
-      if (m.t === 'equip' && !game) { lp.cos = C.cleanLoadout(pr.equipped, pr.owned); broadcastLobby(); }
+      if (m.t === 'equip' && !game) { lp.cos = C.cleanLoadout(pr.equipped, pr.owned, pr.cards); broadcastLobby(); }
       return;
     }
     case 'ready': {

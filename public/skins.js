@@ -190,7 +190,7 @@ const Skins = (() => {
     } },
     't-japan': { kind: 'fit', ratio: 1.5, alpha: 0.72, draw(c, W, H, hx, hy, tilt) {
       c.fillStyle = '#ffffff'; c.fillRect(0, 0, W, H);
-      const R = Math.min(W, H / tilt) * 0.21; c.save(); c.translate(hx, hy); c.scale(1, tilt); c.fillStyle = '#bc002d'; c.beginPath(); c.arc(0, 0, R, 0, TAU); c.fill(); c.restore();
+      const R = Math.min(U * 1.15, Math.min(W, H / tilt) * 0.16); c.save(); c.translate(hx, hy); c.scale(1, tilt); c.fillStyle = '#bc002d';   // about a hex across, round your capital c.beginPath(); c.arc(0, 0, R, 0, TAU); c.fill(); c.restore();
     } },
     't-korea': { kind: 'fit', ratio: 1.5, alpha: 0.72, draw(c, W, H, hx, hy, tilt) {
       c.fillStyle = '#ffffff'; c.fillRect(0, 0, W, H);
@@ -578,14 +578,16 @@ const Skins = (() => {
       });
     },
     'h-teeth': (c, z, col, segs) => {
-      // dragon's teeth: a row of concrete tank traps along the frontier
-      c.strokeStyle = shade(col, -0.35); c.lineWidth = 5 * z; c.stroke(); c.strokeStyle = col; c.lineWidth = 3.4 * z; c.stroke();
-      along(segs, 11 * z, (g, u) => {
-        const [x, y] = at(g, u, 5.5 * z), r = 3.4 * z;
-        c.fillStyle = 'rgba(0,0,0,.35)'; c.beginPath(); c.ellipse(x + r * 0.6, y + r * 0.7, r * 1.2, r * 0.42, 0, 0, Math.PI * 2); c.fill();
-        c.fillStyle = '#ece8df'; c.beginPath(); c.moveTo(x, y - r * 1.6); c.lineTo(x - r, y + r * 0.55); c.lineTo(x, y + r * 0.9); c.closePath(); c.fill();
-        c.fillStyle = '#a19b8f'; c.beginPath(); c.moveTo(x, y - r * 1.6); c.lineTo(x + r, y + r * 0.55); c.lineTo(x, y + r * 0.9); c.closePath(); c.fill();
-        c.strokeStyle = 'rgba(60,56,50,.6)'; c.lineWidth = 0.5 * z; c.beginPath(); c.moveTo(x, y - r * 1.6); c.lineTo(x, y + r * 0.9); c.stroke();
+      // dragon's teeth: a tight row of concrete blocks set along the frontier, lit from the top left
+      c.strokeStyle = shade(col, -0.4); c.lineWidth = 6 * z; c.stroke(); c.strokeStyle = col; c.lineWidth = 4 * z; c.stroke();
+      along(segs, 6.5 * z, (g, u) => {
+        const [x, y] = at(g, u, 1.5 * z), r = 2.3 * z, h = 2.6 * z;
+        c.fillStyle = 'rgba(0,0,0,.35)'; c.beginPath(); c.ellipse(x + 1 * z, y + r * 0.7, r * 1.25, r * 0.5, 0, 0, Math.PI * 2); c.fill();
+        // a squat block: lit top, two shaded sides
+        c.fillStyle = '#8f8a80'; c.beginPath(); c.moveTo(x - r, y - h * 0.3); c.lineTo(x, y + r * 0.55); c.lineTo(x, y + r * 0.55 - h * 0.1); c.lineTo(x - r, y - h); c.closePath(); c.fill();
+        c.beginPath(); c.moveTo(x - r, y); c.lineTo(x, y + r * 0.55); c.lineTo(x + r, y); c.lineTo(x + r, y - h * 0.55); c.lineTo(x, y - h * 0.55 + r * 0.55); c.lineTo(x - r, y - h * 0.55); c.closePath(); c.fillStyle = '#7d786e'; c.fill();
+        c.fillStyle = '#a9a398'; c.beginPath(); c.moveTo(x, y + r * 0.55); c.lineTo(x + r, y); c.lineTo(x + r, y - h * 0.55); c.lineTo(x, y - h * 0.55 + r * 0.55); c.closePath(); c.fill();
+        c.fillStyle = '#e4dfd4'; c.beginPath(); c.moveTo(x - r, y - h * 0.55); c.lineTo(x, y - h * 0.55 - r * 0.55); c.lineTo(x + r, y - h * 0.55); c.lineTo(x, y - h * 0.55 + r * 0.55); c.closePath(); c.fill();
       });
     },
     'h-laser': (c, z, col, segs) => {
