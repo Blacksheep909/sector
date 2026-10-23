@@ -299,6 +299,7 @@ const Render = (() => {
   function hasOverlay(k) {
     if (ov.hover === k || ov.selected === k) return true;
     if (ov.spawn && ov.spawn.has(k)) return true;
+    if (ov.objectives && ov.objectives.has(k)) return true;
     if (ov.targets && ov.targets.has(k)) return true;
     if (ov.fire && ov.fire.has(k)) return true;
     if (ov.planTiles && ov.planTiles.has(k)) return true;
@@ -307,6 +308,18 @@ const Render = (() => {
   }
   function drawOverlays(k, cx, cy, s, z) {
     const pulse = 0.5 + 0.5 * Math.sin(t * 5);
+    // a mission objective: a gold ring and a flag (green once it's yours)
+    if (ov.objectives && ov.objectives.has(k)) {
+      const mine = S_.map.tiles[k] && S_.map.tiles[k].owner === ov.me, col = mine ? '#59f08a' : '#ffc53d';
+      hexPath(cx, cy, s * (0.9 + pulse * 0.05)); ctx.strokeStyle = col; ctx.lineWidth = 3 * z; ctx.setLineDash([7 * z, 5 * z]); ctx.lineDashOffset = -t * 25; ctx.stroke(); ctx.setLineDash([]);
+      const fx = cx + s * 0.42, fy = cy - 4 * z;
+      ctx.strokeStyle = '#e8e2d0'; ctx.lineWidth = 1.8 * z; ctx.beginPath(); ctx.moveTo(fx, fy); ctx.lineTo(fx, fy - 26 * z); ctx.stroke();
+      ctx.fillStyle = col; ctx.strokeStyle = '#0a0e12'; ctx.lineWidth = 1.2 * z; ctx.beginPath(); ctx.moveTo(fx, fy - 26 * z);
+      for (let i = 0; i <= 4; i++) ctx.lineTo(fx + i * 3.4 * z, fy - 26 * z + Math.sin(t * 5 + i) * 1.3 * z);
+      for (let i = 4; i >= 0; i--) ctx.lineTo(fx + i * 3.4 * z, fy - 17 * z + Math.sin(t * 5 + i) * 1.3 * z);
+      ctx.closePath(); ctx.fill(); ctx.stroke();
+      ctx.fillStyle = '#0a0e12'; ctx.font = `bold ${7 * z}px sans-serif`; ctx.textAlign = 'center'; ctx.textBaseline = 'middle'; ctx.fillText('★', fx + 7 * z, fy - 21.5 * z);
+    }
     // land the blueprint will take: a light-blue wash with a dashed edge
     if (ov.planTiles && ov.planTiles.has(k)) { hexPath(cx, cy, s * 0.9); ctx.fillStyle = 'rgba(143,220,255,.22)'; ctx.fill(); ctx.strokeStyle = 'rgba(143,220,255,.8)'; ctx.lineWidth = 2 * z; ctx.setLineDash([5 * z, 4 * z]); ctx.stroke(); ctx.setLineDash([]); }
     if (ov.spawn && ov.spawn.has(k)) { hexPath(cx, cy, s * 0.86); ctx.fillStyle = `rgba(120,255,170,${0.18 + pulse * 0.2})`; ctx.fill(); ctx.strokeStyle = '#8affb8'; ctx.lineWidth = 2 * z; ctx.setLineDash([5 * z, 4 * z]); ctx.lineDashOffset = -t * 20; ctx.stroke(); ctx.setLineDash([]); }

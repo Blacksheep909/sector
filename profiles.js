@@ -50,7 +50,7 @@ function createProfiles(file, opts = {}) {
     roll(p);
     const store = C.dailyStore();
     return {
-      name: p.name || null, coins: p.coins, owned: p.owned, equipped: p.equipped, cards: p.cards, refCode: p.refCode, recruits: p.recruits, earnedToday: p.earned.amount, daySoft: C.DAY_SOFT,
+      name: p.name || null, coins: p.coins, scenarios: p.scenarios || [], owned: p.owned, equipped: p.equipped, cards: p.cards, refCode: p.refCode, recruits: p.recruits, earnedToday: p.earned.amount, daySoft: C.DAY_SOFT,
       daily: objList(C.dailyObjectives(), p.day), weekly: objList(C.weeklyObjectives(), p.week),
       store: { day: store.day, items: store.items, endsIn: C.msToNextDay() },
     };
@@ -99,6 +99,13 @@ function createProfiles(file, opts = {}) {
     save();
     return out;
   }
+  // missions: the first completion of each pays its reward
+  function scenarioDone(p, id, reward) {
+    p.scenarios = p.scenarios || [];
+    const first = !p.scenarios.includes(id);
+    if (first) { p.scenarios.push(id); p.coins += reward || 0; save(); }
+    return { first, valor: first ? reward || 0 : 0 };
+  }
   // dev servers only (SECTOR_DEV=1): coins for testing the store
   function grant(p, n) { p.coins += Math.max(0, n | 0); save(); }
   // dev panel: look profiles up, and hand out coins or skins
@@ -110,6 +117,6 @@ function createProfiles(file, opts = {}) {
   }
   function giveItem(p, item) { if (!C.ITEMS[item]) return 'No such item'; if (!p.owned.includes(item)) p.owned.push(item); save(); return null; }
   function totals() { const all = Object.values(db); return { profiles: all.length, coins: all.reduce((a, p) => a + p.coins, 0), owned: all.reduce((a, p) => a + p.owned.length, 0), games: all.reduce((a, p) => a + ((p.total || {}).games || 0), 0) }; }
-  return { open, view, buy, equip, finishGame, grant, list, giveItem, totals, get: id => db[id] };
+  return { open, view, buy, equip, finishGame, scenarioDone, grant, list, giveItem, totals, get: id => db[id] };
 }
 module.exports = { createProfiles, REF_COINS, WELCOME_COINS };

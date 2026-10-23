@@ -1563,7 +1563,8 @@
     s.turn.rerolls = 0; s.turn.crate = null;
     if (!preview) { delete s.drops; delete p.snap; delete p.snapNext; }   // old saves: map crates and quick decisions are gone
     ev.push({ e: 'turn', pid: p.id, round: s.turn.round });
-    if (s.turn.round === 1) {
+    if (s.scenario) { const inc = s.scenario.income; s.turn.income = inc && inc[p.id] != null ? inc[p.id] : 0; }   // puzzles: a fixed allowance, no resupply cards
+    if (s.turn.round === 1 || s.scenario) {
       // everyone just drafted 3 cards: round 1 pays full income with no resupply pick
       p.cash += s.turn.income; s.turn.offer = []; s.turn.stage = 'act';
       ev.push({ e: 'income', pid: p.id, amount: s.turn.income, hq: p.hq });
@@ -1585,8 +1586,10 @@
 
   function endTurn(s, ev, rng) {
     if (s.phase !== 'play') return;
+    // scenarios: count the hero's turns, and see whether time is up
+    if (s.scenario && !s._preview && current(s).id === s.scenario.hero) { s.scenario.heroTurns++; scenarioCheck(s, ev, true); if (s.phase !== 'play') return; }
     // deal the ending commander's next resupply now, so they can pick from it while the others play
-    { const q = current(s); if (q && q.alive && !s._preview) { q.nextOffer = drawCards(s, q, 3, TURN_ODDS, rng); delete q.prePick; } }
+    { const q = current(s); if (q && q.alive && !s._preview && !s.scenario) { q.nextOffer = drawCards(s, q, 3, TURN_ODDS, rng); delete q.prePick; } }
     const n = s.players.length;
     let guard = 0;
     s.turn.crate = null; s.turn.offer = [];
@@ -1734,8 +1737,27 @@
     ev.push({ e: 'win', pid, reason });
     pushLog(s, '🏆 ' + (p ? p.name : '?') + ' ' + reason + '!');
   }
+  // scenarios (puzzles): each has a goal and a number of turns to reach it
+  // goal: { type: 'capture', hexes } take and hold every listed hex · { type: 'destroy' } wipe out every enemy unit
+  //       { type: 'survive', hexes } still hold the listed hexes when your last turn ends · keep: hexes you lose the mission by losing
+  function scenarioCheck(s, ev, turnEnd) {
+    const sc = s.scenario; if (!sc || s.phase !== 'play' || s._preview) return;
+    const hero = sc.hero, g = sc.goal || {}, owns = k => s.map.tiles[k] && s.map.tiles[k].owner === hero;
+    const foe = (s.players.find(p => p.id !== hero && p.alive) || s.players.find(p => p.id !== hero) || {}).id;
+    const win = () => { declareWin(s, hero, 'completed the mission', ev); s.winner.scenario = sc.id; };
+    const lose = why => { sc.failed = why; declareWin(s, foe || hero, why, ev); s.winner.failed = why; s.winner.scenario = sc.id; };
+    if (!player(s, hero).alive) return lose('Your HQ fell');
+    if ((sc.keep || []).some(k => !owns(k))) return lose('You lost a position you had to hold');
+    if (g.type === 'capture' && g.hexes.every(owns)) return win();
+    if (g.type === 'destroy' && !Object.values(s.units).some(u => u.owner !== hero)) return win();
+    if (turnEnd && sc.heroTurns >= sc.turns) {
+      if (g.type === 'survive' && (g.hexes || []).every(owns)) return win();
+      return lose('Out of time');
+    }
+  }
   function checkWin(s, ev) {
     if (s.phase !== 'play') return;
+    if (s.scenario) { scenarioCheck(s, ev); if (s.phase !== 'play') return; }
     const alive = s.players.filter(p => p.alive);
     if (alive.length === 1) return declareWin(s, alive[0].id, 'is the last commander standing', ev);
     // everyone left standing is allied with everyone else: they win together
@@ -2724,7 +2746,7 @@
   return {
     DIRS, key, parse, dist, neighbors, area, line, mulberry32, hashStr,
     POI, WEATHER, isAlly, recordHistory, RARITY, RARITY_ORDER, CRATES, DROP_TIERS, SCRAP_VALUE, DECK_MAX, MAX_LEVEL, TERRAIN, DIFFICULTY, UNITS, TACTICS, STRUCTS, BUILD_ORDER, UPGRADABLE, MAX_SLVL, FACTIONS, ROLL_BASE, COLORS, TEAM_COLORS, TEAM_NAMES, teamColor, MAX_STACK, GRUNT_STACK, stackFits, CLASS_NAME, cardDef,
-    BATTLE_MAX, cacheCard, assaultPlan, openBattle, closeBattle, battleOdds, battleHand, battleCard, INTEL_COST, intelCost, overwatchTriggers, overwatchFire, attackTarget, ECON, infraValue, econOf, AIR_STRIKES, airDefenders, interceptChance, generateMap, createGame, applyAction, spawnChoices, visionOf, startTurn, endTurn, simulateTurnStart, view, drawCards,
+    BATTLE_MAX, cacheCard, scenarioCheck, assaultPlan, openBattle, closeBattle, battleOdds, battleHand, battleCard, INTEL_COST, intelCost, overwatchTriggers, overwatchFire, attackTarget, ECON, infraValue, econOf, AIR_STRIKES, airDefenders, interceptChance, generateMap, createGame, applyAction, spawnChoices, visionOf, startTurn, endTurn, simulateTurnStart, view, drawCards,
     player, current, buildIndex, canAct, moveAllow, ownedTiles, ownedLand, spawnPoints, musterHexes, supplySet, computeIncome, levelOf, unitAtk, unitDef,
     payout: scaled, blocOf, blocCap, blocTooBig, riders, tsarArea, moodOf, addMood, threatOf, rerollCost, bountyValue, reachable, pathTo, rangedTargets, deployHexes, buildHexes, buildError, isSea, isWater, isCoastal, movers, combatCalc, tacticTargets, unitCost, structCost, buildCost, structsOf, MAX_STRUCTS, conquestTarget, isLandTile, flakCovered,
   };
