@@ -6,12 +6,12 @@ let fails = 0; const ok = (c, m) => { console.log((c ? 'ok   ' : 'FAIL ') + m); 
 const sleep = ms => new Promise(r => setTimeout(r, ms));
 const srv = spawn(process.execPath, [path.join(__dirname, '..', 'server.js')], { env: { ...process.env, PORT, SECTOR_NO_OPEN: '1', SECTOR_PLAIN: '1', SECTOR_NO_UPDATE: '1', SECTOR_DEV: '1', SECTOR_AUTH_MOCK: '1', SECTOR_START_VALOR: '0', SECTOR_SAVES: dir, SECTOR_PROFILES: path.join(dir, 'p.json') }, stdio: 'ignore' });
 const until = async (f, ms = 6000) => { const t = Date.now(); while (Date.now() - t < ms) { if (f()) return true; await sleep(40); } return false; };
-function client(identity) {
+function client(identity, ref) {
   const ws = new WebSocket('ws://localhost:' + PORT), c = { ws, msgs: [], identity };
   ws.onmessage = e => { const m = JSON.parse(e.data); c.msgs.push(m); if (m.t === 'profile') c.profile = m.profile; };
   c.send = o => ws.send(JSON.stringify(o));
   c.last = t => [...c.msgs].reverse().find(m => m.t === t);
-  c.open = new Promise(r => { ws.onopen = () => { c.send({ t: 'auth', profile: identity }); r(); }; });
+  c.open = new Promise(r => { ws.onopen = () => { c.send({ t: 'auth', profile: identity, ref }); r(); }; });
   return c;
 }
 // what the browser does: go to the provider, come back to the callback, collect the one-time code
@@ -55,6 +55,10 @@ async function signIn(c, provider, mockUser) {
     // a different login on a fresh device: a new link, no switch
     const c = client({ id: 'c'.repeat(32), secret: 'device-c-secret-xx' }); await c.open; await until(() => c.profile);
     const r3 = await signIn(c, 'mock', 'bob'); ok(r3.ok && !r3.switched, 'a new login just saves the commander you have');
+    // a recruit (joined with a friend's link) who makes an account: the welcome bonus, and the friend's recruit count
+    const d = client({ id: 'd'.repeat(32), secret: 'device-d-secret-xx' }, a2.profile.handle); await d.open; await until(() => d.profile);
+    const r4 = await signIn(d, 'mock', 'carol'); ok(r4.ok && r4.referral === 100, 'a recruit making an account gets the welcome bonus');
+    a2.send({ t: 'profile' }); ok(await until(() => a2.profile.recruits === 1), 'and counts as the recruiter’s recruit');
     // signing out of the link (unlink) leaves the commander, minus the login
     a2.send({ t: 'authUnlink', provider: 'mock' }); await until(() => a2.profile && !(a2.profile.links || {}).mock);
     ok(!(a2.profile.links || {}).mock, 'a login can be unlinked');

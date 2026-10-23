@@ -12,6 +12,7 @@ Every release, newest first. Each version also has its own post on the [Releases
 - **Every country flag costs the same** (1,500 Valor).
 - **Unlock animations.** Buying a look or unlocking a faction plays a reveal: a flash, rays in its rarity colour, sparks, and an **EQUIP NOW** button.
 - **30,000 Valor to start, for testing.** Every commander gets it once, new or existing (server hosts: `SECTOR_START_VALOR`, set it to 0 to turn it off).
+- **Recruits count when they make an account.** A friend who joins with your recruit link now pays out when they sign in with Google or Discord (you get 250 Valor, they get 100), instead of after their first game. Each login belongs to one commander, so every recruit has to be a real account.
 - **Missions from anywhere.** Picking a mission while you're sitting in a public war (or someone else's room) takes you out of it into a room of your own, instead of doing nothing.
 
 ## v0.10.2

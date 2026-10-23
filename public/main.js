@@ -85,6 +85,7 @@
         else {
           if (m.identity) { Locker.setIdentity(m.identity); keepSeat(null); token = null; $('#nameIn').value = ''; try { localStorage.removeItem('sector.name'); } catch (e) {} }   // this login already had a commander: play that one, under its own name
           toast('✔ Signed in with ' + ({ google: 'Google', discord: 'Discord' }[m.provider] || m.provider) + (m.name ? ' as ' + m.name : '') + (m.switched ? ': welcome back' : ': your progress is saved to this login'), 'good'); SFX.legendary();
+          if (m.referral) setTimeout(() => Locker.reward({ referral: m.referral }), 900);   // joined with a friend's link: the welcome bonus
         }
         sessionStart(); break;
       case 'noRoom': {   // the room is gone (it closed, or the server restarted): a war on screen is dead, so go home

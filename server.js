@@ -1259,7 +1259,7 @@ function route(c, m) {
     case 'authClaim': {
       const cl = claims.get(String(m.code || '')); claims.delete(String(m.code || ''));
       if (!cl || Date.now() - cl.at > 5 * 60000) return send(c, { t: 'authDone', ok: false, msg: 'That sign-in expired. Try again.' });
-      return send(c, { t: 'authDone', ok: true, provider: cl.provider, name: cl.name, switched: cl.switched, identity: cl.identity });
+      return send(c, { t: 'authDone', ok: true, provider: cl.provider, name: cl.name, switched: cl.switched, referral: cl.referral, identity: cl.identity });
     }
     case 'authUnlink': {
       const pr = c.profileId && profiles.get(c.profileId); if (!pr) return;
@@ -1374,7 +1374,7 @@ async function authCallback(req, res, url) {
     if (!r) throw new Error('No commander to link');
     // the browser gets a key to the commander it should now be playing (its own, or the one this login already had)
     const code = crypto.randomBytes(18).toString('hex');
-    claims.set(code, { at: Date.now(), provider: m[1], name: info.name || prov.name, switched: r.switched, identity: r.switched ? { id: r.profile.id, secret: profiles.addDevice(r.profile) } : null });
+    claims.set(code, { at: Date.now(), provider: m[1], name: info.name || prov.name, switched: r.switched, referral: r.referral || 0, identity: r.switched ? { id: r.profile.id, secret: profiles.addDevice(r.profile) } : null });
     note('A commander signed in with ' + prov.name);
     back(st.origin, { login: code });
   } catch (e) { console.log('[auth] ' + m[1] + ': ' + e.message); back(st.origin, { loginError: 'Couldn’t sign in with ' + prov.name + ': ' + e.message }); }
