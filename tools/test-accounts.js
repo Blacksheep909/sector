@@ -4,7 +4,7 @@ const { spawn } = require('child_process'), fs = require('fs'), os = require('os
 const PORT = 3017, U = 'http://localhost:' + PORT, dir = fs.mkdtempSync(path.join(os.tmpdir(), 'sector-acct-'));
 let fails = 0; const ok = (c, m) => { console.log((c ? 'ok   ' : 'FAIL ') + m); if (!c) fails++; };
 const sleep = ms => new Promise(r => setTimeout(r, ms));
-const srv = spawn(process.execPath, [path.join(__dirname, '..', 'server.js')], { env: { ...process.env, PORT, SECTOR_NO_OPEN: '1', SECTOR_PLAIN: '1', SECTOR_NO_UPDATE: '1', SECTOR_DEV: '1', SECTOR_AUTH_MOCK: '1', SECTOR_SAVES: dir, SECTOR_PROFILES: path.join(dir, 'p.json') }, stdio: 'ignore' });
+const srv = spawn(process.execPath, [path.join(__dirname, '..', 'server.js')], { env: { ...process.env, PORT, SECTOR_NO_OPEN: '1', SECTOR_PLAIN: '1', SECTOR_NO_UPDATE: '1', SECTOR_DEV: '1', SECTOR_AUTH_MOCK: '1', SECTOR_START_VALOR: '0', SECTOR_SAVES: dir, SECTOR_PROFILES: path.join(dir, 'p.json') }, stdio: 'ignore' });
 const until = async (f, ms = 6000) => { const t = Date.now(); while (Date.now() - t < ms) { if (f()) return true; await sleep(40); } return false; };
 function client(identity) {
   const ws = new WebSocket('ws://localhost:' + PORT), c = { ws, msgs: [], identity };

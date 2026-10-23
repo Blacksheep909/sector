@@ -14,10 +14,13 @@ const before = a.coins; const r = P.finishGame(b, { ...g, won: false, place: 3 }
 ok(r.referral === 100 && a.recruits === 1 && a.coins === before + 250, 'a recruit\'s first game pays them 100 and the recruiter 250');
 ok(P.finishGame(b, g).referral === 0, 'the referral pays once');
 const off = Object.keys(C.ITEMS).find(id => C.ITEMS[id].slot === 'territory' && C.ITEMS[id].buy !== false && !C.dailyStore().items.includes(id));
-ok(P.buy(a, off) === 'Not in today’s store', 'territory skins out of rotation can\'t be bought');
+a.coins = C.ITEMS[off].price * 3 - 1; ok(P.buy(a, off).startsWith('Need'), 'out of rotation it costs 3× its shop price');
+a.coins = C.ITEMS[off].price * 3; ok(!P.buy(a, off) && a.coins === 0 && a.owned.includes(off), 'and you can buy it at that price any day');
+{ const flags = Object.values(C.ITEMS).filter(i => i.country); ok(flags.length >= 20 && flags.every(i => i.price === flags[0].price), 'every country flag costs the same (' + flags[0].price + ')'); }
 ok(P.buy(a, 't-founder') === 'That can’t be bought', 'Founder skins are never sold');
 a.coins = 100; ok(P.buy(a, C.dailyStore().items.find(id => C.ITEMS[id].price > 100)).startsWith('Need'), 'you need the Valor');
-a.coins = 5000; { const card = Object.keys(C.ITEMS).find(id => C.ITEMS[id].slot === 'card' && !C.dailyStore().items.includes(id)); ok(P.buy(a, card).startsWith('Card skins come from crates'), 'card skins out of the daily store can\'t be bought outright'); }
+a.coins = 5000; { const card = Object.keys(C.ITEMS).find(id => C.ITEMS[id].slot === 'card' && !C.dailyStore().items.includes(id)), before = a.coins; ok(!P.buy(a, card) && a.coins === before - C.ITEMS[card].price * 3, 'a card version out of the daily store costs 3×'); }
+{ const g2 = createProfiles(f + '.g', { startValor: 30000 }), n = g2.open('e'.repeat(32), 'grant-secret-xxxxxxxx'); ok(n.coins === 30000, 'the starting grant'); n.coins = 10; ok(g2.open('e'.repeat(32), 'grant-secret-xxxxxxxx').coins === 10, 'is given once per commander'); try { fs.unlinkSync(f + '.g'); } catch (e) {} }
 { const inStore = C.dailyStore().items.find(id => C.ITEMS[id].slot === 'card'); ok(!P.buy(a, inStore) && a.owned.includes(inStore), 'a card skin in the daily store can be bought'); }
 { const before = a.coins, r = P.openBox(a, 'field'); ok(!r.err && C.ITEMS[r.item].slot === 'card' && a.owned.includes(r.item) && a.coins === before - 300, 'a Field Crate costs 300 and hands over a card skin'); }
 { let mythic = 0, n = 4000, x = 1; const rng = () => (x = (x * 16807) % 2147483647) / 2147483647; for (let i = 0; i < n; i++) if (C.rollBox('field', [], rng).rarity === 'mythic') mythic++; ok(mythic > 0 && mythic < n * 0.006, 'Mythic skins are rare from a Field Crate (' + mythic + '/' + n + ')'); }
@@ -33,7 +36,7 @@ a.coins = 5000; { const card = Object.keys(C.ITEMS).find(id => C.ITEMS[id].slot 
 { const m = P.open('e'.repeat(32), 'w'.repeat(20), 'M'), c0 = m.coins; const r1 = P.scenarioDone(m, 'basic', 100), r2 = P.scenarioDone(m, 'basic', 100);
   ok(r1.first && r1.valor === 100 && !r2.first && r2.valor === 0 && m.coins === c0 + 100, 'a mission pays its Valor on the first clear only'); }
 a.cards = {}; a.owned.push('c-grunt-foil');
-ok(P.equip(a, 'territory', 't-usa') === 'Not yours', 'you can only wear what you own');
+ok(P.equip(a, 'territory', Object.keys(C.ITEMS).find(id => C.ITEMS[id].slot === 'territory' && !a.owned.includes(id))) === 'Not yours', 'you can only wear what you own');
 ok(!P.equip(a, 'card', 'c-grunt-foil') && a.cards.grunt === 'foil' && !P.equip(a, 'card', 'c-grunt-foil') && !a.cards.grunt, 'equipping a card version twice takes it off');
 ok(C.dailyStore('2027-01-01').items.join() === C.dailyStore('2027-01-01').items.join() && C.dailyStore('2027-01-01').items.join() !== C.dailyStore('2027-01-02').items.join(), 'the store is the same for everyone each day and changes daily');
 let skinned = 0; for (let i = 0; i < 2000; i++) skinned += Object.keys(C.botLoadout()).length > 0;

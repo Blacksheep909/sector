@@ -91,7 +91,7 @@
         const was = !!S; keepSeat(null); token = null; lobby = null; you = null; realId = null;
         if (was) { leftGame = true; backToMenu(); toast('That war has ended: the server was restarted', 'err'); } else { showHome(); if (m.code && m.code !== 'MAIN') toast('Room ' + m.code + ' has closed', 'err'); }
         break; }
-      case 'profile': Locker.set(m.profile); if (!$('#nameIn').value.trim() && m.profile.name) $('#nameIn').value = m.profile.name; Home.render(); if (lobby && !S) renderLobby();
+      case 'profile': Locker.set(m.profile); if (m.bought || m.faction) Locker.unlock({ item: m.bought, faction: m.faction }); if (!$('#nameIn').value.trim() && m.profile.name) $('#nameIn').value = m.profile.name; Home.render(); if (lobby && !S) renderLobby();
         if (m.faction && E.FACTIONS[m.faction]) { toast('✔ ' + E.FACTIONS[m.faction].name + ' unlocked: pick it in any lobby', 'good'); SFX.legendary(); }
         if (m.bought) { toast('✔ ' + SectorCosmetics.ITEMS[m.bought].name + ' is yours', 'good'); SFX.legendary(); } break;
       case 'reward': Locker.set(m.profile); setTimeout(() => Locker.reward(m.reward), 1600); break;
