@@ -66,7 +66,7 @@ There are no accounts, no internet servers and no port forwarding. Prefer one sc
 | 🏭 **Economy and logistics** | Hexes only pay if they're connected by supply to your HQ, a FOB or a Port. Build Warehouses, Refineries and Depots, and **stack them up to ★★★**. Fortify your HQ. Encircle enemy pockets to annex them. |
 | 🌐 **Easy LAN** | A host/join panel scans your Wi-Fi for games. Watch games in progress and **take over a bot** mid-game. The Esc menu lets you leave, and a bot takes over your seat. |
 | 🤝 **Diplomacy** | Trade cash and cards with other players. Bots haggle too. |
-| 🧠 **Bots** | Four difficulties. Bots draft, build, invade by sea, set up pincers and judge trades. They have moods, hold grudges and ally against whoever is most dangerous. |
+| 🧠 **Bots** | Four difficulties and seven personas (Warlord, Turtle, Tycoon, Schemer, Raider, Admiral, Paladin), each with its own way of playing and its own lines in chat. Bots draft, build, invade by sea, set up pincers and judge trades. They have moods, hold grudges and ally against whoever is most dangerous. |
 | 📋 **Blueprint** | Queue your turn while others play; it runs the moment your turn begins. |
 | 🗺️ **Living maps** | Biomes (desert, jungle, tundra, swamp), ruins and caches to loot, villages and forts to conquer, relics to fight over. Small to Huge sizes. Random spawns or pick your HQ. |
 | 🌫 **Fog, alliances and events** | Optional fog of war, alliances with shared victory (and betrayal), world events like storms and gold rushes, undo, and an end-of-game War Report with battle heatmaps, charts and awards. |

@@ -7,7 +7,8 @@ server.js            HTTP + hand-rolled WebSocket server (no dependencies): lobb
                      When packaged as Sector.exe it serves the client from embedded assets.
 shared/engine.js     All game rules. Runs on the server (authoritative) and in the browser
                      (move previews, combat odds, Blueprint simulation).
-shared/bot.js        Heuristic AI: drafting, economy, naval play, attacks, trade replies, difficulty.
+shared/bot.js        Heuristic AI: drafting, economy, naval play, attacks, trade replies, difficulty, personas.
+shared/chatter.js    What bots with a persona say in chat when something happens to them.
 public/index.html    Page shell.
 public/main.js       Client: networking, lobby, HUD, deck/build bars, combat + dice tray, trading,
                      Blueprint, pass & play, event animations.
@@ -39,7 +40,8 @@ Bots run on the server through the same `applyAction` path, one action at a time
 ## Testing
 
 ```
-node tools/sim.js domination 4 10   # 10 four-bot games; reports failed actions and winners
+node tools/sim.js domination 4 10   # 10 four-bot games; reports failed actions, winners and wins per persona
+SIM_TALK=1 node tools/sim.js domination 4 2   # same, printing what the bots say in chat
 node tools/maps.js 4                # eyeball map generation
 
 # browser tests (headless Edge; pass a Chrome path as the first argument to use Chrome instead)

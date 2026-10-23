@@ -155,6 +155,12 @@
         dsel.innerHTML = Object.keys(E.DIFFICULTY).map(d => `<option value="${d}"${p.diff === d ? ' selected' : ''}>${E.DIFFICULTY[d].name}</option>`).join('') + `<option value="random"${p.diff === 'random' ? ' selected' : ''}>🎲 Random</option>`;
         dsel.disabled = !host; dsel.onchange = () => send({ t: 'botCfg', id: p.id, diff: dsel.value });
         r.insertBefore(dsel, r.querySelector('.tag'));
+        // persona: how the bot plays and talks
+        const psel = el('select', 'diffsel persona');
+        psel.innerHTML = `<option value="random"${!E.PERSONAS[p.persona] ? ' selected' : ''}>🎭 Any persona</option>` + Object.keys(E.PERSONAS).map(k => `<option value="${k}"${p.persona === k ? ' selected' : ''}>${E.PERSONAS[k].icon} ${E.PERSONAS[k].name}</option>`).join('');
+        psel.title = E.PERSONAS[p.persona] ? E.PERSONAS[p.persona].desc : 'Each bot gets a different personality when the game starts';
+        psel.disabled = !host; psel.onchange = () => send({ t: 'botCfg', id: p.id, persona: psel.value });
+        r.querySelector('.nm').appendChild(psel);
       }
       if (p.local) {
         r.querySelector('.nm').innerHTML = `<input class="seat-name" value="${esc(p.name)}" maxlength="16"><div class="fx">${f ? f.name : ''} · this device</div>`;
@@ -1108,7 +1114,7 @@
       c.style.setProperty('--pc', p.color);
       const extra = S.map.beacon ? ` · ◆${p.koth}/3` : '';
       if (!p.alive) c.style.setProperty('--pc', '#5b6670');
-      c.innerHTML = `<div class="av"><img src="${Art.iconURL('glyph', f ? f.glyph : 'shield', '#0b0f13', 48)}"></div><div><div class="pn">${esc(p.name)}${p.alive ? '' : ' <span class="out">☠ OUT</span>'}${p.team ? ` <span class="teamchip t${p.team}">${'ABCD'[p.team - 1]}</span>` : ''}${p.traitor ? ' <span class="out" title="Broke an alliance: -40% income and no new pacts">🗡 TRAITOR</span>' : ''}${moodTag(p)}</div><div class="ps"><span title="${counts[p.id] || 0} land hexes (what counts to win) + ${seas[p.id] || 0} sea">⬢ <b>${counts[p.id] || 0}</b></span><span>$<b>${p.cash}</b></span><span>🂠 <b>${p.tacticCount ?? p.tactics.length}</b></span>${extra}</div></div>`;
+      c.innerHTML = `<div class="av"><img src="${Art.iconURL('glyph', f ? f.glyph : 'shield', '#0b0f13', 48)}"></div><div><div class="pn">${esc(p.name)}${p.alive ? '' : ' <span class="out">☠ OUT</span>'}${p.team ? ` <span class="teamchip t${p.team}">${'ABCD'[p.team - 1]}</span>` : ''}${p.traitor ? ' <span class="out" title="Broke an alliance: -40% income and no new pacts">🗡 TRAITOR</span>' : ''}${p.bot && E.PERSONAS[p.persona] ? ` <span class="persona" title="${E.PERSONAS[p.persona].name}: ${E.PERSONAS[p.persona].desc}">${E.PERSONAS[p.persona].icon}</span>` : ''}${moodTag(p)}</div><div class="ps"><span title="${counts[p.id] || 0} land hexes (what counts to win) + ${seas[p.id] || 0} sea">⬢ <b>${counts[p.id] || 0}</b></span><span>$<b>${p.cash}</b></span><span>🂠 <b>${p.tacticCount ?? p.tactics.length}</b></span>${extra}</div></div>`;
       c.title = f ? f.name + ' — ' + f.perk + ': ' + f.desc : '';
       c.onclick = () => { if (p.hq) Render.focus(p.hq); };
       const allied = E.isAlly(S, you, p.id), pact = allied && (S.allies || []).find(x => (x.a === p.id || x.b === p.id) && (x.a === you || x.b === you));
