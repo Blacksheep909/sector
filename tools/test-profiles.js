@@ -16,8 +16,13 @@ ok(P.finishGame(b, g).referral === 0, 'the referral pays once');
 const off = Object.keys(C.ITEMS).find(id => C.ITEMS[id].slot === 'territory' && C.ITEMS[id].buy !== false && !C.dailyStore().items.includes(id));
 ok(P.buy(a, off) === 'Not in today’s store', 'territory skins out of rotation can\'t be bought');
 ok(P.buy(a, 't-founder') === 'That can’t be bought', 'Founder skins are never sold');
-a.coins = 100; ok(P.buy(a, 'c-titan-blackout').startsWith('Need'), 'you need the coins');
-a.coins = 5000; ok(!P.buy(a, 'c-grunt-foil') && a.owned.includes('c-grunt-foil'), 'any card version can be bought from the locker');
+a.coins = 100; ok(P.buy(a, C.dailyStore().items.find(id => C.ITEMS[id].price > 100)).startsWith('Need'), 'you need the Valor');
+a.coins = 5000; { const card = Object.keys(C.ITEMS).find(id => C.ITEMS[id].slot === 'card' && !C.dailyStore().items.includes(id)); ok(P.buy(a, card).startsWith('Card skins come from crates'), 'card skins out of the daily store can\'t be bought outright'); }
+{ const inStore = C.dailyStore().items.find(id => C.ITEMS[id].slot === 'card'); ok(!P.buy(a, inStore) && a.owned.includes(inStore), 'a card skin in the daily store can be bought'); }
+{ const before = a.coins, r = P.openBox(a, 'field'); ok(!r.err && C.ITEMS[r.item].slot === 'card' && a.owned.includes(r.item) && a.coins === before - 300, 'a Field Crate costs 300 and hands over a card skin'); }
+{ let mythic = 0, n = 4000, x = 1; const rng = () => (x = (x * 16807) % 2147483647) / 2147483647; for (let i = 0; i < n; i++) if (C.rollBox('field', [], rng).rarity === 'mythic') mythic++; ok(mythic > 0 && mythic < n * 0.006, 'Mythic skins are rare from a Field Crate (' + mythic + '/' + n + ')'); }
+{ const all = Object.keys(C.ITEMS).filter(id => C.ITEMS[id].slot === 'card'), r = C.rollBox('elite', all); ok(r.dup && r.refund === Math.round(C.ITEMS[r.item].price * 0.3), 'a duplicate pays back 30%'); }
+a.cards = {}; a.owned.push('c-grunt-foil');
 ok(P.equip(a, 'territory', 't-usa') === 'Not yours', 'you can only wear what you own');
 ok(!P.equip(a, 'card', 'c-grunt-foil') && a.cards.grunt === 'foil' && !P.equip(a, 'card', 'c-grunt-foil') && !a.cards.grunt, 'equipping a card version twice takes it off');
 ok(C.dailyStore('2027-01-01').items.join() === C.dailyStore('2027-01-01').items.join() && C.dailyStore('2027-01-01').items.join() !== C.dailyStore('2027-01-02').items.join(), 'the store is the same for everyone each day and changes daily');

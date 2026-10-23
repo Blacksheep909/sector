@@ -55,12 +55,12 @@ function createProfiles(file, opts = {}) {
       store: { day: store.day, items: store.items, endsIn: C.msToNextDay() },
     };
   }
-  // territory, borders and banners come from today's store; any version of any card can be bought from the locker
+  // everything is bought from today's store; card versions also come out of crates
   function buy(p, itemId) {
     const it = C.ITEMS[itemId];
     if (!it || it.buy === false) return 'That can’t be bought';
     if (p.owned.includes(itemId)) return 'Already yours';
-    if (it.slot !== 'card' && !C.dailyStore().items.includes(itemId)) return 'Not in today’s store';
+    if (!C.dailyStore().items.includes(itemId)) return it.slot === 'card' ? 'Card skins come from crates (or the daily store when they rotate in)' : 'Not in today’s store';
     if (p.coins < it.price) return 'Need ' + it.price + ' Valor';
     p.coins -= it.price; p.owned.push(itemId); save();
     return null;
@@ -99,6 +99,15 @@ function createProfiles(file, opts = {}) {
     save();
     return out;
   }
+  // open a crate: pay, roll, keep it (or take a refund on a duplicate)
+  function openBox(p, boxId) {
+    const B = C.BOXES[boxId]; if (!B) return { err: 'No such crate' };
+    if (p.coins < B.price) return { err: 'Need ' + B.price + ' Valor' };
+    const r = C.rollBox(boxId, p.owned); p.coins -= B.price;
+    if (r.dup) p.coins += r.refund; else p.owned.push(r.item);
+    p.crates = (p.crates || 0) + 1; save();
+    return r;
+  }
   // missions: the first completion of each pays its reward
   function scenarioDone(p, id, reward) {
     p.scenarios = p.scenarios || [];
@@ -117,6 +126,6 @@ function createProfiles(file, opts = {}) {
   }
   function giveItem(p, item) { if (!C.ITEMS[item]) return 'No such item'; if (!p.owned.includes(item)) p.owned.push(item); save(); return null; }
   function totals() { const all = Object.values(db); return { profiles: all.length, coins: all.reduce((a, p) => a + p.coins, 0), owned: all.reduce((a, p) => a + p.owned.length, 0), games: all.reduce((a, p) => a + ((p.total || {}).games || 0), 0) }; }
-  return { open, view, buy, equip, finishGame, scenarioDone, grant, list, giveItem, totals, get: id => db[id] };
+  return { open, view, buy, equip, openBox, finishGame, scenarioDone, grant, list, giveItem, totals, get: id => db[id] };
 }
 module.exports = { createProfiles, REF_COINS, WELCOME_COINS };

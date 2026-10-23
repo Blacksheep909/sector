@@ -125,6 +125,22 @@
   const SLOTS = { territory: 'Territory', border: 'Auras', trim: 'Border Lines', banner: 'Banners', card: 'Cards' };
   const LOOKS = ['territory', 'border', 'trim', 'banner'];   // the slots worn on the map and name card (cards are per card)
 
+  // ───────── crates: card skins aren't sold outright. A few rotate through the daily store; otherwise you open crates ─────────
+  // odds are percentages by rarity; a duplicate pays back part of its value
+  const BOXES = {
+    field: { name: 'Field Crate', price: 300, odds: { uncommon: 62, rare: 28, epic: 8, legendary: 1.8, mythic: 0.2 }, desc: 'A card skin for any card: mostly Battle-Worn and Foil, with a slim chance of something special.' },
+    elite: { name: 'Elite Crate', price: 1000, odds: { rare: 55, epic: 32, legendary: 11, mythic: 2 }, desc: 'Rare or better, guaranteed. One in fifty is Mythic.' },
+  };
+  const DUP_REFUND = 0.3;
+  function rollBox(boxId, owned, rng = Math.random) {
+    const B = BOXES[boxId]; if (!B) return null;
+    let x = rng() * 100, rarity = 'uncommon';
+    for (const [r, w] of Object.entries(B.odds)) { rarity = r; if (x < w) break; x -= w; }
+    const pool = Object.values(ITEMS).filter(i => i.slot === 'card' && i.rarity === rarity), fresh = pool.filter(i => !(owned || []).includes(i.id));
+    const list = fresh.length ? fresh : pool, it = list[Math.floor(rng() * list.length)];
+    return { item: it.id, rarity, dup: !fresh.length, refund: fresh.length ? 0 : Math.round(it.price * DUP_REFUND) };
+  }
+
   // ───────── coins ─────────
   // a finished match pays by placement and how well you fought; the more you've earned today, the less each match adds
   // (a smooth curve, not a wall: nobody gets an insane amount from a mis-tuned reward, and nobody is ever cut off)
@@ -186,5 +202,5 @@
     return out;
   }
 
-  return { ITEMS, VARIANTS, SLOTS, LOOKS, DAILY, WEEKLY, DAY_SOFT, matchCoins, diminish, dayKey, weekKey, msToNextDay, dailyStore, dailyObjectives, weeklyObjectives, botLoadout, cleanLoadout };
+  return { ITEMS, VARIANTS, SLOTS, LOOKS, BOXES, rollBox, DAILY, WEEKLY, DAY_SOFT, matchCoins, diminish, dayKey, weekKey, msToNextDay, dailyStore, dailyObjectives, weeklyObjectives, botLoadout, cleanLoadout };
 });

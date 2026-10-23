@@ -72,7 +72,7 @@ const Locker = (() => {
       b.onclick = () => { SFX.select(); send({ t: 'equip', slot: it.slot, item: it.slot !== 'card' && isOn(it) ? null : it.id }); };
       act.appendChild(b);
     } else if (it.buy === false) act.appendChild(el('span', 'sub', it.id.includes('recruit') ? '🎖 Earned by recruiting' : '🏅 Never sold'));
-    else if (it.slot !== 'card' && !inStore && !C.dailyStore(profile.store.day).items.includes(it.id)) act.appendChild(el('span', 'sub', '<i class="vm"></i>' + it.price.toLocaleString() + ' · when it’s in the store'));
+    else if (!inStore && !C.dailyStore(profile.store.day).items.includes(it.id)) act.appendChild(el('span', 'sub', it.slot === 'card' ? '🎁 From crates, or the daily store' : '<i class="vm"></i>' + it.price.toLocaleString() + ' · when it’s in the store'));
     else { const b = el('button', 'btn tiny gold', '<i class="vm"></i>' + it.price.toLocaleString()); b.disabled = profile.coins < it.price; b.onclick = () => { SFX.coin(4); send({ t: 'buy', item: it.id }); }; act.appendChild(b); }
     t.appendChild(act);
     return t;
@@ -95,7 +95,7 @@ const Locker = (() => {
       p.appendChild(bar);
       const q = search.trim().toLowerCase();
       items = items.filter(i => (cardFilter === 'all' || owns(i.id)) && (!q || E.cardDef(i.card).name.toLowerCase().includes(q)));
-      if (cardFilter === 'owned' && !items.length && !q) grid.appendChild(el('div', 'ix-empty', 'No card versions yet. Every card comes in <b>Foil</b>, <b>Gilded</b> and <b>Blackout</b>: switch to ALL CARDS to browse and buy them.'));
+      if (cardFilter === 'owned' && !items.length && !q) grid.appendChild(el('div', 'ix-empty', 'No card skins yet. Every card has one at every rarity, from Battle-Worn to a named Mythic. Open <b>crates</b> in the Store to find them (switch to ALL CARDS to browse).'));
       items = items.slice(0, 90);
     } else items.sort((a, b) => (owns(b.id) - owns(a.id)) || E.RARITY_ORDER.indexOf(a.rarity) - E.RARITY_ORDER.indexOf(b.rarity));
     for (const it of items) grid.appendChild(tile(it, false));
@@ -120,12 +120,52 @@ const Locker = (() => {
     const grid = el('div', 'lk-grid store');
     for (const id of profile.store.items) grid.appendChild(tile(C.ITEMS[id], true));
     p.appendChild(grid);
+    // crates: card skins come out of these
+    const crates = el('div', 'st-crates', '<h3>CRATES</h3>');
+    const row2 = el('div', 'st-crate-row');
+    for (const [id, B] of Object.entries(C.BOXES)) {
+      const odds = Object.entries(B.odds).map(([r, w]) => `<span style="color:${E.RARITY[r].color}">${E.RARITY[r].name} ${w}%</span>`).join(' · ');
+      const t = el('div', 'st-crate c-' + id, `<div class="crate-art">${crateSVG(id)}</div><div class="crate-info"><b>${esc(B.name)}</b><div class="sub">${esc(B.desc)}</div><div class="crate-odds">${odds}</div></div>`);
+      const btn = el('button', 'btn gold', 'OPEN · <i class="vm"></i>' + B.price.toLocaleString()); btn.disabled = profile.coins < B.price;
+      btn.onclick = () => { SFX.coin(4); btn.disabled = true; send({ t: 'openBox', box: id }); };
+      t.appendChild(btn); row2.appendChild(t);
+    }
+    crates.appendChild(row2); crates.appendChild(el('div', 'sub st-note', 'Card skins aren’t sold outright: a few rotate through today’s store, the rest come from crates. A duplicate pays back 30% of its value.'));
+    p.appendChild(crates);
     const obj = el('div', 'st-obj');
     const row = o => `<div class="ob${o.done ? ' done' : ''}"><span>${esc(o.text)}</span><div class="bar"><i style="width:${Math.round(o.have / o.need * 100)}%"></i></div><b>${o.done ? '✔' : o.have + '/' + o.need}</b><em><i class="vm"></i>${o.coins}</em></div>`;
     obj.innerHTML = `<div><h3>DAILY</h3>${profile.daily.map(row).join('')}</div><div><h3>WEEKLY</h3>${profile.weekly.map(row).join('')}</div>`
       + `<div class="sub st-note">Matches pay Valor too: more for winning and fighting well. The more you've earned today (<i class="vm"></i>${profile.earnedToday.toLocaleString()} so far), the less each extra match adds, so play when you like without grinding.</div>`;
     p.appendChild(obj);
     p.appendChild(el('div', 'st-packs', '<h3>VALOR PACKS</h3><div class="sub">Buying Valor arrives with accounts. Everything in the store is looks only: nothing you can buy changes the game.</div>'));
+  }
+
+  // ── crates ──
+  function crateSVG(id) {
+    const gold = id === 'elite';
+    return `<svg viewBox="0 0 100 80"><defs><linearGradient id="cr${id}" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="${gold ? '#5a4a8a' : '#6b5a3a'}"/><stop offset="1" stop-color="${gold ? '#2a1f4a' : '#3a2e1c'}"/></linearGradient></defs>
+      <rect x="10" y="30" width="80" height="44" rx="5" fill="url(#cr${id})" stroke="#0b0f13" stroke-width="3"/><path d="M8 22h84v14H8z" fill="${gold ? '#7a68b8' : '#8a7448'}" stroke="#0b0f13" stroke-width="3"/>
+      <rect x="44" y="18" width="12" height="24" rx="2" fill="${gold ? '#ffc53d' : '#c9b27a'}" stroke="#0b0f13" stroke-width="2.5"/><path d="M14 52h72" stroke="rgba(0,0,0,.35)" stroke-width="3"/>
+      <text x="50" y="66" text-anchor="middle" font-family="sans-serif" font-weight="900" font-size="11" fill="${gold ? '#ffc53d' : '#e8d9b0'}">${gold ? '★ ELITE ★' : 'FIELD'}</text></svg>`;
+  }
+  // the server rolled it: shake, burst open in the rarity's colour, and turn the card over
+  function boxOpened(m) {
+    set(m.profile);
+    const it = C.ITEMS[m.item], R = E.RARITY[it.rarity], B = C.BOXES[m.box];
+    let v = $('#crateOpen'); if (v) v.remove();
+    v = el('div', '', ''); v.id = 'crateOpen'; v.style.setProperty('--rc', R.color); document.body.appendChild(v);
+    v.innerHTML = `<div class="co-stage"><div class="co-rays"></div><div class="co-crate">${crateSVG(m.box)}</div><div class="co-card"></div></div><div class="co-label"></div><button class="btn big" id="coDone" hidden>NICE</button>`;
+    const crate = v.querySelector('.co-crate'), slot = v.querySelector('.co-card'), label = v.querySelector('.co-label');
+    SFX.whoosh();
+    setTimeout(() => { crate.classList.add('shake'); SFX.click(); }, 300);
+    setTimeout(() => { crate.classList.add('shake2'); SFX.chip(4); }, 900);
+    setTimeout(() => {
+      crate.classList.add('burst'); v.classList.add('open'); SFX.boom && SFX.boom(0.6);
+      ['mythic', 'legendary'].includes(it.rarity) ? SFX.legendary() : SFX.rare();
+      const card = Cards.make(it.card, { variant: it.variant }); card.classList.add('co-flip'); slot.appendChild(card);
+      label.innerHTML = `<div class="co-rar" style="color:${R.color}">${R.name.toUpperCase()}</div><b>${esc(it.name)}</b>${m.dup ? `<div class="sub">Already yours: <i class="vm"></i>${m.refund} back</div>` : '<div class="sub">Added to your Locker</div>'}`;
+      const d = $('#coDone'); d.hidden = false; d.onclick = () => { v.remove(); if (open === 'store') drawStore(); };
+    }, 1500);
   }
 
   // ── after a game: what you earned ──
@@ -153,5 +193,5 @@ const Locker = (() => {
     setTimeout(() => b.classList.add('gone'), 7000); setTimeout(() => b.remove(), 7600);
     b.onclick = () => b.remove();
   }
-  return { init, identity, ref, set, show, variant, bannerClass, reward, get profile() { return profile; } };
+  return { init, identity, ref, set, show, variant, bannerClass, reward, boxOpened, get profile() { return profile; } };
 })();
