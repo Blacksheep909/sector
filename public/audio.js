@@ -1,11 +1,12 @@
 /* SECTOR — synthesized sound effects (WebAudio, no assets) */
 const SFX = (() => {
   let ctx = null, master = null, muted = false;
-  try { muted = localStorage.getItem('sector.muted') === '1'; } catch (e) {}
+  let vol = 1;   // master volume, 0–1 (Settings)
+  try { muted = localStorage.getItem('sector.muted') === '1'; const v = parseFloat(localStorage.getItem('sector.vol')); if (v >= 0 && v <= 1) vol = v; } catch (e) {}
   function ensure() {
     if (!ctx) {
       const AC = window.AudioContext || window.webkitAudioContext; if (!AC) return null;
-      ctx = new AC(); master = ctx.createGain(); master.gain.value = 0.32;
+      ctx = new AC(); master = ctx.createGain(); master.gain.value = 0.32 * vol;
       const comp = ctx.createDynamicsCompressor(); master.connect(comp); comp.connect(ctx.destination);
     }
     if (ctx.state === 'suspended') ctx.resume();
@@ -114,6 +115,8 @@ const SFX = (() => {
   })();
   return { music: Music,
     get muted() { return muted; },
+    get volume() { return vol; },
+    setVolume(v) { vol = Math.max(0, Math.min(1, +v || 0)); try { localStorage.setItem('sector.vol', String(vol)); } catch (e) {} if (master) master.gain.value = 0.32 * vol; },
     toggle() { muted = !muted; try { localStorage.setItem('sector.muted', muted ? '1' : '0'); } catch (e) {} return muted; },
     click() { tone(880, 0.05, { type: 'square', vol: 0.12 }); },
     hover() { tone(1320, 0.025, { type: 'sine', vol: 0.05 }); },

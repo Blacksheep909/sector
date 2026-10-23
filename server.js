@@ -85,9 +85,13 @@ const server = http.createServer((req, res) => {
   if (url === '/') url = '/index.html';
   if (url === '/info') {
     // discovery: other SECTOR clients on the LAN scan for this
-    const host = lobby.players.find(p => p.id === lobby.hostId);
+    const f = focusRoom(), lobby = f ? f.lobby : { players: [] }, game = f && f.game, host = lobby.players.find(p => p.id === lobby.hostId), st = menuStats();
     res.writeHead(200, { 'Content-Type': 'application/json', 'Access-Control-Allow-Origin': '*', 'Cache-Control': 'no-cache' });
-    return res.end(JSON.stringify({ game: 'sector', version: VERSION, id: SERVER_ID, host: host ? host.name : null, players: lobby.players.length, humans: lobby.players.filter(p => !p.bot).length, inGame: !!game, round: game ? game.turn.round : 0, bots: game ? game.players.filter(p => p.alive && p.bot).length : lobby.players.filter(p => p.bot).length, port: PORT, lan: lanAddresses() }));
+    return res.end(JSON.stringify({ game: 'sector', version: VERSION, id: SERVER_ID, host: host ? host.name : null, players: allSeats().length, humans: allSeats().filter(x => !x.p.bot).length, online: st.online, rooms: st.rooms, wars: st.wars, inGame: !!game, round: game ? game.turn.round : 0, bots: game ? game.players.filter(p => p.alive && p.bot).length : lobby.players.filter(p => p.bot).length, port: PORT, lan: lanAddresses() }));
+  }
+  if (url === '/news') {
+    res.writeHead(200, { 'Content-Type': 'application/json', 'Cache-Control': 'max-age=300' });
+    return res.end(JSON.stringify(news()));
   }
   if (url === '/host' || url.startsWith('/host/')) return hostApi(req, res, url);
   if (url === '/dev' && DEV_KEY) url = '/dev.html';
@@ -106,16 +110,16 @@ const server = http.createServer((req, res) => {
 });
 
 // ───────────────────────── minimal websocket ─────────────────────────
-const clients = new Set();
+const sockets = new Set();   // every open connection, in a room or on the front menu
 server.on('upgrade', (req, socket) => {
   if (req.headers['upgrade'] !== 'websocket') return socket.destroy();
   const accept = crypto.createHash('sha1').update(req.headers['sec-websocket-key'] + '258EAFA5-E914-47DA-95CA-C5AB0DC85B11').digest('base64');
   socket.write('HTTP/1.1 101 Switching Protocols\r\nUpgrade: websocket\r\nConnection: Upgrade\r\nSec-WebSocket-Accept: ' + accept + '\r\n\r\n');
   socket.setNoDelay(true);
-  const client = { socket, buf: Buffer.alloc(0), pid: null, frags: [], seen: Date.now() };
-  clients.add(client);
+  const client = { socket, buf: Buffer.alloc(0), pid: null, frags: [], seen: Date.now(), cid: crypto.randomBytes(6).toString('hex'), room: null, party: null, name: null, profileId: null };
+  sockets.add(client);
   socket.on('data', d => { client.buf = Buffer.concat([client.buf, d]); readFrames(client); });
-  const close = () => { if (!clients.has(client)) return; clients.delete(client); onDisconnect(client); };
+  const close = () => { if (!sockets.has(client)) return; sockets.delete(client); onSocketClose(client); };
   socket.on('close', close); socket.on('error', close); socket.on('end', close);
 });
 
@@ -136,7 +140,7 @@ function readFrames(c) {
     if (op === 9) { sendFrame(c, payload, 10); continue; }
     if (op === 1 || op === 0) {
       c.frags.push(payload);
-      if (fin) { const text = Buffer.concat(c.frags).toString('utf8'); c.frags = []; let msg; try { msg = JSON.parse(text); } catch (e) { continue; } onMessage(c, msg); }
+      if (fin) { const text = Buffer.concat(c.frags).toString('utf8'); c.frags = []; let msg; try { msg = JSON.parse(text); } catch (e) { continue; } route(c, msg); }
     }
   }
 }
@@ -152,25 +156,32 @@ const send = (c, obj) => sendFrame(c, JSON.stringify(obj));
 
 // heartbeat: ping everyone; sockets silent for 20s are treated as gone
 setInterval(() => {
-  for (const c of [...clients]) {
-    if (Date.now() - c.seen > 20000) { try { c.socket.destroy(); } catch (e) {} clients.delete(c); onDisconnect(c); }
+  for (const c of [...sockets]) {
+    if (Date.now() - c.seen > 20000) { try { c.socket.destroy(); } catch (e) {} sockets.delete(c); onSocketClose(c); }
     else sendFrame(c, Buffer.alloc(0), 9);
   }
 }, 6000);
 
-// ───────────────────────── lobby / game ─────────────────────────
-const lobby = { players: [], hostId: null, settings: { mode: 'domination', mapSize: 'medium', mapType: 'random', spawns: 'pick', fog: 'on', events: 'on', timer: 0, maxRounds: 0, conquestPct: 60, seed: '', teams: 'off', speed: 'fast', bank: 'off', personas: 'on' } };
+// ───────────────────────── a room: one lobby and its war ─────────────────────────
+// Everything from here to the end of createRoom belongs to a single room. Rooms share nothing but profiles,
+// so online each one can live in its own isolated worker (one Cloudflare Durable Object per room, say).
+const PUBLIC_SEATS = 6, PUBLIC_MIN = 4, PUBLIC_WAIT = +process.env.SECTOR_PUBLIC_WAIT || 30000, PUBLIC_FULL_WAIT = 6000;
+// quick-play rooms: a standard war with a turn clock, so strangers can't stall it
+const PUBLIC_SETTINGS = { mode: 'domination', mapSize: 'small', mapType: 'random', spawns: 'random', fog: 'on', events: 'on', timer: 60, maxRounds: 0, conquestPct: 60, seed: '', teams: 'off', speed: 'fast', bank: 'off', personas: 'on' };
+function createRoom(code, kind) {
+const clients = new Set();   // the connections in this room
+const lobby = { players: [], hostId: null, kind, code, startAt: 0, settings: kind === 'public' ? { ...PUBLIC_SETTINGS } : { mode: 'domination', mapSize: 'medium', mapType: 'random', spawns: 'pick', fog: 'on', events: 'on', timer: 0, maxRounds: 0, conquestPct: 60, seed: '', teams: 'off', speed: 'fast', bank: 'off', personas: 'on' } };
+const isPublic = kind === 'public';
 let game = null;           // engine state
-// profiles live next to the saved games; SECTOR_OG_UNTIL=YYYY-MM-DD gives early accounts the Founder skins
-const profiles = createProfiles(process.env.SECTOR_PROFILES || path.join(process.env.APPDATA || os.homedir(), 'Sector', 'profiles.json'), { ogUntil: process.env.SECTOR_OG_UNTIL });
 let botMem = {}, botTimer = null, turnTimer = null, idleTimer = null;
 let nextPid = 1;
 const autoPids = new Set(); // dev: humans driven by the bot AI (SECTOR_DEV=1)
 
 function lobbyView() {
   return {
-    players: lobby.players.map(p => ({ id: p.id, name: p.name, color: p.color, faction: p.faction, bot: p.bot, diff: p.diff, local: !!p.local, controller: p.controller || null, spectator: !!p.spectator, team: p.team || 0, cos: p.cos || null, ready: isReady(p), away: !!p.away, afk: !!p.afk, connected: p.bot || isConnected(p.id) })),
-    hostId: lobby.hostId, settings: lobby.settings, inGame: !!game, saves: game ? [] : listSaves(), version: VERSION, lan: lanAddresses().map(a => 'http://' + a + ':' + PORT), port: PORT,
+    code, kind, cap: isPublic ? PUBLIC_SEATS : 8, startIn: lobby.startAt ? Math.max(0, lobby.startAt - Date.now()) : 0,
+    players: lobby.players.map(p => ({ id: p.id, name: p.name, handle: p.handle || null, color: p.color, faction: p.faction, bot: p.bot, diff: p.diff, local: !!p.local, controller: p.controller || null, spectator: !!p.spectator, team: p.team || 0, cos: p.cos || null, ready: isReady(p), away: !!p.away, afk: !!p.afk, connected: p.bot || isConnected(p.id) })),
+    hostId: lobby.hostId, settings: lobby.settings, inGame: !!game, saves: game || isPublic ? [] : savesFor((lobby.players.find(p => p.id === lobby.hostId) || {}).profileId), version: VERSION, lan: lanAddresses().map(a => 'http://' + a + ':' + PORT), port: PORT,
   };
 }
 // ready-up: every human commander (not bots, spectators or pass-and-play seats, whose device owner readies for them) must be ready
@@ -265,7 +276,8 @@ function onMessage(c, m) {
       let p = m.token && lobby.players.find(x => x.token === m.token);
       if (!p && game) { send(c, { t: 'welcome', you: null, spectator: true }); send(c, { t: 'lobby', lobby: lobbyView() }); send(c, { t: 'state', state: E.view(game, null), events: [] }); return; }
       if (!p) {
-        if (lobby.players.length >= 8) return send(c, { t: 'err', msg: 'Lobby is full' });
+        if (lobby.players.filter(x => !x.bot || !isPublic).length >= (isPublic ? PUBLIC_SEATS : 8)) return send(c, { t: 'err', msg: 'That room is full' });
+        if (isPublic) { const bot = lobby.players.find(x => x.bot); if (bot && lobby.players.length >= PUBLIC_SEATS) lobby.players = lobby.players.filter(x => x !== bot); }
         p = { id: 'p' + nextPid++, token: crypto.randomBytes(12).toString('hex'), name: String(m.name || 'Commander').slice(0, 16), color: freeColor(), faction: Object.keys(E.FACTIONS)[Math.floor(Math.random() * 5)], bot: false };
         lobby.players.push(p);
         note(p.name + ' joined from ' + addrOf(c));
@@ -273,8 +285,9 @@ function onMessage(c, m) {
       if (p.away && game) { c.pid = p.id; returnSeats(p); }
       c.pid = p.id;
       // the player's profile (coins, skins): their loadout shows on their seat for everyone
-      if (m.profile) { const pr = profiles.open(m.profile.id, m.profile.secret, p.name, m.ref); if (pr) { p.profileId = pr.id; p.cos = C.cleanLoadout(pr.equipped, pr.owned, pr.cards); send(c, { t: 'profile', profile: profiles.view(pr) }); } }
-      if (!lobby.hostId || !lobby.players.some(x => x.id === lobby.hostId && !x.bot)) lobby.hostId = p.id;
+      { const pr = c.profileId && profiles.get(c.profileId); if (pr) { p.profileId = pr.id; p.handle = pr.refCode; p.cos = C.cleanLoadout(pr.equipped, pr.owned, pr.cards); } }
+      if (!isPublic && (!lobby.hostId || !lobby.players.some(x => x.id === lobby.hostId && !x.bot))) lobby.hostId = p.id;   // public rooms have no host
+      if (isPublic && !game && !lobby.startAt) lobby.startAt = Date.now() + PUBLIC_WAIT;
       send(c, { t: 'welcome', you: p.id, token: p.token });
       broadcastLobby();
       if (game) { const seat = seatFor(c); send(c, { t: 'state', state: E.view(game, seat, fogFor(seat)), events: [], seat }); afterChange(); }
@@ -360,23 +373,6 @@ function onMessage(c, m) {
       lobby.players.push({ id: 'p' + nextPid++, token: null, name, color: freeColor(), faction: Object.keys(E.FACTIONS)[Math.floor(Math.random() * 5)], bot: true, diff, cos: C.botLoadout() });
       return broadcastLobby();
     }
-    case 'openBox': {
-      const lp = lobby.players.find(x => x.id === c.pid), pr = lp && lp.profileId && profiles.get(lp.profileId);
-      if (!pr) return send(c, { t: 'err', msg: 'No profile: rejoin to load your skins' });
-      const r = profiles.openBox(pr, String(m.box || ''), !!m.free);
-      if (r.err) return send(c, { t: 'err', msg: r.err });
-      return send(c, { t: 'boxOpened', box: m.box, free: !!m.free, ...r, profile: profiles.view(pr) });
-    }
-    case 'buy': case 'equip': case 'profile': case 'devCoins': {
-      const lp = lobby.players.find(x => x.id === c.pid), pr = lp && lp.profileId && profiles.get(lp.profileId);
-      if (!pr) return send(c, { t: 'err', msg: 'No profile: rejoin to load your skins' });
-      if (m.t === 'devCoins') { if (!process.env.SECTOR_DEV) return; profiles.grant(pr, 5000); }
-      const err = m.t === 'buy' ? profiles.buy(pr, String(m.item || '')) : m.t === 'equip' ? profiles.equip(pr, String(m.slot || ''), m.item ? String(m.item) : null) : null;
-      if (err) return send(c, { t: 'err', msg: err });
-      send(c, { t: 'profile', profile: profiles.view(pr), bought: m.t === 'buy' ? m.item : null });
-      if (m.t === 'equip' && !game) { lp.cos = C.cleanLoadout(pr.equipped, pr.owned, pr.cards); broadcastLobby(); }
-      return;
-    }
     case 'ready': {
       const rp = lobby.players.find(p => p.id === c.pid); if (!rp || game) return;
       rp.ready = !!m.on;
@@ -414,33 +410,15 @@ function onMessage(c, m) {
         const seats = [target.id, ...lobby.players.filter(p => p.local && p.controller === target.id).map(p => p.id)];
         game.log.push('👢 ' + target.name + ' was removed by the host — a bot took over.');
         botifySeats(seats, true);
-        for (const cl of clients) if (seats.includes(cl.pid)) { send(cl, { t: 'kicked' }); cl.pid = null; cl.left = true; }
+        for (const cl of clients) if (seats.includes(cl.pid)) { send(cl, { t: 'kicked' }); cl.pid = null; cl.left = true; clients.delete(cl); }
         note(target.name.replace(/ \(bot\)$/, '') + ' was kicked by the host');
         game.v++; broadcastLobby(); broadcastState([], null); return afterChange();
       }
       lobby.players = lobby.players.filter(p => p.id !== m.id && p.controller !== m.id);
-      for (const cl of clients) if (cl.pid === m.id) { send(cl, { t: 'kicked' }); cl.pid = null; }
+      for (const cl of clients) if (cl.pid === m.id) { send(cl, { t: 'kicked' }); cl.pid = null; cl.left = true; clients.delete(cl); }
       return broadcastLobby();
     }
-    case 'start': {
-      if (c.pid !== lobby.hostId || game) return;
-      const diffs = Object.keys(E.DIFFICULTY);
-      const roster = lobby.players.filter(p => !p.spectator).map(p => p.bot ? { ...p, diff: p.diff === 'random' ? diffs[Math.floor(Math.random() * diffs.length)] : p.diff, persona: lobby.settings.personas === 'off' ? null : PZ.pick() } : p);   // each bot gets a hidden personality
-      if (roster.length < 2) return send(c, { t: 'err', msg: lobby.players.length < 2 ? 'Need at least 2 commanders (add a bot)' : 'Need at least 2 commanders who are playing, not spectating' });
-      const host = lobby.players.find(p => p.id === c.pid); if (host) host.ready = true;   // pressing DEPLOY readies the host
-      const waiting = notReady();
-      if (waiting.length) return send(c, { t: 'err', msg: 'Waiting for ' + waiting.map(p => p.name).join(', ') + ' to ready up' });
-      const s = { ...lobby.settings, timer: +lobby.settings.timer || 0, maxRounds: +lobby.settings.maxRounds || 0, conquestPct: +lobby.settings.conquestPct || 60 };
-      if (s.bank && s.bank !== 'off') s.timer = 0;   // the time bank replaces the per-turn timer
-      for (const k in bankLeft) delete bankLeft[k]; bankKey = ''; bankPid = null;
-      const r = E.createGame(s, roster);
-      game = r.state; botMem = {}; fogMem = {}; banterReset();
-      game.saveId = 'g' + Date.now().toString(36) + crypto.randomBytes(2).toString('hex');
-      console.log('[game] started: ' + lobby.players.length + ' players, ' + s.mode + ', map ' + s.mapSize);
-      broadcastLobby();
-      broadcastState(r.events, null);
-      return afterChange();
-    }
+    case 'start': if (c.pid !== lobby.hostId || game) return; return startGame(c);
     case 'scenario': {
       // a solo mission: the host plays it, anyone else in the lobby watches
       if (game) return send(c, { t: 'err', msg: 'Finish or leave the current game first' });
@@ -550,7 +528,7 @@ function onMessage(c, m) {
       if (seats.includes(lobby.hostId)) { const h = lobby.players.find(p => !p.bot && !p.local && isConnected(p.id) && !seats.includes(p.id)); lobby.hostId = h ? h.id : null; }
       { const p = lobby.players.find(x => x.id === seats[0]); if (p) note(p.name.replace(/ \(bot\)$/, '') + (game ? ' left — a bot took over' : ' left the lobby')); }
       c.pid = null; c.left = true;
-      send(c, { t: 'left' });
+      send(c, { t: 'left' }); clients.delete(c);   // out of the room before it hears the new lobby
       broadcastLobby();
       if (game) { game.v++; broadcastState([], null); afterChange(); }
       return;
@@ -596,14 +574,33 @@ function onMessage(c, m) {
     case 'autoplay': if (!process.env.SECTOR_DEV || !c.pid) return; m.on ? autoPids.add(c.pid) : autoPids.delete(c.pid); return afterChange();
   }
 }
+function startGame(c) {
+  if (game) return;
+  const diffs = Object.keys(E.DIFFICULTY);
+  const roster = lobby.players.filter(p => !p.spectator).map(p => p.bot ? { ...p, diff: p.diff === 'random' ? diffs[Math.floor(Math.random() * diffs.length)] : p.diff, persona: lobby.settings.personas === 'off' ? null : PZ.pick() } : p);   // each bot gets a hidden personality
+  if (roster.length < 2) return c && send(c, { t: 'err', msg: lobby.players.length < 2 ? 'Need at least 2 commanders (add a bot)' : 'Need at least 2 commanders who are playing, not spectating' });
+  const host = c && lobby.players.find(p => p.id === c.pid); if (host) host.ready = true;   // pressing DEPLOY readies the host
+  const waiting = isPublic ? [] : notReady();
+  if (waiting.length) return c && send(c, { t: 'err', msg: 'Waiting for ' + waiting.map(p => p.name).join(', ') + ' to ready up' });
+  const s = { ...lobby.settings, timer: +lobby.settings.timer || 0, maxRounds: +lobby.settings.maxRounds || 0, conquestPct: +lobby.settings.conquestPct || 60 };
+  if (s.bank && s.bank !== 'off') s.timer = 0;   // the time bank replaces the per-turn timer
+  for (const k in bankLeft) delete bankLeft[k]; bankKey = ''; bankPid = null;
+  const r = E.createGame(s, roster);
+  game = r.state; botMem = {}; fogMem = {}; banterReset();
+  game.saveId = isPublic ? null : 'g' + Date.now().toString(36) + crypto.randomBytes(2).toString('hex');   // public wars aren't saved
+  lobby.startAt = 0;
+  console.log('[game] ' + code + ' started: ' + lobby.players.length + ' players, ' + s.mode + ', map ' + s.mapSize);
+  broadcastLobby();
+  broadcastState(r.events, null);
+  return afterChange();
+}
 function pushLeave(seats) {
   for (const id of seats) { const gp = game.players.find(p => p.id === id); if (gp) game.log.push('🚪 ' + gp.name.replace(' (bot)', '') + ' left — a bot took over.'); }
   while (game.log.length > 40) game.log.shift();
 }
-function pick(o, keys) { const r = {}; for (const k of keys) if (o && k in o) r[k] = o[k]; return r; }
 
 function endGame() {
-  console.log('[game] returned to lobby');
+  console.log('[game] ' + code + ' returned to lobby');
   // ending a war early keeps it saved, so it can be resumed from the lobby
   if (game && game.phase === 'play' && !game.scenario) writeSave(); else clearTimeout(saveTimer);
   for (const k in warNotes) delete warNotes[k]; for (const c of clients) c.notesSig = null;
@@ -613,20 +610,12 @@ function endGame() {
   broadcastLobby();
 }
 
-// ───────────── saved games: every war in progress autosaves to its own file, and the host can resume it from the lobby ─────────────
-const SAVE_DIR = process.env.SECTOR_SAVES || path.join(process.env.APPDATA || os.homedir(), 'Sector', 'saves');
-const SAVE_KEEP = 20;
-let saveTimer = null, saveList = null;
-const savePath = id => path.join(SAVE_DIR, String(id).replace(/[^a-z0-9_-]/gi, '') + '.json');
-function saveTitle(g) {
-  const mode = { domination: 'Domination', conquest: 'Conquest', koth: 'Beacon', worldwar: 'World War' }[g.settings.mode] || g.settings.mode;
-  return mode + ' · round ' + g.turn.round + ' · ' + g.players.filter(p => p.alive).map(p => p.name.replace(/ \(bot\)$/, '')).join(', ');
-}
+let saveTimer = null;
 function writeSave() {
   clearTimeout(saveTimer); saveTimer = null;
   if (!game || game.phase !== 'play' || !game.saveId) return null;
   const fog = {}; for (const k in fogMem) fog[k] = { explored: [...fogMem[k].explored], seen: fogMem[k].seen };
-  const seats = lobby.players.filter(p => game.players.some(g => g.id === p.id)).map(p => pick(p, ['id', 'name', 'color', 'faction', 'bot', 'diff', 'persona', 'local', 'controller', 'team']));
+  const seats = lobby.players.filter(p => game.players.some(g => g.id === p.id)).map(p => pick(p, ['id', 'name', 'color', 'faction', 'bot', 'diff', 'persona', 'local', 'controller', 'team', 'profileId']));
   const data = { v: 1, version: VERSION, id: game.saveId, savedAt: Date.now(), title: saveTitle(game), round: game.turn.round, mode: game.settings.mode, game, fog, seats, bank: bankLeft };
   try {
     fs.mkdirSync(SAVE_DIR, { recursive: true });
@@ -639,20 +628,6 @@ function writeSave() {
   } catch (e) { console.log('[save] failed: ' + e.message); return null; }
 }
 function scheduleSave() { if (!saveTimer && game && game.phase === 'play' && game.saveId) saveTimer = setTimeout(writeSave, 3000); }
-function dropSave(id) { try { fs.unlinkSync(savePath(id)); } catch (e) {} saveList = null; }
-function listSaves() {
-  if (saveList) return saveList;
-  let files = []; try { files = fs.readdirSync(SAVE_DIR).filter(f => f.endsWith('.json')); } catch (e) {}
-  const out = [];
-  for (const f of files) {
-    try {
-      const d = JSON.parse(fs.readFileSync(path.join(SAVE_DIR, f), 'utf8'));
-      if (!d || !d.game || !d.id) continue;
-      out.push({ id: d.id, title: d.title, round: d.round, mode: d.mode, savedAt: d.savedAt, humans: (d.seats || []).filter(p => !p.bot).map(p => p.name) });
-    } catch (e) {}
-  }
-  return (saveList = out.sort((a, b) => b.savedAt - a.savedAt));
-}
 function loadSave(c, id) {
   let d; try { d = JSON.parse(fs.readFileSync(savePath(id), 'utf8')); } catch (e) { return send(c, { t: 'err', msg: 'That save could not be read' }); }
   if (!d || !d.game || !d.game.players) return send(c, { t: 'err', msg: 'That save is damaged' });
@@ -862,7 +837,7 @@ function payOut() {
     for (const cl of clients) if (cl.pid === hero) send(cl, { t: 'scenarioResult', id: sc.id, won, failed: game.winner && game.winner.failed, ...out, profile: pr ? profiles.view(pr) : null });
     return;
   }
-  logGame();
+  logGame(game);
   const w = game.winner || {}, winners = w.pids || [w.pid];
   const land = id => E.ownedLand(game, id).length;
   const order = game.players.slice().sort((a, b) => (winners.includes(b.id) - winners.includes(a.id)) || (b.alive - a.alive) || land(b.id) - land(a.id));
@@ -1055,12 +1030,260 @@ function applyBot(cur, a) {
   overwatchAfter(r.events, cur.id, () => afterChange(r.events));
 }
 
+
+// ── public rooms start themselves: a countdown from the first arrival (shorter once full), then bots fill the empty seats ──
+function tick() {
+  if (!isPublic || game) return;
+  const humans = lobby.players.filter(p => !p.bot && !p.spectator);
+  if (!humans.length) { if (lobby.startAt) { lobby.startAt = 0; broadcastLobby(); } return; }
+  if (!lobby.startAt) { lobby.startAt = Date.now() + PUBLIC_WAIT; broadcastLobby(); }
+  if (humans.length >= PUBLIC_SEATS && lobby.startAt - Date.now() > PUBLIC_FULL_WAIT) { lobby.startAt = Date.now() + PUBLIC_FULL_WAIT; broadcastLobby(); }
+  if (Date.now() < lobby.startAt) return;
+  const used = new Set(lobby.players.map(p => p.name));
+  while (lobby.players.filter(p => !p.spectator).length < Math.max(PUBLIC_MIN, humans.length + 1)) {
+    const name = BOT_NAMES.find(n => !used.has(n)) || 'Bot'; used.add(name);
+    lobby.players.push({ id: 'p' + nextPid++, token: null, name, color: freeColor(), faction: Object.keys(E.FACTIONS)[Math.floor(Math.random() * 5)], bot: true, diff: 'medium', cos: C.botLoadout() });
+  }
+  lobby.settings.mapSize = lobby.players.length > 4 ? 'medium' : 'small';
+  startGame(null);
+}
+// equipping a skin in the menu shows on your seat straight away
+function profileChanged(c, pr) {
+  const lp = lobby.players.find(x => x.id === c.pid); if (!lp || game) return;
+  lp.cos = C.cleanLoadout(pr.equipped, pr.owned, pr.cards); broadcastLobby();
+}
+// the room closes: a private war in progress is saved first, so its host can pick it up again
+let dead = false;
+function destroy() {
+  if (dead) return; dead = true;
+  if (game && game.phase === 'play' && game.saveId && !game.scenario) writeSave();
+  for (const t of [botTimer, turnTimer, idleTimer, tradeTimer, draftTimer, allyTimer, saveTimer]) clearTimeout(t);
+  if (pendingBattle) clearTimeout(pendingBattle.timer);
+  game = null; lobby.players = [];
+  console.log('[room] ' + code + ' closed');
+}
+// dev panel controls for this room's war
+function admin(route, b) {
+  if (!game) return { code: 409, err: 'no game running' };
+  if (route === 'cash') { const gp = game.players.find(p => p.id === b.pid); if (!gp) return { code: 404, err: 'no such player' }; gp.cash = Math.max(0, gp.cash + (b.amount | 0)); game.log.push('🛠 The admin adjusted ' + gp.name + "'s treasury."); }
+  else if (route === 'pause') { game.paused = !!b.on; if (b.on) { clearTimeout(botTimer); clearTimeout(turnTimer); clearTimeout(idleTimer); } else resumeClock(); }
+  else if (route === 'end') { endGame(); return { ok: true }; }
+  else return { code: 404, err: 'unknown route' };
+  game.v++; broadcastState([], null); afterChange();
+  return { ok: true };
+}
+const humans = () => lobby.players.filter(p => !p.bot && !p.spectator).length;
+return {
+  code, kind, clients, onMessage, onDisconnect, tick, destroy, admin, profileChanged, isConnected, seatsOf, humans,
+  get lobby() { return lobby; }, get game() { return game; },
+  // room for n more people to join before it starts?
+  open: n => isPublic && !game && !dead && humans() + n <= PUBLIC_SEATS && (!lobby.startAt || lobby.startAt - Date.now() > 2500),
+};
+}
+
+// profiles live next to the saved games; SECTOR_OG_UNTIL=YYYY-MM-DD gives early accounts the Founder skins
+const profiles = createProfiles(process.env.SECTOR_PROFILES || path.join(process.env.APPDATA || os.homedir(), 'Sector', 'profiles.json'), { ogUntil: process.env.SECTOR_OG_UNTIL });
+// ───────────── saved games: every war in progress autosaves to its own file, and the host can resume it from the lobby ─────────────
+const SAVE_DIR = process.env.SECTOR_SAVES || path.join(process.env.APPDATA || os.homedir(), 'Sector', 'saves');
+const SAVE_KEEP = 20;
+let saveList = null;
+const savePath = id => path.join(SAVE_DIR, String(id).replace(/[^a-z0-9_-]/gi, '') + '.json');
+function saveTitle(g) {
+  const mode = { domination: 'Domination', conquest: 'Conquest', koth: 'Beacon', worldwar: 'World War' }[g.settings.mode] || g.settings.mode;
+  return mode + ' · round ' + g.turn.round + ' · ' + g.players.filter(p => p.alive).map(p => p.name.replace(/ \(bot\)$/, '')).join(', ');
+}
+function dropSave(id) { try { fs.unlinkSync(savePath(id)); } catch (e) {} saveList = null; }
+function listSaves() {
+  if (saveList) return saveList;
+  let files = []; try { files = fs.readdirSync(SAVE_DIR).filter(f => f.endsWith('.json')); } catch (e) {}
+  const out = [];
+  for (const f of files) {
+    try {
+      const d = JSON.parse(fs.readFileSync(path.join(SAVE_DIR, f), 'utf8'));
+      if (!d || !d.game || !d.id) continue;
+      out.push({ id: d.id, title: d.title, round: d.round, mode: d.mode, savedAt: d.savedAt, humans: (d.seats || []).filter(p => !p.bot).map(p => p.name), profiles: (d.seats || []).map(p => p.profileId).filter(Boolean) });
+    } catch (e) {}
+  }
+  return (saveList = out.sort((a, b) => b.savedAt - a.savedAt));
+}
+// the saves a host may resume: on a LAN server, all of them; online, only wars their profile fought in
+const savesFor = profileId => listSaves().filter(sv => !process.env.SECTOR_PUBLIC || (profileId && sv.profiles.includes(profileId)));
+function pick(o, keys) { const r = {}; for (const k of keys) if (o && k in o) r[k] = o[k]; return r; }
+
+// ───────────────────────── rooms, the front menu and parties ─────────────────────────
+// A connection starts on the front menu (profile, Locker, Store, leaderboard, party) and joins a room to play:
+// PLAY puts it in a public room, CREATE ROOM opens a private one with a code to share, a code or link joins one.
+// MAIN is the classic one-lobby server: a plain LAN link or an older client lands there.
+const rooms = new Map(), parties = new Map();
+const MAIN = 'MAIN', CODE_CHARS = 'ABCDEFGHJKLMNPQRSTUVWXYZ23456789', PARTY_MAX = 6;
+const newCode = () => { let k; do k = Array.from(crypto.randomBytes(5), b => CODE_CHARS[b % CODE_CHARS.length]).join(''); while (rooms.has(k) || parties.has(k)); return k; };
+function openRoom(kind, code) { const r = createRoom(code || newCode(), kind); rooms.set(r.code, r); if (code !== MAIN) note((kind === 'public' ? 'Public' : 'Private') + ' room ' + r.code + ' opened'); return r; }
+const mainRoom = () => rooms.get(MAIN) || openRoom('private', MAIN);
+// a public room still filling up with space for n more, or a fresh one
+function quickRoom(n) {
+  let best = null;
+  for (const r of rooms.values()) if (r.open(n) && (!best || r.humans() > best.humans())) best = r;
+  return best || openRoom('public');
+}
+// step out of a room: the room hands your seat to a bot (or frees it), and you're back on the front menu
+function settle(c) { if (c.room && c.left) { c.room.clients.delete(c); c.room = null; c.pid = null; c.left = false; partySync(c.party); } }
+// kicked from a room: the room has already let go of them
+setInterval(() => { for (const c of sockets) if (c.room && c.left) settle(c); }, 500).unref();
+function leaveRoom(c) { if (!c.room) return; if (!c.room.clients.has(c)) c.room.clients.add(c); c.room.onMessage(c, { t: 'leave' }); c.left = true; settle(c); }
+function enterRoom(c, room, extra = {}) {
+  if (c.room !== room) { leaveRoom(c); c.room = room; room.clients.add(c); }
+  room.onMessage(c, { t: 'hello', name: c.name, ...extra });
+  settle(c); partySync(c.party);
+}
+// the leader of a party takes everyone waiting on the front menu along
+function bringParty(c, room) {
+  const pt = c.party; if (!pt || pt.leader !== c) return;
+  for (const m of pt.members) if (m !== c && !m.room) { enterRoom(m, room); send(m, { t: 'partyFollow', code: room.code }); }
+}
+function menuStats() {
+  let wars = 0, waiting = 0; for (const r of rooms.values()) { if (r.game && r.game.phase !== 'over') wars++; else if (r.kind === 'public') waiting += r.humans(); }
+  return { online: [...sockets].filter(c => c.name || c.room).length, wars, waiting, rooms: rooms.size };
+}
+// what a menu (or party) shows about a connection: its commander card
+function card(c) {
+  const pr = c.profileId && profiles.get(c.profileId);
+  return { cid: c.cid, name: c.name || (pr && pr.name) || 'Commander', handle: pr ? pr.refCode : null, banner: pr ? pr.equipped.banner || null : null, territory: pr ? pr.equipped.territory || null : null, room: c.room ? c.room.code : null, playing: !!(c.room && c.room.game && c.room.game.phase !== 'over') };
+}
+// ── parties: friends who queue together (an invite link or code), with a leader who presses PLAY for everyone ──
+function partyView(pt) { return { code: pt.code, leader: pt.leader.cid, max: PARTY_MAX, members: [...pt.members].map(card) }; }
+function partySync(pt) { if (!pt) return; const v = partyView(pt); for (const m of pt.members) send(m, { t: 'party', party: v, you: m.cid }); }
+function partyLeave(c) {
+  const pt = c.party; if (!pt) return;
+  pt.members.delete(c); c.party = null; send(c, { t: 'party', party: null });
+  if (!pt.members.size) return void parties.delete(pt.code);
+  if (pt.leader === c) pt.leader = pt.members.values().next().value;
+  partySync(pt);
+}
+function onSocketClose(c) {
+  partyLeave(c);
+  if (c.room) { const r = c.room; r.clients.delete(c); r.onDisconnect(c); }
+}
+// a profile on this connection (the browser keeps its id and secret until accounts arrive)
+function auth(c, m) {
+  if (m.name) c.name = String(m.name).slice(0, 16);
+  if (!m.profile) return null;
+  const pr = profiles.open(m.profile.id, m.profile.secret, c.name, m.ref);
+  if (pr) { c.profileId = pr.id; if (!c.name && pr.name) c.name = pr.name; send(c, { t: 'profile', profile: profiles.view(pr) }); }
+  return pr;
+}
+function route(c, m) {
+  if (!m || typeof m.t !== 'string') return;
+  switch (m.t) {
+    case 'auth': auth(c, m); send(c, { t: 'menu', ...menuStats(), mode: process.env.SECTOR_PUBLIC ? 'public' : 'lan', version: VERSION, you: c.cid }); return partySync(c.party);
+    case 'menu': return send(c, { t: 'menu', ...menuStats(), mode: process.env.SECTOR_PUBLIC ? 'public' : 'lan', version: VERSION, you: c.cid });
+    case 'hello': {
+      // joining (or rejoining, with a seat token) a room by its code; no code means the classic lobby
+      if (m.profile || m.name) auth(c, m);
+      const room = m.room ? rooms.get(String(m.room).toUpperCase()) : m.watch ? focusRoom() || mainRoom() : mainRoom();
+      if (!room) return send(c, { t: 'noRoom', code: m.room });
+      if (c.room !== room) { leaveRoom(c); c.room = room; room.clients.add(c); }
+      room.onMessage(c, m); settle(c); return partySync(c.party);
+    }
+    case 'quick': {
+      // PLAY: a public war that's filling up (with room for the whole party), or a new one
+      auth(c, m);
+      const n = c.party && c.party.leader === c ? [...c.party.members].filter(x => x === c || !x.room).length : 1;
+      const room = quickRoom(n); enterRoom(c, room); bringParty(c, room); return;
+    }
+    case 'create': { auth(c, m); const room = openRoom('private'); enterRoom(c, room); bringParty(c, room); return; }
+    case 'join': {
+      auth(c, m);
+      const code = String(m.code || '').trim().toUpperCase();
+      if (parties.has(code)) return route(c, { t: 'partyJoin', code });
+      const room = rooms.get(code); if (!room || code === MAIN) return send(c, { t: 'err', msg: 'No room with the code ' + code });
+      return enterRoom(c, room);
+    }
+    case 'leave': leaveRoom(c); return;
+    // a mission straight from the front menu: it gets a private room of its own
+    case 'scenario': if (!c.room) { auth(c, m); enterRoom(c, openRoom('private')); } break;
+    // ── profile: works anywhere, in a room or on the menu ──
+    case 'openBox': {
+      const pr = c.profileId && profiles.get(c.profileId);
+      if (!pr) return send(c, { t: 'err', msg: 'No profile loaded yet' });
+      const r = profiles.openBox(pr, String(m.box || ''), !!m.free);
+      if (r.err) return send(c, { t: 'err', msg: r.err });
+      return send(c, { t: 'boxOpened', box: m.box, free: !!m.free, ...r, profile: profiles.view(pr) });
+    }
+    case 'buy': case 'equip': case 'profile': case 'devCoins': {
+      const pr = c.profileId && profiles.get(c.profileId);
+      if (!pr) return send(c, { t: 'err', msg: 'No profile loaded yet' });
+      if (m.t === 'devCoins') { if (!process.env.SECTOR_DEV) return; profiles.grant(pr, 5000); }
+      const err = m.t === 'buy' ? profiles.buy(pr, String(m.item || '')) : m.t === 'equip' ? profiles.equip(pr, String(m.slot || ''), m.item ? String(m.item) : null) : null;
+      if (err) return send(c, { t: 'err', msg: err });
+      send(c, { t: 'profile', profile: profiles.view(pr), bought: m.t === 'buy' ? m.item : null });
+      if (m.t === 'equip') { if (c.room) c.room.profileChanged(c, pr); partySync(c.party); }
+      return;
+    }
+    case 'publicProfile': { const v = profiles.publicView(String(m.handle || '')); return send(c, v ? { t: 'publicProfile', profile: v } : { t: 'err', msg: 'No such commander' }); }
+    case 'leaderboard': return send(c, { t: 'leaderboard', period: m.period === 'all' ? 'all' : 'week', rows: profiles.leaderboard(m.period === 'all' ? 'all' : 'week') });
+    // ── parties ──
+    case 'partyCreate': {
+      if (c.party) return partySync(c.party);
+      auth(c, m);
+      const pt = { code: newCode(), leader: c, members: new Set([c]) }; parties.set(pt.code, pt); c.party = pt;
+      return partySync(pt);
+    }
+    case 'partyJoin': {
+      auth(c, m);
+      const pt = parties.get(String(m.code || '').trim().toUpperCase());
+      if (!pt) return send(c, { t: 'err', msg: 'That party has broken up' });
+      if (pt === c.party) return partySync(pt);
+      if (pt.members.size >= PARTY_MAX) return send(c, { t: 'err', msg: 'That party is full' });
+      partyLeave(c); pt.members.add(c); c.party = pt;
+      return partySync(pt);
+    }
+    case 'partyLeave': return partyLeave(c);
+    case 'partyKick': {
+      const pt = c.party; if (!pt || pt.leader !== c) return;
+      const t = [...pt.members].find(x => x.cid === m.cid); if (t && t !== c) { partyLeave(t); send(t, { t: 'err', msg: 'You were removed from the party' }); }
+      return;
+    }
+    case 'partyLead': { const pt = c.party; if (!pt || pt.leader !== c) return; const t = [...pt.members].find(x => x.cid === m.cid); if (t) { pt.leader = t; partySync(pt); } return; }
+    case 'partyRename': { if (!m.name) return; c.name = String(m.name).slice(0, 16); const pr = c.profileId && profiles.get(c.profileId); if (pr) profiles.rename(pr, c.name); return partySync(c.party); }
+  }
+  if (!c.room) return;
+  c.room.onMessage(c, m); settle(c);
+}
+// rooms tick (public countdowns) and close once everyone has gone for a while
+const ROOM_IDLE = { lobby: 90000, play: 5 * 60000 };
+setInterval(() => {
+  for (const [code, r] of rooms) {
+    r.tick();
+    if (r.clients.size) { r.emptySince = 0; continue; }
+    if (code === MAIN && !r.game) continue;   // the classic lobby stays open
+    r.emptySince = r.emptySince || Date.now();
+    const playing = r.game && r.game.phase === 'play' && r.kind !== 'public';
+    if (Date.now() - r.emptySince > (playing ? ROOM_IDLE.play : ROOM_IDLE.lobby)) { r.destroy(); rooms.delete(code); }
+  }
+}, 1000).unref();
+// the room the server console, host panel and dev panel look at: a war in progress, else the classic lobby
+const focusRoom = () => [...rooms.values()].find(r => r.game && r.game.phase === 'play') || rooms.get(MAIN) || [...rooms.values()][0] || null;
+const allSeats = () => [...rooms.values()].flatMap(r => r.lobby.players.map(p => ({ p, r })));
+// ── news for the front menu: the latest releases from the changelog ──
+let newsCache = null;
+function news() {
+  if (newsCache) return newsCache;
+  let md = ''; try { md = sea ? Buffer.from(sea.getAsset('CHANGELOG.md')).toString('utf8') : fs.readFileSync(path.join(__dirname, 'docs', 'CHANGELOG.md'), 'utf8'); } catch (e) {}
+  const out = [];
+  for (const part of md.replace(/\r/g, '').split(/^## /m).slice(1, 4)) {
+    const lines = part.split('\n'), version = lines[0].trim();
+    const headline = (lines.find(l => /^\*\*.+\*\*$/.test(l.trim())) || '').trim().replace(/^\*\*|\*\*$/g, '');
+    const items = lines.filter(l => /^- /.test(l)).slice(0, 12).map(l => l.slice(2).trim());
+    out.push({ version, headline, items });
+  }
+  return (newsCache = { version: VERSION, releases: out });
+}
 // ───────────────────────── host panel (this computer only) ─────────────────────────
 // ───────────── dev panel: /dev, analytics and full control. Off unless SECTOR_DEV_KEY is set ─────────────
 // (online, this check becomes "signed in with the whitelisted Google account"; the API behind it stays the same)
 const DEV_KEY = process.env.SECTOR_DEV_KEY || '';
 const ANALYTICS = process.env.SECTOR_ANALYTICS || path.join(process.env.APPDATA || os.homedir(), 'Sector', 'analytics.jsonl');
-function logGame() {
+function logGame(game) {
   try {
     const w = game.winner || {}, wp = game.players.find(p => p.id === w.pid);
     const line = { at: Date.now(), mode: game.settings.mode, fog: game.settings.fog, teams: game.settings.teams, map: game.map.arch, size: game.settings.mapSize, rounds: game.turn.round,
@@ -1080,11 +1303,14 @@ function devApi(req, res, url) {
   const route = url.slice('/dev/api/'.length);
   const done = body => {
     let b = {}; try { b = body ? JSON.parse(body) : {}; } catch (e) { return json(400, { err: 'bad json' }); }
+    // the dev panel looks at one room at a time (b.room picks it; default: a war in progress)
+    const R = (b.room && rooms.get(String(b.room).toUpperCase())) || focusRoom(), lobby = R ? R.lobby : { players: [], hostId: null }, game = R ? R.game : null, isConnected = R ? R.isConnected : () => false;
     if (route === 'overview') {
       const games = readGames(), fac = {}, dep = {};
       for (const g of games) { for (const p of g.players) { const f = fac[p.faction] = fac[p.faction] || { played: 0, won: 0 }; f.played++; if (p.won) f.won++; } for (const t in g.deploys || {}) dep[t] = (dep[t] || 0) + g.deploys[t]; }
       return json(200, {
-        version: VERSION, uptime: Date.now() - STARTED, memory: Math.round(process.memoryUsage().rss / 1048576), connections: [...clients].filter(c => !c.left).length,
+        version: VERSION, uptime: Date.now() - STARTED, memory: Math.round(process.memoryUsage().rss / 1048576), connections: sockets.size, room: R ? R.code : null,
+        rooms: [...rooms.values()].map(r => ({ code: r.code, kind: r.kind, humans: r.humans(), players: r.lobby.players.length, phase: r.game ? r.game.phase : 'lobby', round: r.game ? r.game.turn.round : 0 })), menu: menuStats(),
         lobby: lobby.players.map(p => ({ id: p.id, name: p.name, bot: p.bot, diff: p.diff || null, spectator: !!p.spectator, connected: p.bot || isConnected(p.id), profile: p.profileId ? p.profileId.slice(0, 8) : null })),
         game: game ? { phase: game.phase, round: game.turn.round, mode: game.settings.mode, paused: !!game.paused, turn: (game.players[game.turn.idx] || {}).name,
           players: game.players.map(p => ({ id: p.id, name: p.name, bot: p.bot, alive: p.alive, cash: p.cash, land: E.ownedLand(game, p.id).length, income: p.alive ? E.computeIncome(game, p.id).total : 0, army: Object.values(game.units).filter(u => u.owner === p.id).length, kills: p.stats.kills })) } : null,
@@ -1094,19 +1320,15 @@ function devApi(req, res, url) {
     }
     if (route === 'profiles') {
       // who's playing right now: their profile is on a seat in the running game
-      const live = new Set(game && game.phase !== 'over' ? lobby.players.filter(p => p.profileId && game.players.some(g => g.id === p.id)).map(p => p.profileId) : []);
+      const live = new Set(allSeats().filter(({ p, r }) => p.profileId && r.game && r.game.phase !== 'over' && r.game.players.some(g => g.id === p.id)).map(({ p }) => p.profileId));
       return json(200, { profiles: profiles.list(b.q).map(p => ({ ...p, inGame: live.has(p.id) })) });
     }
     const pr = b.profile && profiles.get(b.profile);
     if (route === 'grant') { if (!pr) return json(404, { err: 'no such profile' }); profiles.grant(pr, b.coins); return json(200, { ok: true, coins: pr.coins }); }
     if (route === 'give') { if (!pr) return json(404, { err: 'no such profile' }); const e = profiles.giveItem(pr, String(b.item || '')); return e ? json(400, { err: e }) : json(200, { ok: true }); }
-    if (!game) return json(409, { err: 'no game running' });
-    if (route === 'cash') { const gp = game.players.find(p => p.id === b.pid); if (!gp) return json(404, { err: 'no such player' }); gp.cash = Math.max(0, gp.cash + (b.amount | 0)); game.log.push('🛠 The admin adjusted ' + gp.name + "'s treasury."); }
-    else if (route === 'pause') { game.paused = !!b.on; if (b.on) { clearTimeout(botTimer); clearTimeout(turnTimer); clearTimeout(idleTimer); } else resumeClock(); }
-    else if (route === 'end') { endGame(); return json(200, { ok: true }); }
-    else return json(404, { err: 'unknown route' });
-    game.v++; broadcastState([], null); afterChange();
-    return json(200, { ok: true });
+    if (!R) return json(409, { err: 'no game running' });
+    const out = R.admin(route, b);
+    return out.err ? json(out.code || 400, { err: out.err }) : json(200, out);
   };
   if (req.method === 'POST') { let body = ''; req.on('data', d => { body += d; if (body.length > 1e5) req.destroy(); }); req.on('end', () => done(body)); }
   else done('');
@@ -1117,15 +1339,16 @@ function hostApi(req, res, url) {
   if (req.method === 'POST' && req.headers['x-sector-host'] !== '1') return json(403, { err: 'bad request' });
   if (url === '/host' && req.method === 'GET') {
     lastPanelAt = Date.now();
-    const conns = [...clients].filter(c => !c.left).map(c => {
+    const f = focusRoom(), lobby = f ? f.lobby : { players: [], hostId: null }, game = f ? f.game : null, isConnected = f ? f.isConnected : () => false, seatsOf = c => c.room ? c.room.seatsOf(c) : [];
+    const conns = [...sockets].map(c => {
       const p = lobby.players.find(x => x.id === c.pid);
       const addr = (c.socket.remoteAddress || '').replace('::ffff:', '');
       return { name: p ? p.name : '(joining…)', host: !!c.pid && c.pid === lobby.hostId, here: ['127.0.0.1', '::1'].includes(addr), addr, seats: c.pid ? seatsOf(c).length : 0 };
     });
     return json(200, {
       version: VERSION, uptime: Date.now() - STARTED, port: PORT, lan: lanAddresses().map(a => 'http://' + a + ':' + PORT), packaged: !!sea,
-      clients: conns, bots: lobby.players.filter(p => p.bot).length,
-      players: lobby.players.map(p => { const c = [...clients].find(x => x.pid === p.id && !x.left); return { name: p.name, color: p.color, bot: !!p.bot, diff: p.diff, local: !!p.local, host: p.id === lobby.hostId, connected: p.bot || isConnected(p.id), addr: c ? (c.socket.remoteAddress || '').replace('::ffff:', '').replace(/^(127\.0\.0\.1|::1)$/, 'this PC') : null }; }), inGame: !!game, round: game ? game.turn.round : 0, phase: game ? game.phase : 'lobby',
+      clients: conns, bots: lobby.players.filter(p => p.bot).length, rooms: [...rooms.values()].map(r => ({ code: r.code, kind: r.kind, humans: r.humans(), phase: r.game ? r.game.phase : 'lobby' })),
+      players: lobby.players.map(p => { const c = (f ? [...f.clients] : []).find(x => x.pid === p.id && !x.left); return { name: p.name, color: p.color, bot: !!p.bot, diff: p.diff, local: !!p.local, host: p.id === lobby.hostId, connected: p.bot || isConnected(p.id), addr: c ? (c.socket.remoteAddress || '').replace('::ffff:', '').replace(/^(127\.0\.0\.1|::1)$/, 'this PC') : null }; }), inGame: !!game, round: game ? game.turn.round : 0, phase: game ? game.phase : 'lobby',
       update: { ...updateInfo, canApply: !!sea && process.platform === 'win32' && !!updateInfo.url }, log: sea ? LOG_FILE : null,
     });
   }
@@ -1142,7 +1365,7 @@ function hostApi(req, res, url) {
 }
 function shutdown(reason, restart) {
   note('Shutting down: ' + reason);
-  for (const c of clients) send(c, { t: 'serverClosed', reason, restart: !!restart });
+  for (const c of sockets) send(c, { t: 'serverClosed', reason, restart: !!restart });
   setTimeout(() => process.exit(0), 400);
 }
 
@@ -1201,7 +1424,7 @@ function applyUpdate() {
 let lastClientAt = Date.now(), lastPanelAt = 0;
 if (process.env.SECTOR_IDLE_EXIT) setInterval(() => {
   // the host dashboard polls every 1.5s, so an open dashboard keeps the server alive too
-  if ([...clients].some(c => !c.left) || Date.now() - lastPanelAt < 10000 || (game && game.phase === 'play')) { lastClientAt = Date.now(); return; }
+  if (sockets.size || Date.now() - lastPanelAt < 10000 || [...rooms.values()].some(r => r.game && r.game.phase === 'play')) { lastClientAt = Date.now(); return; }
   if (Date.now() - lastClientAt > (+process.env.SECTOR_IDLE_EXIT || 60) * 1000) shutdown('Nobody is connected.');
 }, 5000);
 
@@ -1220,6 +1443,7 @@ function tuiDraw() {
   if (!TUI) return;
   const out = process.stdout, cols = Math.max(50, out.columns || 80), rows = Math.max(20, out.rows || 30), W = Math.min(cols - 4, 76);
   const rule = '  ' + A.dim + '─'.repeat(W) + A.r, L = [], label = t => '  ' + A.gold + A.b + pad(t, 12) + A.r;
+  const f = focusRoom(), lobby = f ? f.lobby : { players: [], hostId: null }, game = f ? f.game : null, clients = f ? f.clients : new Set(), st = menuStats();
   const phase = game ? game.phase : 'lobby';
   if (phase !== lastPhase) { if (lastPhase && phase === 'over' && game && game.winner) { const w = game.players.find(p => p.id === game.winner.pid); setImmediate(() => note('Game over — ' + (w ? w.name : '?') + ' won')); } lastPhase = phase; }
   const up = Math.floor((Date.now() - STARTED) / 60000);
@@ -1234,6 +1458,7 @@ function tuiDraw() {
   const alive = game ? game.players.filter(p => p.alive).length : 0;
   const status = !game ? 'Lobby open — waiting for the host to press DEPLOY' : phase === 'spawn' ? 'Commanders are choosing HQ locations' : phase === 'draft' ? 'Opening draft in progress' : phase === 'over' ? 'Game over' : 'War in progress · round ' + game.turn.round + ' · ' + alive + ' commanders standing · ' + (game.players[game.turn.idx] || {}).name + "'s turn";
   L.push(label('STATUS') + A.ink + status + A.r);
+  if (rooms.size > 1 || st.online) L.push(label('ROOMS') + A.ink + st.rooms + ' open · ' + st.wars + ' at war · ' + st.online + ' online' + A.r + A.dim + (f ? '  (showing ' + (f.code === MAIN ? 'the main lobby' : 'room ' + f.code) + ')' : '') + A.r);
   const counts = {}; if (game) for (const k in game.map.tiles) { const o = game.map.tiles[k].owner; if (o) counts[o] = (counts[o] || 0) + 1; }
   if (!lobby.players.length) L.push(label('COMMANDERS') + A.dim + 'Nobody yet — press O to open the game' + A.r);
   lobby.players.slice(0, 8).forEach((p, i) => {
@@ -1257,7 +1482,7 @@ function tuiDraw() {
   act.forEach((a, i) => L.push((i ? '  ' + pad('', 12) : label('ACTIVITY')) + A.dim + a[0] + '  ' + A.r + A.ink + a[1].slice(0, W - 20) + A.r));
   L.push(rule);
   const key = (k, t) => A.b + A.ink + '[' + A.gold + k + A.ink + ']' + A.r + A.dim + ' ' + t + A.r;
-  L.push('  ' + (quitArm > Date.now() ? A.red + A.b + 'Press Q again to stop the server' + ([...clients].some(c => !c.left && c.pid) ? ' — players are connected!' : '') + A.r
+  L.push('  ' + (quitArm > Date.now() ? A.red + A.b + 'Press Q again to stop the server' + ([...sockets].some(c => c.pid) ? ' — players are connected!' : '') + A.r
     : [key('O', 'Open game'), key('C', 'Copy invite'), key('U', 'Update'), key('Q', 'Stop server')].join('   ')));
   out.write('\x1b[H' + L.slice(0, rows - 1).map(l => l + '\x1b[K').join('\n') + '\x1b[J');
 }

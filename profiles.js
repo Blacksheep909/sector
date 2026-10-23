@@ -50,7 +50,7 @@ function createProfiles(file, opts = {}) {
     roll(p);
     const store = C.dailyStore();
     return {
-      name: p.name || null, coins: p.coins, scenarios: p.scenarios || [], owned: p.owned, equipped: p.equipped, cards: p.cards, refCode: p.refCode, recruits: p.recruits, earnedToday: p.earned.amount, daySoft: C.DAY_SOFT,
+      name: p.name || null, handle: p.refCode, total: p.total || {}, coins: p.coins, scenarios: p.scenarios || [], owned: p.owned, equipped: p.equipped, cards: p.cards, refCode: p.refCode, recruits: p.recruits, earnedToday: p.earned.amount, daySoft: C.DAY_SOFT,
       daily: objList(C.dailyObjectives(), p.day), weekly: objList(C.weeklyObjectives(), p.week), weeklyCrate: !!p.week.crate, freeCrates: p.freeCrates || 0,
       store: { day: store.day, items: store.items, endsIn: C.msToNextDay() },
     };
@@ -129,8 +129,32 @@ function createProfiles(file, opts = {}) {
       .sort((a, b) => b.created - a.created).slice(0, n)
       .map(p => ({ id: p.id, name: p.name || null, coins: p.coins, owned: p.owned.length, recruits: p.recruits || 0, created: p.created, games: (p.total || {}).games || 0, wins: (p.total || {}).wins || 0, refCode: p.refCode }));
   }
+  // a commander's public card: what anyone may see by clicking their name (never coins, skins owned or secrets)
+  function publicView(handle) {
+    const p = Object.values(db).find(q => q.refCode && q.refCode === String(handle).toUpperCase()); if (!p) return null;
+    roll(p);
+    const t = p.total || {}, w = p.week.stats || {};
+    return {
+      handle: p.refCode, name: p.name || 'Commander', since: p.created, equipped: { banner: p.equipped.banner || null, territory: p.equipped.territory || null, border: p.equipped.border || null, trim: p.equipped.trim || null },
+      stats: { games: t.games || 0, wins: t.wins || 0, kills: t.kills || 0, captured: t.captured || 0 }, week: { games: w.games || 0, wins: w.wins || 0, kills: w.kills || 0 },
+      missions: (p.scenarios || []).length, recruits: p.recruits || 0, skins: p.owned.length,
+    };
+  }
+  // leaderboard: most wins this week (or ever), kills breaking ties. Cached briefly: it walks every profile
+  const boards = {};
+  function leaderboard(period = 'week', n = 10) {
+    const b = boards[period]; if (b && Date.now() - b.at < 20000) return b.rows;
+    const wk = C.weekKey();
+    const rows = Object.values(db).map(p => {
+      const st = period === 'all' ? p.total || {} : (p.week && p.week.key === wk ? p.week.stats : {}) || {};
+      return { handle: p.refCode, name: p.name || 'Commander', banner: p.equipped.banner || null, wins: st.wins || 0, kills: st.kills || 0, games: st.games || 0 };
+    }).filter(r => r.games > 0).sort((a, b) => b.wins - a.wins || b.kills - a.kills || b.games - a.games).slice(0, n);
+    boards[period] = { at: Date.now(), rows };
+    return rows;
+  }
+  function rename(p, name) { if (!name) return; p.name = String(name).slice(0, 16); save(); }
   function giveItem(p, item) { if (!C.ITEMS[item]) return 'No such item'; if (!p.owned.includes(item)) p.owned.push(item); save(); return null; }
   function totals() { const all = Object.values(db); return { profiles: all.length, coins: all.reduce((a, p) => a + p.coins, 0), owned: all.reduce((a, p) => a + p.owned.length, 0), games: all.reduce((a, p) => a + ((p.total || {}).games || 0), 0) }; }
-  return { open, view, buy, equip, openBox, finishGame, scenarioDone, grant, list, giveItem, totals, get: id => db[id] };
+  return { open, view, buy, equip, openBox, finishGame, scenarioDone, grant, list, giveItem, totals, publicView, leaderboard, rename, get: id => db[id] };
 }
 module.exports = { createProfiles, REF_COINS, WELCOME_COINS };

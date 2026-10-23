@@ -19,7 +19,7 @@ Procedural maps · card drafting · naval warfare · Balatro-style dice combat.
 
 1. Download **`Sector.exe`** from the [latest release](../../releases/latest).
 2. Double-click it. The **SECTOR server window** opens, a live dashboard with your addresses, players and status. Press **O** to open the game in your browser (or go to `http://localhost:3000`).
-3. Friends on the **same network** open the **INVITE** address shown in the server window in their browser (for example `http://192.168.1.20:3000`). Press **C** to copy it. They can also run `Sector.exe` and use **Join a game → Scan network**.
+3. Friends on the **same network** open the **INVITE** address shown in the server window in their browser (for example `http://192.168.1.20:3000`). Press **C** to copy it. On the front menu, press **PLAY** for a quick war, open a **private room** and share its code, or start a **party** so you all go in together. **Join the LAN lobby** is the classic one-lobby game.
 
 **Updates install themselves.** Sector.exe checks this repo's releases, and when there's a new version the server window says so: press **U** to update and restart. Only the host needs the exe: friends who join through a browser always get the host's version.
 

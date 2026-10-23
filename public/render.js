@@ -1,6 +1,7 @@
 /* SECTOR — 2.5D hex board renderer */
 const Render = (() => {
   const E = SectorEngine;
+  let lowGfx = false; try { lowGfx = localStorage.getItem('sector.gfx') === 'low'; } catch (e) {}
   const S = 34, TILT = 0.68, SQ3 = Math.sqrt(3);
   const VERT = [-90, -30, 30, 90, 150, 210].map(a => [Math.cos(a * Math.PI / 180), Math.sin(a * Math.PI / 180)]);
   const EDGE_DIR = [1, 0, 5, 4, 3, 2];
@@ -43,7 +44,7 @@ const Render = (() => {
   function init(canvas) {
     cv = canvas; ctx = cv.getContext('2d');
     lc = document.createElement('canvas'); lctx = lc.getContext('2d');
-    const resize = () => { DPR = Math.min(2, window.devicePixelRatio || 1); W = innerWidth; H = innerHeight; cv.width = W * DPR; cv.height = H * DPR; cv.style.width = W + 'px'; cv.style.height = H + 'px'; LM = Math.round(0.2 * Math.max(W, H)); layerKey = ''; };
+    const resize = () => { DPR = lowGfx ? 1 : Math.min(2, window.devicePixelRatio || 1); W = innerWidth; H = innerHeight; cv.width = W * DPR; cv.height = H * DPR; cv.style.width = W + 'px'; cv.style.height = H + 'px'; LM = Math.round(0.2 * Math.max(W, H)); layerKey = ''; };
     addEventListener('resize', resize); resize();
     requestAnimationFrame(loop);
   }
@@ -1238,6 +1239,8 @@ const Render = (() => {
     if (p4 - p0 > 30) { perf.slow.push({ at: +t.toFixed(2), layer: layerT === t && perf.why, board: +(p1 - p0).toFixed(1), overlay: +(p2 - p1).toFixed(1), units: +(p3 - p2).toFixed(1), fx: +(p4 - p3).toFixed(1) }); if (perf.slow.length > 30) perf.slow.shift(); }   // slow frames, for profiling
   }
   const perf = { tiles: 0, fog: 0, units: 0, rest: 0, total: 0, slow: [] };
+  // Settings → Graphics: Low draws at 1× pixel density (much lighter on high-DPI screens and older machines)
+  function setLowGfx(on) { lowGfx = !!on; try { localStorage.setItem('sector.gfx', on ? 'low' : 'high'); } catch (e) {} dispatchEvent(new Event('resize')); }
 
-  return { invalidate, perf, flyover, init, setState, recolor, focus, fitMap, pan, zoomAt, hexAt, screenOf, topOf, world, ov, unitPos, unitHidden, extraUnits, burst, smoke, float, ring, beam, lance, emp, shake, flash, pop, cam, get time() { return t; }, get roads() { return roads; } };
+  return { setLowGfx, get lowGfx() { return lowGfx; }, invalidate, perf, flyover, init, setState, recolor, focus, fitMap, pan, zoomAt, hexAt, screenOf, topOf, world, ov, unitPos, unitHidden, extraUnits, burst, smoke, float, ring, beam, lance, emp, shake, flash, pop, cam, get time() { return t; }, get roads() { return roads; } };
 })();

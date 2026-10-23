@@ -28,7 +28,15 @@
   const remap = (a, m) => a.a === 'move' ? { ...a, units: a.units.map(id => m[id] || id) } : a;
   let hoverK = null;
   let lastTurnKey = '';
-  try { token = localStorage.getItem('sector.token'); } catch (e) {}
+  // your seat in a room survives a reload: the room's code and the seat's token
+  let seat = null; try { seat = JSON.parse(localStorage.getItem('sector.seat') || 'null'); localStorage.removeItem('sector.token'); } catch (e) {}
+  token = seat && seat.token;
+  function keepSeat(room, tk) { seat = room && tk ? { room, token: tk } : null; try { seat ? localStorage.setItem('sector.seat', JSON.stringify(seat)) : localStorage.removeItem('sector.seat'); } catch (e) {} }
+  // links: /?room=CODE joins a room, /?party=CODE joins a party (read once, then tidied out of the address bar)
+  const qs = new URLSearchParams(location.search), urlRoom = (qs.get('room') || '').toUpperCase(), urlParty = (qs.get('party') || '').toUpperCase();
+  if (urlRoom || urlParty) try { history.replaceState(null, '', location.pathname + (qs.get('watch') ? '?watch=1' : '')); } catch (e) {}
+  let firstOpen = true;
+  const myName = () => $('#nameIn').value.trim() || savedName() || 'Commander';
 
   Render.init($('#map'));
 
@@ -37,7 +45,15 @@
     ws = new WebSocket((location.protocol === 'https:' ? 'wss://' : 'ws://') + location.host + '/ws');
     // ?watch=1 (the dev panel's SPECTATE link): watch the running game without joining it
     const watching = /[?&]watch=1/.test(location.search);
-    ws.onopen = () => { if (watching) send({ t: 'hello', watch: true }); else if (token || joinedOnce) send({ t: 'hello', token, name: $('#nameIn').value || savedName(), profile: Locker.identity(), ref: Locker.ref() }); };
+    ws.onopen = () => {
+      // the front menu first (profile, online counts, party), then back into the room you were in, or the one a link points to
+      send({ t: 'auth', name: myName(), profile: Locker.identity(), ref: Locker.ref() });
+      if (watching) send({ t: 'hello', watch: true, room: urlRoom || undefined });
+      else if (seat) send({ t: 'hello', room: seat.room, token: seat.token, name: myName() });
+      else if (firstOpen && urlRoom) send({ t: 'join', code: urlRoom, name: myName() });
+      if (firstOpen && urlParty) send({ t: 'partyJoin', code: urlParty, name: myName() });
+      firstOpen = false;
+    };
     ws.onmessage = ev => onMsg(JSON.parse(ev.data));
     ws.onclose = () => { if (closedFor) return; toast('Connection lost — reconnecting…', 'err'); setTimeout(connect, 1500); };
   }
@@ -46,14 +62,16 @@
   function savedName() { try { return localStorage.getItem('sector.name') || ''; } catch (e) { return ''; } }
 
   function onMsg(m) {
+    if (Home.onMsg(m)) return;
     switch (m.t) {
       case 'welcome':
         { const tookOver = S && !myP() && m.you; you = m.you; realId = m.you; spectator = !!m.spectator; if (tookOver) { toast('You have taken command!', 'leg'); SFX.legendary(); } }
-        if (m.token) { token = m.token; try { localStorage.setItem('sector.token', token); } catch (e) {} }
-        joinedOnce = true;
+        if (m.token) { token = m.token; if (lobby && lobby.code) keepSeat(lobby.code, token); }
+        joinedOnce = true; leftGame = false;
         break;
-      case 'lobby': lobby = m.lobby; if (!S) renderLobby(); break;
-      case 'profile': Locker.set(m.profile); if (m.bought) { toast('✔ ' + SectorCosmetics.ITEMS[m.bought].name + ' is yours', 'good'); SFX.legendary(); } break;
+      case 'lobby': lobby = m.lobby; startDeadline = lobby.startIn ? Date.now() + lobby.startIn : 0; if (token && lobby.code) keepSeat(lobby.code, token); if (!S) renderLobby(); break;
+      case 'noRoom': keepSeat(null); token = null; lobby = null; if (!S) showHome(); if (m.code && m.code !== 'MAIN') toast('Room ' + m.code + ' has closed', 'err'); break;
+      case 'profile': Locker.set(m.profile); Home.render(); if (m.bought) { toast('✔ ' + SectorCosmetics.ITEMS[m.bought].name + ' is yours', 'good'); SFX.legendary(); } break;
       case 'reward': Locker.set(m.profile); setTimeout(() => Locker.reward(m.reward), 1600); break;
       case 'boxOpened': Locker.boxOpened(m); break;
       case 'state': if (leftGame) break; msgQ.push(m); pump(); break;
@@ -72,11 +90,11 @@
       case 'skipVote': if (curFight && curFight.att === m.att && curFight.to === m.to) skipStatus(m.pids); break;
       case 'ping': showPing(m); break;
       case 'emote': showEmote(m); break;
-      case 'chat': addLog(`<b style="--c:${m.color}">${esc(m.from)}:</b> ${esc(m.text)}`, 'chat'); SFX.click(); if (m.bot) botBubble(m); break;
-      case 'left': leftGame = true; token = null; try { localStorage.removeItem('sector.token'); } catch (e) {} you = null; realId = null; joinedOnce = false; backToMenu(); toast('You left the game'); break;
-      case 'kicked': token = null; try { localStorage.removeItem('sector.token'); } catch (e) {}
+      case 'chat': addLog(`<b style="--c:${m.color}">${esc(m.from)}:</b> ${esc(m.text)}`, m.bot ? 'chat botline' : 'chat'); if (!m.bot || Home.opts.botchat) SFX.click(); if (m.bot) botBubble(m); break;
+      case 'left': { const inGame = !!S; leftGame = true; token = null; keepSeat(null); you = null; realId = null; joinedOnce = false; lobby = null; backToMenu(); if (inGame) toast('You left the game'); break; }
+      case 'kicked': token = null; keepSeat(null); lobby = null;
         if (S) { leftGame = true; you = null; realId = null; joinedOnce = false; backToMenu(); toast('The host removed you from the game', 'err'); }
-        else { you = null; toast('You were removed from the lobby', 'err'); showJoin(); }
+        else { you = null; toast('You were removed from the room', 'err'); showHome(); }
         break;
     }
   }
@@ -129,29 +147,74 @@
 
   // ───────────── menu / lobby ─────────────
   // menu music: plays on the title/lobby screens only (browsers need a first click before audio can start)
-  const menuMusic = () => { if (!$('#menu').hidden && !SFX.muted) SFX.music.start(); else SFX.music.stop(); };
+  const menuMusic = () => { if (!$('#menu').hidden && !SFX.muted && Home.opts.music) SFX.music.start(); else SFX.music.stop(); };
+  window.SECTOR_MUSIC = () => setTimeout(menuMusic, 50);
   addEventListener('pointerdown', () => setTimeout(menuMusic, 50), { passive: true });
   addEventListener('keydown', () => setTimeout(menuMusic, 50));
   function showMenu() { setTimeout(menuMusic, 50); $('#menu').hidden = false; $('#hud').hidden = true; $('#victory').hidden = true; $('#supply').hidden = true; if (lobby) renderLobby(); }
-  function showJoin() { $('#joinBox').hidden = !$('#joinNet').hidden; $('#lobbyBox').hidden = true; $('#lobbyBox').dataset.show = ''; }
+  // the front page (not in a room) and the room lobby take turns on the menu screen
+  // the front page's backdrop: a freshly generated war map drifting slowly behind the panels
+  let backdrop = null;
+  function startBackdrop() {
+    if (S || backdrop) return;
+    try {
+      const facs = Object.keys(E.FACTIONS), roster = ['#ff4f5e', '#36c9ff', '#ffc53d', '#59f08a', '#b06cff'].map((color, i) => ({ id: 'd' + i, name: 'D' + i, color, faction: facs[i % facs.length], bot: true }));
+      const st = E.createGame({ mode: 'domination', mapSize: 'medium', spawns: 'random', fog: 'off', events: 'off', seed: 'menu' + Math.floor(Math.random() * 1e6) }, roster).state;
+      // each commander already holds a patch around their HQ
+      for (const p of st.players) if (p.hq) for (const k of E.area(p.hq, 3)) { const t = st.map.tiles[k]; if (t && E.isLandTile(t) && !t.owner) t.owner = p.id; }
+      backdrop = { st, dir: Math.random() * Math.PI * 2 };
+      Render.setState(st); Render.fitMap && Render.fitMap();
+      // it drifts in a slow circle, so it never wanders off the map
+      const drift = () => { if (!backdrop || S) return; if (!Home.opts.calm && !document.hidden && !$('#menu').hidden) { backdrop.dir += 0.0012; Render.pan(Math.cos(backdrop.dir) * 0.4, Math.sin(backdrop.dir) * 0.25); } backdrop.raf = requestAnimationFrame(drift); };
+      drift();
+    } catch (e) { console.warn('menu backdrop', e); backdrop = null; }
+  }
+  function stopBackdrop() { if (!backdrop) return; cancelAnimationFrame(backdrop.raf); backdrop = null; }
+  function showHome() { startBackdrop(); $('#home').hidden = false; $('#lobbyBox').hidden = true; $('#roomBar').hidden = true; $('#lobbyBox').dataset.show = ''; document.body.classList.remove('in-room'); Home.shown(); }
   $('#nameIn').value = savedName();
-  $('#joinBtn').onclick = () => {
-    const name = $('#nameIn').value.trim() || 'Commander';
-    try { localStorage.setItem('sector.name', name); } catch (e) {}
-    joinedOnce = true; leftGame = false; SFX.select();
-    send({ t: 'hello', token, name, profile: Locker.identity(), ref: Locker.ref() });
-  };
-  $('#nameIn').addEventListener('keydown', e => { if (e.key === 'Enter') $('#joinBtn').click(); });
+  const keepName = () => { const n = myName(); try { localStorage.setItem('sector.name', n); } catch (e) {} return n; };
+  $('#nameIn').addEventListener('change', () => { send({ t: 'partyRename', name: keepName() }); Home.render(); });
+  $('#nameIn').addEventListener('keydown', e => { if (e.key === 'Enter') $('#playBtn').click(); });
+  const go = msg => { joinedOnce = true; leftGame = false; SFX.select(); send({ ...msg, name: keepName(), profile: Locker.identity(), ref: Locker.ref() }); };
+  $('#playBtn').onclick = () => go({ t: 'quick' });
+  $('#createBtn').onclick = () => go({ t: 'create' });
+  $('#codeGo').onclick = () => { const code = $('#codeIn').value.trim().toUpperCase(); if (code.length < 4) { toast('Enter a room or party code', 'err'); SFX.error(); return; } go({ t: 'join', code }); $('#codeIn').value = ''; };
+  $('#codeIn').addEventListener('keydown', e => { if (e.key === 'Enter') $('#codeGo').click(); });
+  $('#codeIn').addEventListener('input', e => { e.target.value = e.target.value.toUpperCase().replace(/[^A-Z0-9]/g, ''); });
+  // LAN servers: the classic lobby everyone on this address shares
+  $('#joinBtn').onclick = () => go({ t: 'hello' });
+  // in a room: its code (or the public countdown) and the way back out
+  let startDeadline = 0;
+  function renderRoomBar() {
+    const rb = $('#roomBar'); rb.hidden = false;
+    const pub = lobby.kind === 'public', main = lobby.code === 'MAIN', link = location.origin + '/?room=' + lobby.code;
+    const key = [lobby.code, lobby.kind, lobby.inGame].join(); if (rb.dataset.key === key) return; rb.dataset.key = key;
+    rb.innerHTML = (pub ? `<div class="rb-kind pub">PUBLIC WAR</div><div class="rb-count"><b id="rbCount">…</b><span id="rbCountSub">until deployment · bots fill the empty seats</span></div>`
+      : `<div class="rb-kind">${main ? 'LAN LOBBY' : 'PRIVATE ROOM'}</div>` + (main ? '<div class="rb-code"><span class="sub">everyone who opens this server’s address lands here</span></div>'
+      : `<div class="rb-code"><span>CODE</span><b>${esc(lobby.code)}</b><button class="btn tiny" id="rbCopy">🔗 COPY INVITE LINK</button></div>`)) + `<button class="btn" id="rbLeave">◂ LEAVE</button>`;
+    const cp = $('#rbCopy'); if (cp) cp.onclick = () => { try { navigator.clipboard.writeText(link); toast('Invite link copied'); } catch (e) { toast(link); } SFX.click(); };
+    $('#rbLeave').onclick = () => { SFX.click(); send({ t: 'leave' }); };
+  }
+  setInterval(() => {
+    if (!lobby || lobby.kind !== 'public' || S) return;
+    const left = startDeadline ? Math.max(0, Math.ceil((startDeadline - Date.now()) / 1000)) : 0, c = $('#rbCount'), w = $('#waitHost');
+    if (c) c.textContent = startDeadline ? (left ? left + 's' : 'DEPLOYING') : 'waiting';
+    if (w && !w.hidden) w.textContent = startDeadline ? (left ? 'Deploying in ' + left + 's · bots fill the empty seats' : 'Deploying…') : 'Waiting for commanders…';
+  }, 250);
 
   let dragPid = null;   // the lobby row being dragged to another team
   function renderLobby() {
     if (!lobby) return;
     if (dragPid) return;   // don't rebuild the list under a drag in progress
     const me = lobby.players.find(p => p.id === (realId || you));
-    if (!me) { showJoin(); if (lobby.inGame) $('#joinBox .hint').textContent = 'A war is in progress — you can watch once it loads, or wait for the next game.'; return; }
-    $('#joinBox').hidden = true; $('#lobbyBox').hidden = !$('#joinNet').hidden; $('#lobbyBox').dataset.show = '1';
-    const host = lobby.hostId === you;
-    { const sp = lobby.players.filter(p => p.spectator).length; $('#pCount').textContent = (lobby.players.length - sp) + '/8' + (sp ? ' · ' + sp + ' watching' : ''); }
+    if (!me) { showHome(); return; }
+    $('#home').hidden = true; $('#lobbyBox').hidden = false; $('#lobbyBox').dataset.show = '1'; document.body.classList.add('in-room');
+    renderRoomBar();
+    const host = lobby.hostId === you, pub = lobby.kind === 'public';
+    { const sp = lobby.players.filter(p => p.spectator).length; $('#pCount').textContent = (lobby.players.length - sp) + '/' + (lobby.cap || 8) + (sp ? ' · ' + sp + ' watching' : ''); }
+    // public wars: standard settings, no host, no bots to add (they fill the empty seats when the countdown ends)
+    $('#addBot').parentElement.hidden = pub; $('#lanBox').hidden = pub || lobby.code !== 'MAIN'; $('#missionsBtn').hidden = pub;
+    document.querySelector('.lobby-settings h3').textContent = pub ? 'WAR SETTINGS · STANDARD' : 'WAR SETTINGS';
     const pl = $('#playerList'); pl.innerHTML = '';
     const teamsOn = lobby.settings.teams === 'on';
     const canMove = p => host || p.id === realId || (p.local && p.controller === realId);
@@ -178,8 +241,9 @@
       const tmc = teamsOn && !p.spectator ? E.teamColor(p.team || 1, nth[p.team || 1] = (nth[p.team || 1] ?? -1) + 1) : null;   // the colour they'll play in
       r.innerHTML = `<div class="sw" style="background:${tmc || p.color}"></div><div class="nm">${esc(p.name)}<div class="fx">${f ? f.name : ''}</div></div>` +
         (p.id === lobby.hostId ? '<span class="tag host">HOST</span>' : '') + (p.bot ? '<span class="tag">BOT</span>' : '') + (p.id === you ? '<span class="tag">YOU</span>' : '') +
-        (!p.bot && !p.local && !p.spectator && p.id !== lobby.hostId ? (p.ready ? '<span class="tag ready">✔ READY</span>' : '<span class="tag notready">NOT READY</span>') : '');
+        (!p.bot && !p.local && !p.spectator && p.id !== lobby.hostId && lobby.kind !== 'public' ? (p.ready ? '<span class="tag ready">✔ READY</span>' : '<span class="tag notready">NOT READY</span>') : '');
       if (p.spectator) { r.classList.add('spec'); const fx = r.querySelector('.fx'); if (fx) fx.textContent = '👁 Spectating'; }
+      if (p.handle && !p.local) { const nm = r.querySelector('.nm'); nm.classList.add('linked'); nm.title = 'View profile'; nm.onclick = () => Home.profile(p.handle); }
       if (p.bot) {
         const dsel = el('select', 'diffsel ' + (p.diff || 'medium'));
         dsel.innerHTML = Object.keys(E.DIFFICULTY).map(d => `<option value="${d}"${p.diff === d ? ' selected' : ''}>${E.DIFFICULTY[d].name}</option>`).join('') + `<option value="random"${p.diff === 'random' ? ' selected' : ''}>🎲 Random</option>`;
@@ -239,12 +303,12 @@
     const meRow = lobby.players.find(p => p.id === realId);
     const waiting = lobby.players.filter(p => !p.bot && !p.local && !p.spectator && !p.ready && p.id !== lobby.hostId);
     const rb = $('#readyBtn');
-    rb.hidden = host || !meRow || meRow.spectator;
+    rb.hidden = host || !meRow || meRow.spectator || pub;
     if (meRow) { rb.textContent = meRow.ready ? '✔ READY — CLICK TO CANCEL' : 'READY UP'; rb.classList.toggle('green', !meRow.ready); rb.classList.toggle('on', !!meRow.ready); }
     $('#startBtn').classList.toggle('waiting', waiting.length > 0);
     $('#startBtn').textContent = waiting.length ? 'WAITING FOR ' + waiting.length + ' TO READY' : 'DEPLOY';
     $('#startBtn').title = waiting.length ? 'Not ready: ' + waiting.map(p => p.name).join(', ') : '';
-    $('#waitHost').textContent = meRow && meRow.ready ? 'Ready! Waiting for the host to start…' : 'Ready up so the host can start.';
+    if (!pub) $('#waitHost').textContent = meRow && meRow.ready ? 'Ready! Waiting for the host to start…' : 'Ready up so the host can start.';
   }
   // saved wars: the host can resume one; whoever's here with a matching name gets their seat back
   function renderSaves(host) {
@@ -297,6 +361,7 @@
 
   // ───────────── game entry / state ─────────────
   function enterGame(state) {
+    stopBackdrop();
     S = state; plan = []; for (const k in plans) delete plans[k]; sel = null; mode = null; lastTurnKey = ''; marches = {}; marchKey = '';
     SFX.music.stop();
     if (state.settings && state.settings.mapType === 'random' && (state.phase === 'draft' || state.phase === 'spawn')) showMapReel(state);
@@ -977,7 +1042,7 @@
     for (const id of ['#siegeWarn', '#spawnBar']) { const e = $(id); if (e) e.remove(); }
     const z = $('#cardZoom'); if (z) z.hidden = true;
     document.body.classList.remove('pp-idle');
-    showMenu(); showJoin();
+    showMenu(); showHome();
   }
 
   // ───────────── host panel: only answers on the computer running the server ─────────────
@@ -1066,13 +1131,6 @@
     $('#recentList').innerHTML = r.length ? '<div class="hint">Recent</div>' + r.map(u => `<div class="srv"><div><b>${esc(u.replace(/^https?:\/\//, ''))}</b></div><button class="btn tiny" data-u="${esc(u)}">JOIN</button></div>`).join('') : '';
     $('#recentList').querySelectorAll('[data-u]').forEach(b => b.onclick = () => goTo(b.dataset.u));
   }
-  document.querySelectorAll('#netTabs [data-tab]').forEach(b => b.onclick = () => {
-    SFX.click();
-    document.querySelectorAll('#netTabs [data-tab]').forEach(x => x.classList.toggle('on', x === b));
-    const join = b.dataset.tab === 'join';
-    $('#joinNet').hidden = !join; $('#joinBox').hidden = join || !!(lobby && lobby.players.some(p => p.id === realId)); $('#lobbyBox').hidden = join || $('#lobbyBox').dataset.show !== '1';
-    if (join) { renderRecent(); if (!$('#scanBtn').disabled && !$('#scanList .srv')) $('#scanBtn').click(); }
-  });
   $('#joinGo').onclick = () => { const v = $('#joinAddr').value.trim(); if (v) goTo(v); };
   $('#joinAddr').addEventListener('keydown', e => { if (e.key === 'Enter') $('#joinGo').click(); });
   $('#scanBtn').onclick = async () => {
@@ -2583,7 +2641,7 @@
         <div class="wr-pane" data-p="awards" hidden><div id="awards" class="awards"></div></div>
       </div>
       <table class="stats"><tr><th>COMMANDER</th><th>FACTION</th><th>HEXES</th><th>CAPTURED</th><th>KILLS</th><th>LOST</th></tr>${rows}</table>
-      <div class="row" style="justify-content:center"><button class="btn big" id="vicLook">VIEW BOARD</button>${lobby && lobby.hostId === realId ? '<button class="btn big red" id="vicLobby">BACK TO LOBBY</button>' : ''}<button class="btn big gold" id="vicMenu">MAIN MENU</button></div></div>`;
+      <div class="row" style="justify-content:center"><button class="btn big" id="vicLook">VIEW BOARD</button>${lobby && lobby.hostId === realId ? '<button class="btn big red" id="vicLobby">BACK TO LOBBY</button>' : ''}${lobby && lobby.kind === 'public' ? '<button class="btn big red" id="vicAgain">PLAY AGAIN</button>' : ''}<button class="btn big gold" id="vicMenu">MAIN MENU</button></div></div>`;
     v.hidden = false;
     try { drawPower($('#powerChart'), S.history || [], S.players); } catch (e) { console.error(e); }
     const drawn = {};
@@ -2604,6 +2662,7 @@
     for (let i = 0; i < 6; i++) setTimeout(() => { if (!S) return; const k = Object.keys(S.map.tiles).filter(k => S.map.tiles[k].owner === w.pid); const r = k[Math.floor(Math.random() * k.length)]; if (r) { Render.burst(r, [wp.color, '#fff', '#ffc53d'], 30, { speed: 1.6, up: 200, square: true }); } }, i * 300);
     $('#vicLook').onclick = () => { v.hidden = true; setTimeout(() => { if (S && S.phase === 'over') { v.hidden = false; } }, 8000); };
     const bl = $('#vicLobby'); if (bl) bl.onclick = () => send({ t: 'toLobby' });
+    const ag = $('#vicAgain'); if (ag) ag.onclick = () => { SFX.select(); send({ t: 'quick', name: myName() }); };
     $('#vicMenu').onclick = () => { SFX.click(); send({ t: 'leave' }); setTimeout(() => { if (S) backToMenu(); }, 1500); };
   }
 
@@ -2796,7 +2855,13 @@
   for (const b of ['#indexBtn', '#indexBtn2', '#indexBtn3']) $(b).onclick = () => { SFX.select(); Cards.showIndex(); };
   // missions: from the lobby, or from the front page (enlist first, then the board opens)
   $('#missionsBtn').onclick = () => { SFX.select(); Missions.board(); };
-  $('#missionsBtn3').onclick = () => { SFX.select(); if (!$('#nameIn').value.trim()) $('#nameIn').value = 'Recruit'; $('#joinBtn').click(); const t0 = Date.now(), w = setInterval(() => { if (!$('#lobbyBox').hidden) { clearInterval(w); Missions.board(); } else if (Date.now() - t0 > 8000) clearInterval(w); }, 150); };
+  $('#missionsBtn3').onclick = () => { SFX.select(); Missions.board(); };   // picking a mission opens a private room for it
+  $('#rulesBtn3').onclick = showRules;
+  $('#lanFind').onclick = () => { SFX.select(); $('#joinNet').hidden = false; renderRecent(); if (!$('#scanBtn').disabled && !$('#scanList .srv')) $('#scanBtn').click(); };
+  $('#lanClose').onclick = () => { SFX.click(); $('#joinNet').hidden = true; };
+  $('#joinNet').onclick = e => { if (e.target === $('#joinNet')) $('#joinNet').hidden = true; };
+  Home.init({ send, name: myName });
+  if (!seat) showHome();
 
   Locker.init({ send }); window.SECTOR_TOAST = t => toast(t, 'good');
   window.SECTOR_DEBUG = { resume: () => pump(), refresh: () => refreshAll(), victoryFx: () => showVictory(), crushFx: ev => obliterate(ev), combatFx: ev => showCombat(ev), send, state: () => S, you: () => you, plan: () => plan, planState: () => planState, act: doAction, click: onHexClick };
