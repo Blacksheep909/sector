@@ -358,6 +358,13 @@ function onMessage(c, m) {
       lobby.players.push({ id: 'p' + nextPid++, token: null, name, color: freeColor(), faction: Object.keys(E.FACTIONS)[Math.floor(Math.random() * 5)], bot: true, diff, cos: C.botLoadout() });
       return broadcastLobby();
     }
+    case 'openBox': {
+      const lp = lobby.players.find(x => x.id === c.pid), pr = lp && lp.profileId && profiles.get(lp.profileId);
+      if (!pr) return send(c, { t: 'err', msg: 'No profile: rejoin to load your skins' });
+      const r = profiles.openBox(pr, String(m.box || ''));
+      if (r.err) return send(c, { t: 'err', msg: r.err });
+      return send(c, { t: 'boxOpened', box: m.box, ...r, profile: profiles.view(pr) });
+    }
     case 'buy': case 'equip': case 'profile': case 'devCoins': {
       const lp = lobby.players.find(x => x.id === c.pid), pr = lp && lp.profileId && profiles.get(lp.profileId);
       if (!pr) return send(c, { t: 'err', msg: 'No profile: rejoin to load your skins' });

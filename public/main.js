@@ -55,6 +55,7 @@
       case 'lobby': lobby = m.lobby; if (!S) renderLobby(); break;
       case 'profile': Locker.set(m.profile); if (m.bought) { toast('✔ ' + SectorCosmetics.ITEMS[m.bought].name + ' is yours', 'good'); SFX.legendary(); } break;
       case 'reward': Locker.set(m.profile); setTimeout(() => Locker.reward(m.reward), 1600); break;
+      case 'boxOpened': Locker.boxOpened(m); break;
       case 'state': if (leftGame) break; msgQ.push(m); pump(); break;
       case 'err':
         if (m.seq && pending.has(m.seq)) { pending.get(m.seq)(false); pending.delete(m.seq); }
