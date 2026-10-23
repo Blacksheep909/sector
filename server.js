@@ -172,6 +172,9 @@ function createRoom(code, kind) {
 const clients = new Set();   // the connections in this room
 const lobby = { players: [], hostId: null, kind, code, startAt: 0, settings: kind === 'public' ? { ...PUBLIC_SETTINGS } : { mode: 'domination', mapSize: 'medium', mapType: 'random', spawns: 'pick', fog: 'on', events: 'on', timer: 0, maxRounds: 0, conquestPct: 60, seed: '', teams: 'off', speed: 'fast', bank: 'off', personas: 'on' } };
 const isPublic = kind === 'public';
+// the factions a connection may play: what its profile has unlocked (no profile, as with tools and tests: all of them)
+const factionsFor = c => { const pr = c && c.profileId && profiles.get(c.profileId); return pr ? C.factionsOf(pr) : Object.keys(E.FACTIONS); };
+const pickFaction = c => { const f = factionsFor(c); return f[Math.floor(Math.random() * f.length)]; };
 let game = null;           // engine state
 let botMem = {}, botTimer = null, turnTimer = null, idleTimer = null;
 let nextPid = 1;
@@ -278,7 +281,7 @@ function onMessage(c, m) {
       if (!p) {
         if (lobby.players.filter(x => !x.bot || !isPublic).length >= (isPublic ? PUBLIC_SEATS : 8)) return send(c, { t: 'err', msg: 'That room is full' });
         if (isPublic) { const bot = lobby.players.find(x => x.bot); if (bot && lobby.players.length >= PUBLIC_SEATS) lobby.players = lobby.players.filter(x => x !== bot); }
-        p = { id: 'p' + nextPid++, token: crypto.randomBytes(12).toString('hex'), name: String(m.name || 'Commander').slice(0, 16), color: freeColor(), faction: Object.keys(E.FACTIONS)[Math.floor(Math.random() * 5)], bot: false };
+        p = { id: 'p' + nextPid++, token: crypto.randomBytes(12).toString('hex'), name: String(m.name || 'Commander').slice(0, 16), color: freeColor(), faction: pickFaction(c), bot: false };
         lobby.players.push(p);
         note(p.name + ' joined from ' + addrOf(c));
       } else if (!isConnected(p.id)) note(p.name + ' reconnected');
@@ -339,7 +342,7 @@ function onMessage(c, m) {
     case 'me': {
       const p = lobby.players.find(x => x.id === c.pid); if (!p || game) return;
       if (m.name) p.name = String(m.name).slice(0, 16);
-      if (m.faction && E.FACTIONS[m.faction]) p.faction = m.faction;
+      if (m.faction && E.FACTIONS[m.faction] && factionsFor(c).includes(m.faction)) p.faction = m.faction;
       if (m.color && E.COLORS.includes(m.color) && m.color !== p.color) {
         // a human-held colour stays locked; a bot holding it swaps to your old colour so nobody clashes
         const holder = lobby.players.find(x => x.color === m.color && x !== p);
@@ -352,14 +355,14 @@ function onMessage(c, m) {
     case 'addLocal': {
       if (game || !c.pid || lobby.players.length >= 8) return;
       const n = lobby.players.filter(p => p.local).length + 2;
-      lobby.players.push({ id: 'p' + nextPid++, token: null, name: 'Player ' + n, color: freeColor(), faction: Object.keys(E.FACTIONS)[Math.floor(Math.random() * 5)], bot: false, local: true, controller: c.pid });
+      lobby.players.push({ id: 'p' + nextPid++, token: null, name: 'Player ' + n, color: freeColor(), faction: pickFaction(c), bot: false, local: true, controller: c.pid });
       return broadcastLobby();
     }
     case 'seatCfg': {
       const sp = lobby.players.find(p => p.id === m.id && p.local && p.controller === c.pid);
       if (!sp || game) return;
       if (m.name) sp.name = String(m.name).slice(0, 16);
-      if (m.faction && E.FACTIONS[m.faction]) sp.faction = m.faction;
+      if (m.faction && E.FACTIONS[m.faction] && factionsFor(c).includes(m.faction)) sp.faction = m.faction;   // pass & play seats use the device owner's factions
       if (m.color && E.COLORS.includes(m.color) && !lobby.players.some(x => x.color === m.color && x !== sp)) sp.color = m.color;
       return broadcastLobby();
     }
@@ -1129,7 +1132,12 @@ function quickRoom(n) {
 function settle(c) { if (c.room && c.left) { c.room.clients.delete(c); c.room = null; c.pid = null; c.left = false; partySync(c.party); } }
 // kicked from a room: the room has already let go of them
 setInterval(() => { for (const c of sockets) if (c.room && c.left) settle(c); }, 500).unref();
-function leaveRoom(c) { if (!c.room) return; if (!c.room.clients.has(c)) c.room.clients.add(c); c.room.onMessage(c, { t: 'leave' }); c.left = true; settle(c); }
+function leaveRoom(c) { if (!c.room) return; const r = c.room; if (!r.clients.has(c)) r.clients.add(c); r.onMessage(c, { t: 'leave' }); c.left = true; settle(c); closeIfDeserted(r); }
+// the last person walked out on purpose: nobody is coming back to a room of bots, so close it now
+function closeIfDeserted(r) {
+  if (r.code === MAIN || r.clients.size || r.lobby.players.some(p => !p.bot && !p.spectator)) return;
+  r.destroy(); rooms.delete(r.code);
+}
 function enterRoom(c, room, extra = {}) {
   if (c.room !== room) { leaveRoom(c); c.room = room; room.clients.add(c); }
   room.onMessage(c, { t: 'hello', name: c.name, ...extra });
@@ -1141,7 +1149,7 @@ function bringParty(c, room) {
   for (const m of pt.members) if (m !== c && !m.room) { enterRoom(m, room); send(m, { t: 'partyFollow', code: room.code }); }
 }
 function menuStats() {
-  let wars = 0, waiting = 0; for (const r of rooms.values()) { if (r.game && r.game.phase !== 'over') wars++; else if (r.kind === 'public') waiting += r.humans(); }
+  let wars = 0, waiting = 0; for (const r of rooms.values()) { if (r.game && r.game.phase !== 'over') { if (r.clients.size && !r.game.scenario) wars++; } else if (r.kind === 'public') waiting += r.humans(); }
   return { online: [...sockets].filter(c => c.name || c.room).length, wars, waiting, rooms: rooms.size };
 }
 // what a menu (or party) shows about a connection: its commander card
@@ -1208,6 +1216,13 @@ function route(c, m) {
       const r = profiles.openBox(pr, String(m.box || ''), !!m.free);
       if (r.err) return send(c, { t: 'err', msg: r.err });
       return send(c, { t: 'boxOpened', box: m.box, free: !!m.free, ...r, profile: profiles.view(pr) });
+    }
+    case 'buyFaction': {
+      const pr = c.profileId && profiles.get(c.profileId);
+      if (!pr) return send(c, { t: 'err', msg: 'No profile loaded yet' });
+      const err = profiles.buyFaction(pr, String(m.id || ''));
+      if (err) return send(c, { t: 'err', msg: err });
+      return send(c, { t: 'profile', profile: profiles.view(pr), faction: m.id });
     }
     case 'buy': case 'equip': case 'profile': case 'devCoins': {
       const pr = c.profileId && profiles.get(c.profileId);

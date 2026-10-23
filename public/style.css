@@ -1756,3 +1756,32 @@ body.no-botchat .bot-say, body.no-botchat .lg.botline { display: none !important
   .mm-bar { flex-wrap: wrap; justify-content: center; }
   .mm-right .coin-pill { font-size: 13px; padding: 4px 6px 4px 8px; gap: 4px; } .mm-right .coin-pill .btn.tiny { padding: 2px 5px; font-size: 10px; }
 }
+
+/* front page fixes: a still, dimmed map behind it; the code box never overflows; shorter screens */
+body.at-home #map { filter: blur(2.5px) brightness(.55) saturate(.85); transform: scale(1.03); }
+.mm-row { grid-template-columns: minmax(0, 1fr) minmax(0, 1.25fr); }
+.code-in { min-width: 0; }
+.code-in input { width: 0; min-width: 0; }
+.code-in .btn { flex: none; }
+.home > * { min-width: 0; }
+@media (max-height: 820px) {
+  #menu { gap: 12px; padding-top: 62px; }
+  .title-wrap .logo { font-size: clamp(48px, 7vw, 84px); }
+  .title-wrap .tagline { margin-top: 4px; font-size: 14px; }
+  .btn.huge { padding: 12px 18px 9px; } .btn.huge span { font-size: 46px; }
+  .mm-name input { padding: 9px; font-size: 21px; }
+  .home { gap: 14px; }
+}
+
+/* factions in the Store, and the lobby's pointer to them */
+.fx-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(200px, 1fr)); gap: 12px; }
+.fx-card { display: flex; flex-direction: column; gap: 8px; padding: 14px; border-radius: 14px; background: linear-gradient(160deg, #18222c, #0d141a); border: 2px solid var(--line); }
+.fx-card.owned { border-color: #8a6418; background: linear-gradient(160deg, #241d10, #0f0d08); }
+.fx-icon { display: grid; place-items: center; height: 84px; } .fx-icon img { width: 72px; height: 72px; filter: drop-shadow(0 4px 0 #000); }
+.fx-card h3 { margin: 0; text-align: center; }
+.fx-perk { font-size: 13px; color: #b9c4ce; line-height: 1.35; flex: 1; } .fx-perk b { display: block; color: var(--gold); }
+.fx-start { font-size: 12px; color: var(--dim); } .fx-start b { color: var(--ink); }
+.fx-own { text-align: center; font-weight: 800; letter-spacing: 1.5px; font-size: 12px; color: #59f08a; padding: 7px; border-radius: 8px; background: rgba(89,240,138,.08); }
+.fx-card .btn { font-family: var(--title); font-weight: 400; letter-spacing: 1px; }
+.fac-more { display: flex; align-items: center; justify-content: space-between; gap: 8px; padding: 8px 12px; border-radius: 10px; border: 2px dashed #2a3947; font-size: 13px; color: var(--dim); }
+.fac-more b { color: var(--ink); }

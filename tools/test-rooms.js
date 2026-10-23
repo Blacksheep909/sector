@@ -26,6 +26,9 @@ const until = async (f, ms = 8000) => { const t = Date.now(); while (Date.now() 
     a.send({ t: 'create' });
     ok(await until(() => a.lobby && a.lobby.code && a.lobby.kind === 'private' && a.lobby.hostId === a.you), 'CREATE ROOM opens a private room with a code, and you host it');
     const code = a.lobby.code;
+    ok(a.lobby.players.find(p => p.id === a.you).faction === 'iron', 'a new commander plays their starter faction');
+    a.send({ t: 'me', faction: 'volt' }); await sleep(300);
+    ok(a.lobby.players.find(p => p.id === a.you).faction === 'iron', 'a faction you haven’t unlocked is refused');
     b.send({ t: 'join', code: code.toLowerCase() });
     ok(await until(() => b.lobby && b.lobby.code === code && a.lobby.players.length === 2), 'a friend joins with the code (any case)');
     ok(a.lobby.players.find(p => p.id === a.you).handle, 'seats carry a public handle (so you can open their profile)');

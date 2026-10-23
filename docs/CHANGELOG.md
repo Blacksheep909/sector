@@ -2,6 +2,19 @@
 
 Every release, newest first. Each version also has its own post on the [Releases page](https://github.com/Blacksheep909/sector/releases).
 
+## v0.10.1
+
+**Factions to unlock, and a pile of front-menu fixes.**
+
+- **🏴 Factions are unlocked with Valor.** Everyone starts with **Iron Covenant**. The other four (Volt Syndicate, Ashen Nomads, Verdant Host, Null Order) are in the new **Store → Factions** tab at 1,500 Valor each, unlocked for good. A room's lobby only lists the factions you own, with a link to the Store for the rest. The server checks it, so a locked faction can't be picked. Bots can still be any faction.
+- **The front page holds still.** The war map behind the menu no longer drifts. It's now a still, dimmed, blurred backdrop with no labels or troops, and it only shows on the front page: room lobbies get a clean background.
+- **Fix:** leaving a mission left the mission bar and Sergeant Hale on the front page. Leaving any war now clears everything it put on screen, including open battle and overwatch pop-ups.
+- **Fix:** after leaving a room the backdrop vanished, leaving a blank screen.
+- **Fix:** the room-code box and its JOIN button could overflow onto the leaderboard on some screens.
+- **Your faction and colour follow you** from room to room, instead of being re-rolled each time you join one.
+- **Rooms close as soon as the last person leaves on purpose** (instead of a bot-only war running on for minutes), and the "wars raging" count only counts wars someone is in.
+- **Shorter screens:** the front page is more compact below about 820 pixels tall.
+
 ## v0.10.0
 
 **A new .io-style front menu with quick play, private rooms and parties, bots with personalities, ten puzzle missions with a tutorial, skins and crates, and a balance pass backed by data.**

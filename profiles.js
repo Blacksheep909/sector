@@ -5,7 +5,7 @@
 const fs = require('fs');
 const path = require('path');
 const crypto = require('crypto');
-const C = require('./shared/cosmetics');
+const C = require('./shared/cosmetics'), E = require('./shared/engine');
 
 const REF_COINS = 250, WELCOME_COINS = 100, RECRUITER_AT = 3;
 
@@ -50,7 +50,7 @@ function createProfiles(file, opts = {}) {
     roll(p);
     const store = C.dailyStore();
     return {
-      name: p.name || null, handle: p.refCode, total: p.total || {}, coins: p.coins, scenarios: p.scenarios || [], owned: p.owned, equipped: p.equipped, cards: p.cards, refCode: p.refCode, recruits: p.recruits, earnedToday: p.earned.amount, daySoft: C.DAY_SOFT,
+      name: p.name || null, handle: p.refCode, total: p.total || {}, factions: C.factionsOf(p), coins: p.coins, scenarios: p.scenarios || [], owned: p.owned, equipped: p.equipped, cards: p.cards, refCode: p.refCode, recruits: p.recruits, earnedToday: p.earned.amount, daySoft: C.DAY_SOFT,
       daily: objList(C.dailyObjectives(), p.day), weekly: objList(C.weeklyObjectives(), p.week), weeklyCrate: !!p.week.crate, freeCrates: p.freeCrates || 0,
       store: { day: store.day, items: store.items, endsIn: C.msToNextDay() },
     };
@@ -152,9 +152,17 @@ function createProfiles(file, opts = {}) {
     boards[period] = { at: Date.now(), rows };
     return rows;
   }
+  // unlock a faction with Valor
+  function buyFaction(p, id) {
+    if (!E.FACTIONS[id]) return 'No such faction';
+    const own = C.factionsOf(p); if (own.includes(id)) return 'Already yours';
+    if (p.coins < C.FACTION_PRICE) return 'Need ' + C.FACTION_PRICE + ' Valor';
+    p.coins -= C.FACTION_PRICE; p.factions = [...own, id]; save();
+    return null;
+  }
   function rename(p, name) { if (!name) return; p.name = String(name).slice(0, 16); save(); }
   function giveItem(p, item) { if (!C.ITEMS[item]) return 'No such item'; if (!p.owned.includes(item)) p.owned.push(item); save(); return null; }
   function totals() { const all = Object.values(db); return { profiles: all.length, coins: all.reduce((a, p) => a + p.coins, 0), owned: all.reduce((a, p) => a + p.owned.length, 0), games: all.reduce((a, p) => a + ((p.total || {}).games || 0), 0) }; }
-  return { open, view, buy, equip, openBox, finishGame, scenarioDone, grant, list, giveItem, totals, publicView, leaderboard, rename, get: id => db[id] };
+  return { open, view, buy, equip, openBox, finishGame, scenarioDone, grant, list, giveItem, totals, publicView, leaderboard, rename, buyFaction, get: id => db[id] };
 }
 module.exports = { createProfiles, REF_COINS, WELCOME_COINS };
