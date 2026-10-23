@@ -162,12 +162,16 @@ const Render = (() => {
 
   // ── camera ──
   function focus(k, z) { const [x, y] = topOf(k); cam.tx = x; cam.ty = y; if (z) cam.tz = z; }
-  function fitMap() {
+  // fit the whole board on screen; `pad` keeps it clear of the HUD (pixels from each edge)
+  function fitMap(pad) {
     if (!S_) return;
     let x0 = 1e9, x1 = -1e9, y0 = 1e9, y1 = -1e9;
     for (const k of order) { const c = tc[k]; x0 = Math.min(x0, c.wx); x1 = Math.max(x1, c.wx); y0 = Math.min(y0, c.wy); y1 = Math.max(y1, c.wy); }
-    const z = Math.min(W / (x1 - x0 + S * 3), (H - 120) / (y1 - y0 + S * 3));
-    cam.tz = cam.z = Math.max(0.3, Math.min(1.6, z)); cam.tx = cam.x = (x0 + x1) / 2; cam.ty = cam.y = (y0 + y1) / 2 - 10;
+    const p = pad || { l: 0, r: 0, t: 60, b: 60 }, fw = Math.max(200, W - p.l - p.r), fh = Math.max(150, H - p.t - p.b);
+    const z = Math.min(fw / (x1 - x0 + S * 3), fh / (y1 - y0 + S * 3));
+    cam.tz = cam.z = Math.max(0.3, Math.min(1.6, z));
+    // the board's centre lands in the middle of the free area, not of the whole screen
+    cam.tx = cam.x = (x0 + x1) / 2 - (p.l - p.r) / 2 / cam.z; cam.ty = cam.y = (y0 + y1) / 2 - 10 - (p.t - p.b) / 2 / cam.z;
   }
   function pan(dx, dy) { cam.tx -= dx / cam.z; cam.ty -= dy / cam.z; cam.x = cam.tx; cam.y = cam.ty; }
   function zoomAt(sx, sy, f) {

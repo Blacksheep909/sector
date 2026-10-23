@@ -1821,3 +1821,5 @@ body.at-home #map { filter: blur(2.5px) brightness(.55) saturate(.85); transform
 .acct.on { flex-direction: row; align-items: center; gap: 8px; font-size: 13px; } .acct.on > div { flex: 1; min-width: 0; } .acct.on .sub { white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
 .acct-ic { display: inline-grid; place-items: center; width: 22px; height: 22px; border-radius: 50%; background: #1a2631; flex: none; } .acct-google .acct-ic { background: transparent; }
 .acct.off { text-align: center; line-height: 1.4; }
+/* holding cards: Hale steps up so his bubble isn't over the hand */
+body:has(#hand > *) #hale { bottom: 250px; }

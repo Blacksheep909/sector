@@ -39,7 +39,8 @@ const Missions = (() => {
   function board() {
     let m = $('#missionsModal'); if (!m) { m = el('div', 'modal-bg'); m.id = 'missionsModal'; document.body.appendChild(m); }
     m.hidden = false; m.innerHTML = '';
-    const done = cleared(), p = el('div', 'panel ms-panel');
+    // unlocks follow anything you've cleared; the Valor badge follows what this commander has been paid for (once each)
+    const done = cleared(), paid = new Set((typeof Locker !== 'undefined' && Locker.profile && Locker.profile.scenarios) || []), p = el('div', 'panel ms-panel');
     p.innerHTML = `<div class="ix-head"><h2>MISSIONS</h2><div class="sub">${done.size} / ${SC.SCENARIOS.length} cleared · puzzles that teach a technique each, from basic training to impossible</div><button class="btn" id="msClose">✕</button></div>`;
     const grid = el('div', 'ms-grid');
     for (const sc of SC.SCENARIOS.slice().sort((a, b) => a.n - b.n)) {
@@ -47,7 +48,7 @@ const Missions = (() => {
       const t = el('div', 'ms-card' + (open ? '' : ' locked') + (ok ? ' done' : ''));
       t.style.setProperty('--tc', TIER[sc.tier] || '#9fb3c8');
       t.innerHTML = `<div class="ms-n">${sc.n}</div><div class="ms-tier">${sc.tier.toUpperCase()}</div><h3>${esc(sc.name)}</h3><div class="ms-tech">${esc(sc.technique)}</div><div class="ms-brief">${esc(sc.brief)}</div>
-        <div class="ms-foot"><span>⏱ ${sc.turns} turn${sc.turns > 1 ? 's' : ''}</span><span>${ok ? '✔ CLEARED' : `<i class="vm"></i>${sc.reward}`}</span></div>${open ? '' : '<div class="ms-lock">🔒 Clear mission ' + (sc.n - 1) + ' first</div>'}`;
+        <div class="ms-foot"><span>⏱ ${sc.turns} turn${sc.turns > 1 ? 's' : ''}</span><span>${paid.has(sc.id) ? '✔ CLEARED' : `<i class="vm"></i>${sc.reward}${ok ? ' · first clear' : ''}`}</span></div>${open ? '' : '<div class="ms-lock">🔒 Clear mission ' + (sc.n - 1) + ' first</div>'}`;
       if (open) t.onclick = () => { if (typeof SFX !== 'undefined') SFX.select(); start(sc.id); };
       grid.appendChild(t);
     }
@@ -107,6 +108,15 @@ const Missions = (() => {
     if (step.wait === 'select') { const poll = setInterval(() => { if (!guide || guide.step !== step) return clearInterval(poll); if (Render.ov.selected) { clearInterval(poll); next(); } }, 250); }
   }
 
+  // the tutorial waits for each step: ending the turn before doing it would skip the lesson and burn one of the
+  // mission's few turns, so End Turn is held back (and Hale repeats what he's after) until he asks for it
+  function holdEnd() {
+    if (!guide || !guide.step) return false;
+    const step = guide.step; if (step.wait === 'turn' || step.wait === 'win') return false;
+    say(fmt('**Not yet, recruit.** ' + step.text), { next: step.wait === 'click' ? () => next() : null, wide: true });
+    return true;
+  }
+
   // ── the result ──
   function result(m) {
     hush();
@@ -126,5 +136,5 @@ const Missions = (() => {
     $('#mrRetry').onclick = () => go(m.id);
     $('#mrBoard').onclick = () => { go(null); setTimeout(board, 600); };
   }
-  return { board, onState, result, say, hush };
+  return { board, onState, result, say, hush, holdEnd };
 })();

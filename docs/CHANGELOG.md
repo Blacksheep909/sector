@@ -10,6 +10,9 @@ Every release, newest first. Each version also has its own post on the [Releases
 - **Fix: everything stopped working after pressing Leave straight after DEPLOY.** The "Rolling the battlefield" reel stayed on top of the front page and swallowed every click. Leaving a war now clears every overlay it put up, and the reel never blocks clicks.
 - **Fix: a mission (or war) could hang on the enemy's turn**, so End Turn seemed to do nothing. If the previous war in the same room ended with a battle window or overwatch prompt still open, the next war's bots waited for it forever. Every new war, mission and return to the lobby now starts clean.
 - **Fix: a dead game screen after the server restarted.** If you were mid-war when the server restarted (an update, say), the game screen stayed up and nothing responded. You're now taken back to the front page with a message.
+- **Missions show the whole board.** On smaller screens the camera used to zoom in on your HQ, so in Breakthrough, Beachhead and Hold the Line the objective was off the edge. Every mission now opens with its whole board in view, clear of the HUD.
+- **The tutorial waits for you.** In Basic Training, End Turn is held back until Sergeant Hale asks for it (he repeats what he's waiting for), so you can't skip a lesson by accident and run out of turns.
+- **Mission Valor is paid once.** Each mission pays its reward on your commander's first clear only; replaying it is just for fun. The missions board shows the reward until your commander has earned it, then ✔ Cleared.
 - **Sergeant Hale moved to the bottom right**, so he no longer covers the chat, the build bar or the deck. The mission bar now sits under the turn banner instead of overlapping it, and messages appear below it.
 - **The game speed buttons** match the other buttons in the top-right row.
 - **The deck's label** stays on one line instead of running under the first card.
