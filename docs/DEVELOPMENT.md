@@ -71,6 +71,7 @@ Run the server with `SECTOR_DEV=1` to enable autoplay. A client can then send `{
 1. Bump `version` in `package.json`.
 2. Write the release post in `docs/releases/vX.Y.Z.md` and add the changes to the top of `docs/CHANGELOG.md`.
 3. Commit, then `git tag vX.Y.Z && git push origin main vX.Y.Z`.
+   No tag push available? Push the commit, then run **Actions → release → Run workflow** on `main` with the version (`vX.Y.Z`): it creates the tag on that commit and publishes the release.
 
 The workflow refuses to publish a tag that has no `docs/releases/<tag>.md`. Every host's Sector.exe checks the latest release and offers **U** to update.
 
