@@ -287,6 +287,23 @@ If your territory completely surrounds a land pocket of 10 hexes or fewer, the p
 
 The same goes for water: a pocket of 12 or fewer sea hexes walled in by your coast and your own sea, with no enemy ships inside, becomes yours.
 
+## Missions and the tutorial
+
+**🎯 MISSIONS & TUTORIAL** (front page or lobby) opens ten hand-built puzzle missions, each teaching one technique. Each is a fixed board with set armies, cash and cards, a goal and a turn limit: no resupply draws and no weather, so every mission has a solution to find. Sergeant Hale briefs you on each one, and the mission bar has a **HINT** button if you're stuck. Clear a mission to unlock the next; your first clear of each pays Valor.
+
+| # | Mission | Tier | Technique | First clear |
+|---|---|---|---|---|
+| 1 | Basic Training | Tutorial | Moving, capturing, deploying, attacking (Sergeant Hale walks you through it step by step) | 100 |
+| 2 | Strength in Numbers | Easy | Pincer attacks | 150 |
+| 3 | Crossing | Easy | Rivers, bridges, combined arms | 200 |
+| 4 | Over the Mountains | Medium | Helicopters carry Grunts | 300 |
+| 5 | Breakthrough | Medium | Leapfrogging: each wave passes through the last | 400 |
+| 6 | Big Guns | Hard | Artillery | 600 |
+| 7 | All In | Hard | Battle cards | 800 |
+| 8 | Beachhead | Very Hard | Transports, landings, naval gunfire | 1,000 |
+| 9 | Hold the Line | Expert | Defence against a live enemy | 1,500 |
+| 10 | Lightning War | Impossible | Everything at once | 2,500 |
+
 ## Battle cards
 
 Battle cards are thrown into a fight **before the dice roll**, by either side. When an attack is ordered and the attacker or defender holds a battle card they can afford, a battle window opens for a few seconds with the live odds:
