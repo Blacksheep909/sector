@@ -17,14 +17,14 @@
     't-uk': { slot: 'territory', name: 'Union', rarity: 'epic', price: 1600, desc: 'The Union flag, draped across all your land.' },
     't-nato': { slot: 'territory', name: 'Alliance Star', rarity: 'epic', price: 1600, desc: 'Navy blue, with the great compass star over your HQ and its lines running to your borders.' },
     't-russia': { slot: 'territory', name: 'Tricolour', rarity: 'epic', price: 1600, desc: 'White, blue and red bands across your whole territory.' },
-    't-germany': { slot: 'territory', name: 'Germany', rarity: 'rare', price: 1200, desc: 'Black, red and gold across your whole territory.' },
-    't-france': { slot: 'territory', name: 'France', rarity: 'rare', price: 1200, desc: 'The Tricolore: blue, white and red.' },
-    't-italy': { slot: 'territory', name: 'Italy', rarity: 'rare', price: 1200, desc: 'Il Tricolore: green, white and red.' },
-    't-ireland': { slot: 'territory', name: 'Ireland', rarity: 'rare', price: 1200, desc: 'Green, white and orange.' },
-    't-netherlands': { slot: 'territory', name: 'Netherlands', rarity: 'rare', price: 1200, desc: 'Red, white and blue bands.' },
-    't-poland': { slot: 'territory', name: 'Poland', rarity: 'rare', price: 1200, desc: 'White over red.' },
-    't-ukraine': { slot: 'territory', name: 'Ukraine', rarity: 'rare', price: 1200, desc: 'Blue sky over golden wheat.' },
-    't-spain': { slot: 'territory', name: 'Spain', rarity: 'rare', price: 1200, desc: 'Red and gold, the gold band twice as wide.' },
+    't-germany': { slot: 'territory', name: 'Germany', rarity: 'epic', price: 1500, desc: 'Black, red and gold across your whole territory.' },
+    't-france': { slot: 'territory', name: 'France', rarity: 'epic', price: 1500, desc: 'The Tricolore: blue, white and red.' },
+    't-italy': { slot: 'territory', name: 'Italy', rarity: 'epic', price: 1500, desc: 'Il Tricolore: green, white and red.' },
+    't-ireland': { slot: 'territory', name: 'Ireland', rarity: 'epic', price: 1500, desc: 'Green, white and orange.' },
+    't-netherlands': { slot: 'territory', name: 'Netherlands', rarity: 'epic', price: 1500, desc: 'Red, white and blue bands.' },
+    't-poland': { slot: 'territory', name: 'Poland', rarity: 'epic', price: 1500, desc: 'White over red.' },
+    't-ukraine': { slot: 'territory', name: 'Ukraine', rarity: 'epic', price: 1500, desc: 'Blue sky over golden wheat.' },
+    't-spain': { slot: 'territory', name: 'Spain', rarity: 'epic', price: 1500, desc: 'Red and gold, the gold band twice as wide.' },
     't-sweden': { slot: 'territory', name: 'Sweden', rarity: 'epic', price: 1500, desc: 'A golden Nordic cross on blue, crossing at your HQ.' },
     't-norway': { slot: 'territory', name: 'Norway', rarity: 'epic', price: 1500, desc: 'A blue and white Nordic cross on red, crossing at your HQ.' },
     't-denmark': { slot: 'territory', name: 'Denmark', rarity: 'epic', price: 1500, desc: 'The Dannebrog: a white cross on red, crossing at your HQ.' },
@@ -121,7 +121,13 @@
   // what a look costs follows its rarity: the rarer it is, the more it costs (cards are priced above, by version)
   const PRICE = { common: 200, uncommon: 450, rare: 900, epic: 1500, legendary: 2400, mythic: 3600 }, SLOT_PRICE = { territory: 1, border: 1, trim: 0.85, banner: 0.6 };
   for (const id in ITEMS) { const it = ITEMS[id]; if (it.slot !== 'card' && it.buy !== false && PRICE[it.rarity]) it.price = Math.round(PRICE[it.rarity] * SLOT_PRICE[it.slot] / 50) * 50; }
+  // every country's flag costs the same, whichever country it is
+  const COUNTRIES = ['usa', 'uk', 'russia', 'germany', 'france', 'italy', 'ireland', 'netherlands', 'poland', 'ukraine', 'spain', 'sweden', 'norway', 'denmark', 'scotland', 'japan', 'korea', 'china', 'india', 'canada', 'brazil', 'australia'];
+  for (const c of COUNTRIES) Object.assign(ITEMS['t-' + c], { rarity: 'epic', price: PRICE.epic, country: true });
   for (const id in ITEMS) ITEMS[id].id = id;
+  // anything can be bought any day: at its price while it's in today's store, or for OFF_ROTATION times that otherwise
+  const OFF_ROTATION = 3;
+  const priceOf = (id, day) => { const it = ITEMS[id]; if (!it) return 0; return dailyStore(day).items.includes(id) ? it.price : it.price * OFF_ROTATION; };
   const SLOTS = { territory: 'Territory', border: 'Auras', trim: 'Border Lines', banner: 'Banners', card: 'Cards' };
   const LOOKS = ['territory', 'border', 'trim', 'banner'];   // the slots worn on the map and name card (cards are per card)
 
@@ -206,5 +212,5 @@
     return out;
   }
 
-  return { FACTION_START, FACTION_PRICE, factionsOf, ITEMS, VARIANTS, SLOTS, LOOKS, BOXES, rollBox, DAILY, WEEKLY, DAY_SOFT, matchCoins, diminish, dayKey, weekKey, msToNextDay, dailyStore, dailyObjectives, weeklyObjectives, botLoadout, cleanLoadout };
+  return { OFF_ROTATION, priceOf, FACTION_START, FACTION_PRICE, factionsOf, ITEMS, VARIANTS, SLOTS, LOOKS, BOXES, rollBox, DAILY, WEEKLY, DAY_SOFT, matchCoins, diminish, dayKey, weekKey, msToNextDay, dailyStore, dailyObjectives, weeklyObjectives, botLoadout, cleanLoadout };
 });

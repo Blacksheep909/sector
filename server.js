@@ -1093,7 +1093,7 @@ return {
 }
 
 // profiles live next to the saved games; SECTOR_OG_UNTIL=YYYY-MM-DD gives early accounts the Founder skins
-const profiles = createProfiles(process.env.SECTOR_PROFILES || path.join(process.env.APPDATA || os.homedir(), 'Sector', 'profiles.json'), { ogUntil: process.env.SECTOR_OG_UNTIL });
+const profiles = createProfiles(process.env.SECTOR_PROFILES || path.join(process.env.APPDATA || os.homedir(), 'Sector', 'profiles.json'), { ogUntil: process.env.SECTOR_OG_UNTIL, startValor: process.env.SECTOR_START_VALOR ?? 30000 });   // a starting grant while the store is being tested (SECTOR_START_VALOR=0 turns it off)
 // ───────────── saved games: every war in progress autosaves to its own file, and the host can resume it from the lobby ─────────────
 const SAVE_DIR = process.env.SECTOR_SAVES || path.join(process.env.APPDATA || os.homedir(), 'Sector', 'saves');
 const SAVE_KEEP = 20;

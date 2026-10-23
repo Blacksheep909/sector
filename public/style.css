@@ -1821,3 +1821,40 @@ body.at-home #map { filter: blur(2.5px) brightness(.55) saturate(.85); transform
 .acct.off { text-align: center; line-height: 1.4; }
 /* holding cards: Hale steps up so his bubble isn't over the hand */
 body:has(#hand > *) #hale { bottom: 250px; }
+
+/* ── unlocked: a new look or faction bursts in ── */
+.unlock-fx { position: fixed; inset: 0; z-index: 400; display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 14px; padding: 16px; overflow: hidden;
+  background: radial-gradient(circle at 50% 40%, color-mix(in srgb, var(--rc) 18%, #060b12), #04080e 65%); animation: ulFade .3s ease-out both; }
+.unlock-fx.gone { animation: ulFade .25s ease-in reverse both; }
+.unlock-fx::after { content: ''; position: absolute; inset: 0; background: #fff; pointer-events: none; animation: ulFlash .6s ease-out .15s both; }
+.ul-stage { position: relative; width: min(440px, 92vw); height: 300px; display: grid; place-items: center; }
+.ul-rays { position: absolute; left: 50%; top: 50%; width: 900px; height: 900px; margin: -450px 0 0 -450px; border-radius: 50%;
+  background: repeating-conic-gradient(from 0deg, color-mix(in srgb, var(--rc) 30%, transparent) 0 5deg, transparent 5deg 15deg);
+  -webkit-mask: radial-gradient(circle, #000 0 12%, transparent 48%); mask: radial-gradient(circle, #000 0 12%, transparent 48%);
+  animation: ulSpin 16s linear infinite, ulFade .8s ease-out .1s both; }
+.ul-ring { position: absolute; width: 140px; height: 140px; border-radius: 50%; border: 3px solid var(--rc); box-shadow: 0 0 24px var(--rc); animation: ulRing .9s ease-out .15s both; }
+.ul-ring.two { animation-delay: .4s; }
+.ul-prev { position: relative; z-index: 1; animation: ulPop .75s cubic-bezier(.2,1.5,.4,1) .2s both; filter: drop-shadow(0 0 26px color-mix(in srgb, var(--rc) 80%, transparent)); }
+.ul-prev canvas { display: block; width: min(360px, 82vw); height: auto; aspect-ratio: 520 / 340; border-radius: 14px; border: 2px solid var(--rc); background: radial-gradient(circle at 50% 45%, #13243a, #0a131f 75%); }
+.ul-prev.s-card > * { transform: scale(1.35); }
+.ul-prev.s-banner .pchip { transform: scale(1.7); }
+.ul-prev.s-faction img { width: 160px; height: 160px; display: block; }
+.ul-spark { position: absolute; left: 50%; top: 50%; width: 8px; height: 8px; margin: -4px; border-radius: 50%; background: var(--rc); box-shadow: 0 0 12px var(--rc), 0 0 3px #fff; opacity: 0;
+  animation: ulSpark 1.1s cubic-bezier(.1,.7,.3,1) var(--dl) both; }
+.unlock-fx.big .ul-spark:nth-child(3n) { width: 5px; height: 5px; background: #fff; }
+.ul-text { position: relative; z-index: 1; text-align: center; animation: ulUp .5s ease-out .45s both; }
+.ul-kicker { font-family: var(--title); font-size: 18px; letter-spacing: 10px; color: var(--rc); text-shadow: 0 0 18px var(--rc); }
+.ul-text h2 { margin: 4px 0 2px; font-size: clamp(26px, 6vw, 40px); color: #fff; }
+.ul-rar { color: var(--dim); font-size: 13px; letter-spacing: 1px; text-transform: uppercase; }
+.ul-rar b { color: var(--rc); }
+.ul-btns { position: relative; z-index: 1; display: flex; gap: 10px; animation: ulUp .4s ease-out .7s both; }
+@keyframes ulFade { from { opacity: 0; } to { opacity: 1; } }
+@keyframes ulFlash { 0% { opacity: 0; } 18% { opacity: .6; } 100% { opacity: 0; } }
+@keyframes ulSpin { to { transform: rotate(360deg); } }
+@keyframes ulRing { 0% { transform: scale(.3); opacity: 1; } 100% { transform: scale(4); opacity: 0; } }
+@keyframes ulPop { 0% { transform: scale(.15) rotate(-10deg); opacity: 0; } 100% { transform: none; opacity: 1; } }
+@keyframes ulSpark { 0% { transform: rotate(var(--a)) translateX(0) scale(1.4); opacity: 1; } 100% { transform: rotate(var(--a)) translateX(var(--d)) scale(.2); opacity: 0; } }
+@keyframes ulUp { from { transform: translateY(14px); opacity: 0; } to { transform: none; opacity: 1; } }
+body.calm .ul-rays { animation: ulFade .8s ease-out both; }
+body.calm .unlock-fx::after, body.calm .ul-spark { display: none; }
+.st-head #stAll { margin-left: auto; font-family: var(--body, inherit); letter-spacing: 1px; }

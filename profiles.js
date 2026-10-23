@@ -22,7 +22,7 @@ function createProfiles(file, opts = {}) {
   };
   const hash = s => crypto.createHash('sha256').update(String(s)).digest('hex');
   // Founder skins go to profiles made before this date (SECTOR_OG_UNTIL=2027-03-01, say). Unset: nobody gets them yet
-  const ogUntil = opts.ogUntil ? Date.parse(opts.ogUntil) : 0;
+  const ogUntil = opts.ogUntil ? Date.parse(opts.ogUntil) : 0, startValor = Math.max(0, opts.startValor | 0);
   const newCode = () => { let c; do c = crypto.randomBytes(4).toString('hex').toUpperCase().slice(0, 6); while (Object.values(db).some(q => q.refCode === c)); return c; };
   function roll(p) {
     const d = C.dayKey(), w = C.weekKey();
@@ -41,6 +41,8 @@ function createProfiles(file, opts = {}) {
       if (ref) { const r = Object.values(db).find(q => q.refCode === String(ref).toUpperCase().slice(0, 8) && q.id !== id); if (r) p.referredBy = r.id; }
       if (ogUntil && Date.now() <= ogUntil) p.owned.push('t-founder', 'n-founder');
     }
+    // a starting grant of Valor (opts.startValor): once per commander, new or already made
+    if (startValor && !p.startValor) { p.coins += startValor; p.startValor = startValor; }
     if (name) p.name = String(name).slice(0, 16);
     roll(p); save();
     return p;
@@ -56,14 +58,15 @@ function createProfiles(file, opts = {}) {
       store: { day: store.day, items: store.items, endsIn: C.msToNextDay() },
     };
   }
-  // everything is bought from today's store; card versions also come out of crates
+  // anything can be bought: at its price from today's store, or at three times that any other day (C.priceOf).
+  // Card versions also come out of crates
   function buy(p, itemId) {
     const it = C.ITEMS[itemId];
     if (!it || it.buy === false) return 'That can’t be bought';
     if (p.owned.includes(itemId)) return 'Already yours';
-    if (!C.dailyStore().items.includes(itemId)) return it.slot === 'card' ? 'Card skins come from crates (or the daily store when they rotate in)' : 'Not in today’s store';
-    if (p.coins < it.price) return 'Need ' + it.price + ' Valor';
-    p.coins -= it.price; p.owned.push(itemId); save();
+    const price = C.priceOf(itemId);
+    if (p.coins < price) return 'Need ' + price.toLocaleString() + ' Valor';
+    p.coins -= price; p.owned.push(itemId); save();
     return null;
   }
   function equip(p, slot, itemId) {

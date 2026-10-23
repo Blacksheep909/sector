@@ -47,6 +47,7 @@ Each provider switches on by itself once its two keys are set; the sign-in butto
 | `GOOGLE_CLIENT_ID`, `GOOGLE_CLIENT_SECRET` | From a Google OAuth client. |
 | `DISCORD_CLIENT_ID`, `DISCORD_CLIENT_SECRET` | From a Discord application. |
 | `SECTOR_PROFILES` | Where profiles (and their linked logins) are saved. Put it on persistent storage. |
+| `SECTOR_START_VALOR` | Valor every commander is given once, new or existing. **30000 for now while the store is tested**; set it to `0` before going live. |
 
 **Google:** in [Google Cloud Console](https://console.cloud.google.com/), create a project, set up the **OAuth consent screen** (External, app name SECTOR, scopes `openid`, `email`, `profile`), then **Credentials → Create credentials → OAuth client ID → Web application**. Add the authorised redirect URI `https://playsector.io/auth/google/callback` (and `http://localhost:3000/auth/google/callback` to test on your own PC). Copy the client ID and secret.
 

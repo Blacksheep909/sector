@@ -8,6 +8,10 @@ Every release, newest first. Each version also has its own post on the [Releases
 
 - **Fix: the game stalled on DEPLOY (and then missions wouldn't start).** On a server running the console dashboard (Sector.exe), the dashboard crashed as soon as someone joined a room. Logging that crash redrew the dashboard, which crashed again, so the server spent all its time writing errors and games stopped moving. The dashboard is fixed, and a dashboard error can no longer loop or hold up a game.
 - **PLAY: join an open war, or host your own.** PLAY puts you in a public war that's still open; if none is, it opens a new one with you as host. You can change the settings, add bots and press DEPLOY when you're ready (bots fill the empty seats), and anyone else pressing PLAY joins you until then. The 30-second countdown is gone. **＋ PRIVATE ROOM** is the same but invite-only.
+- **Buy anything, any day.** Today's shop still sells its picks at their price, and now everything else (territories, auras, border lines, banners and card versions) can be bought from the Locker at **3×** its shop price. **BROWSE EVERYTHING** in the shop takes you there.
+- **Every country flag costs the same** (1,500 Valor).
+- **Unlock animations.** Buying a look or unlocking a faction plays a reveal: a flash, rays in its rarity colour, sparks, and an **EQUIP NOW** button.
+- **30,000 Valor to start, for testing.** Every commander gets it once, new or existing (server hosts: `SECTOR_START_VALOR`, set it to 0 to turn it off).
 - **Missions from anywhere.** Picking a mission while you're sitting in a public war (or someone else's room) takes you out of it into a room of your own, instead of doing nothing.
 
 ## v0.10.2

@@ -78,8 +78,12 @@ const Locker = (() => {
       b.onclick = () => { SFX.select(); send({ t: 'equip', slot: it.slot, item: it.slot !== 'card' && isOn(it) ? null : it.id }); };
       act.appendChild(b);
     } else if (it.buy === false) act.appendChild(el('span', 'sub', it.id.includes('recruit') ? '🎖 Earned by recruiting' : '🏅 Never sold'));
-    else if (!inStore && !C.dailyStore(profile.store.day).items.includes(it.id)) act.appendChild(el('span', 'sub', it.slot === 'card' ? '🎁 From crates, or the daily store' : '<i class="vm"></i>' + it.price.toLocaleString() + ' · when it’s in the store'));
-    else { const b = el('button', 'btn tiny gold', '<i class="vm"></i>' + it.price.toLocaleString()); b.disabled = profile.coins < it.price; b.onclick = () => { SFX.coin(4); send({ t: 'buy', item: it.id }); }; act.appendChild(b); }
+    else {
+      // in today's shop at its price; any other day, three times that
+      const price = C.priceOf(it.id, profile.store.day);
+      const b = el('button', 'btn tiny gold', '<i class="vm"></i>' + price.toLocaleString()); b.disabled = profile.coins < price;
+      b.onclick = () => { SFX.coin(4); b.disabled = true; send({ t: 'buy', item: it.id }); }; act.appendChild(b);
+    }
     t.appendChild(act);
     return t;
   }
@@ -101,7 +105,7 @@ const Locker = (() => {
       p.appendChild(bar);
       const q = search.trim().toLowerCase();
       items = items.filter(i => (cardFilter === 'all' || owns(i.id)) && (!q || E.cardDef(i.card).name.toLowerCase().includes(q)));
-      if (cardFilter === 'owned' && !items.length && !q) grid.appendChild(el('div', 'ix-empty', 'No card skins yet. Every card has one at every rarity, from Battle-Worn to a named Mythic. Open <b>crates</b> in the Store to find them (switch to ALL CARDS to browse).'));
+      if (cardFilter === 'owned' && !items.length && !q) grid.appendChild(el('div', 'ix-empty', 'No card skins yet. Every card has one at every rarity, from Battle-Worn to a named Mythic. Open <b>crates</b> in the Store to find them, or switch to ALL CARDS to browse and buy one outright.'));
       items = items.slice(0, 90);
     } else items.sort((a, b) => (owns(b.id) - owns(a.id)) || E.RARITY_ORDER.indexOf(a.rarity) - E.RARITY_ORDER.indexOf(b.rarity));
     for (const it of items) grid.appendChild(tile(it, false));
@@ -129,7 +133,8 @@ const Locker = (() => {
     if (storeTab === 'factions') return drawFactions(p);
     if (storeTab === 'valor') return drawValor(p);
     const ends = Date.now() + profile.store.endsIn, left = () => { const ms = Math.max(0, ends - Date.now()), h = Math.floor(ms / 3.6e6), m = Math.floor(ms / 6e4) % 60; return h + 'h ' + String(m).padStart(2, '0') + 'm'; };
-    const head = el('div', 'st-head', `<b>TODAY’S SHOP</b><span class="sub">new items in <i>${left()}</i></span>`);
+    const head = el('div', 'st-head', `<b>TODAY’S SHOP</b><span class="sub">new items in <i>${left()}</i></span><button class="btn tiny" id="stAll">BROWSE EVERYTHING ▸</button>`);
+    head.querySelector('#stAll').onclick = () => { SFX.click(); show('locker'); };
     p.appendChild(head);
     const tick = setInterval(() => { if (!document.contains(head)) return clearInterval(tick); head.querySelector('i').textContent = left(); }, 30000);
     const grid = el('div', 'lk-grid store');
@@ -172,7 +177,7 @@ const Locker = (() => {
       row.appendChild(t);
     }
     p.appendChild(row);
-    p.appendChild(el('div', 'sub st-note', 'Every card has a skin at every rarity, Battle-Worn up to a named Mythic. They aren’t sold outright: a few rotate through today’s shop, the rest come from crates. A duplicate pays back 30% of its value. Finish every weekly order for a free Field Crate.'));
+    p.appendChild(el('div', 'sub st-note', 'Every card has a skin at every rarity, Battle-Worn up to a named Mythic. Crates are the cheap way to find them; a few rotate through today’s shop, and any of them can be bought outright from the Locker. A duplicate pays back 30% of its value. Finish every weekly order for a free Field Crate.'));
   }
   function openCrate(id, btn) {
     const free = id === 'field' && profile.freeCrates > 0;
@@ -210,6 +215,36 @@ const Locker = (() => {
     });
   }
 
+  // ── something new is yours: it bursts out of a flash, rays turning behind it, and you can wear it straight away ──
+  function unlock(o) {
+    const it = o.item && C.ITEMS[o.item], f = o.faction && E.FACTIONS[o.faction];
+    if (!it && !f) return;
+    document.querySelectorAll('.unlock-fx').forEach(x => x.remove());
+    const r = it ? rar(it.id) : { name: 'Faction', color: '#ffc53d' }, big = !it || ['epic', 'legendary', 'mythic'].includes(it.rarity);
+    const w = el('div', 'unlock-fx' + (big ? ' big' : '')); w.style.setProperty('--rc', r.color);
+    const stage = el('div', 'ul-stage', '<div class="ul-rays"></div><div class="ul-ring"></div><div class="ul-ring two"></div>');
+    const prev = el('div', 'ul-prev' + (it ? ' s-' + it.slot : ' s-faction'));
+    if (f) prev.innerHTML = `<img src="${Art.iconURL('glyph', f.glyph, '#ffc53d', 160)}" alt="">`;
+    else if (it.slot === 'territory' || it.slot === 'border' || it.slot === 'trim') { const cv = el('canvas'); cv.width = 520; cv.height = 340; Skins.preview(cv, it.slot, it.id, '#36a3ff'); prev.appendChild(cv); }
+    else if (it.slot === 'banner') prev.appendChild(el('div', 'pchip demo bn-' + it.id, `<div class="pn">${esc((profile && profile.name) || 'Commander')}</div><div class="ps"><span>⬢ <b>24</b></span><span>$<b>31</b></span></div>`));
+    else prev.appendChild(Cards.make(it.card, { variant: it.variant }));
+    stage.appendChild(prev);
+    for (let i = 0; i < (big ? 26 : 16); i++) { const s = el('i', 'ul-spark'); s.style.setProperty('--a', (i * 360 / (big ? 26 : 16) + Math.random() * 10) + 'deg'); s.style.setProperty('--d', (150 + Math.random() * 140) + 'px'); s.style.setProperty('--dl', (0.18 + Math.random() * 0.15) + 's'); stage.appendChild(s); }
+    w.appendChild(stage);
+    const what = it ? (it.slot === 'card' ? 'Card version' : C.SLOTS[it.slot].replace(/s$/, '')) : f.perk;
+    w.appendChild(el('div', 'ul-text', `<div class="ul-kicker">UNLOCKED</div><h2>${esc(it ? it.name : f.name)}</h2><div class="ul-rar"><b>${esc(it ? r.name : 'New faction')}</b> · ${esc(what)}</div>`));
+    const btns = el('div', 'ul-btns');
+    const close = () => { w.classList.add('gone'); setTimeout(() => w.remove(), 250); document.removeEventListener('keydown', key, true); };
+    const key = e => { if (e.key === 'Escape' || e.key === 'Enter') { e.stopPropagation(); close(); } };
+    if (it && !isOn(it)) { const eq = el('button', 'btn gold', 'EQUIP NOW'); eq.onclick = () => { SFX.select(); send({ t: 'equip', slot: it.slot, item: it.id }); close(); }; btns.appendChild(eq); }
+    const ok = el('button', 'btn', f ? 'NICE' : 'CONTINUE'); ok.onclick = () => { SFX.click(); close(); }; btns.appendChild(ok);
+    w.appendChild(btns);
+    document.addEventListener('keydown', key, true);
+    w.onclick = e => { if (e.target === w) close(); };
+    document.body.appendChild(w);
+    if (!it || ['legendary', 'mythic'].includes(it.rarity)) SFX.legendary(); else if (big || it.rarity === 'rare') SFX.rare(); else SFX.coin(6);
+  }
+
   // ── after a game: what you earned ──
   function reward(r) {
     const lines = [];
@@ -237,5 +272,5 @@ const Locker = (() => {
     setTimeout(() => b.classList.add('gone'), 7000); setTimeout(() => b.remove(), 7600);
     b.onclick = () => b.remove();
   }
-  return { init, identity, setIdentity, newIdentity, ref, set, show, variant, bannerClass, reward, boxOpened, get profile() { return profile; } };
+  return { init, identity, setIdentity, newIdentity, ref, set, show, unlock, variant, bannerClass, reward, boxOpened, get profile() { return profile; } };
 })();
