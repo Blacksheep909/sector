@@ -220,8 +220,9 @@ const warNotes = {};
 function sendNotes() {
   if (!game) return;
   for (const c of clients) {
-    if (c.left) continue; const seat = seatFor(c); if (!seat) { send(c, { t: 'notes', notes: [] }); continue; }
+    if (c.left) continue; const seat = seatFor(c); if (!seat) { if (c.notesSig !== '[]') { c.notesSig = '[]'; send(c, { t: 'notes', notes: [] }); } continue; }
     const notes = Object.keys(warNotes).filter(pid => pid === seat || E.isAlly(game, seat, pid)).map(pid => ({ pid, shapes: warNotes[pid] }));
+    const sig = JSON.stringify(notes); if (sig === c.notesSig) continue; c.notesSig = sig;   // unchanged marks aren't re-sent
     send(c, { t: 'notes', notes });
   }
 }
@@ -582,7 +583,7 @@ function endGame() {
   console.log('[game] returned to lobby');
   // ending a war early keeps it saved, so it can be resumed from the lobby
   if (game && game.phase === 'play') writeSave(); else clearTimeout(saveTimer);
-  for (const k in warNotes) delete warNotes[k];
+  for (const k in warNotes) delete warNotes[k]; for (const c of clients) c.notesSig = null;
   game = null; clearTimeout(botTimer); clearTimeout(turnTimer); clearTimeout(idleTimer);
   for (const p of lobby.players) p.ready = false;   // everyone readies up again for the next war
   for (const c of clients) send(c, { t: 'state', state: null, events: [] });

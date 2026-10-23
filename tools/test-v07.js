@@ -108,8 +108,9 @@ const play = (s, a) => E.applyAction(s, me(s).id, a);
 { // sea mines: build on your own sea, block enemy ships, defend like a bunker
   const s = game('ocean'); const p = me(s), o = s.players.find(q => q.id !== p.id); p.cash = 99;
   const sup = E.supplySet(s, p.id);
-  const w = Object.keys(s.map.tiles).find(k => E.isWater(s.map.tiles[k]) && sup.has(k) && !(s.map.tiles[k].structs || []).length && !Object.values(s.units).some(u => u.hex === k))
-    || (() => { const k = Object.keys(s.map.tiles).find(k => E.isWater(s.map.tiles[k]) && E.neighbors(k).some(n => sup.has(n)) && !Object.values(s.units).some(u => u.hex === k)); s.map.tiles[k].owner = p.id; return k; })();
+  const freeSea = k => s.map.tiles[k] && E.isWater(s.map.tiles[k]) && !Object.values(s.units).some(u => u.hex === k);
+  const w = Object.keys(s.map.tiles).find(k => E.isWater(s.map.tiles[k]) && sup.has(k) && !(s.map.tiles[k].structs || []).length && freeSea(k) && E.neighbors(k).some(freeSea))   // (the enemy ship needs open sea beside it)
+    || (() => { const k = Object.keys(s.map.tiles).find(k => freeSea(k) && E.neighbors(k).some(n => sup.has(n)) && E.neighbors(k).some(freeSea)); s.map.tiles[k].owner = p.id; return k; })();
   const land = [...sup].find(k => E.isLandTile(s.map.tiles[k]) && !(s.map.tiles[k].structs || []).length);
   ok(E.buildError(s, p.id, 'mine', land) !== null, 'mines cannot go on land');
   const r = play(s, { a: 'build', struct: 'mine', hex: w }); ok(r.ok, 'build a sea mine ' + (r.err || ''));
