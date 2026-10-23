@@ -51,7 +51,7 @@ function createProfiles(file, opts = {}) {
     const store = C.dailyStore();
     return {
       name: p.name || null, coins: p.coins, scenarios: p.scenarios || [], owned: p.owned, equipped: p.equipped, cards: p.cards, refCode: p.refCode, recruits: p.recruits, earnedToday: p.earned.amount, daySoft: C.DAY_SOFT,
-      daily: objList(C.dailyObjectives(), p.day), weekly: objList(C.weeklyObjectives(), p.week),
+      daily: objList(C.dailyObjectives(), p.day), weekly: objList(C.weeklyObjectives(), p.week), weeklyCrate: !!p.week.crate, freeCrates: p.freeCrates || 0,
       store: { day: store.day, items: store.items, endsIn: C.msToNextDay() },
     };
   }
@@ -90,6 +90,8 @@ function createProfiles(file, opts = {}) {
     for (const k in add) { p.day.stats[k] = (p.day.stats[k] || 0) + add[k]; p.week.stats[k] = (p.week.stats[k] || 0) + add[k]; p.total[k] = (p.total[k] || 0) + add[k]; }
     for (const [list, period] of [[C.dailyObjectives(), p.day], [C.weeklyObjectives(), p.week]])
       for (const o of list) if (!period.done.includes(o.id) && (period.stats[o.stat] || 0) >= o.need) { period.done.push(o.id); p.coins += o.coins; out.objectives.push({ text: o.text, coins: o.coins }); }
+    // every weekly order done: a Field Crate, once a week, kept unopened until they open it in the Store
+    if (!p.week.crate && C.weeklyObjectives().every(o => p.week.done.includes(o.id))) { p.week.crate = true; p.freeCrates = (p.freeCrates || 0) + 1; out.crate = 'field'; }
     // a recruit's first finished game pays both sides
     if (p.referredBy && !p.refPaid) {
       const ref = db[p.referredBy];
@@ -100,10 +102,13 @@ function createProfiles(file, opts = {}) {
     return out;
   }
   // open a crate: pay, roll, keep it (or take a refund on a duplicate)
-  function openBox(p, boxId) {
+  // free: open one of the Field Crates earned from weekly orders instead of paying
+  function openBox(p, boxId, free) {
     const B = C.BOXES[boxId]; if (!B) return { err: 'No such crate' };
-    if (p.coins < B.price) return { err: 'Need ' + B.price + ' Valor' };
-    const r = C.rollBox(boxId, p.owned); p.coins -= B.price;
+    if (free) { if (boxId !== 'field' || !(p.freeCrates > 0)) return { err: 'No free crate to open' }; }
+    else if (p.coins < B.price) return { err: 'Need ' + B.price + ' Valor' };
+    const r = C.rollBox(boxId, p.owned);
+    if (free) p.freeCrates--; else p.coins -= B.price;
     if (r.dup) p.coins += r.refund; else p.owned.push(r.item);
     p.crates = (p.crates || 0) + 1; save();
     return r;
