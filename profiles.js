@@ -83,12 +83,12 @@ function createProfiles(file, opts = {}) {
     p.equipped[slot] = itemId; save();
     return null;
   }
-  // a finished match: coins (with diminishing returns over the day), stats, objectives, and the referral payout
+  // a finished match: coins (with diminishing returns over the day), stats and objectives
   function finishGame(p, r) {
     roll(p);
     const m = C.matchCoins(r), match = C.diminish(m.base, p.earned.amount);
     p.earned.amount += match; p.coins += match;
-    const out = { match, base: m.base, why: m.why || null, objectives: [], referral: 0 };
+    const out = { match, base: m.base, why: m.why || null, objectives: [] };
     if (r.rounds < 6) { save(); return out; }
     const add = { games: 1, wins: r.won ? 1 : 0, kills: r.kills || 0, captured: r.captured || 0, crates: r.crates || 0 };
     for (const k in add) { p.day.stats[k] = (p.day.stats[k] || 0) + add[k]; p.week.stats[k] = (p.week.stats[k] || 0) + add[k]; p.total[k] = (p.total[k] || 0) + add[k]; }
@@ -96,12 +96,6 @@ function createProfiles(file, opts = {}) {
       for (const o of list) if (!period.done.includes(o.id) && (period.stats[o.stat] || 0) >= o.need) { period.done.push(o.id); p.coins += o.coins; out.objectives.push({ text: o.text, coins: o.coins }); }
     // every weekly order done: a Field Crate, once a week, kept unopened until they open it in the Store
     if (!p.week.crate && C.weeklyObjectives().every(o => p.week.done.includes(o.id))) { p.week.crate = true; p.freeCrates = (p.freeCrates || 0) + 1; out.crate = 'field'; }
-    // a recruit's first finished game pays both sides
-    if (p.referredBy && !p.refPaid) {
-      const ref = db[p.referredBy];
-      p.refPaid = true; p.coins += WELCOME_COINS; out.referral = WELCOME_COINS;
-      if (ref) { ref.coins += REF_COINS; ref.recruits = (ref.recruits || 0) + 1; if (ref.recruits >= RECRUITER_AT && !ref.owned.includes('n-recruiter')) ref.owned.push('n-recruiter'); }
-    }
     save();
     return out;
   }
@@ -175,8 +169,18 @@ function createProfiles(file, opts = {}) {
     const rec = { id: uid, name: info.name ? String(info.name).slice(0, 40) : null, email: info.email ? String(info.email).slice(0, 80) : null, at: Date.now() };
     if (other) { other.links[provider] = rec; save(); return { profile: other, switched: !cur || other.id !== cur.id }; }
     if (!cur) return null;
-    cur.links = cur.links || {}; cur.links[provider] = rec; save();
-    return { profile: cur, switched: false };
+    cur.links = cur.links || {}; cur.links[provider] = rec;
+    const referral = payReferral(cur); save();
+    return { profile: cur, switched: false, referral };
+  }
+  // a recruit (joined with a friend's link) who makes an account pays both sides, once. Each Google or Discord login
+  // belongs to one commander, so every payout needs a real account of its own
+  function payReferral(p) {
+    if (!p.referredBy || p.refPaid) return 0;
+    const ref = db[p.referredBy];
+    p.refPaid = true; p.coins += WELCOME_COINS;
+    if (ref) { ref.coins += REF_COINS; ref.recruits = (ref.recruits || 0) + 1; if (ref.recruits >= RECRUITER_AT && !ref.owned.includes('n-recruiter')) ref.owned.push('n-recruiter'); }
+    return WELCOME_COINS;
   }
   // a key for one more device (a browser that just signed in); the commander's other keys keep working
   function addDevice(p) { const s = crypto.randomBytes(24).toString('hex'); p.devices = (p.devices || []).concat(hash(s)).slice(-20); save(); return s; }

@@ -10,9 +10,10 @@ const g = { won: true, place: 1, players: 4, rounds: 20, kills: 10, captured: 40
 const pays = []; for (let i = 0; i < 8; i++) pays.push(P.finishGame(a, g).match);
 ok(pays.every((v, i) => !i || v < pays[i - 1]) && pays[7] > 0, 'each extra match in a day pays less, but never nothing (' + pays.join(', ') + ')');
 ok(P.finishGame(a, { ...g, rounds: 3 }).match === 0, 'games under 6 rounds pay nothing');
-const before = a.coins; const r = P.finishGame(b, { ...g, won: false, place: 3 });
-ok(r.referral === 100 && a.recruits === 1 && a.coins === before + 250, 'a recruit\'s first game pays them 100 and the recruiter 250');
-ok(P.finishGame(b, g).referral === 0, 'the referral pays once');
+{ const before = a.coins; P.finishGame(b, { ...g, won: false, place: 3 }); ok(a.recruits === 0 && a.coins === before, 'a recruit playing a game pays no referral'); P.finishGame(b, g);
+  const r = P.linkAccount(b, 'google', { id: 'g-b' }); ok(r.referral === 100 && a.recruits === 1 && a.coins === before + 250, 'a recruit making an account pays them 100 and the recruiter 250');
+  P.unlink(b, 'google'); ok(!P.linkAccount(b, 'discord', { id: 'd-b' }).referral && a.recruits === 1, 'the referral pays once'); }
+ok(!P.linkAccount(a, 'google', { id: 'g-a' }).referral, 'no referral without a recruit link');
 const off = Object.keys(C.ITEMS).find(id => C.ITEMS[id].slot === 'territory' && C.ITEMS[id].buy !== false && !C.dailyStore().items.includes(id));
 a.coins = C.ITEMS[off].price * 3 - 1; ok(P.buy(a, off).startsWith('Need'), 'out of rotation it costs 3× its shop price');
 a.coins = C.ITEMS[off].price * 3; ok(!P.buy(a, off) && a.coins === 0 && a.owned.includes(off), 'and you can buy it at that price any day');
