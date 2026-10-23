@@ -22,6 +22,10 @@ a.coins = 5000; { const card = Object.keys(C.ITEMS).find(id => C.ITEMS[id].slot 
 { const before = a.coins, r = P.openBox(a, 'field'); ok(!r.err && C.ITEMS[r.item].slot === 'card' && a.owned.includes(r.item) && a.coins === before - 300, 'a Field Crate costs 300 and hands over a card skin'); }
 { let mythic = 0, n = 4000, x = 1; const rng = () => (x = (x * 16807) % 2147483647) / 2147483647; for (let i = 0; i < n; i++) if (C.rollBox('field', [], rng).rarity === 'mythic') mythic++; ok(mythic > 0 && mythic < n * 0.006, 'Mythic skins are rare from a Field Crate (' + mythic + '/' + n + ')'); }
 { const all = Object.keys(C.ITEMS).filter(id => C.ITEMS[id].slot === 'card'), r = C.rollBox('elite', all); ok(r.dup && r.refund === Math.round(C.ITEMS[r.item].price * 0.3), 'a duplicate pays back 30%'); }
+{ const w = P.open('c'.repeat(32), 'u'.repeat(20), 'W'); let got = 0; for (let i = 0; i < 14; i++) got += P.finishGame(w, { ...g, won: true, kills: 20, captured: 60 }).crate === 'field';
+  ok(got === 1 && w.freeCrates === 1 && P.view(w).weeklyCrate, 'finishing every weekly order earns one Field Crate a week');
+  const c0 = w.coins, r = P.openBox(w, 'field', true); ok(!r.err && w.freeCrates === 0 && w.coins === c0 + (r.dup ? r.refund : 0), 'the earned crate opens free');
+  ok(P.openBox(w, 'field', true).err && P.openBox(w, 'elite', true).err, 'and only once, and only as a Field Crate'); }
 a.cards = {}; a.owned.push('c-grunt-foil');
 ok(P.equip(a, 'territory', 't-usa') === 'Not yours', 'you can only wear what you own');
 ok(!P.equip(a, 'card', 'c-grunt-foil') && a.cards.grunt === 'foil' && !P.equip(a, 'card', 'c-grunt-foil') && !a.cards.grunt, 'equipping a card version twice takes it off');

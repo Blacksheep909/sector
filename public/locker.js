@@ -1,11 +1,12 @@
-/* SECTOR — the Locker (your skins), the Store (today's rotation), coins, objectives and match rewards.
+/* SECTOR — the Locker (your skins), the Store (today's shop and crates), Orders (objectives), Valor and match rewards.
    The server owns the profile: this only shows it and asks for buys and equips. */
 const Locker = (() => {
   const C = SectorCosmetics, E = SectorEngine;
   const $ = s => document.querySelector(s);
   const el = (tag, cls, html) => { const e = document.createElement(tag); if (cls) e.className = cls; if (html !== undefined) e.innerHTML = html; return e; };
   const esc = s => String(s).replace(/[&<>"]/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;' })[c]);
-  let profile = null, send = () => {}, open = null;   // open: 'locker' | 'store' | null
+  let profile = null, send = () => {}, open = null;   // open: 'locker' | 'store' | 'orders' | null
+  let storeTab = 'shop';
   let tab = 'territory', cardFilter = 'owned', search = '';
 
   // this device's profile key (until accounts arrive, the browser holds it)
@@ -24,7 +25,7 @@ const Locker = (() => {
     try { const r = new URLSearchParams(location.search).get('ref'); if (r) localStorage.setItem('sector.ref', r); return r || localStorage.getItem('sector.ref'); } catch (e) { return null; }
   }
   function init(o) { send = o.send; }
-  function set(p) { profile = p; pill(); if (open === 'locker') drawLocker(); if (open === 'store') drawStore(); }
+  function set(p) { profile = p; pill(); if (open === 'locker') drawLocker(); if (open === 'store') drawStore(); if (open === 'orders') drawOrders(); }
   const owns = id => !!profile && profile.owned.includes(id);
   const variant = cardId => (profile && profile.cards && profile.cards[cardId]) || null;
   const bannerClass = cos => cos && cos.banner ? ' bn-' + cos.banner : '';
@@ -37,7 +38,7 @@ const Locker = (() => {
       $('#menu').appendChild(p);
     }
     p.innerHTML = profile
-      ? `<i class="vm"></i><b>${profile.coins.toLocaleString()}</b><button class="btn tiny" data-o="locker">LOCKER</button><button class="btn tiny gold" data-o="store">STORE</button>`
+      ? `<i class="vm"></i><b>${profile.coins.toLocaleString()}</b><button class="btn tiny" data-o="locker">LOCKER</button><button class="btn tiny${ordersReady() ? ' ping' : ''}" data-o="orders">ORDERS</button><button class="btn tiny gold${profile.freeCrates ? ' ping' : ''}" data-o="store">STORE</button>`
       : `<span class="sub">Enlist to load your skins</span>`;
     p.querySelectorAll('[data-o]').forEach(b => b.onclick = () => { SFX.select(); show(b.dataset.o); });
   }
@@ -53,7 +54,9 @@ const Locker = (() => {
     p.querySelector('#lkClose').onclick = close; m.onclick = e => { if (e.target === m) close(); };
     return p;
   }
-  function show(which) { if (!profile) return; open = which; which === 'store' ? drawStore() : drawLocker(); }
+  function show(which) { if (!profile) return; open = which; which === 'store' ? drawStore() : which === 'orders' ? drawOrders() : drawLocker(); }
+  // the weekly crate is one order away
+  const ordersReady = () => !!profile && !profile.weeklyCrate && profile.weekly.filter(o => !o.done).length === 1;
   const rar = id => C.ITEMS[id] ? E.RARITY[C.ITEMS[id].rarity] : E.RARITY.common;
 
   // a tile: preview, name, and what you can do with it
@@ -110,62 +113,71 @@ const Locker = (() => {
   }
   function toastish(t) { if (window.SECTOR_TOAST) window.SECTOR_TOAST(t); }
 
-  // ── the Store: today's rotation, objectives, and (later) coin packs ──
+  // ── the Store: things to spend Valor on. TODAY'S SHOP (the daily rotation) and CRATES ──
   function drawStore() {
     const p = shell('STORE');
+    p.classList.add('store-card');
+    const tabs = el('div', 'ix-tabs st-tabs');
+    for (const [k, label] of [['shop', 'TODAY’S SHOP'], ['crates', 'CRATES' + (profile.freeCrates ? ` <span class="st-free">${profile.freeCrates} FREE</span>` : '')]]) {
+      const b = el('button', 'btn' + (storeTab === k ? ' on' : ''), label); b.onclick = () => { storeTab = k; SFX.click(); drawStore(); }; tabs.appendChild(b);
+    }
+    p.appendChild(tabs);
+    if (storeTab === 'crates') return drawCrates(p);
     const ends = Date.now() + profile.store.endsIn, left = () => { const ms = Math.max(0, ends - Date.now()), h = Math.floor(ms / 3.6e6), m = Math.floor(ms / 6e4) % 60; return h + 'h ' + String(m).padStart(2, '0') + 'm'; };
-    const head = el('div', 'st-head', `<b>TODAY’S STORE</b><span class="sub">new items in <i>${left()}</i></span>`);
+    const head = el('div', 'st-head', `<b>TODAY’S SHOP</b><span class="sub">new items in <i>${left()}</i></span>`);
     p.appendChild(head);
     const tick = setInterval(() => { if (!document.contains(head)) return clearInterval(tick); head.querySelector('i').textContent = left(); }, 30000);
     const grid = el('div', 'lk-grid store');
     for (const id of profile.store.items) grid.appendChild(tile(C.ITEMS[id], true));
     p.appendChild(grid);
-    // crates: card skins come out of these
-    const crates = el('div', 'st-crates', '<h3>CRATES</h3>');
-    const row2 = el('div', 'st-crate-row');
-    for (const [id, B] of Object.entries(C.BOXES)) {
-      const odds = Object.entries(B.odds).map(([r, w]) => `<span style="color:${E.RARITY[r].color}">${E.RARITY[r].name} ${w}%</span>`).join(' · ');
-      const t = el('div', 'st-crate c-' + id, `<div class="crate-art">${crateSVG(id)}</div><div class="crate-info"><b>${esc(B.name)}</b><div class="sub">${esc(B.desc)}</div><div class="crate-odds">${odds}</div></div>`);
-      const btn = el('button', 'btn gold', 'OPEN · <i class="vm"></i>' + B.price.toLocaleString()); btn.disabled = profile.coins < B.price;
-      btn.onclick = () => { SFX.coin(4); btn.disabled = true; send({ t: 'openBox', box: id }); };
-      t.appendChild(btn); row2.appendChild(t);
-    }
-    crates.appendChild(row2); crates.appendChild(el('div', 'sub st-note', 'Card skins aren’t sold outright: a few rotate through today’s store, the rest come from crates. A duplicate pays back 30% of its value.'));
-    p.appendChild(crates);
-    const obj = el('div', 'st-obj');
-    const row = o => `<div class="ob${o.done ? ' done' : ''}"><span>${esc(o.text)}</span><div class="bar"><i style="width:${Math.round(o.have / o.need * 100)}%"></i></div><b>${o.done ? '✔' : o.have + '/' + o.need}</b><em><i class="vm"></i>${o.coins}</em></div>`;
-    obj.innerHTML = `<div><h3>DAILY</h3>${profile.daily.map(row).join('')}</div><div><h3>WEEKLY</h3>${profile.weekly.map(row).join('')}</div>`
-      + `<div class="sub st-note">Matches pay Valor too: more for winning and fighting well. The more you've earned today (<i class="vm"></i>${profile.earnedToday.toLocaleString()} so far), the less each extra match adds, so play when you like without grinding.</div>`;
-    p.appendChild(obj);
     p.appendChild(el('div', 'st-packs', '<h3>VALOR PACKS</h3><div class="sub">Buying Valor arrives with accounts. Everything in the store is looks only: nothing you can buy changes the game.</div>'));
   }
-
-  // ── crates ──
-  function crateSVG(id) {
-    const gold = id === 'elite';
-    return `<svg viewBox="0 0 100 80"><defs><linearGradient id="cr${id}" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="${gold ? '#5a4a8a' : '#6b5a3a'}"/><stop offset="1" stop-color="${gold ? '#2a1f4a' : '#3a2e1c'}"/></linearGradient></defs>
-      <rect x="10" y="30" width="80" height="44" rx="5" fill="url(#cr${id})" stroke="#0b0f13" stroke-width="3"/><path d="M8 22h84v14H8z" fill="${gold ? '#7a68b8' : '#8a7448'}" stroke="#0b0f13" stroke-width="3"/>
-      <rect x="44" y="18" width="12" height="24" rx="2" fill="${gold ? '#ffc53d' : '#c9b27a'}" stroke="#0b0f13" stroke-width="2.5"/><path d="M14 52h72" stroke="rgba(0,0,0,.35)" stroke-width="3"/>
-      <text x="50" y="66" text-anchor="middle" font-family="sans-serif" font-weight="900" font-size="11" fill="${gold ? '#ffc53d' : '#e8d9b0'}">${gold ? '★ ELITE ★' : 'FIELD'}</text></svg>`;
+  // card skins come out of these
+  function drawCrates(p) {
+    const row = el('div', 'crate-row');
+    for (const [id, B] of Object.entries(C.BOXES)) {
+      const free = id === 'field' && profile.freeCrates > 0;
+      const t = Crates.shelf(id, B, free ? `FREE <small>(${profile.freeCrates})</small>` : '<i class="vm"></i>' + B.price.toLocaleString(), free || profile.coins >= B.price, btn => openCrate(id, btn));
+      if (free) t.classList.add('has-free');
+      row.appendChild(t);
+    }
+    p.appendChild(row);
+    p.appendChild(el('div', 'sub st-note', 'Every card has a skin at every rarity, Battle-Worn up to a named Mythic. They aren’t sold outright: a few rotate through today’s shop, the rest come from crates. A duplicate pays back 30% of its value. Finish every weekly order for a free Field Crate.'));
   }
-  // the server rolled it: shake, burst open in the rarity's colour, and turn the card over
+  function openCrate(id, btn) {
+    const free = id === 'field' && profile.freeCrates > 0;
+    if (!free && profile.coins < C.BOXES[id].price) return SFX.error && SFX.error();
+    SFX.coin(4); if (btn) btn.disabled = true;
+    send({ t: 'openBox', box: id, free });
+  }
+
+  // ── Orders: the daily and weekly objectives (what you're working toward, apart from what you buy) ──
+  function drawOrders() {
+    const p = shell('ORDERS');
+    p.classList.add('orders-card');
+    const row = o => `<div class="ob${o.done ? ' done' : ''}"><span>${esc(o.text)}</span><div class="bar"><i style="width:${Math.round(o.have / o.need * 100)}%"></i></div><b>${o.done ? '✔' : o.have + '/' + o.need}</b><em><i class="vm"></i>${o.coins}</em></div>`;
+    const h = Math.floor(Math.max(0, profile.store.endsIn) / 3.6e6);
+    const wk = profile.weekly, wDone = wk.filter(o => o.done).length;
+    const obj = el('div', 'st-obj');
+    obj.innerHTML = `<div class="or-col"><h3>DAILY <span class="sub">new in ${h}h</span></h3>${profile.daily.map(row).join('')}</div>`
+      + `<div class="or-col"><h3>WEEKLY <span class="sub">${wDone}/${wk.length} done</span></h3>${wk.map(row).join('')}`
+      + `<div class="or-crate${profile.weeklyCrate ? ' got' : ''}"><div class="or-art">${Crates.svg('field')}</div><div class="or-txt"><b>${profile.weeklyCrate ? '✔ Field Crate earned this week' : 'Complete every weekly order'}</b><div class="sub">${profile.weeklyCrate ? (profile.freeCrates ? 'It’s waiting for you in Store → Crates.' : 'New orders arrive next week.') : 'Reward: a free <b>Field Crate</b>, on top of each order’s Valor.'}</div></div>`
+      + (profile.freeCrates ? `<button class="btn tiny gold" id="orOpen">OPEN IT</button>` : '') + `</div></div>`
+      + `<div class="sub st-note">Matches pay Valor too: more for winning and fighting well. The more you've earned today (<i class="vm"></i>${profile.earnedToday.toLocaleString()} so far), the less each extra match adds, so play when you like without grinding.</div>`;
+    p.appendChild(obj);
+    const ob = obj.querySelector('#orOpen'); if (ob) ob.onclick = () => { storeTab = 'crates'; show('store'); };
+  }
+
+  // the server rolled it: play the opening, then offer another
   function boxOpened(m) {
     set(m.profile);
-    const it = C.ITEMS[m.item], R = E.RARITY[it.rarity], B = C.BOXES[m.box];
-    let v = $('#crateOpen'); if (v) v.remove();
-    v = el('div', '', ''); v.id = 'crateOpen'; v.style.setProperty('--rc', R.color); document.body.appendChild(v);
-    v.innerHTML = `<div class="co-stage"><div class="co-rays"></div><div class="co-crate">${crateSVG(m.box)}</div><div class="co-card"></div></div><div class="co-label"></div><button class="btn big" id="coDone" hidden>NICE</button>`;
-    const crate = v.querySelector('.co-crate'), slot = v.querySelector('.co-card'), label = v.querySelector('.co-label');
-    SFX.whoosh();
-    setTimeout(() => { crate.classList.add('shake'); SFX.click(); }, 300);
-    setTimeout(() => { crate.classList.add('shake2'); SFX.chip(4); }, 900);
-    setTimeout(() => {
-      crate.classList.add('burst'); v.classList.add('open'); SFX.boom && SFX.boom(0.6);
-      ['mythic', 'legendary'].includes(it.rarity) ? SFX.legendary() : SFX.rare();
-      const card = Cards.make(it.card, { variant: it.variant }); card.classList.add('co-flip'); slot.appendChild(card);
-      label.innerHTML = `<div class="co-rar" style="color:${R.color}">${R.name.toUpperCase()}</div><b>${esc(it.name)}</b>${m.dup ? `<div class="sub">Already yours: <i class="vm"></i>${m.refund} back</div>` : '<div class="sub">Added to your Locker</div>'}`;
-      const d = $('#coDone'); d.hidden = false; d.onclick = () => { v.remove(); if (open === 'store') drawStore(); };
-    }, 1500);
+    const it = C.ITEMS[m.item], B = C.BOXES[m.box];
+    const free = m.box === 'field' && profile.freeCrates > 0, can = free || profile.coins >= B.price;
+    Crates.open(m, it, Cards.make(it.card, { variant: it.variant }), {
+      again: can ? () => openCrate(m.box) : null,
+      againLabel: free ? 'FREE' : '<i class="vm"></i>' + B.price.toLocaleString(),
+      done: () => { if (open === 'store') drawStore(); },
+    });
   }
 
   // ── after a game: what you earned ──
@@ -174,8 +186,10 @@ const Locker = (() => {
     if (r.match) lines.push(`Match · <b><i class="vm"></i>${r.match}</b>` + (r.base > r.match ? ` <span class="sub">(<i class="vm"></i>${r.base} before today's tapering)</span>` : ''));
     else if (r.why) lines.push(`<span class="sub">${esc(r.why)}</span>`);
     for (const o of r.objectives || []) lines.push(`✔ ${esc(o.text)} · <b><i class="vm"></i>${o.coins}</b>`);
+    if (r.crate) lines.push(`🎁 Every weekly order done · <b>free Field Crate</b> <span class="sub">(open it in Store → Crates)</span>`);
     if (r.referral) lines.push(`🎖 Welcome bonus for joining with a friend's link · <b><i class="vm"></i>${r.referral}</b>`);
     if (!lines.length) return;
+    if (r.crate) setTimeout(() => SFX.legendary && SFX.legendary(), 900);
     const total = (r.match || 0) + (r.objectives || []).reduce((a, o) => a + o.coins, 0) + (r.referral || 0);
     const b = el('div', 'reward-pop', `<h3>VALOR EARNED</h3><div class="rw-total"><i class="vm big"></i><b>+0</b></div>${lines.map((l, i) => `<div style="animation-delay:${0.25 + i * 0.18}s">${l}</div>`).join('')}`);
     document.body.appendChild(b);
