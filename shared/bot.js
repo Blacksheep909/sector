@@ -92,15 +92,20 @@ function planAssault(s, pid, idx, K, strat, mem) {
     const isHQ = tt.struct && tt.struct.type === 'hq' && tt.owner !== pid;
     const prize = 6 + stackValue(defs) * 1.2 + (isHQ ? 90 : 0) + (tt.struct ? 6 : 0) + (tt.res ? 3 : 0) + (!tt.owner && ['village', 'silo'].includes(tt.poi) ? 10 : 0) + (tt.owner && tt.owner === strat.target ? 6 : 0) + (p && p.vengeance && p.vengeance.vs === tt.owner ? 8 : 0);
     // strongest contributors first; add stacks until the odds are good enough (or we run out of stacks we're allowed to mass)
-    const list = by[t].slice().sort((a, b) => stackValue(b.units) - stackValue(a.units)).slice(0, 4);
-    const used = [];
+    // and combined arms: a stack that brings a kind of unit the blow doesn't have yet (troops, armour, air) is worth more
+    const list = by[t].slice().sort((a, b) => stackValue(b.units) - stackValue(a.units)).slice(0, 5);
+    const used = [], kinds = new Set();
+    const kindsOf = st => st.units.filter(u => E.UNITS[u.type].atk > 0).map(u => E.UNITS[u.type].cls);
+    const worth = st => stackValue(st.units) * (1 + 0.6 * new Set(kindsOf(st).filter(k => !kinds.has(k))).size);
     let calc = null;
-    for (const st of list) {
-      if (used.length >= K.combo) break;
-      used.push(st);
+    while (used.length < K.combo) {
+      const left = list.filter(st => !used.includes(st)); if (!left.length) break;
+      const st = left.reduce((x, y) => worth(y) > worth(x) ? y : x);
+      used.push(st); for (const k of kindsOf(st)) kinds.add(k);
       const stages = used.map(u => E.pathTo(u.reach, t).slice(-2)[0]);
       calc = E.combatCalc(s, pid, used.flatMap(u => u.units), stages, t, false, idx);
-      if (calc.winProb >= Math.max(K.attack, 0.85)) break;
+      // good enough odds: stop, unless another stack nearby would add a new kind of unit to the blow
+      if (calc.winProb >= Math.max(K.attack, 0.85) && !list.some(x => !used.includes(x) && kindsOf(x).some(k => !kinds.has(k)))) break;
     }
     if (!calc) continue;
     const need = isHQ ? K.attack - 0.15 : K.attack;
