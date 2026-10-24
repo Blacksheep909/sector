@@ -886,27 +886,32 @@ const Art = (() => {
         c.moveTo(-0.2, -0.84); c.lineTo(0.2, -0.84); c.lineTo(0.2, -0.8); c.lineTo(-0.2, -0.8); c.closePath();
       }, SH2);
     },
-    // Mi-28 Havoc: a hulking, drooping armoured nose, flat-paned cockpits, big chin cannon, B-8 rocket pods, tall wheeled gear
+    // Mi-28 Havoc, side-on: a slim armoured body with stepped flat-paned cockpits (gunner low in front, pilot raised behind),
+    // a nose that drops to a big chin cannon, an engine hump under the rotor, stub wings with a rocket pod and missile tubes,
+    // a long thin tail boom with a tall fin, and a tail wheel
     ravager(c) {
-      blur(c, () => { rr(c, -1.04, -0.8, 1.88, 0.07, 0.03); c.fill(); });
-      rr(c, -0.2, -0.78, 0.1, 0.22, 0.02); c.fill();
-      rr(c, -0.6, -0.62, 0.74, 0.22, 0.08); c.fill();
-      poly(c, [-0.64, -0.5, -0.78, -0.42, -0.78, -0.3, -0.62, -0.36]); c.fill();             // exhaust bent down
-      c.beginPath(); c.moveTo(-0.7, -0.4); c.lineTo(0.0, -0.42); c.lineTo(0.08, -0.66); c.lineTo(0.42, -0.66); c.lineTo(0.5, -0.46); c.lineTo(0.7, -0.44);
-      c.quadraticCurveTo(1.02, -0.3, 1.0, 0.04); c.quadraticCurveTo(0.96, 0.28, 0.7, 0.26); c.lineTo(-0.5, 0.18); c.quadraticCurveTo(-0.7, 0.1, -0.7, -0.4); c.closePath(); c.fill();
-      poly(c, [-0.68, -0.36, -1.06, -0.3, -1.06, -0.2, -0.62, 0.02]); c.fill();
-      poly(c, [-1.02, -0.26, -1.12, -0.7, -0.98, -0.7, -0.9, -0.26]); c.fill(); rr(c, -1.14, -0.24, 0.3, 0.06, 0.02); c.fill();
-      tailRotor(c, -1.05, -0.54, 0.16);
-      rr(c, -0.4, 0.0, 0.78, 0.09, 0.03); c.fill();                                           // stub wing
-      for (const x of [-0.3, 0.12]) { rr(c, x, 0.08, 0.34, 0.2, 0.09); c.fill(); }            // fat rocket pods
-      rr(c, 0.68, 0.22, 0.16, 0.16, 0.05); c.fill(); rr(c, 0.72, 0.3, 0.42, 0.08, 0.02); c.fill();   // 30mm cannon, long and low
-      c.lineWidth = 0.08; c.strokeStyle = c.fillStyle; c.beginPath(); c.moveTo(0.42, 0.2); c.lineTo(0.46, 0.5); c.moveTo(-0.3, 0.16); c.lineTo(-0.34, 0.5); c.stroke();
-      hub(c, 0.46, 0.56, 0.13); hub(c, -0.34, 0.56, 0.13);
+      blur(c, () => { rr(c, -1.02, -0.78, 1.9, 0.07, 0.03); c.fill(); });
+      rr(c, -0.14, -0.76, 0.1, 0.2, 0.02); c.fill();                                            // rotor mast
+      rr(c, -0.46, -0.58, 0.6, 0.18, 0.07); c.fill();                                           // engine hump
+      poly(c, [-0.46, -0.52, -0.6, -0.48, -0.6, -0.4, -0.44, -0.42]); c.fill();                 // exhaust
+      c.beginPath(); c.moveTo(-0.52, -0.4); c.lineTo(0.06, -0.42); c.lineTo(0.12, -0.6); c.lineTo(0.36, -0.6); c.lineTo(0.42, -0.4);
+      c.lineTo(0.5, -0.4); c.lineTo(0.56, -0.48); c.lineTo(0.72, -0.48); c.lineTo(0.84, -0.24); c.lineTo(0.96, -0.04);
+      c.quadraticCurveTo(0.98, 0.1, 0.84, 0.12); c.lineTo(0.0, 0.14); c.lineTo(-0.52, 0.02); c.closePath(); c.fill();
+      poly(c, [-0.5, -0.38, -1.02, -0.3, -1.02, -0.22, -0.5, -0.02]); c.fill();                // thin tail boom
+      poly(c, [-0.9, -0.28, -1.02, -0.74, -0.92, -0.74, -0.82, -0.28]); c.fill();              // fin
+      rr(c, -0.86, -0.32, 0.26, 0.05, 0.02); c.fill();                                          // stabiliser
+      tailRotor(c, -1.0, -0.56, 0.15);
+      c.lineWidth = 0.05; c.strokeStyle = c.fillStyle; c.beginPath(); c.moveTo(-0.9, -0.24); c.lineTo(-0.92, -0.08); c.stroke(); hub(c, -0.92, -0.04, 0.06);
+      poly(c, [-0.24, 0.0, 0.3, 0.0, 0.26, 0.07, -0.26, 0.07]); c.fill();                       // stub wing
+      rr(c, -0.14, 0.06, 0.38, 0.17, 0.08); c.fill();                                           // B-8 rocket pod
+      rr(c, -0.3, 0.03, 0.12, 0.13, 0.03); c.fill();                                            // Ataka tubes
+      circ(c, 0.74, 0.2, 0.09); c.fill(); poly(c, [0.76, 0.18, 1.12, 0.24, 1.12, 0.29, 0.74, 0.26]); c.fill();   // 30mm chin cannon
+      c.lineWidth = 0.07; c.beginPath(); c.moveTo(0.42, 0.12); c.lineTo(0.48, 0.44); c.stroke(); hub(c, 0.48, 0.48, 0.11);   // main gear
       shade(c, () => {
-        c.moveTo(0.52, -0.42); c.lineTo(0.7, -0.4); c.lineTo(0.8, -0.18); c.lineTo(0.54, -0.18); c.closePath();
-        c.moveTo(0.12, -0.62); c.lineTo(0.4, -0.62); c.lineTo(0.46, -0.46); c.lineTo(0.1, -0.44); c.closePath();
-        for (const x of [-0.3, 0.12]) for (const y of [0.13, 0.2]) { c.moveTo(x + 0.34, y); c.arc(x + 0.31, y, 0.028, 0, P * 2); }
-        rrp(c, -0.5, -0.1, 1.3, 0.05, 0.02);
+        c.moveTo(0.14, -0.57); c.lineTo(0.34, -0.57); c.lineTo(0.39, -0.43); c.lineTo(0.12, -0.43); c.closePath();   // pilot's panes
+        c.moveTo(0.58, -0.45); c.lineTo(0.7, -0.45); c.lineTo(0.8, -0.26); c.lineTo(0.56, -0.26); c.closePath();     // gunner's panes
+        for (const [x, y] of [[0.18, 0.11], [0.18, 0.18], [0.11, 0.145]]) { c.moveTo(x + 0.025, y); c.arc(x, y, 0.025, 0, P * 2); }   // rocket tubes
+        rrp(c, -0.46, -0.12, 1.2, 0.04, 0.02);
       }, SH2);
     },
     // UH-60 Black Hawk: a long, tall utility cabin, the big door slid open with troops inside, a door gun, fixed wheels, no weapon wings
@@ -929,22 +934,28 @@ const Art = (() => {
       }, SH2);
       for (const x of [-0.24, 0.0, 0.22]) { circ(c, x, -0.18, 0.08); c.fill(); rr(c, x - 0.08, -0.1, 0.16, 0.2, 0.04); c.fill(); }   // troops aboard
     },
-    // AC-130 Spectre, side-on: high wing and four turboprops, upswept tail and tall fin, guns firing down from the port side
+    // AC-130 Spectre, side-on: the Hercules' fat tube of a body, blunt radome nose with the flight deck on top, a high wing
+    // with turboprops hung in front of it, landing-gear blisters on the belly, an upswept tail under a tall rounded fin,
+    // and the side-firing guns poking out of the port side
     seraph(c) {
-      c.beginPath(); c.moveTo(-0.62, -0.18); c.lineTo(0.72, -0.2); c.quadraticCurveTo(1.04, -0.18, 1.04, 0.0); c.quadraticCurveTo(1.02, 0.16, 0.76, 0.18); c.lineTo(-0.3, 0.18); c.lineTo(-0.96, -0.08); c.lineTo(-0.98, -0.16); c.closePath(); c.fill();
-      poly(c, [-0.62, -0.18, -0.92, -0.78, -1.06, -0.78, -0.98, -0.12]); c.fill();             // tall fin
-      rr(c, -1.12, -0.16, 0.42, 0.06, 0.02); c.fill();                                          // tailplane
-      rr(c, -0.24, -0.3, 0.64, 0.1, 0.04); c.fill();                                            // high wing
-      for (const [x, y] of [[0.34, -0.26], [0.1, -0.3]]) { rr(c, x - 0.04, y - 0.05, 0.26, 0.12, 0.05); c.fill(); blur(c, () => { c.beginPath(); c.ellipse(x + 0.24, y, 0.04, 0.24, 0, 0, P * 2); c.fill(); }); }
-      rr(c, -0.24, 0.08, 0.5, 0.14, 0.06); c.fill();                                            // gear sponson
+      c.beginPath(); c.moveTo(-0.5, -0.28); c.lineTo(0.7, -0.28); c.quadraticCurveTo(0.82, -0.28, 0.9, -0.18);
+      c.lineTo(0.96, -0.08); c.quadraticCurveTo(1.08, 0.0, 1.04, 0.1); c.quadraticCurveTo(0.98, 0.18, 0.84, 0.18);
+      c.lineTo(-0.32, 0.18); c.lineTo(-0.9, -0.1); c.lineTo(-1.0, -0.16); c.lineTo(-0.98, -0.24); c.closePath(); c.fill();   // fuselage
+      c.beginPath(); c.moveTo(-0.56, -0.26); c.lineTo(-0.8, -0.8); c.quadraticCurveTo(-0.86, -0.9, -0.96, -0.86); c.lineTo(-1.0, -0.24); c.closePath(); c.fill();   // tall fin
+      rr(c, -1.12, -0.26, 0.42, 0.06, 0.03); c.fill();                                          // tailplane
+      rr(c, -0.26, -0.36, 0.62, 0.09, 0.04); c.fill();                                          // high wing
+      for (const [x, y] of [[0.36, -0.3], [0.16, -0.33]]) {                                     // turboprops slung in front of the wing
+        rr(c, x - 0.3, y - 0.06, 0.34, 0.12, 0.06); c.fill();
+        blur(c, () => { c.beginPath(); c.ellipse(x + 0.07, y, 0.035, 0.24, 0, 0, P * 2); c.fill(); });
+      }
+      rr(c, -0.26, 0.08, 0.56, 0.16, 0.07); c.fill();                                           // gear blister
+      hub(c, -0.12, 0.27, 0.07); hub(c, 0.14, 0.27, 0.07); hub(c, 0.86, 0.25, 0.06);
       c.lineWidth = 0.07; c.strokeStyle = c.fillStyle; c.lineCap = 'round';
-      c.beginPath(); c.moveTo(0.2, 0.12); c.lineTo(0.02, 0.54); c.moveTo(-0.06, 0.12); c.lineTo(-0.2, 0.44); c.stroke();   // 105mm and 40mm
-      c.lineWidth = 0.04; c.beginPath(); c.moveTo(0.46, 0.12); c.lineTo(0.38, 0.38); c.stroke();
-      for (const [x, y, r] of [[0.0, 0.6, 0.12], [-0.22, 0.5, 0.08]]) { c.save(); c.translate(x, y); for (let i = 0; i < 6; i++) { c.rotate(P / 3); poly(c, [0, -r, r * 0.25, 0, 0, r * 0.3, -r * 0.25, 0]); c.fill(); } c.restore(); }   // muzzle flashes
+      c.beginPath(); c.moveTo(-0.5, 0.02); c.lineTo(-0.6, 0.26); c.moveTo(0.44, 0.08); c.lineTo(0.38, 0.28); c.stroke();   // 105mm howitzer and 40mm
       shade(c, () => {
-        c.moveTo(0.78, -0.16); c.lineTo(0.94, -0.12); c.lineTo(0.98, -0.04); c.lineTo(0.8, -0.04); c.closePath();   // flight deck glass
-        rrp(c, -0.8, -0.05, 1.5, 0.04, 0.02);
-        for (const x of [0.5, 0.32, 0.14]) { c.moveTo(x + 0.04, 0.02); c.arc(x, 0.02, 0.035, 0, P * 2); }   // gun ports
+        c.moveTo(0.72, -0.24); c.lineTo(0.86, -0.2); c.lineTo(0.92, -0.1); c.lineTo(0.72, -0.1); c.closePath();   // flight deck glass
+        rrp(c, -0.84, -0.06, 1.68, 0.035, 0.015);                                                   // fuselage stripe
+        for (const x of [0.5, 0.2, -0.1, -0.4]) { c.moveTo(x + 0.035, -0.16); c.arc(x, -0.16, 0.035, 0, P * 2); }   // portholes
       }, SH2);
     },
     // M1 Abrams: long low hull with side skirts, an angular slab-sided turret with a bustle rack, a long 120mm gun, an M2 on the cupola
