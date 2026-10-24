@@ -1864,3 +1864,18 @@ body.calm .unlock-fx::after, body.calm .ul-spark { display: none; }
 .mm-row { grid-template-columns: minmax(0, 1fr) minmax(0, 1fr); }
 .mm-row > .code-in { grid-column: 1 / -1; }
 @media (max-width: 420px) { .mm-row > .btn { font-size: 13px; letter-spacing: .5px; } }
+
+/* mission result: look at the map, then come back */
+#mrMap { margin-top: 10px; }
+#mrBack { position: fixed; left: 50%; bottom: 28px; transform: translateX(-50%); z-index: 95; box-shadow: 0 8px 30px rgba(0,0,0,.5); }
+/* clouds between missions: they roll in from both sides, the next board loads behind them, then they part */
+.clouds { position: fixed; inset: 0; z-index: 500; pointer-events: none; overflow: hidden; visibility: hidden; }
+.clouds.in, .clouds.out { visibility: visible; }
+.clouds.in { pointer-events: auto; }
+.cl-side { position: absolute; top: 0; height: 100%; width: 62%; transition: transform .55s cubic-bezier(.25,.1,.25,1); }
+.cl-side.l { left: 0; transform: translateX(-112%); }
+.cl-side.r { right: 0; transform: translateX(112%) scaleX(-1); }
+.clouds.in .cl-side.l { transform: none; }
+.clouds.in .cl-side.r { transform: scaleX(-1); }
+.clouds.out .cl-side { transition-duration: .75s; transition-timing-function: cubic-bezier(.6,0,.75,.4); }
+body.calm .cl-side { transition-duration: .2s !important; }
