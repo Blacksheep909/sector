@@ -161,6 +161,10 @@ const SOLUTIONS = {
     g.fire('bas', 't1'); g.fire('thu', 't3'); g.end();
     g.fire('bas', 't2'); return g.fire('thu', 't4');
   },
+  skyshield(g) {
+    g.fire('sg', 'h2'); g.fire('st', 'h3'); g.move('gr', 'g'); g.end();
+    return g.fire('sg', 'h1');
+  },
   cards(g) {
     console.log('     odds: grunts ' + Math.round(g.odds('ox', ['x']) * 100) + '%, tanks ' + Math.round(g.odds('oy', ['y']) * 100) + '%');
     g.tactic('bayonets'); g.assault('ox', ['x']);

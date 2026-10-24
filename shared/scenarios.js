@@ -240,7 +240,7 @@
       structs: { hq: [['A', 'hq']], bhq: [['B', 'hq', 3]] },
       units: { bas: [['A', 'basilisk', 1]], thu: [['A', 'thumper', 1]], t1: [['B', 'jackal', 1]], t2: [['B', 'grunt', 1]], t3: [['B', 'grunt', 1]], t4: [['B', 'grunt', 1]] },
       goal: { type: 'destroy' },
-      intro: '**Artillery fires instead of moving**: select a gun and click a target in range. A won shot destroys a unit; a lost one does nothing. The Basilisk (range 3) hits hard; the Thumper (range 2) is light. Four targets, four shots: **every shot has to be a sure kill.**',
+      intro: '**Artillery fires instead of moving**: select a gun and click a target in range. A won shot destroys a unit (two if it beats the defence by half again, three if by two and a half times); a lost one does nothing. The Basilisk (range 3) hits hard; the Thumper (range 2) is light. Four targets, four shots: **every shot has to be a sure kill.**',
       hints: ['Hover each target with each gun selected and compare the odds. Some shots are certain, some aren\'t.', 'The Thumper can only be sure of killing Grunts. Save the Basilisk for what the Thumper can\'t do.'],
     },
     {
@@ -278,6 +278,25 @@
       goal: { type: 'capture', hexes: ['obj'] },
       intro: '**Tactic cards** act straight from your hand. An **Airstrike** ($4) bombs a hex within 4 of your land and kills 1–3 troops; a **Gun Run** ($2) kills 1 on a 3+. A **Heli Drop** ($3) flies a stack up to 5 hexes onto empty land. But enemy **Flak** shoots at air strikes in its range and blocks Heli Drops there: hover the Flak site to see how far it reaches.',
       hints: ['The northern clearing is inside the Flak\'s reach; the southern one isn\'t.', 'Turn 1: Airstrike and Gun Run the woods, then Heli Drop your Grunts onto the southern clearing. Turn 2: attack.'],
+    },
+    {
+      id: 'skyshield', name: 'Sky Shield', tier: 'Hard', technique: 'Anti-air: shooting down aircraft from range',
+      brief: 'Enemy helicopters have landed in the valley. Your air defence has two turns to bring them all down, and your Grunts must clear their guard.',
+      turns: 2, reward: 100,
+      players: { A: { name: 'You', arsenal: ['grunt'] }, B: { name: 'Rotor Wing', ai: 'passive' } },
+      map: [
+        '~ ~ ~ ~ ~ ~ ~ ~',
+        '~ .A@hq .A@sg .A .B@h1 .B .B ~',
+        '~ .A .A .A .B@h2 .B@bhq ~',
+        '~ .A .A@gr .A@st .B@h3 .B ~',
+        '~ .A .A .B@g .B .B .B ~',
+        '~ ~ ~ ~ ~ ~ ~ ~',
+      ],
+      structs: { hq: [['A', 'hq']], bhq: [['B', 'hq', 3]] },
+      units: { sg: [['A', 'skyguard', 1]], st: [['A', 'stinger', 1]], gr: [['A', 'grunt', 4]], h1: [['B', 'ravager', 1]], h2: [['B', 'valkyrie', 1]], h3: [['B', 'hornet', 1]], g: [['B', 'grunt', 2]] },
+      goal: { type: 'destroy' },
+      intro: '**Anti-air fires from range, like artillery, but only at aircraft**: select it and click an aircraft in range. A Stinger team reaches **1 hex**, a Skyguard **2**, and the Sentinel (Patriot) and Grumble (S-300) batteries **3**. Each stack fires once a turn instead of moving. Against troops on the ground anti-air is weak, so **send the Grunts** for the guard.',
+      hints: ['Hover each aircraft with each gun selected: the Stinger isn\'t sure of the Valkyrie, the Skyguard is.', 'Turn 1: Skyguard on the Valkyrie, Stingers on the Hornet, Grunts on the guard. Turn 2: Skyguard on the Ravager.'],
     },
     {
       id: 'navy', name: 'Sea Lanes', tier: 'Hard', technique: 'Ports, warships and sea control',
@@ -406,7 +425,7 @@
     },
   ];
   // the order they're played and unlocked in (each builds on the ones before), and so their numbers
-  const ORDER = ['basic', 'economy', 'pincer', 'ground', 'river', 'fob', 'leapfrog', 'loot', 'airborne', 'guns', 'cards', 'air', 'navy', 'beach', 'encircle', 'hold', 'blitz', 'breakout', 'islands', 'relief', 'fronts', 'total'];
+  const ORDER = ['basic', 'economy', 'pincer', 'ground', 'river', 'fob', 'leapfrog', 'loot', 'airborne', 'guns', 'cards', 'air', 'skyshield', 'navy', 'beach', 'encircle', 'hold', 'blitz', 'breakout', 'islands', 'relief', 'fronts', 'total'];
   SCENARIOS.sort((a, b) => (ORDER.indexOf(a.id) + 1 || 99) - (ORDER.indexOf(b.id) + 1 || 99));
   // missions still being tuned (draft: true) aren't on the board yet; the tests can still reach them
   const DRAFTS = SCENARIOS.filter(sc => sc.draft);

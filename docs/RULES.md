@@ -138,7 +138,7 @@ $3 base
 - **Artillery and warships** can shell undefended economic buildings in range: each salvo knocks off a level.
 - **Strategic Bombing** (Rare) hits a hex and its neighbours: their economic buildings lose a level, and that land is **bombed out**, paying nothing for its owner's next 2 turns (supply still runs through it).
 
-**Air defence.** Flak and anti-air units can shoot down air strikes (Gun Run, Airstrike, Precision Strike, Bunker Buster, Carpet and Strategic Bombing) aimed near them. Flak covers hexes within its level (35% at ★, +10% per level); a Stinger covers its own hex (25%), a Scorpion 1 hex (35%), a Skyguard 2 (50%) and a Sentinel 3 (60%). Chances stack, up to 90%. Precision Strikes are only 60% as likely to be caught. A downed strike still spends the card. Flak also blocks Heli Drops and EMPs. **Nukes and the Tsar Bomba can't be stopped.** The **Trident** submarine's missile (range 8) can only be intercepted by Sentinels within 3 of its target.
+**Air defence.** Flak and anti-air units can shoot down air strikes (Gun Run, Airstrike, Precision Strike, Bunker Buster, Carpet and Strategic Bombing) aimed near them. Flak covers hexes within its level (35% at ★, +10% per level); a Stinger covers its own hex (25%), a Scorpion 1 hex (35%), a Skyguard 2 (50%), a Grumble 3 (55%) and a Sentinel 3 (60%). Chances stack, up to 90%. Precision Strikes are only 60% as likely to be caught. A downed strike still spends the card. Flak also blocks Heli Drops and EMPs. **Nukes and the Tsar Bomba can't be stopped.** The **Trident** submarine's missile (range 8) can only be intercepted by Sentinels within 3 of its target.
 
 **Supply:** a hex pays only if it connects through your own territory to your HQ or a Port. A **FOB supplies land only while it's connected** that way too (a cut-off FOB still takes reinforcements, but supplies nothing), and you can only build a FOB on supplied land. Owned sea counts as territory, so sea lanes carry supply to your islands. Cut-off hexes are hatched on the map and pay nothing.
 
@@ -207,7 +207,7 @@ You **throw your own die**: drag and fling it in the dice tray, or press `Space`
 | Bunker / FOB / HQ | +2 / +1 / +2 defender mult; an HQ also has +3 garrison chips |
 | Smoke Screen | +2 defender mult |
 | Tank Hunter / Torpedoes | +3 chips vs vehicles / +4 chips vs ships |
-| Anti-Air | Stinger +3, Scorpion +4, Skyguard +6, Sentinel +4 chips in any fight involving enemy aircraft |
+| Anti-Air | Stinger +3, Scorpion +4, Skyguard +6, Sentinel +4, Grumble +6 chips in any fight involving enemy aircraft |
 | Strafing Run | +2 mult when gunships (Valkyrie, Seraph, Wren, Ravager, Banshee) attack ground targets |
 | Hellfire | +3 chips per Banshee against vehicles |
 | Ground Fire | +1 chip per infantry unit in any fight against helicopters (rifles hit helicopters too) |
@@ -217,14 +217,16 @@ You **throw your own die**: drag and fling it in the dice tray, or press `Space`
 
 **No contest.** When the odds show 100%, every possible roll wins, so there's no dice roll at all. The defenders are **obliterated** on the spot, and you take no pyrrhic losses.
 
-## Artillery and gunships
+## Artillery, anti-air and gunships
 
 Units with a range stat fire instead of moving.
 
-- If the shot wins, it destroys 1 unit (2 if you double the defender's score).
+- If the shot wins, it destroys 1 unit, 2 if your score beats the defender's by half again (×1.6), and 3 if by two and a half times.
 - If it misses, nothing happens.
-- Shots can't pass through mountains (the Oracle and the Sentinel ignore this).
-- The **Sentinel** SAM battery only engages stacks with aircraft in them, and only shoots down aircraft.
+- **Shelling brings walls down:** against a shot from artillery alone, a Bunker's and a FOB's walls count for half their mult.
+- Shots can't pass through mountains (the Oracle, and anti-air firing at aircraft, ignore this).
+- **Anti-air fires only at aircraft**, and only shoots down aircraft: the Stinger team at **1 hex**, the Scorpion and Skyguard at **2**, and the **Sentinel** (Patriot) and **Grumble** (S-300) batteries at **3**. On overwatch it only fires at a move that includes aircraft.
+- **Anti-air is weak against ground troops:** when it attacks a hex with no aircraft in it, each anti-air unit counts only half its attack (**AA Guns vs Ground**).
 
 ## The sea
 

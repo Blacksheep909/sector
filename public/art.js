@@ -496,6 +496,18 @@ const Art = (() => {
       for (const x of [-0.72, -0.42, 0.64]) hub(c, x, 0.4, 0.16);
       sh(c, () => { rr(c, 0.58, -0.19, 0.22, 0.12, 0.02); c.fill(); c.fillRect(-0.9, 0.22, 1.76, 0.05); });
     },
+    // S-300: a big 8x8 launcher truck with its four missile tubes stood up on end behind the cab
+    grumble(c) {
+      rr(c, -0.98, 0.12, 1.94, 0.24, 0.06); c.fill();
+      poly(c, [0.5, 0.12, 0.54, -0.28, 0.88, -0.28, 0.98, -0.04, 0.98, 0.12]); c.fill();             // cab
+      c.save(); c.translate(-0.66, 0.1); c.rotate(-1.42);
+      for (const y of [-0.2, 0.0]) { rr(c, 0, y, 1.08, 0.18, 0.08); c.fill(); }                        // tubes, raised to fire
+      sh(c, () => { for (const y of [-0.2, 0.0]) { c.fillRect(0.2, y + 0.07, 0.03, 0.05); c.fillRect(0.62, y + 0.07, 0.03, 0.05); c.fillRect(1.02, y + 0.02, 0.05, 0.14); } });
+      c.restore();
+      c.save(); c.translate(0.1, 0.1); c.rotate(-2.2); rr(c, 0, -0.04, 0.5, 0.08, 0.02); c.fill(); c.restore();   // erector arm
+      for (const x of [-0.74, -0.46, 0.22, 0.56]) hub(c, x, 0.4, 0.15);
+      sh(c, () => { rr(c, 0.6, -0.22, 0.22, 0.12, 0.02); c.fill(); c.fillRect(-0.92, 0.22, 1.8, 0.05); });
+    },
     // HIMARS: 6x6 truck with a rocket pod
     basilisk(c) {
       rr(c, -0.95, 0.1, 1.86, 0.26, 0.06); c.fill();

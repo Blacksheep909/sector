@@ -107,7 +107,7 @@
     grunt: 'Valhalla', skitter: 'Phantom Limb', thumper: 'Thunderclap', barracuda: 'Moonshark', stinger: 'Starwasp', corpsman: 'Seraphic', jackal: 'Anubis', coyote: 'Trickster',
     lancer: 'Comet', warden: 'All-Seeing', sapper: 'Supernova', scorpion: 'Antares', bulwark: 'Aegis Eternal', hornet: 'Nebula', mauler: 'Dreadnought Prime', ark: 'Covenant',
     marlin: 'Tidecaller', basilisk: 'Gorgon', ranger: 'Pathfinder', skyguard: 'Heavenward', hellcat: 'Inferno Queen', wraith: 'Revenant', kraken: 'Leviathan Deep', goliath: 'Colossus',
-    valkyrie: 'Einherjar', mule: 'Sleipnir', wren: 'Hummingstar', ravager: 'Starfall', stormcrow: 'Odin’s Raven', phantom: 'Ghost Protocol', hailstorm: 'Meteor Shower', sentinel: 'Watcher of Worlds', bastion: 'Celestial Keep',
+    valkyrie: 'Einherjar', mule: 'Sleipnir', wren: 'Hummingstar', ravager: 'Starfall', stormcrow: 'Odin’s Raven', phantom: 'Ghost Protocol', hailstorm: 'Meteor Shower', sentinel: 'Watcher of Worlds', grumble: 'Polar Night', bastion: 'Celestial Keep',
     leviathan: 'World Serpent', titan: 'Atlas', seraph: 'Archangel', banshee: 'Wailing Star', carrier: 'Starhaven', oracle: 'Pythia', trident: 'Poseidon', abyssal: 'Event Horizon',
     ambush: 'Shadowfall', holdfast: 'Unbroken', bayonets: 'Starsteel', barrage: 'Skyfire', reserves: 'Legion', steady: 'Fate’s Hand', smoke: 'Nebular Veil', march: 'Long Night',
     rally: 'Clarion', fortify: 'Bastion of Stars', conscript: 'The Many', kamikaze: 'Shooting Star', gunrun: 'Wild Hunt', airstrike: 'Heaven’s Wrath', heli: 'Skyborne', sabotage: 'Saboteur Saint',

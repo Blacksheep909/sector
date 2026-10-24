@@ -61,6 +61,8 @@ function threatMap(s, pid, idx) {
   }
   return out;
 }
+// anti-air: only fires at aircraft, so it moves with the army rather than sitting back like artillery
+const isAA = u => ['aa', 'sam'].includes(E.UNITS[u.type].ability);
 const holdOf = (s, pid, units) => units.filter(u => u.owner === pid).reduce((a, u) => a + E.unitDef(s, u), 0);
 // anti-air and Grunts near a hex: what a helicopter landing there would face
 function heliDanger(s, pid, idx, k) {
@@ -68,7 +70,7 @@ function heliDanger(s, pid, idx, k) {
   for (const a of E.area(k, 2)) for (const u of idx[a] || []) {
     if (u.owner === pid || E.isAlly(s, pid, u.owner)) continue;
     const def = E.UNITS[u.type];
-    if (def.aa && E.dist(a, k) <= (def.ability === 'sam' ? 3 : 1)) d += def.aa;
+    if (def.aa && E.dist(a, k) <= (def.range || 1)) d += def.aa;
     if (def.cls === 'inf' && E.dist(a, k) <= 1) d += 1;
   }
   return d;
@@ -317,8 +319,9 @@ function botStep(s, pid, mem) {
   }
 
   // 3. ranged fire
-  for (const k in idx) {
-    const art = idx[k].filter(u => u.owner === pid && E.UNITS[u.type].range && E.canAct(s, u));
+  for (const k in idx) for (const aa of [false, true]) {
+    // guns and anti-air fire separately: anti-air only shoots at aircraft
+    const art = idx[k].filter(u => u.owner === pid && E.UNITS[u.type].range && E.canAct(s, u) && isAA(u) === aa);
     if (!art.length) continue;
     const ids = art.map(u => u.id);
     const targets = E.rangedTargets(s, pid, ids, k, idx);
@@ -428,7 +431,7 @@ function botStep(s, pid, mem) {
       if (!movers.length) { mem.skip.add(k); continue; }
     }
     // artillery / gunships that can still shoot later should stay put
-    if (movers.every(u => E.UNITS[u.type].range) && enemyNear(k, 3)) { mem.skip.add(k); continue; }
+    if (movers.every(u => E.UNITS[u.type].range && !isAA(u)) && enemyNear(k, 3)) { mem.skip.add(k); continue; }
     const ids = movers.map(u => u.id);
     const fleet = movers.some(u => E.isSea(u.type));
     const carrying = fleet && (idx[k] || []).some(u => u.owner === pid && !E.isSea(u.type));
