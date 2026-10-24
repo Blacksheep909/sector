@@ -281,7 +281,7 @@ const Cards = (() => {
     });
   }
 
-  // ───────────── resupply: the start-of-turn menu (card + half income, or full income) ─────────────
+  // ───────────── resupply: the start-of-turn menu (a card + most of your income, or the full income) ─────────────
   let supplyKey = '';
   function openSupply(ctx) {
     const key = ctx.key;
@@ -289,10 +289,10 @@ const Cards = (() => {
     supplyKey = key; clearTimeout(supplyFade);
     const box = $('#supply'); box.innerHTML = ''; box.hidden = false; box.className = '';
     Cards.fast = false;
-    const { me, offer, income } = ctx, half = Math.floor(income / 2);
+    const { me, offer, income } = ctx;
     box.appendChild(el('div', 'sd-rays'));
     box.appendChild(el('h2', '', 'RESUPPLY'));
-    box.appendChild(el('div', 'sub', `Round ${ctx.round} — take a card <b>and $${half}</b>, or skip the cards and collect the full <b>$${income}</b>.`));
+    box.appendChild(el('div', 'sub', `Round ${ctx.round} — take a card and keep <b>the cash under it</b>, or skip the cards and collect the full <b>$${income}</b>.`));
     const row = el('div', 'cr-cards');
     const slots = offer.map((id, i) => {
       const d = E.cardDef(id);
@@ -302,7 +302,8 @@ const Cards = (() => {
       const flip = el('div', 'flip r-' + d.rarity); flip.style.setProperty('--i', i);
       const back = el('div', 'cback', '<div class="cb-logo">⬢</div>');
       const front = make(id, { level: owned ? Math.min(E.MAX_LEVEL, lv + 1) : 0, tag }); front.classList.add('cfront');
-      flip.append(back, front); row.appendChild(flip);
+      // what you keep of this turn's income if you take this card
+      flip.append(back, front, el('div', 'sp-keep', '+$' + (income - E.cardFee(income, id)))); row.appendChild(flip);
       return { flip, front, d, id };
     });
     box.appendChild(row);

@@ -56,8 +56,10 @@ An optional round limit gives the win to whoever holds the most land when time r
 ## A turn
 
 1. **Resupply.** Three face-down cards are dealt. Rare and better cards glow through their backs. Click each card to flip it (`Space` flips the next one). Then either:
-   - take one card and get *half* your income, or
+   - take one card and keep most of your income, or
    - skip the cards and collect the *full* income.
+
+   A card costs part of that turn's income: a little for its rarity (common $2, uncommon $3, rare $5, epic $8, legendary $12, mythic $16) plus 15% of your income, and never more than half. The cash you'd keep shows under each card. Early on that's about half your income; once you earn $100+ a turn a card costs a fraction of it. **Big economies also flip rarer cards:** from $30 a turn the odds slide toward rare, epic and legendary, fully by $150.
 
    You can pay to reroll the offer ($2, then $3, …).
 2. **Act** in any order:

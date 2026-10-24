@@ -214,7 +214,9 @@ function botStep(s, pid, mem) {
   if (BOTX.length) { K = { ...K }; for (const x of BOTX) { const [k, v] = x.split('='); if (v !== undefined) K[k] = +v; else K[k] = true; } }
   if (s.turn.stage === 'choose') {
     const c = choosePick(s, p, s.turn.offer);
-    const threshold = 2.4 + s.turn.income / 10 - (s.turn.round <= 3 ? 0.6 : 0) + (PL.income || 0);
+    // what the card costs in income this turn (about half early on, much less of a big economy)
+    const fee = c ? E.cardFee(s.turn.income, s.turn.offer[c.idx]) : 0;
+    const threshold = 2.4 + Math.min(fee / 5, 1.2 + fee / 20) - (s.turn.round <= 3 ? 0.6 : 0) + (PL.income || 0);
     if (c && !c.scrap && c.value >= threshold) return { a: 'choose', pick: 'card', idx: c.idx, replace: c.replace };
     return { a: 'choose', pick: 'income' };
   }

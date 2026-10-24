@@ -84,7 +84,7 @@
         { text: 'Money wins wars, recruit. Every turn you earn **income**: a base $3, plus **$1 for every 3 hexes** of land you hold. You\'re on $4. Get it to **$15 a turn**. Click to go on.', wait: 'click' },
         { text: 'The fastest way to grow is land. Your **Skitter** buggy moves 4 hexes, and every empty hex it drives through becomes yours. **Drive it toward the glowing resource node** (the derrick in the middle).', focus: 'res', wait: 'move' },
         { text: '**Resource nodes** pay +$2 a turn just for holding them. Spread the Grunts out to grab more land too, then **END TURN**.', wait: 'turn' },
-        { text: 'This is **resupply**. Each turn you either take **one of these cards and half your income**, or **skip them for the full income**. Cards are how your army grows; cash is how you build. Today you want cash: press **COLLECT** for the full income.', wait: 'pick' },
+        { text: 'This is **resupply**. Each turn you either take **one of these cards and most of your income** (the cash you keep shows under each card), or **skip them for the full income**. Cards are how your army grows; cash is how you build. Today you want cash: press **COLLECT** for the full income.', wait: 'pick' },
         { text: 'Now build. A **Refinery** on a resource node pays +$3 a turn ($1 anywhere else). Open the build bar (bottom left), pick **Refinery** and click the node.', focus: 'res', wait: 'build' },
         { text: 'A **Warehouse** pays +$2 a turn, or **+$3 next to a Refinery, resource node or Port**. Keep claiming land, build when you can afford it, and watch your income in the top-left panel. **Reach $15 a turn.**', wait: 'win' },
       ],

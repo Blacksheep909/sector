@@ -40,7 +40,7 @@ There are no accounts, no internet servers and no port forwarding. Prefer one sc
 </tr>
 <tr>
 <td><img src="docs/img/legendary.png" alt="A legendary card reveal"><br><sub><b>Rarity-based reveals.</b> Commons snap over, Epics fly to centre stage, and Legendaries shake, spin and detonate.</sub></td>
-<td><img src="docs/img/resupply.png" alt="Resupply"><br><sub><b>Resupply every turn.</b> Take a card plus half your income, or take the full income. Duplicate units level up ★.</sub></td>
+<td><img src="docs/img/resupply.png" alt="Resupply"><br><sub><b>Resupply every turn.</b> Take a card and keep most of your income, or take the full income. Duplicate units level up ★.</sub></td>
 </tr>
 <tr>
 <td><img src="docs/img/draft.png" alt="Opening draft"><br><sub><b>Opening draft.</b> Everyone picks 3 cards at the same time before the war starts.</sub></td>

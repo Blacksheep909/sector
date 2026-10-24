@@ -2916,7 +2916,7 @@
     <p>Grab land, build an economy, crush your rivals. <b>Every hex you hold pays you</b>, so sitting still is losing.</p>
     <div class="grid2"><div>
     <h4>YOUR TURN</h4>
-    <b>1. Resupply</b> — flip 3 cards: take one <i>plus half your income</i>, or skip them for the full income. Reroll for cash.<br>
+    <b>1. Resupply</b> — flip 3 cards: take one <i>plus most of your income</i> (a card costs about half your income early on, much less once your economy is big, and big economies flip rarer cards), or skip them for the full income. Reroll for cash.<br>
     <b>2. Act</b> — deploy (hotbar <kbd>1</kbd>–<kbd>0</kbd>), build (<kbd>Z</kbd>–<kbd>M</kbd>), move, attack, play tactics, trade — any order.<br>
     <b>3. End turn.</b>
     <h4>INCOME</h4>

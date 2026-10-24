@@ -85,6 +85,17 @@
   // reel odds per Supply Drop rarity (standard / gilded / mythic)
   const DROP_TIERS = { drop_rare: { standard: 60, gilded: 32, mythic: 8 }, drop_epic: { standard: 15, gilded: 55, mythic: 30 }, drop_legendary: { standard: 0, gilded: 35, mythic: 65 } };
   const TURN_ODDS = { common: 45, uncommon: 30, rare: 16, epic: 7, legendary: 2, mythic: 0.5 };
+  // a big economy flips better cards: from $30 a turn the odds slide toward the rarer end, all the way by $150
+  const LATE_ODDS = { common: 12, uncommon: 22, rare: 32, epic: 22, legendary: 9, mythic: 3 };
+  function turnOdds(income) {
+    const f = Math.max(0, Math.min(1, ((income || 0) - 30) / 120)), o = {};
+    for (const r in TURN_ODDS) o[r] = TURN_ODDS[r] + (LATE_ODDS[r] - TURN_ODDS[r]) * f;
+    return o;
+  }
+  // taking a resupply card costs part of that turn's income: a little for the rarity plus 15% of the income, never more than half.
+  // Early on that's about half, as it always was; with a big economy a card stays worth taking
+  const CARD_FEE = { common: 2, uncommon: 3, rare: 5, epic: 8, legendary: 12, mythic: 16 };
+  function cardFee(income, id) { const d = cardDef(id); return Math.min(Math.floor((income || 0) / 2), (CARD_FEE[d && d.rarity] || 4) + Math.round((income || 0) * 0.15)); }
   const SCRAP_VALUE = 2, DECK_MAX = 10, MAX_LEVEL = 3;
 
   const TERRAIN = {
@@ -1584,14 +1595,14 @@
       ev.push({ e: 'income', pid: p.id, amount: s.turn.income, hq: p.hq });
     } else {
       s.turn.stage = 'choose';
-      s.turn.offer = p.nextOffer && p.nextOffer.length ? p.nextOffer.slice() : drawCards(s, p, 3, TURN_ODDS, rng);
+      s.turn.offer = p.nextOffer && p.nextOffer.length ? p.nextOffer.slice() : drawCards(s, p, 3, turnOdds(s.turn.income), rng);
       if (!preview) delete p.nextOffer;
       // picked ahead of time while waiting: apply it straight away
       const pre = p.prePick; if (!preview) delete p.prePick;
       if (pre && !preview) {
         if (pre.pick === 'income') { p.cash += s.turn.income; ev.push({ e: 'income', pid: p.id, amount: s.turn.income, hq: p.hq }); s.turn.offer = []; s.turn.stage = 'act'; }
         else if (s.turn.offer[pre.idx] && !grantCard(s, p, s.turn.offer[pre.idx], pre.replace, ev)) {
-          const half = Math.floor(s.turn.income / 2); p.cash += half; if (half) ev.push({ e: 'income', pid: p.id, amount: half, hq: p.hq });
+          const keep = s.turn.income - cardFee(s.turn.income, s.turn.offer[pre.idx]); p.cash += keep; if (keep) ev.push({ e: 'income', pid: p.id, amount: keep, hq: p.hq });
           s.turn.offer = []; s.turn.stage = 'act';
         }
       }
@@ -1603,7 +1614,7 @@
     // scenarios: count the hero's turns, and see whether time is up
     if (s.scenario && !s._preview && current(s).id === s.scenario.hero) { s.scenario.heroTurns++; scenarioCheck(s, ev, true); if (s.phase !== 'play') return; }
     // deal the ending commander's next resupply now, so they can pick from it while the others play
-    { const q = current(s); if (q && q.alive && !s._preview && (!s.scenario || s.scenario.live)) { q.nextOffer = drawCards(s, q, 3, TURN_ODDS, rng); delete q.prePick; } }
+    { const q = current(s); if (q && q.alive && !s._preview && (!s.scenario || s.scenario.live)) { q.nextOffer = drawCards(s, q, 3, turnOdds(computeIncome(s, q.id).total), rng); delete q.prePick; } }
     const n = s.players.length;
     let guard = 0;
     s.turn.crate = null; s.turn.offer = [];
@@ -2066,9 +2077,9 @@
       } else {
         const id = s.turn.offer[a.idx]; if (!id) return fail('No such card');
         const err = grantCard(s, p, id, a.replace, ev); if (err) return fail(err);
-        const half = Math.floor(s.turn.income / 2);
-        p.cash += half;
-        if (half) ev.push({ e: 'income', pid, amount: half, hq: p.hq });
+        const keep = s.turn.income - cardFee(s.turn.income, id);
+        p.cash += keep;
+        if (keep) ev.push({ e: 'income', pid, amount: keep, hq: p.hq });
         const d = cardDef(id);
         pushLog(s, p.name + ' drafted ' + (d.kind === 'unit' || RARITY_ORDER.indexOf(d.rarity) >= 3 ? d.name : 'a ' + RARITY[d.rarity].name + ' tactic') + (RARITY_ORDER.indexOf(d.rarity) >= 3 ? ' ★' : '') + '.');
       }
@@ -2080,7 +2091,7 @@
       const cost = rerollCost(s);
       if (p.cash < cost) return fail('Need $' + cost);
       p.cash -= cost; s.turn.rerolls++;
-      s.turn.offer = drawCards(s, p, 3, TURN_ODDS, rng);
+      s.turn.offer = drawCards(s, p, 3, turnOdds(s.turn.income), rng);
       ev.push({ e: 'reroll', pid, cost });
       return { ok: true, events: ev };
     }
@@ -2774,7 +2785,7 @@
   return {
     DIRS, key, parse, dist, neighbors, area, line, mulberry32, hashStr,
     POI, WEATHER, isAlly, teammate, recordHistory, RARITY, RARITY_ORDER, CRATES, DROP_TIERS, SCRAP_VALUE, DECK_MAX, MAX_LEVEL, TERRAIN, DIFFICULTY, UNITS, TACTICS, STRUCTS, BUILD_ORDER, UPGRADABLE, MAX_SLVL, FACTIONS, ROLL_BASE, COLORS, TEAM_COLORS, TEAM_NAMES, teamColor, MAX_STACK, GRUNT_STACK, stackFits, CLASS_NAME, cardDef,
-    BATTLE_MAX, cacheCard, scenarioCheck, assaultPlan, openBattle, closeBattle, battleOdds, battleHand, battleCard, INTEL_COST, intelCost, overwatchTriggers, overwatchFire, attackTarget, ECON, infraValue, econOf, AIR_STRIKES, airDefenders, interceptChance, generateMap, createGame, applyAction, spawnChoices, visionOf, startTurn, endTurn, simulateTurnStart, view, drawCards,
+    BATTLE_MAX, cardFee, turnOdds, cacheCard, scenarioCheck, assaultPlan, openBattle, closeBattle, battleOdds, battleHand, battleCard, INTEL_COST, intelCost, overwatchTriggers, overwatchFire, attackTarget, ECON, infraValue, econOf, AIR_STRIKES, airDefenders, interceptChance, generateMap, createGame, applyAction, spawnChoices, visionOf, startTurn, endTurn, simulateTurnStart, view, drawCards,
     player, current, buildIndex, canAct, moveAllow, ownedTiles, ownedLand, spawnPoints, musterHexes, supplySet, computeIncome, levelOf, unitAtk, unitDef,
     payout: scaled, blocOf, blocCap, blocTooBig, riders, tsarArea, moodOf, addMood, threatOf, rerollCost, bountyValue, reachable, pathTo, rangedTargets, deployHexes, buildHexes, buildError, isSea, isWater, isCoastal, movers, combatCalc, tacticTargets, unitCost, structCost, buildCost, structsOf, MAX_STRUCTS, conquestTarget, isLandTile, flakCovered,
   };
