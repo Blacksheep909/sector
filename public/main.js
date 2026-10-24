@@ -56,7 +56,8 @@
       // the front menu first (profile, online counts, party), then back into the room you were in, or the one a link points to
       send({ t: 'auth', name: typedName() || undefined, profile: Locker.identity(), ref: Locker.ref() });   // no callsign typed: keep the commander's own
       if (watching) send({ t: 'hello', watch: true, room: urlRoom || undefined });
-      else if (seat) send({ t: 'hello', room: seat.room, token: seat.token, name: myName() });
+      // an invite link to another room wins over the seat you had: you meant to go where the link points
+      else if (seat && !(firstOpen && urlRoom && urlRoom !== seat.room)) send({ t: 'hello', room: seat.room, token: seat.token, name: myName() });
       else if (firstOpen && urlRoom) send({ t: 'join', code: urlRoom, name: myName() });
       if (firstOpen && urlParty) send({ t: 'partyJoin', code: urlParty, name: myName() });
       firstOpen = false;
@@ -100,6 +101,8 @@
       case 'state': if (leftGame) break; msgQ.push(m); pump(); break;
       case 'err':
         if (m.seq && pending.has(m.seq)) { pending.get(m.seq)(false); pending.delete(m.seq); }
+        // a code this server doesn't have, on a LAN server: probably a friend's room on their own server
+        if (m.noRoom && !$('#lanRow').hidden) { findRoomOnLan(m.noRoom); break; }   // the LAN row only shows on a LAN server
         toast(m.msg, 'err'); SFX.error(); break;
       case 'serverClosed': serverClosed(m); break;
       case 'saved': toast('💾 Game saved. Resume it any time from the lobby.'); SFX.select(); break;
@@ -230,7 +233,7 @@
     // public: anyone pressing PLAY can land here until it deploys · private: only people with the code or link
     rb.innerHTML = `<div class="rb-kind${pub ? ' pub' : lobby.solo ? ' solo' : ''}">${pub ? 'PUBLIC WAR' : main ? 'LAN LOBBY' : lobby.solo ? 'SINGLEPLAYER' : 'PRIVATE ROOM'}</div>` + (main ? '<div class="rb-code"><span class="sub">everyone who opens this server’s address lands here</span></div>'
       : `<div class="rb-code"><span>CODE</span><b>${esc(lobby.code)}</b><button class="btn tiny" id="rbCopy">${lobby.solo ? '🔗 INVITE A FRIEND' : '🔗 COPY INVITE LINK'}</button><span class="sub">${pub ? 'open: anyone who presses PLAY can join until it deploys' : lobby.solo ? 'you against bots · a friend can join any time and take over a bot' : 'invite only'}</span></div>`) + `<button class="btn" id="rbLeave">◂ LEAVE</button>`;
-    const cp = $('#rbCopy'); if (cp) cp.onclick = () => { try { navigator.clipboard.writeText(link); toast('Invite link copied'); } catch (e) { toast(link); } SFX.click(); };
+    const cp = $('#rbCopy'); if (cp) cp.onclick = () => { copyText(link).then(ok => ok && toast('Invite link copied')); SFX.click(); };
     $('#rbLeave').onclick = () => { SFX.click(); send({ t: 'leave' }); };
   }
 
@@ -239,14 +242,14 @@
     if (!lobby) return;
     if (dragPid) return;   // don't rebuild the list under a drag in progress
     const me = lobby.players.find(p => p.id === (realId || you));
-    if (!me) { showHome(); return; }
+    if (!me) { if (!spectator && !S) showHome(); return; }   // someone watching a war has no seat in its lobby, and stays on the war
     $('#home').hidden = true; $('#lobbyBox').hidden = false; $('#lobbyBox').dataset.show = '1'; document.body.classList.add('in-room'); document.body.classList.remove('at-home'); stopBackdrop();
     applyPrefs(me);
     renderRoomBar();
     const host = lobby.hostId === you, pub = lobby.kind === 'public';
     { const sp = lobby.players.filter(p => p.spectator).length; $('#pCount').textContent = (lobby.players.length - sp) + '/' + (lobby.cap || 8) + (sp ? ' · ' + sp + ' watching' : ''); }
     // public wars: hosted like any room, but no ready-up, no shared-screen players and no missions; bots fill the empty seats on DEPLOY
-    $('#addBot').parentElement.hidden = !host && pub; $('#addLocal').hidden = pub; $('#lanBox').hidden = pub || lobby.code !== 'MAIN'; $('#missionsBtn').hidden = pub;
+    $('#addBot').parentElement.hidden = !host && pub; $('#addLocal').hidden = pub; $('#lanBox').hidden = pub || lobby.code !== 'MAIN';   // missions live on the front page
     const pl = $('#playerList'); pl.innerHTML = '';
     const teamsOn = lobby.settings.teams === 'on';
     const canMove = p => host || p.id === realId || (p.local && p.controller === realId);
@@ -400,7 +403,7 @@
 
   // ───────────── game entry / state ─────────────
   function enterGame(state) {
-    stopBackdrop(); document.body.classList.remove('at-home');
+    stopBackdrop(); document.body.classList.remove('at-home'); $('#home').hidden = true; document.body.classList.remove('in-room');
     S = state; plan = []; for (const k in plans) delete plans[k]; sel = null; mode = null; lastTurnKey = ''; marches = {}; marchKey = '';
     SFX.music.stop();
     if (state.settings && state.settings.mapType === 'random' && (state.phase === 'draft' || state.phase === 'spawn')) showMapReel(state);
@@ -1071,6 +1074,7 @@
     const host = lobby && lobby.hostId === realId;
     $('#escEnd').hidden = !host;
     $('#escSave').hidden = !host || S.phase !== 'play';
+    $('#escRestart').hidden = !S.scenario || !host;
     $('#escInvite').hidden = !lobby || lobby.kind === 'public' || lobby.code === 'MAIN' || S.phase === 'over' || !!S.scenario;
     $('#escInfo').textContent = (S.phase === 'over' ? 'Game over' : 'Round ' + S.turn.round) + ' · ' + (lobby ? lobby.players.length : S.players.length) + ' commanders' + (host ? ' · you are the host' : '');
     $('#escSound').textContent = 'SOUND: ' + (SFX.muted ? 'OFF' : 'ON');
@@ -1128,7 +1132,7 @@
       <h3>UPDATES</h3>${up}
       <div class="row hp-btns"><button class="btn big" id="hpClose">CLOSE</button><button class="btn big red" id="hpStop">${stopArm > Date.now() ? 'CLICK AGAIN TO STOP' : 'STOP SERVER'}</button></div>
       <div class="hint">You can also manage it from the SECTOR server window (press Q there to stop).</div>`;
-    card.querySelectorAll('[data-copy]').forEach(b => b.onclick = () => { navigator.clipboard && navigator.clipboard.writeText(b.dataset.copy); b.textContent = 'COPIED'; SFX.coin(1); setTimeout(() => b.textContent = 'COPY', 1200); });
+    card.querySelectorAll('[data-copy]').forEach(b => b.onclick = () => { copyText(b.dataset.copy); b.textContent = 'COPIED'; SFX.coin(1); setTimeout(() => b.textContent = 'COPY', 1200); });
     $('#hpClose').onclick = closeHost;
     $('#hpStop').onclick = async () => {
       if (stopArm < Date.now()) { stopArm = Date.now() + 3000; SFX.error(); renderHost(); setTimeout(() => !$('#hostPanel').hidden && renderHost(), 3100); return; }
@@ -1163,7 +1167,8 @@
   $('#escIndex').onclick = () => { closeEsc(); Cards.showIndex(); };
   $('#escSound').onclick = () => { const m = SFX.toggle(); setTimeout(menuMusic, 50); $('#escSound').textContent = 'SOUND: ' + (m ? 'OFF' : 'ON'); $('#muteBtn').textContent = m ? '✕' : '♪'; };
   $('#escSave').onclick = () => { SFX.click(); send({ t: 'saveGame' }); };
-  $('#escInvite').onclick = () => { const link = location.origin + '/?room=' + lobby.code; try { navigator.clipboard.writeText(link); toast('Invite link copied: a friend who opens it can take over a bot'); } catch (e) { toast(link); } SFX.click(); };
+  $('#escRestart').onclick = () => { SFX.click(); closeEsc(); Missions.restart(); };
+  $('#escInvite').onclick = () => { const link = location.origin + '/?room=' + lobby.code; copyText(link).then(ok => ok && toast('Invite link copied: a friend who opens it can take over a bot')); SFX.click(); };
   $('#escLeave').onclick = () => {
     if ($('#escLeave').dataset.armed !== '1' && myP() && S.phase === 'play') { $('#escLeave').dataset.armed = '1'; $('#escLeave').textContent = 'CLICK AGAIN TO LEAVE'; setTimeout(() => { $('#escLeave').dataset.armed = ''; if (!$('#escMenu').hidden) openEsc(); }, 2500); return; }
     $('#escLeave').dataset.armed = '';
@@ -1187,29 +1192,44 @@
   }
   $('#joinGo').onclick = () => { const v = $('#joinAddr').value.trim(); if (v) goTo(v); };
   $('#joinAddr').addEventListener('keydown', e => { if (e.key === 'Enter') $('#joinGo').click(); });
-  $('#scanBtn').onclick = async () => {
-    const btn = $('#scanBtn'), list = $('#scanList');
-    btn.disabled = true; btn.textContent = 'SCANNING…'; list.innerHTML = '<div class="hint">Looking for games…</div>';
-    let lan = [];
+  // every SECTOR server on this network: known addresses first (instant), then a sweep of each subnet with a throttled
+  // pool so dead IPs don't starve live ones. onFound(server) fires as each one answers; stop() ends the sweep early
+  async function scanLan(onFound, onProgress) {
+    let lan = [], stopped = false;
     try { lan = (await (await fetch('/info')).json()).lan || []; } catch (e) {}
     const subnets = [...new Set(lan.filter(a => /^(10|172|192)\./.test(a)).map(a => a.split(':')[0].replace(/^https?:\/\//, '').split('.').slice(0, 3).join('.')))];
-    const ports = [...new Set([3000, 3001, +location.port || 80])];
-    const found = [];
+    const ports = [...new Set([3000, 3001, +location.port || 80])], seen = new Set();
     const probe = async (ip, port) => {
+      if (stopped) return;
       const ctl = new AbortController(); const tm = setTimeout(() => ctl.abort(), 1200);
-      try { const r = await fetch(`http://${ip}:${port}/info`, { signal: ctl.signal }); const j = await r.json(); if (j.game === 'sector' && !found.some(f => f.id && f.id === j.id)) { found.push({ url: `http://${ip}:${port}`, ...j }); show(); } } catch (e) {} finally { clearTimeout(tm); }
+      try { const r = await fetch(`http://${ip}:${port}/info`, { signal: ctl.signal }); const j = await r.json(); if (j.game === 'sector' && !seen.has(j.id)) { seen.add(j.id); if (onFound({ url: `http://${ip}:${port}`, ...j }) === false) stopped = true; } } catch (e) {} finally { clearTimeout(tm); }
     };
-    const show = () => {
-      list.innerHTML = found.map(s => `<div class="srv${s.url === location.origin ? ' me' : ''}"><div><b>${s.host ? esc(s.host) + "'s game" : 'Open lobby'}</b> <span class="sub">· ${s.humans} player${s.humans === 1 ? '' : 's'} · ${s.inGame ? 'in progress (round ' + s.round + ')' : 'in lobby'}${s.inGame && s.bots ? ' · <span style="color:#7fe0a0">' + s.bots + ' bot' + (s.bots > 1 ? 's' : '') + ' you can take over</span>' : ''}</span><div class="sub">${esc(s.url.replace('http://', ''))}${s.url === location.origin ? ' · this server' : ''}</div></div><button class="btn tiny ${s.inGame ? '' : 'green'}" data-u="${s.url}">${s.inGame ? 'WATCH' : 'JOIN'}</button></div>`).join('') || '<div class="hint">Looking for games…</div>';
-      list.querySelectorAll('[data-u]').forEach(b => b.onclick = () => goTo(b.dataset.u));
-    };
-    // known addresses first (instant), then sweep each subnet with a throttled pool so dead IPs don't starve live ones
-    const known = lan.filter(a => /^(10|172|192)\./.test(a));
+    const known = lan.map(a => a.replace(/^https?:\/\//, '').split(':')[0]).filter(a => /^(10|172|192)\./.test(a));
     await Promise.all(known.flatMap(ip => ports.map(port => probe(ip, port))));
     const jobs = [];
     for (const sn of subnets) for (let i = 1; i < 255; i++) for (const port of ports) { const ip = sn + '.' + i; if (!known.includes(ip)) jobs.push([ip, port]); }
     let next = 0, done = 0;
-    await Promise.all(Array.from({ length: 32 }, async () => { while (next < jobs.length) { const [ip, port] = jobs[next++]; await probe(ip, port); done++; if (done % 40 === 0) btn.textContent = 'SCANNING… ' + Math.round(done / jobs.length * 100) + '%'; } }));
+    await Promise.all(Array.from({ length: 32 }, async () => { while (next < jobs.length && !stopped) { const [ip, port] = jobs[next++]; await probe(ip, port); done++; if (onProgress && done % 40 === 0) onProgress(done / jobs.length); } }));
+  }
+  // a room code this server doesn't know: it may be a friend's room on their own server, so look for it on the network
+  async function findRoomOnLan(code) {
+    toast('Looking for room ' + code + ' on your network…');
+    let hit = null;
+    await scanLan(sv => { if (sv.url !== location.origin && (sv.lobbies || []).some(l => l.code === code)) { hit = sv; return false; } });
+    if (hit) goTo(hit.url + '/?room=' + code);
+    else { toast('No room ' + code + ' here or on your network. Check the code, or ask for their invite link.', 'err'); SFX.error(); }
+  }
+  $('#scanBtn').onclick = async () => {
+    const btn = $('#scanBtn'), list = $('#scanList'), found = [];
+    btn.disabled = true; btn.textContent = 'SCANNING…'; list.innerHTML = '<div class="hint">Looking for games…</div>';
+    // one row per lobby with people in it (JOIN takes you straight into that room); a server with none gets one row
+    const rows = sv => {
+      const here = sv.url === location.origin, addr = esc(sv.url.replace('http://', '')) + (here ? ' · this server' : '');
+      const lobbies = (sv.lobbies || []).length ? sv.lobbies : [{ code: null, host: sv.host, humans: sv.humans, inGame: sv.inGame }];
+      return lobbies.map(l => `<div class="srv${here ? ' me' : ''}"><div><b>${l.main ? 'LAN lobby' : l.host ? esc(l.host) + "'s " + (l.inGame ? 'war' : 'lobby') : 'Open server'}</b> <span class="sub">· ${l.humans} player${l.humans === 1 ? '' : 's'} · ${l.inGame ? 'in progress' : 'in lobby'}${l.code && !l.main ? ' · code ' + esc(l.code) : ''}</span><div class="sub">${addr}</div></div><button class="btn tiny ${l.inGame ? '' : 'green'}" data-u="${esc(sv.url + (l.code ? '/?room=' + l.code : l.inGame ? '/?watch=1' : ''))}">${l.inGame ? 'WATCH' : 'JOIN'}</button></div>`).join('');
+    };
+    const show = () => { list.innerHTML = found.map(rows).join(''); list.querySelectorAll('[data-u]').forEach(b => b.onclick = () => goTo(b.dataset.u)); };
+    await scanLan(sv => { found.push(sv); show(); }, f => { btn.textContent = 'SCANNING… ' + Math.round(f * 100) + '%'; });
     btn.disabled = false; btn.textContent = 'SCAN AGAIN';
     if (!found.length) list.innerHTML = '<div class="hint">No games found. Make sure the host has SECTOR running and you are on the same Wi-Fi — or type their address below.</div>';
   };
@@ -1693,8 +1713,11 @@
     const f = src.cloneNode(true); f.classList.add('flying');
     Object.assign(f.style, { left: r.left + 'px', top: r.top + 'px', width: r.width + 'px', height: r.height + 'px' });
     $('#flyLayer').appendChild(f);
-    const dx = t.left + t.width / 2 - (r.left + r.width / 2), dy = t.top + t.height / 2 - (r.top + r.height / 2);
-    const sc = Math.max(0.2, t.width / r.width);
+    // a card lands on a card-sized slot: an empty bar (a hand with no cards yet) is far wider than a card, so aim for
+    // its start and never grow on the way (scaling to the bar's width made the card balloon)
+    const slot = t.width > r.width * 1.5 ? { left: t.left, top: t.top, width: Math.min(t.width, r.width * 0.6), height: t.height } : t;
+    const dx = slot.left + slot.width / 2 - (r.left + r.width / 2), dy = slot.top + slot.height / 2 - (r.top + r.height / 2);
+    const sc = Math.min(1, Math.max(0.2, Math.min(slot.width / r.width, slot.height / r.height)));
     f.animate([
       { transform: 'translate(0,0) scale(1) rotate(0deg)', offset: 0 },
       { transform: `translate(${dx * 0.35}px, ${dy * 0.1 - 120}px) scale(1.15) rotate(-8deg)`, offset: 0.35 },
@@ -2235,10 +2258,21 @@
     for (let j = events.indexOf(ev) + 1; j < events.length; j++) { const e = events[j]; if (e.e === 'move') continue; return oblitPlays(e) ? e : null; }
     return null;
   }
+  // fog of war: an event that happens entirely in hexes you can't see (and doesn't involve you) is silent, and its
+  // effects (encirclement banners, loot, builds, fights) don't play
+  const HIDDEN_FX = new Set(['annex', 'loot', 'build', 'deploy', 'razed', 'combat', 'capture', 'cache', 'bridge', 'digin', 'fire', 'tactic', 'airstrike', 'strike']);
+  function unseen(e) {
+    if (!S || !S.fogOn) return false;
+    if (e.pid === you || e.to === you || e.victim === you || (e.att && e.att.pid === you) || (e.def && e.def.pid === you)) return false;
+    const ks = [e.hex, e.to, e.from, e.target, e.at, ...(e.path || []), ...(e.hexes || [])].filter(k => typeof k === 'string' && S.map.tiles[k]);
+    return ks.length > 0 && ks.every(k => S.map.tiles[k].fog);
+  }
   async function playEvents(events, by) {
     Render.setState(S); evBy = by;
     const watch = by !== you;
-    for (const ev of events) {
+    try { for (const ev of events) {
+      const hid = unseen(ev); SFX.quiet = hid;
+      if (hid && HIDDEN_FX.has(ev.e)) continue;
       switch (ev.e) {
         case 'turn': {
           const p = S.players.find(x => x.id === ev.pid);
@@ -2468,7 +2502,7 @@
         case 'reroll': SFX.card(); break;
         case 'tactic': break;
       }
-    }
+    } } finally { SFX.quiet = false; }
   }
 
   // how a moving group travels, judged by the biggest piece of kit in it (Grunts riding along don't count)
@@ -2912,7 +2946,6 @@
   $('#rulesBtn').onclick = showRules; $('#rulesBtn2').onclick = showRules;
   for (const b of ['#indexBtn', '#indexBtn2', '#indexBtn3']) $(b).onclick = () => { SFX.select(); Cards.showIndex(); };
   // missions: from the lobby, or from the front page (enlist first, then the board opens)
-  $('#missionsBtn').onclick = () => { SFX.select(); Missions.board(); };
   $('#missionsBtn3').onclick = () => { SFX.select(); Missions.board(); };   // picking a mission opens a private room for it
   $('#rulesBtn3').onclick = showRules;
   $('#lanFind').onclick = () => { SFX.select(); $('#joinNet').hidden = false; renderRecent(); if (!$('#scanBtn').disabled && !$('#scanList .srv')) $('#scanBtn').click(); };
@@ -2922,6 +2955,6 @@
   if (!seat) showHome();
 
   Locker.init({ send }); window.SECTOR_TOAST = t => toast(t, 'good');
-  window.SECTOR_DEBUG = { resume: () => pump(), refresh: () => refreshAll(), victoryFx: () => showVictory(), crushFx: ev => obliterate(ev), combatFx: ev => showCombat(ev), send, state: () => S, you: () => you, plan: () => plan, planState: () => planState, act: doAction, click: onHexClick };
+  window.SECTOR_DEBUG = { flyTo: (a, b) => flyTo(a, b), resume: () => pump(), refresh: () => refreshAll(), victoryFx: () => showVictory(), crushFx: ev => obliterate(ev), combatFx: ev => showCombat(ev), send, state: () => S, you: () => you, plan: () => plan, planState: () => planState, act: doAction, click: onHexClick };
   connect();
 })();

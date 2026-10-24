@@ -1787,7 +1787,7 @@ body.at-home #map { filter: blur(2.5px) brightness(.55) saturate(.85); transform
 #mapReel { pointer-events: none; }   /* just a show: never in the way of a click */
 
 /* Sergeant Hale talks from the bottom right, clear of the chat, build bar and deck */
-#hale { left: auto; right: 18px; bottom: 84px; flex-direction: row-reverse; }
+#hale { left: auto; right: 18px; bottom: 132px; flex-direction: row-reverse; }   /* clear of UNDO and END TURN */
 #hale .hale-bubble::before { left: auto; right: -12px; border-right: 8px solid transparent; border-left: 10px solid #0b0f13; }
 @media (max-width: 760px) { #hale { left: auto; right: 8px; bottom: 150px; } }
 /* the mission bar sits in the centre stack (under YOUR TURN); toasts follow below it */
@@ -1879,3 +1879,5 @@ body.calm .unlock-fx::after, body.calm .ul-spark { display: none; }
 .clouds.in .cl-side.r { transform: scaleX(-1); }
 .clouds.out .cl-side { transition-duration: .75s; transition-timing-function: cubic-bezier(.6,0,.75,.4); }
 body.calm .cl-side { transition-duration: .2s !important; }
+.copy-card { display: grid; gap: 10px; width: min(460px, 92vw); } .copy-card input { font-size: 14px; padding: 10px; }
+.mr-bonus { margin: 6px 0 2px; font-size: 18px; color: #ffd34d; text-shadow: 0 0 14px rgba(255,200,60,.5); animation: ulUp .5s ease-out .6s both; }

@@ -216,6 +216,21 @@ const Render = (() => {
       if (opts.onBomb) setTimeout(opts.onBomb, Math.max(0, (tDrop + 0.42 - t) * 1000));
     });
   }
+  // a swept-wing strike jet seen from above, facing +x, s = half its length
+  function jet(s, fill, ink) {
+    const P = pts => { ctx.beginPath(); pts.forEach(([x, y], i) => i ? ctx.lineTo(x * s, y * s) : ctx.moveTo(x * s, y * s)); ctx.closePath(); };
+    const wing = m => P([[0.28, 0.09 * m], [-0.32, 0.78 * m], [-0.56, 0.8 * m], [-0.3, 0.1 * m]]);
+    const fin = m => P([[-0.62, 0.08 * m], [-0.92, 0.4 * m], [-1.04, 0.4 * m], [-0.9, 0.07 * m]]);
+    const body = () => P([[1.05, 0], [0.78, -0.09], [0.2, -0.12], [-0.85, -0.1], [-1.02, -0.06], [-1.02, 0.06], [-0.85, 0.1], [0.2, 0.12], [0.78, 0.09]]);
+    const parts = [() => wing(1), () => wing(-1), () => fin(1), () => fin(-1), body];
+    ctx.lineJoin = 'round';
+    if (ink) { ctx.strokeStyle = ink; ctx.lineWidth = Math.max(1.5, s * 0.16); for (const f of parts) { f(); ctx.stroke(); } }
+    ctx.fillStyle = fill; for (const f of parts) { f(); ctx.fill(); }
+    if (ink) {
+      ctx.fillStyle = 'rgba(255,255,255,.28)'; P([[1.0, 0], [0.2, -0.06], [-0.85, -0.05], [-0.85, 0], [0.2, 0]]); ctx.fill();   // light along the spine
+      ctx.fillStyle = '#16324a'; ctx.beginPath(); ctx.ellipse(0.55 * s, 0, 0.17 * s, 0.06 * s, 0, 0, Math.PI * 2); ctx.fill();   // canopy
+    }
+  }
   function drawAir() {
     for (let i = bombs.length - 1; i >= 0; i--) {
       const b = bombs[i], p = (t - b.tDrop) / b.fall;
@@ -232,18 +247,16 @@ const Render = (() => {
       if (p < 0) continue;
       const wx = pl.x0 + (pl.x1 - pl.x0) * p, wy = pl.y0 + (pl.y1 - pl.y0) * p, z = cam.z;
       const [gx, gy] = toScreen(wx, wy), [sx, sy] = toScreen(wx, wy - pl.alt);
+      // the heading on screen (the flight path, not the old icon's built-in rotation)
+      const [ax, ay] = toScreen(pl.x0, pl.y0), [bx, by] = toScreen(pl.x1, pl.y1), head = Math.atan2(by - ay, bx - ax);
       // ground shadow
-      ctx.save(); ctx.translate(gx, gy); ctx.rotate(pl.ang + Math.PI / 2); ctx.scale(1, 0.5); ctx.globalAlpha = 0.3; Art.drawIcon(ctx, 'unit', 'seraph', 0, 0, 22 * z, '#000'); ctx.restore();
+      ctx.save(); ctx.translate(gx, gy); ctx.rotate(head); ctx.scale(1, 0.5); ctx.globalAlpha = 0.3; jet(15 * z, '#000', null); ctx.restore();
       // contrail
       const [tx0, ty0] = toScreen(wx - (pl.x1 - pl.x0) * 0.08, wy - pl.alt - (pl.y1 - pl.y0) * 0.08);
       const g = ctx.createLinearGradient(tx0, ty0, sx, sy); g.addColorStop(0, 'rgba(255,255,255,0)'); g.addColorStop(1, 'rgba(255,255,255,.55)');
       ctx.strokeStyle = g; ctx.lineWidth = 3 * z; ctx.lineCap = 'round'; ctx.beginPath(); ctx.moveTo(tx0, ty0); ctx.lineTo(sx, sy); ctx.stroke();
-      // jet: ink outline, team-tinted body
-      ctx.save(); ctx.translate(sx, sy); ctx.rotate(pl.ang + Math.PI / 2);
-      for (let a = 0; a < 8; a++) Art.drawIcon(ctx, 'unit', 'seraph', Math.cos(a / 8 * Math.PI * 2) * 2 * z, Math.sin(a / 8 * Math.PI * 2) * 2 * z, 22 * z, '#0b0f13');
-      Art.drawIcon(ctx, 'unit', 'seraph', 0, 0, 22 * z, pl.color);
-      ctx.globalAlpha = 0.35; Art.drawIcon(ctx, 'unit', 'seraph', 0, -1.5 * z, 22 * z, '#ffffff');
-      ctx.restore();
+      // the strike jet, nose first along its path: team-coloured, with an ink outline
+      ctx.save(); ctx.translate(sx, sy); ctx.rotate(head); jet(15 * z, pl.color, '#0b0f13'); ctx.restore();
     }
   }
   function burst(k, color, n = 16, opts = {}) {
@@ -274,7 +287,17 @@ const Render = (() => {
     for (let i = 0; i < 6; i++) { const x = cx + VERT[i][0] * s, y = cy + VERT[i][1] * s * TILT; i ? ctx.lineTo(x, y) : ctx.moveTo(x, y); }
     ctx.closePath();
   }
+  // the sea background: painted into its own canvas a few times a second, and copied to the screen every frame
+  const bgc = document.createElement('canvas'), bgx = bgc.getContext('2d'); let bgAt = -1, bgSize = '';
   function bg() {
+    const size = W + 'x' + H + 'x' + DPR;
+    if (size !== bgSize || t - bgAt > 0.25) {
+      bgSize = size; bgAt = t; bgc.width = Math.ceil(W * DPR); bgc.height = Math.ceil(H * DPR);
+      const main = ctx; ctx = bgx; ctx.setTransform(DPR, 0, 0, DPR, 0, 0); paintBg(); ctx = main;
+    }
+    ctx.save(); ctx.setTransform(1, 0, 0, 1, 0, 0); ctx.drawImage(bgc, 0, 0); ctx.restore();
+  }
+  function paintBg() {
     const g = ctx.createRadialGradient(W * 0.5, H * 0.45, 50, W * 0.5, H * 0.5, Math.max(W, H) * 0.8);
     g.addColorStop(0, '#173445'); g.addColorStop(0.55, '#0d1d29'); g.addColorStop(1, '#060c12');
     ctx.fillStyle = g; ctx.fillRect(0, 0, W, H);
@@ -1168,8 +1191,8 @@ const Render = (() => {
     const ls = cam.z / lcam.z, X0 = (lcam.x - cam.x) * cam.z + W / 2 - (lcam.w / 2) * ls, Y0 = (lcam.y - cam.y) * cam.z + H / 2 - (lcam.h / 2) * ls;
     const fills = lcam.w > 0 && X0 <= 0 && Y0 <= 0 && X0 + lcam.w * ls >= W && Y0 + lcam.h * ls >= H;
     // a cached whole map can stretch further while zooming (it's redrawn sharp once you stop), and past its edge there's only open sea
-    const covers = lcam.w > 0 && (fills || lcam.whole) && ls > (lcam.whole ? 0.5 : 0.8) && ls < (lcam.whole ? 1.5 : 1.25);
-    const moved = cam.z !== lcam.z || !fills || (!lcam.whole && (cam.x !== lcam.x || cam.y !== lcam.y));
+    const covers = lcam.w > 0 && (fills || lcam.whole) && (lcam.whole && !settled ? ls > 0.15 && ls < 4 : ls > (lcam.whole ? 0.5 : 0.8) && ls < (lcam.whole ? 1.5 : 1.25));
+    const moved = cam.z !== lcam.z || !fills || lcam.soft || (!lcam.whole && (cam.x !== lcam.x || cam.y !== lcam.y));
     // ambient motion (water, sway, markers) refreshes it now and then, only while the camera is still, and less often the slower the board draws
     const ambient = layerCost < 5 ? 0.25 : layerCost < 12 ? 0.6 : layerCost < 25 ? 2 : Infinity;
     const why = key !== layerKey ? 'state' : t < fadeUntil ? 'fade' : Object.keys(fx.pops).length ? 'pop' : !covers ? 'edge' : settled && moved ? 'rest' : settled && t - layerT > ambient ? 'ambient' : '';
@@ -1180,26 +1203,32 @@ const Render = (() => {
       for (const k of order) { const c = tc[k]; if (c.wx < x0) x0 = c.wx; if (c.wx > x1) x1 = c.wx; if (c.wy < y0) y0 = c.wy; if (c.wy > y1) y1 = c.wy; }
       const pad = 90 / cam.z;
       x0 = Math.min(x0 - pad, cam.x - W / 2 / cam.z); x1 = Math.max(x1 + pad, cam.x + W / 2 / cam.z); y0 = Math.min(y0 - pad * 1.5, cam.y - H / 2 / cam.z); y1 = Math.max(y1 + pad, cam.y + H / 2 / cam.z);
-      const whole = (x1 - x0) * cam.z * DPR <= LAYER_MAX && (y1 - y0) * cam.z * DPR <= LAYER_MAX;
+      // mid-zoom/pan, a cache that ran out is redrawn as the whole map at a resolution that fits (soft for a moment, but
+      // it then covers any zoom without redrawing again); the sharp redraw waits until the camera rests
+      let zDraw = cam.z;
+      if (why === 'edge' && !settled) { const fitZ = Math.min(LAYER_MAX / ((x1 - x0) * DPR), LAYER_MAX / ((y1 - y0) * DPR)); if (fitZ < cam.z) zDraw = fitZ; }
+      const whole = (x1 - x0) * zDraw * DPR <= LAYER_MAX + 1 && (y1 - y0) * zDraw * DPR <= LAYER_MAX + 1;
       const cx = whole ? (x0 + x1) / 2 : cam.x, cy = whole ? (y0 + y1) / 2 : cam.y;
-      const lw = Math.ceil(whole ? (x1 - x0) * cam.z : W + 2 * LM), lh = Math.ceil(whole ? (y1 - y0) * cam.z : H + 2 * LM);
+      const lw = Math.ceil(whole ? (x1 - x0) * zDraw : W + 2 * LM), lh = Math.ceil(whole ? (y1 - y0) * zDraw : H + 2 * LM);
       if (lc.width !== lw * DPR || lc.height !== lh * DPR) { lc.width = lw * DPR; lc.height = lh * DPR; }
       const main = ctx; ctx = lctx;
-      const w0 = W, h0 = H, c0x = cam.x, c0y = cam.y; W = lw; H = lh; cam.x = cx; cam.y = cy;   // draw from the layer's own centre and size
+      const w0 = W, h0 = H, c0x = cam.x, c0y = cam.y, c0z = cam.z; W = lw; H = lh; cam.x = cx; cam.y = cy; cam.z = zDraw;   // draw from the layer's own centre, size and zoom
       ctx.setTransform(DPR, 0, 0, DPR, 0, 0);
-      bg();
+      ctx.clearRect(0, 0, W, H);   // just the map: the sea background is drawn on the screen itself, every frame
       for (const k of order) drawTile(k, 'base');
       drawAuras(true);   // their soft glow is baked in here; the moving parts are drawn every frame
       if (S_.fogOn) for (const k of order) if (S_.map.tiles[k].fog === 1) drawFog(k);
       // labels go on top of every tile, so taller neighbours never cut them off
       for (const f of late) f(); late.length = 0;
-      W = w0; H = h0; cam.x = c0x; cam.y = c0y;
+      W = w0; H = h0; cam.x = c0x; cam.y = c0y; cam.z = c0z;
       ctx = main; layerKey = key; layerT = t; perf.why = why;
-      Object.assign(lcam, { x: cx, y: cy, z: cam.z, w: lw, h: lh, whole });
+      Object.assign(lcam, { x: cx, y: cy, z: zDraw, w: lw, h: lh, whole, soft: zDraw < cam.z });
       perf.layer = { x0: Math.round(x0), x1: Math.round(x1), y0: Math.round(y0), y1: Math.round(y1), whole, lw, lh };
       const lc0 = performance.now() - lt0; layerCost = layerCost ? layerCost * 0.85 + lc0 * 0.15 : lc0;
-      ctx.drawImage(lc, (cx - cam.x) * cam.z + W / 2 - lw / 2 + sx, (cy - cam.y) * cam.z + H / 2 - lh / 2 + sy, lw, lh);
-    } else { if (!fills) { ctx.fillStyle = '#0d1d29'; ctx.fillRect(0, 0, W, H); } ctx.drawImage(lc, X0 + sx, Y0 + sy, lcam.w * ls, lcam.h * ls); }
+      bg(); ctx.drawImage(lc, (cx - cam.x) * cam.z + W / 2 - lw / 2 + sx, (cy - cam.y) * cam.z + H / 2 - lh / 2 + sy, lw, lh);
+    } else { bg(); ctx.drawImage(lc, X0 + sx, Y0 + sy, lcam.w * ls, lcam.h * ls); }
+    // (the background used to be baked into the cached map: zooming out fast shrank it to a box of sea floating on a
+    // flat fill until the redraw caught up)
     ctx.translate(sx, sy);
     drawWaterGlints();
     drawAuras();

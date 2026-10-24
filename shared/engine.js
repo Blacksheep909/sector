@@ -1563,8 +1563,11 @@
     s.turn.rerolls = 0; s.turn.crate = null;
     if (!preview) { delete s.drops; delete p.snap; delete p.snapNext; }   // old saves: map crates and quick decisions are gone
     ev.push({ e: 'turn', pid: p.id, round: s.turn.round });
-    if (s.scenario) { const inc = s.scenario.income; s.turn.income = inc && inc[p.id] != null ? inc[p.id] : 0; }   // puzzles: a fixed allowance, no resupply cards
-    if (s.turn.round === 1 || s.scenario) {
+    // puzzles: a fixed allowance and no resupply cards. A 'live' mission (the economy lesson, the situations) plays the
+    // real thing: income from land and buildings, and the resupply pick
+    const fixed = s.scenario && !s.scenario.live;
+    if (fixed) { const inc = s.scenario.income; s.turn.income = inc && inc[p.id] != null ? inc[p.id] : 0; }
+    if (s.turn.round === 1 || fixed) {
       // everyone just drafted 3 cards: round 1 pays full income with no resupply pick
       p.cash += s.turn.income; s.turn.offer = []; s.turn.stage = 'act';
       ev.push({ e: 'income', pid: p.id, amount: s.turn.income, hq: p.hq });
@@ -1589,7 +1592,7 @@
     // scenarios: count the hero's turns, and see whether time is up
     if (s.scenario && !s._preview && current(s).id === s.scenario.hero) { s.scenario.heroTurns++; scenarioCheck(s, ev, true); if (s.phase !== 'play') return; }
     // deal the ending commander's next resupply now, so they can pick from it while the others play
-    { const q = current(s); if (q && q.alive && !s._preview && !s.scenario) { q.nextOffer = drawCards(s, q, 3, TURN_ODDS, rng); delete q.prePick; } }
+    { const q = current(s); if (q && q.alive && !s._preview && (!s.scenario || s.scenario.live)) { q.nextOffer = drawCards(s, q, 3, TURN_ODDS, rng); delete q.prePick; } }
     const n = s.players.length;
     let guard = 0;
     s.turn.crate = null; s.turn.offer = [];
@@ -1740,6 +1743,7 @@
   // scenarios (puzzles): each has a goal and a number of turns to reach it
   // goal: { type: 'capture', hexes } take and hold every listed hex · { type: 'destroy' } wipe out every enemy unit
   //       { type: 'survive', hexes } still hold the listed hexes when your last turn ends · keep: hexes you lose the mission by losing
+  //       { type: 'income', amount } an income of at least this much a turn · { type: 'eliminate' } knock every enemy commander out
   function scenarioCheck(s, ev, turnEnd) {
     const sc = s.scenario; if (!sc || s.phase !== 'play' || s._preview) return;
     const hero = sc.hero, g = sc.goal || {}, owns = k => s.map.tiles[k] && s.map.tiles[k].owner === hero;
@@ -1750,6 +1754,8 @@
     if ((sc.keep || []).some(k => !owns(k))) return lose('You lost a position you had to hold');
     if (g.type === 'capture' && g.hexes.every(owns)) return win();
     if (g.type === 'destroy' && !Object.values(s.units).some(u => u.owner !== hero)) return win();
+    if (g.type === 'income' && computeIncome(s, hero).total >= g.amount) return win();
+    if (g.type === 'eliminate' && s.players.every(p => p.id === hero || !p.alive)) return win();
     if (turnEnd && sc.heroTurns >= sc.turns) {
       if (g.type === 'survive' && (g.hexes || []).every(owns)) return win();
       return lose('Out of time');

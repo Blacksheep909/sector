@@ -104,6 +104,42 @@ const SOLUTIONS = {
     console.log('     odds: with gunfire ' + Math.round(g.odds('obj', ['beach']) * 100) + '%');
     return g.assault('obj', ['beach']);
   },
+  ground() {
+    const run = defend => {
+      const g = game('ground'), s = g.s;
+      for (let t = 0; t < 3 && s.phase === 'play'; t++) {
+        if (defend) {
+          g.build('bunker', 'fort');
+          const spare = g.unitsAt('g').filter(u => !u.fresh); if (spare.length) g.move('g', 'fort');
+          const hq = g.unitsAt('hq').filter(u => !u.fresh); if (hq.length) E.applyAction(s, HERO, { a: 'move', from: g.at('hq'), units: hq.map(u => u.id), to: g.at('fort') });
+          const dig = g.unitsAt('fort').filter(u => !u.moved && !u.fresh); if (dig.length) E.applyAction(s, HERO, { a: 'digin', from: g.at('fort'), units: dig.map(u => u.id) });
+          while (E.player(s, HERO).cash >= 2 && E.applyAction(s, HERO, { a: 'deploy', unit: 'grunt', hex: g.at('hq') }).ok);
+        }
+        g.end();
+      }
+      return g.won();
+    };
+    let wins = 0, idle = 0; for (let i = 0; i < 40; i++) { if (run(true)) wins++; if (run(false)) idle++; }
+    console.log('     a dug-in, bunkered defence held ' + wins + '/40; doing nothing held ' + idle + '/40');
+    return { won: wins >= 34 && idle <= 8 };
+  },
+  economy(g) {
+    const inc = () => E.computeIncome(g.s, HERO).total, p = E.player(g.s, HERO);
+    const log = [];
+    g.move('sk', 'res'); g.move('g', 'n1'); log.push('t1 ' + inc()); g.end();
+    if (g.s.turn.stage === 'choose') g.s.turn.stage === 'choose' && E.applyAction(g.s, HERO, { a: 'choose', pick: 'income' });
+    g.build('refinery', 'res'); log.push('t2 refinery ' + inc() + ' cash ' + p.cash);
+    // keep the Skitter grabbing land, and a Warehouse beside the refinery when there's cash
+    const free = () => Object.keys(g.s.map.tiles).filter(k => { const t = g.s.map.tiles[k]; return E.isLandTile(t) && !t.owner; });
+    const roam = () => { const sk = Object.values(g.s.units).find(u => u.owner === HERO && u.type === 'skitter'); if (!sk) return; const r = E.reachable(g.s, HERO, [sk.id], sk.hex); const best = Object.keys(r).filter(k => r[k].kind === 'move' || r[k].kind === 'capture').sort((a, b) => E.dist(b, sk.hex) - E.dist(a, sk.hex))[0]; if (best) E.applyAction(g.s, HERO, { a: 'move', from: sk.hex, units: [sk.id], to: best }); };
+    roam(); g.end();
+    for (let t = 3; t <= 4 && g.s.phase === 'play'; t++) {
+      if (g.s.turn.stage === 'choose') E.applyAction(g.s, HERO, { a: 'choose', pick: 'income' });
+      for (const n of E.neighbors(g.at('res'))) if (g.s.map.tiles[n] && g.s.map.tiles[n].owner === HERO && p.cash >= 6) E.applyAction(g.s, HERO, { a: 'build', struct: 'warehouse', hex: n });
+      roam(); log.push('t' + t + ' ' + inc() + ' cash ' + p.cash); if (g.s.phase === 'play') g.end();
+    }
+    console.log('     income: ' + log.join(' · '));
+  },
   basic(g) {
     g.move('g', 'w1'); g.end();
     g.deploy('grunt', 'hq'); g.move('w1', 'w2'); g.end();
