@@ -26,7 +26,7 @@ Every release, newest first. Each version also has its own post on the [Releases
 - **Carriers** are slower and lighter: 1 move, attack 2, defence 2.
 - **A captured HQ becomes your FOB.** When a siege knocks a commander out, their old capital is a deploy point for whoever took it.
 - **Intel ops** cost a quarter of your income (at least $2), so scouting stays a real choice later in a war.
-- **Missions:** every mission now pays **100 Valor** on its first clear, and clearing every mission pays **1,000** more. New: **War Chest** (income, resupply, Refineries and Warehouses) and **Holding Ground** (high ground, digging in and Bunkers against a live enemy). More missions are on the way.
+- **Missions:** every mission now pays **100 Valor** on its first clear, and clearing every mission pays **1,000** more. There are now **17 missions** in teaching order. New: **War Chest** (income, resupply, Refineries and Warehouses), **Holding Ground** (holding a fort and your HQ: high ground, digging in, Bunkers, fortifying the HQ), **Forward Base** (FOBs and Depots), **Spoils of War** (ruins, caches, villages, relics and abandoned FOBs), **Air Power** (Airstrikes, Gun Runs, Heli Drops and Flak), **Sea Lanes** (Ports, warships and sea control) and **The Cauldron** (encirclement). Missions you'd already cleared stay unlocked. Bigger "situation" missions are on the way.
 
 
 **Singleplayer with saves on your account, public wars you can host, a store overhaul, clean chat, and a round of security fixes.**

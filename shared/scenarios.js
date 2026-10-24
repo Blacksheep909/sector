@@ -84,7 +84,7 @@
         { text: 'Money wins wars, recruit. Every turn you earn **income**: a base $3, plus **$1 for every 3 hexes** of land you hold. You\'re on $4. Get it to **$15 a turn**. Click to go on.', wait: 'click' },
         { text: 'The fastest way to grow is land. Your **Skitter** buggy moves 4 hexes, and every empty hex it drives through becomes yours. **Drive it toward the glowing resource node** (the derrick in the middle).', focus: 'res', wait: 'move' },
         { text: '**Resource nodes** pay +$2 a turn just for holding them. Spread the Grunts out to grab more land too, then **END TURN**.', wait: 'turn' },
-        { text: 'This is **resupply**. Each turn you either take **one of these cards and half your income**, or **skip them for the full income**. Cards are how your army grows; cash is how you build. Today you want cash: press **TAKE FULL INCOME**.', wait: 'pick' },
+        { text: 'This is **resupply**. Each turn you either take **one of these cards and half your income**, or **skip them for the full income**. Cards are how your army grows; cash is how you build. Today you want cash: press **COLLECT** for the full income.', wait: 'pick' },
         { text: 'Now build. A **Refinery** on a resource node pays +$3 a turn ($1 anywhere else). Open the build bar (bottom left), pick **Refinery** and click the node.', focus: 'res', wait: 'build' },
         { text: 'A **Warehouse** pays +$2 a turn, or **+$3 next to a Refinery, resource node or Port**. Keep claiming land, build when you can afford it, and watch your income in the top-left panel. **Reach $15 a turn.**', wait: 'win' },
       ],
@@ -109,8 +109,8 @@
       hints: ['Hover the forest with one squad selected: see the odds. Now Shift-click the second squad and hover again.', 'Select squad A, Shift-click squad B, click the forest. A guaranteed win shows as 100%.'],
     },
     {
-      id: 'ground', name: 'Holding Ground', tier: 'Easy', technique: 'Defence: high ground, digging in and Bunkers',
-      brief: 'An enemy column is coming for your hill fort. Make it a place they break their teeth on.',
+      id: 'ground', name: 'Holding Ground', tier: 'Easy', technique: 'Defence: holding ground and your HQ (high ground, digging in, Bunkers, fortifying the HQ)',
+      brief: 'Raiders are coming for your hill fort and your HQ. Hold both for three turns.',
       turns: 3,
       players: { A: { name: 'You', cash: 8, arsenal: ['grunt'] }, B: { name: 'Raiders', ai: 'bot', diff: 'medium', cash: 6, arsenal: ['grunt', 'mauler'] } },
       income: { A: 4, B: 10 },
@@ -124,10 +124,10 @@
       ],
       structs: { hq: [['A', 'hq']], bhq: [['B', 'hq', 3]] },
       units: { fort: [['A', 'grunt', 2]], g: [['A', 'grunt', 2]], e1: [['B', 'grunt', 4]], e2: [['B', 'grunt', 3], ['B', 'mauler', 1]] },
-      keep: ['fort'],
-      goal: { type: 'survive', hexes: ['fort'] },
-      intro: 'Hold the **hill fort** until your 3rd turn ends. Defenders win ties, and you can stack the odds: **Highlands** give defenders +2 Mult. A **Bunker** ($4) adds a garrison of +3 Chips and +2 Mult. And a stack that hasn\'t moved can **Dig In** (select it, press **G**): +1 Mult until it moves again. Hover your fort to see what an attacker faces.',
-      hints: ['Turn 1: build a Bunker on the fort, march the spare Grunts in, then select the fort stack and press G to dig in.', 'Spend what\'s left on Grunts at your HQ and walk them up next turn. Don\'t attack out of the fort: let them come to you.'],
+      keep: ['fort', 'hq'],
+      goal: { type: 'survive', hexes: ['fort', 'hq'] },
+      intro: 'Hold the **hill fort** and your **HQ** until your 3rd turn ends: lose either and it\'s over. Defenders win ties, and you can stack the odds: **Highlands** give defenders +2 Mult. A **Bunker** ($4) adds a garrison of +3 Chips and +2 Mult. A stack that hasn\'t moved can **Dig In** (select it, press **G**): +1 Mult until it moves again. Your **HQ** defends itself with a garrison, and building **HQ** on it again **fortifies** it (+3 Chips and +1 Mult a level). If an HQ does fall, it\'s only **under siege**: retake it before the enemy\'s next turn and you\'re still in the war. Hover a hex to see what an attacker faces.',
+      hints: ['Turn 1: a Bunker on the fort, the spare Grunts into it, then dig the fort stack in (G). Keep some Grunts on the HQ.', 'Fresh Grunts deployed at the HQ defend it straight away. Don\'t attack out: let them come to you.'],
     },
     {
       id: 'river', name: 'Crossing', tier: 'Easy', technique: 'Rivers, bridges and combined arms',
@@ -146,6 +146,47 @@
       goal: { type: 'capture', hexes: ['obj'] },
       intro: '**Infantry** can ford a river straight across, but it takes their whole move. **Vehicles need a bridge**: build one ($6) on a river hex next to your land. And mixing unit types in an attack earns **Combined Arms** (+1 Mult per extra type).',
       hints: ['Build a Bridge on the river beside your tank, drive the tank over it, and wade the Grunts across.', 'Turn 2: attack the outpost with the tank and the Grunts together.'],
+    },
+    {
+      id: 'fob', name: 'Forward Base', tier: 'Easy', technique: 'FOBs: deploying at the front, not just at home',
+      brief: 'The enemy outpost is a long march from your HQ. Three turns. Bring the front line to the troops.',
+      turns: 3,
+      players: { A: { name: 'You', cash: 8, arsenal: ['grunt'] }, B: { name: 'Outpost', ai: 'passive' } },
+      income: { A: 8 },
+      map: [
+        '~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~',
+        '~ .A .A .A .A .A .A . . .B .B ~ ~',
+        '~ .A@hq .A@g .A .A .A .A@front . fB@obj .B .B@bhq ~',
+        '~ .A .A .A .A .A .A . . .B .B ~ ~',
+        '~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~',
+      ],
+      structs: { hq: [['A', 'hq']], bhq: [['B', 'hq', 3]] },
+      units: { g: [['A', 'grunt', 2]], obj: [['B', 'grunt', 3, { dug: true }]] },
+      goal: { type: 'capture', hexes: ['obj'] },
+      intro: 'Troops only deploy at your **HQ** or a **FOB** (forward base, $8), and Grunts walk 2 hexes a turn: from home they\'d never make it. **Build a FOB on your front-line hex**, deploy fresh troops there next turn, and they\'re in range of the outpost the turn after. (A **Depot**, $4, gives units that start their turn near it +1 move.)',
+      hints: ['Turn 1: build a FOB on the easternmost hex of your land (the one nearest the outpost).', 'Turn 2: deploy four Grunts at the FOB. Turn 3: attack the woods with all four together.'],
+    },
+    {
+      id: 'loot', name: 'Spoils of War', tier: 'Medium', technique: 'Ruins, caches, villages, relics and abandoned FOBs',
+      brief: 'No money, a few fast trucks and a map full of treasure. Take the village and the relic in three turns.',
+      turns: 3,
+      players: { A: { name: 'You', cash: 0, arsenal: ['grunt'] }, B: { name: 'Bandits', ai: 'passive' } },
+      income: { A: 3 },
+      map: [
+        '~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~',
+        '~ .A .A . .@ru . . h . ~',
+        '~ .A@hq .A@sk . . .@fort .@vil .@relic . ~',
+        '~ .A .A@j . .@cache f . .B .B ~',
+        '~ ~ ~ ~ ~ ~ ~ ~ .B .B@bhq ~',
+        '~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~',
+      ],
+      pois: { ru: 'ruins', fort: 'fort', vil: 'village', relic: 'relic', cache: 'cache' },
+      gar: { vil: 6 },
+      structs: { hq: [['A', 'hq']], bhq: [['B', 'hq', 3]] },
+      units: { sk: [['A', 'skitter', 1]], j: [['A', 'jackal', 1]], bhq: [['B', 'grunt', 4]] },
+      goal: { type: 'capture', hexes: ['vil', 'relic'] },
+      intro: 'The map is full of **points of interest**. **Ruins** pay $4–10 to the first unit through. A **supply cache** hands over a tactic card. An **abandoned FOB** becomes yours when you drive onto it: a deploy point at the front. A **village** has a militia to beat, then pays +$2 a turn; a **relic** pays +$3. You start broke: loot first, then spend it.',
+      hints: ['Turn 1: the Skitter claims the abandoned FOB; the Jackal loots the ruins.', 'Turn 2: deploy Grunts at the FOB with the loot, and send the Skitter to the relic. Turn 3: everything attacks the village.'],
     },
     {
       id: 'airborne', name: 'Over the Mountains', tier: 'Medium', technique: 'Helicopters carry Grunts',
@@ -221,6 +262,43 @@
       hints: ['Rally (+2 Mult) and Fix Bayonets (+1 Chip per attacker) cost $1 each. Barrage and Reserves cost $2.', 'The three Grunts need either Rally or Bayonets. The tank column can only be tipped by Rally for $1. So: Bayonets for the Grunts, Rally for the tanks, one attack at a time.'],
     },
     {
+      id: 'air', name: 'Air Power', tier: 'Hard', technique: 'Air strikes, Gun Runs, Heli Drops and Flak',
+      brief: 'The objective is cut off by mountains and sea. No road leads there, but you have $9 and three cards.',
+      turns: 2,
+      players: { A: { name: 'You', cash: 9, arsenal: ['grunt'], tactics: ['airstrike', 'gunrun', 'heli'] }, B: { name: 'Cliff Guard', ai: 'passive' } },
+      map: [
+        '~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~',
+        '~ .A .A m ~ .@lz1 .B .B@flak ~ ~',
+        '~ .A@hq .A@g m ~ fB@obj .B .B@bhq ~',
+        '~ .A .A m ~ .@lz2 .B .B ~ ~',
+        '~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~',
+      ],
+      structs: { hq: [['A', 'hq']], bhq: [['B', 'hq', 3]], flak: [['B', 'flak', 2]] },
+      units: { g: [['A', 'grunt', 4]], obj: [['B', 'grunt', 4, { dug: true }]] },
+      goal: { type: 'capture', hexes: ['obj'] },
+      intro: '**Tactic cards** act straight from your hand. An **Airstrike** ($4) bombs a hex within 4 of your land and kills 1–3 troops; a **Gun Run** ($2) kills 1 on a 3+. A **Heli Drop** ($3) flies a stack up to 5 hexes onto empty land. But enemy **Flak** shoots at air strikes in its range and blocks Heli Drops there: hover the Flak site to see how far it reaches.',
+      hints: ['The northern clearing is inside the Flak\'s reach; the southern one isn\'t.', 'Turn 1: Airstrike and Gun Run the woods, then Heli Drop your Grunts onto the southern clearing. Turn 2: attack.'],
+    },
+    {
+      id: 'navy', name: 'Sea Lanes', tier: 'Hard', technique: 'Ports, warships and sea control',
+      brief: 'An enemy flotilla is squatting on your shipping lanes. Build a navy and send it to the bottom.',
+      turns: 2,
+      players: { A: { name: 'You', cash: 8, arsenal: ['barracuda'] }, B: { name: 'Corsairs', ai: 'passive' } },
+      map: [
+        '~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~',
+        '~ .A .A@port ~@dock ~ ~ ~ ~ .B ~ ~',
+        '~ .A@hq .A ~@s0 ~ ~@e1 ~ .B .B@bhq ~',
+        '~ .A .A ~ ~ ~ ~@e2 ~ .B ~ ~',
+        '~ .A .A ~ ~ ~ ~ ~ .B .B ~',
+        '~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~',
+      ],
+      structs: { hq: [['A', 'hq']], port: [['A', 'port']], bhq: [['B', 'hq', 3]] },
+      units: { s0: [['A', 'marlin', 1], ['A', 'barracuda', 1]], e1: [['B', 'barracuda', 2]], e2: [['B', 'barracuda', 1]] },
+      goal: { type: 'destroy' },
+      intro: 'A **Port** launches ships into the sea next to it: deploy warships there like any unit. Ships **claim every sea hex they sail through**, and your sea pays income (+$1 per 4 hexes, more through a Port). A **Marlin** destroyer shells ships 2 hexes away instead of moving. **Sink every enemy ship** in two turns.',
+      hints: ['Turn 1: launch two Barracudas from the Port. Sail the Marlin to within 2 hexes of the lone gunboat (it can\'t fire on a turn it moves), and send your first gunboat out to claim sea lanes.', 'Turn 2: the Marlin shells the lone gunboat; all three Barracudas attack the pair together.'],
+    },
+    {
       id: 'beach', name: 'Beachhead', tier: 'Very Hard', technique: 'Transports, landings and naval gunfire',
       brief: 'An island fort and an army on the wrong shore. You have a transport, two gunboats and three turns.',
       turns: 3, reward: 1000,
@@ -238,6 +316,26 @@
       goal: { type: 'capture', hexes: ['obj'] },
       intro: 'Your Grunts are aboard the **Ark**. Sail it across, then **click a beach** to wade ashore. Warships next to a land fight add **Naval Gunfire**: +2 Chips each to your side (up to 3 ships), even when they aren\'t in the fight.',
       hints: ['Turn 1: sail the Ark to the sea by the empty beach, and send both gunboats to the water beside the fort.', 'Turn 2: wade ashore. Turn 3: attack the fort from the beach while the gunboats sit next to it.'],
+    },
+    {
+      id: 'encircle', name: 'The Cauldron', tier: 'Hard', technique: 'Encirclement: cutting off a pocket to take it whole',
+      brief: 'Four flags spread across an enemy pocket, and one turn. You can\'t reach them all. You don\'t have to.',
+      turns: 1,
+      players: { A: { name: 'You', arsenal: ['grunt'] }, B: { name: 'Pocket Army', ai: 'passive' } },
+      map: [
+        '~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~',
+        '~ .A .A .A .A .A .A m .B .B ~',
+        '~ .A .A .B@o1 .B .B@o2 .A@g m .B ~',
+        '~ .A@hq .A .B .B .B@gap .B .B .B@bhq ~',
+        '~ .A .A .B@o3 .B .B@o4 .A@h m .B ~',
+        '~ .A .A .A .A .A .A m .B .B ~',
+        '~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~',
+      ],
+      structs: { hq: [['A', 'hq']], bhq: [['B', 'hq', 3]] },
+      units: { g: [['A', 'grunt', 2]], h: [['A', 'grunt', 2]], gap: [['B', 'grunt', 1]] },
+      goal: { type: 'capture', hexes: ['o1', 'o2', 'o3', 'o4'] },
+      intro: '**Encirclement:** when your land completely surrounds a pocket of 10 hexes or fewer (mountains count as walls, the sea doesn\'t), the whole pocket becomes yours at once. It only works on land with **no enemy troops** and no HQ, FOB, Port or Bunker. Find the one hex that ties this pocket to the enemy\'s homeland.',
+      hints: ['The pocket is only joined to the enemy\'s land through the hex where their guard stands.', 'Attack the guard with both squads together. The moment that hex is yours, the pocket is cut off and flips to you.'],
     },
     {
       id: 'hold', name: 'Hold the Line', tier: 'Expert', technique: 'Defence: bunkers, terrain and reserves',
@@ -280,10 +378,41 @@
       intro: 'The enemy HQ is a ★★★ fortress packed with troops. Nothing you have can take it alone. Plan both turns before you touch anything: **where must each force be at the start of turn 2?**',
       hints: ['The guard in the woods blocks the only road for your tanks, and attacking it would leave them stuck there. Something else should deal with it.', 'Turn 1: the Basilisk shells the guard; the tanks drive through to the hex beside the HQ; the Stormcrow flies its Grunts to the clearing on the other side.', 'Turn 2: no single card is enough. Ready two that stack, like Rally with Fix Bayonets, then attack the HQ with both stacks at once (Shift-click).'],
     },
+    // ───────── situations: bigger boards, live enemies, real income and resupply ─────────
+    {
+      id: 'breakout', draft: true, name: 'Breakout', tier: 'Situation', technique: 'A cut-off division and a relief push: two forces, one plan',
+      brief: 'Your 3rd Division is surrounded deep behind enemy lines. Smash the fortified gate town between them and home before the pocket falls.',
+      turns: 8, live: true,
+      players: { A: { name: 'You', cash: 6, arsenal: ['grunt', 'jackal', 'mauler', 'thumper'] }, B: { name: 'Iron Ring', ai: 'bot', diff: 'easy', cash: 4, arsenal: ['grunt', 'mauler', 'thumper'] } },
+      map: [
+        '~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~',
+        '~ .A .A . f .B .B hB .B .B .A .A . ~ ~ ~',
+        '~ .A@hq .A@west . .B .B@n1 .B .B@n2 .B .A@pocket .A . ~ ~ ~',
+        '~ .A .A . f .B fB .B@gate .B .B .A .A@p2 . ~ ~ ~',
+        '~ .A .A@sw . .B .B .B .B .B@s2 .B . . ~ ~ ~',
+        '~ ~ ~ . . .B .B .B@bhq .B .B ~ ~ ~ ~ ~ ~',
+        '~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~',
+      ],
+      structs: { hq: [['A', 'hq']], pocket: [['A', 'fob'], ['A', 'bunker']], gate: [['B', 'bunker', 1]], bhq: [['B', 'hq', 2]] },
+      units: {
+        west: [['A', 'grunt', 4], ['A', 'mauler', 1]], sw: [['A', 'grunt', 2], ['A', 'thumper', 1]],
+        pocket: [['A', 'grunt', 3], ['A', 'lancer', 1]], p2: [['A', 'jackal', 2]],
+        gate: [['B', 'grunt', 2]], n1: [['B', 'grunt', 2]], n2: [['B', 'grunt', 3], ['B', 'mauler', 1]], s2: [['B', 'grunt', 3]], bhq: [['B', 'grunt', 3]],
+      },
+      keep: ['pocket'],
+      goal: { type: 'capture', hexes: ['gate'] },
+      intro: '**Situation.** A live enemy, real income and resupply, eight turns. Your **3rd Division** holds a FOB in a pocket to the east; your main army is at home. Between them, the **gate town** behind a Bunker. **Take it before turn 8 ends**, and don\'t lose the pocket\'s FOB. The enemy will go for the pocket. Hit the gate from both sides at once.',
+      hints: ['The pocket FOB is a deploy point: reinforce it, or the enemy will roll it up.', 'Bring the Thumper up to shell the gate, and attack it from the west and the east in the same turn: every extra side is +1 Mult.'],
+    },
   ];
-  // missions are numbered by their place in the list (the order they're played and unlocked in)
+  // the order they're played and unlocked in (each builds on the ones before), and so their numbers
+  const ORDER = ['basic', 'economy', 'pincer', 'ground', 'river', 'fob', 'leapfrog', 'loot', 'airborne', 'guns', 'cards', 'air', 'navy', 'beach', 'encircle', 'hold', 'blitz', 'breakout', 'islands', 'relief', 'fronts', 'total'];
+  SCENARIOS.sort((a, b) => (ORDER.indexOf(a.id) + 1 || 99) - (ORDER.indexOf(b.id) + 1 || 99));
+  // missions still being tuned (draft: true) aren't on the board yet; the tests can still reach them
+  const DRAFTS = SCENARIOS.filter(sc => sc.draft);
+  for (const d of DRAFTS) SCENARIOS.splice(SCENARIOS.indexOf(d), 1);
   SCENARIOS.forEach((sc, i) => { sc.n = i + 1; });
-  const byId = Object.create(null); SCENARIOS.forEach(s => { byId[s.id] = s; });
+  const byId = Object.create(null); SCENARIOS.concat(DRAFTS).forEach(s => { byId[s.id] = s; });
 
   // build the starting state for a mission. heroId: the id of the human playing it
   function build(id, heroId, heroName, color) {
@@ -326,5 +455,5 @@
   // every mission pays REWARD the first time a commander clears it, and ALL_BONUS once they've cleared them all
   const REWARD = 100, ALL_BONUS = 1000;
   SCENARIOS.forEach(s => { s.reward = REWARD; });
-  return { SCENARIOS, build, list, get: id => byId[id], parse, REWARD, ALL_BONUS };
+  return { SCENARIOS, DRAFTS, build, list, get: id => byId[id], parse, REWARD, ALL_BONUS };
 });
