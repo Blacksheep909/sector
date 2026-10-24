@@ -6,7 +6,7 @@ const Missions = (() => {
   const esc = s => String(s).replace(/[&<>"]/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;' })[c]);
   const fmt = s => esc(s).replace(/\*\*(.+?)\*\*/g, '<b>$1</b>');
   const D = () => window.SECTOR_DEBUG;
-  const TIER = { Tutorial: '#59f08a', Easy: '#3fd07a', Medium: '#3fa0ff', Hard: '#c25cff', 'Very Hard': '#ff7a3a', Expert: '#ff4f5e', Impossible: '#ffb52e' };
+  const TIER = { Tutorial: '#59f08a', Easy: '#3fd07a', Medium: '#3fa0ff', Hard: '#c25cff', 'Very Hard': '#ff7a3a', Expert: '#ff4f5e', Impossible: '#ffb52e', Situation: '#e8edf2' };
 
   // progress: kept on your profile when you have one, and in this browser either way
   const local = () => { try { return JSON.parse(localStorage.getItem('sector.missions') || '[]'); } catch (e) { return []; } };
@@ -104,6 +104,8 @@ const Missions = (() => {
     const g = st.scenario.goal || {};
     if (g.type === 'destroy') return 'Destroy every enemy unit';
     if (g.type === 'survive') return 'Hold the gold flags until your turn ' + st.scenario.turns + ' ends';
+    if (g.type === 'income') return 'Reach an income of $' + g.amount + ' a turn';
+    if (g.type === 'eliminate') return 'Knock out every enemy commander';
     return g.hexes && g.hexes.length > 1 ? 'Take every gold flag' : 'Take the gold flag';
   }
   function bar(st) {
@@ -134,7 +136,8 @@ const Missions = (() => {
     }
     if (!guide || !guide.step) return;
     const w = guide.step.wait, mine = e => e.pid === me;
-    const hit = (events || []).some(e => mine(e) && ((w === 'move' && (e.e === 'move' || e.e === 'advance')) || (w === 'deploy' && e.e === 'deploy') || (w === 'turn' && e.e === 'turn')));
+    const hit = (events || []).some(e => mine(e) && ((w === 'move' && (e.e === 'move' || e.e === 'advance')) || (w === 'deploy' && e.e === 'deploy') || (w === 'turn' && e.e === 'turn')
+      || (w === 'build' && e.e === 'build') || (w === 'pick' && (e.e === 'income' || e.e === 'card'))));
     if (hit) next(st);
   }
   function next(st) {

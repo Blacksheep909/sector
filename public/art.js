@@ -1386,6 +1386,25 @@ const Art = (() => {
     }
     return cache[k] = cv.toDataURL('image/png');
   }
+  Object.assign(UNIT, {
+    // CH-47 Chinook: a long boxy fuselage, a rotor at each end (the rear one up on a tall pylon), a loading ramp, four wheels
+    mule(c) {
+      blur(c, () => { rr(c, 0.0, -0.66, 1.18, 0.06, 0.03); c.fill(); rr(c, -1.16, -0.86, 1.18, 0.06, 0.03); c.fill(); });   // two rotor discs
+      rr(c, 0.52, -0.64, 0.08, 0.2, 0.02); c.fill();                                                                       // front mast
+      poly(c, [-0.98, -0.42, -0.86, -0.84, -0.48, -0.84, -0.36, -0.42]); c.fill();                                      // rear pylon
+      c.beginPath(); c.moveTo(-1.0, -0.42); c.lineTo(0.66, -0.46); c.quadraticCurveTo(0.98, -0.42, 1.04, -0.12); c.lineTo(1.04, 0.06); c.quadraticCurveTo(1.0, 0.2, 0.8, 0.2); c.lineTo(-0.78, 0.2); c.lineTo(-1.1, 0.0); c.closePath(); c.fill();   // fuselage and ramp
+      rr(c, -0.5, 0.12, 0.6, 0.14, 0.05); c.fill();                                                                       // fuel sponson
+      c.lineWidth = 0.06; c.strokeStyle = c.fillStyle; c.beginPath();
+      for (const x of [0.66, 0.42, -0.58, -0.82]) { c.moveTo(x, 0.18); c.lineTo(x, 0.34); }
+      c.stroke();
+      for (const x of [0.66, 0.42, -0.58, -0.82]) hub(c, x, 0.38, 0.08);
+      shade(c, () => {
+        c.moveTo(0.7, -0.4); c.lineTo(0.94, -0.36); c.lineTo(1.0, -0.12); c.lineTo(0.72, -0.12); c.closePath();     // cockpit glass
+        for (const x of [-0.7, -0.44, -0.18, 0.08, 0.34]) rrp(c, x, -0.3, 0.14, 0.12, 0.03);                            // cabin windows
+        rrp(c, -1.0, -0.04, 0.4, 0.04, 0.02);                                                                           // the ramp's hinge line
+      }, SH2);
+    },
+  });
   function cardArt(id) {
     const k = 'card' + id; if (cache[k]) return cache[k];
     const E = SectorEngine, d = E.cardDef(id), pal = PAL[d.rarity] || PAL.common;
