@@ -130,6 +130,7 @@
     // helicopters
     wren: { name: 'Wren', cls: 'air', cost: 5, atk: 2, def: 0, mv: 5, rarity: 'rare', ability: 'strafe', lift: 2, heli: true, desc: 'Light assault helicopter. Fast, with 2 Grunts riding on its benches. Strafing Run: +2 Mult attacking ground targets.' },
     ravager: { name: 'Ravager', cls: 'air', cost: 7, atk: 4, def: 1, mv: 4, rarity: 'rare', ability: 'strafe', heli: true, desc: 'Armoured attack helicopter with a chin cannon. Strafing Run: +2 Mult attacking ground targets.' },
+    mule: { name: 'Mule', cls: 'air', cost: 6, atk: 1, def: 1, mv: 4, rarity: 'rare', lift: 8, heli: true, desc: 'Tandem-rotor heavy-lift helicopter. Barely armed, but carries up to 8 Grunts over mountains and water (it sets them down on land).' },
     stormcrow: { name: 'Stormcrow', cls: 'air', cost: 9, atk: 3, def: 2, mv: 4, rarity: 'epic', lift: 6, heli: true, desc: 'Utility helicopter with door guns. Carries up to 6 Grunts over mountains and water (it sets them down on land).' },
     phantom: { name: 'Phantom', cls: 'air', cost: 10, atk: 7, def: 3, mv: 5, rarity: 'epic', ability: 'stealth', desc: 'Stealth bomber. Immune to artillery, airstrikes and bombardment.' },
     hailstorm: { name: 'Hailstorm', cls: 'art', cost: 11, atk: 7, def: 3, mv: 2, range: 4, rarity: 'epic', ability: 'salvo', desc: 'Tracked rocket launcher (MLRS). Range 4. A hit also rains rockets on every enemy stack next to the target: 1 unit each.' },
@@ -139,7 +140,7 @@
     titan: { name: 'Titan', cls: 'veh', cost: 16, atk: 13, def: 12, mv: 1, rarity: 'legendary', ability: 'titan', desc: 'Landship with naval guns. Siege Breaker and never suffers pyrrhic losses.' },
     seraph: { name: 'Seraph', cls: 'air', cost: 12, atk: 9, def: 4, mv: 5, rarity: 'legendary', ability: 'strafe', desc: 'Heavy gunship. Strafing Run: +2 Mult attacking ground targets.' },
     banshee: { name: 'Banshee', cls: 'air', cost: 14, atk: 8, def: 2, mv: 4, rarity: 'legendary', ability: 'hellfire', heli: true, desc: 'Attack helicopter with anti-tank missiles. Hellfire: +3 Chips against vehicles, and Strafing Run: +2 Mult attacking ground targets.' },
-    carrier: { name: 'Carrier', cls: 'sea', cost: 13, atk: 3, def: 9, mv: 3, rarity: 'legendary', ability: 'carrier', desc: 'Floating airbase: deploy aircraft onto it and fly them off it. Holds 4.' },
+    carrier: { name: 'Carrier', cls: 'sea', cost: 13, atk: 2, def: 2, mv: 1, rarity: 'legendary', ability: 'carrier', desc: 'Floating airbase: deploy aircraft onto it and fly them off it. Holds 4.' },
     oracle: { name: 'Oracle', cls: 'art', cost: 11, atk: 8, def: 3, mv: 2, range: 4, rarity: 'legendary', ability: 'orbital', desc: 'Orbital uplink. Range 4, ignores mountains.' },
     trident: { name: 'Trident', cls: 'sea', cost: 16, atk: 10, def: 6, mv: 3, range: 8, rarity: 'legendary', ability: 'ballistic', desc: 'Missile submarine. Fires at any troops or buildings within 8, over mountains; a hit kills one extra unit. Only a Sentinel can intercept.' },
     abyssal: { name: 'Abyssal', cls: 'sea', cost: 15, atk: 12, def: 10, mv: 3, range: 4, rarity: 'legendary', ability: 'juggernaut', desc: 'Sea dreadnought. Range 4. Never suffers pyrrhic losses.' },
@@ -1392,6 +1393,9 @@
         syncStructs(t); hexes.push(k);
       }
     }
+    // the fallen capital becomes the conqueror's forward base: a deploy point right where they broke through
+    const cap = lp.hq && s.map.tiles[lp.hq];
+    if (by && cap && cap.owner === by && !getS(cap, 'fob') && structsOf(cap).length < MAX_STRUCTS) addStruct(cap, { type: 'fob', owner: by, lvl: 1 });
     const dead = [];
     for (const id in s.units) if (s.units[id].owner === loser) { dead.push(+id); delete s.units[id]; }
     const bp = player(s, by);
@@ -2559,7 +2563,7 @@
   // ── between turns ──
   // intel ops: $2 to scout a 2-hex patch through the fog until the end of next round (twice per round)
   const INTEL_COST = 2;
-  const intelCost = (s, pid) => Math.max(INTEL_COST, Math.round(computeIncome(s, pid).total * 0.15));
+  const intelCost = (s, pid) => Math.max(INTEL_COST, Math.round(computeIncome(s, pid).total * 0.25));   // a quarter of your income (at least $2)
   function intelOp(s, p, a, ev) {
     const fail = err => ({ ok: false, err, events: [] });
     if (s.settings.fog !== 'on') return fail('Intel ops need fog of war');

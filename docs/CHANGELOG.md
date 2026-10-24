@@ -22,6 +22,10 @@ Every release, newest first. Each version also has its own post on the [Releases
 - **Fog of war:** when no human can see what a bot is doing, it doesn't wait between moves (a far-off bot's turn now takes about a second), and sounds, encirclement banners and other effects for things you can't see no longer play.
 - **Air strikes** are drawn as swept-wing strike jets flying nose first (they were the gunship icon, turned sideways).
 - **General Hale** sits higher, clear of UNDO and END TURN. The lobby no longer shows a MISSIONS button (missions are on the front page), and the Esc menu in a mission has **↻ RESTART MISSION**.
+- **New rare card: the Mule**, a tandem-rotor heavy-lift helicopter. Attack 1, defence 1, 4 move, and it carries up to 8 Grunts over mountains and water. It's for moving troops, not fighting.
+- **Carriers** are slower and lighter: 1 move, attack 2, defence 2.
+- **A captured HQ becomes your FOB.** When a siege knocks a commander out, their old capital is a deploy point for whoever took it.
+- **Intel ops** cost a quarter of your income (at least $2), so scouting stays a real choice later in a war.
 - **Missions:** every mission now pays **100 Valor** on its first clear, and clearing every mission pays **1,000** more. New: **War Chest** (income, resupply, Refineries and Warehouses) and **Holding Ground** (high ground, digging in and Bunkers against a live enemy). More missions are on the way.
 
 

@@ -270,6 +270,8 @@ When a commander falls, the conqueror takes their **heartland** (hexes within 2 
 
 Taking an enemy HQ doesn't knock them out straight away: it puts their HQ **under siege**. The defender gets one full turn cycle to strike back. If your troops are still standing on that HQ when your next turn starts, they're eliminated. If they retake it or drive you off, the siege collapses. A besieged HQ can't deploy units or supply territory, and its garrison bonus is gone. Instead you get an **emergency muster**: every hex you own next to your besieged HQ becomes a deploy point, and troops deployed there can attack immediately, so you can rush in defenders and take your HQ back the same turn.
 
+When a siege knocks a commander out, **their old HQ becomes your FOB**: a deploy point right where you broke through.
+
 ## Menus and joining
 
 - **Ready up.** In the lobby every guest presses **READY UP**; the host's **DEPLOY** stays locked until everyone is ready. Changing a setting un-readies everyone, so nobody gets surprised.
@@ -342,7 +344,7 @@ You're never just watching:
 - **Battle cards.** When an enemy attacks you, see **Battle cards** below: you get a few seconds to throw cards into the fight before the dice roll.
 - **Next resupply.** Your next resupply is dealt when your turn ends. Pick a card or full income from the panel while you wait, and your next turn starts straight in the action.
 - **Diplomacy and trades** work any time, not just on your turn.
-- **Intel ops** (fog of war): $2 to scout a 2-hex area anywhere until the end of next round, twice per round (`I`).
+- **Intel ops** (fog of war): a quarter of your income (at least $2) to scout a 2-hex area anywhere until the end of next round, twice per round (`I`).
 - **Pings and emotes** from the bar above the chat.
 - **Overwatch.** On your turn, select a stack and press `O`: it gives up its move to watch. When an enemy ends a move next to it (or within range, for artillery), you get a few seconds to **FIRE** (+1 mult, one shot) or **HOLD**.
 - **Radar and alerts.** In fog of war, hidden enemies moving within 2 hexes of your land show up as radar blips. Attacks on you and contacts are listed in the side panel with a LOOK button.
