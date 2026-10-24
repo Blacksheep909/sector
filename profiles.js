@@ -114,11 +114,15 @@ function createProfiles(file, opts = {}) {
     return r;
   }
   // missions: the first completion of each pays its reward
-  function scenarioDone(p, id, reward) {
+  // a mission won: its reward on the first clear only, and a bonus (once) when the last uncleared mission falls
+  function scenarioDone(p, id, reward, allIds, bonus) {
     p.scenarios = p.scenarios || [];
     const first = !p.scenarios.includes(id);
-    if (first) { p.scenarios.push(id); p.coins += reward || 0; save(); }
-    return { first, valor: first ? reward || 0 : 0 };
+    if (first) { p.scenarios.push(id); p.coins += reward || 0; }
+    const all = !!(allIds && bonus && !p.missionsBonus && allIds.every(x => p.scenarios.includes(x)));
+    if (all) { p.missionsBonus = true; p.coins += bonus; }
+    if (first || all) save();
+    return { first, valor: first ? reward || 0 : 0, bonus: all ? bonus : 0 };
   }
   // dev servers only (SECTOR_DEV=1): coins for testing the store
   function grant(p, n) { p.coins += Math.max(0, n | 0); save(); }

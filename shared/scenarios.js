@@ -32,7 +32,7 @@
   // guide: the tutorial's script (shown by the client). hints: shown one at a time when you ask.
   const SCENARIOS = [
     {
-      id: 'basic', n: 1, name: 'Basic Training', tier: 'Tutorial', technique: 'Moving, capturing, deploying and attacking',
+      id: 'basic', name: 'Basic Training', tier: 'Tutorial', technique: 'Moving, capturing, deploying and attacking',
       brief: 'General Hale walks you through the basics: claim land, raise troops, and take an enemy outpost.',
       turns: 4, reward: 100,
       players: { A: { name: 'You', cash: 0, arsenal: ['grunt'] }, B: { name: 'Outpost', ai: 'passive' } },
@@ -63,7 +63,35 @@
       hints: ['Move your Grunts toward the gold flag on turn 1, deploy more on turn 2, and attack with everything once you\'re next to it.'],
     },
     {
-      id: 'pincer', n: 2, name: 'Strength in Numbers', tier: 'Easy', technique: 'Pincer attacks: hit one hex from several sides at once',
+      id: 'economy', name: 'War Chest', tier: 'Tutorial', technique: 'Income, resupply and economic buildings',
+      brief: 'Wars are won with money. Grow your income from $4 to $15 a turn before the enemy notices.',
+      turns: 4, live: true,
+      players: { A: { name: 'You', cash: 0, arsenal: ['grunt', 'skitter'] }, B: { name: 'Far Garrison', ai: 'passive' } },
+      map: [
+        '~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~',
+        '~ . . . f . . . . . ~',
+        '~ .A .A@hq .A . .@n1 . . h . ~',
+        '~ .A@g .A@sk . . . .@res . . . ~',
+        '~ . .A . . f . . . . ~',
+        '~ . . . h . . . .B .B@bhq ~',
+        '~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~',
+      ],
+      res: ['res'],
+      structs: { hq: [['A', 'hq']], bhq: [['B', 'hq', 3]] },
+      units: { sk: [['A', 'skitter', 1]], g: [['A', 'grunt', 2]], bhq: [['B', 'grunt', 6]] },
+      goal: { type: 'income', amount: 15 },
+      guide: [
+        { text: 'Money wins wars, recruit. Every turn you earn **income**: a base $3, plus **$1 for every 3 hexes** of land you hold. You\'re on $4. Get it to **$15 a turn**. Click to go on.', wait: 'click' },
+        { text: 'The fastest way to grow is land. Your **Skitter** buggy moves 4 hexes, and every empty hex it drives through becomes yours. **Drive it toward the glowing resource node** (the derrick in the middle).', focus: 'res', wait: 'move' },
+        { text: '**Resource nodes** pay +$2 a turn just for holding them. Spread the Grunts out to grab more land too, then **END TURN**.', wait: 'turn' },
+        { text: 'This is **resupply**. Each turn you either take **one of these cards and half your income**, or **skip them for the full income**. Cards are how your army grows; cash is how you build. Today you want cash: press **TAKE FULL INCOME**.', wait: 'pick' },
+        { text: 'Now build. A **Refinery** on a resource node pays +$3 a turn ($1 anywhere else). Open the build bar (bottom left), pick **Refinery** and click the node.', focus: 'res', wait: 'build' },
+        { text: 'A **Warehouse** pays +$2 a turn, or **+$3 next to a Refinery, resource node or Port**. Keep claiming land, build when you can afford it, and watch your income in the top-left panel. **Reach $15 a turn.**', wait: 'win' },
+      ],
+      hints: ['Land: every 3 hexes is +$1. The Skitter grabs 4 a turn; keep it moving into empty land.', 'Refinery on the node (+$3), then a Warehouse right next to it (+$3). Take full income at every resupply.'],
+    },
+    {
+      id: 'pincer', name: 'Strength in Numbers', tier: 'Easy', technique: 'Pincer attacks: hit one hex from several sides at once',
       brief: 'Three Grunts are dug into the woods. Neither of your squads can shift them alone, but together…',
       turns: 1, reward: 150,
       players: { A: { name: 'You', arsenal: ['grunt'] }, B: { name: 'Woodsmen', ai: 'passive' } },
@@ -81,7 +109,28 @@
       hints: ['Hover the forest with one squad selected: see the odds. Now Shift-click the second squad and hover again.', 'Select squad A, Shift-click squad B, click the forest. A guaranteed win shows as 100%.'],
     },
     {
-      id: 'river', n: 3, name: 'Crossing', tier: 'Easy', technique: 'Rivers, bridges and combined arms',
+      id: 'ground', name: 'Holding Ground', tier: 'Easy', technique: 'Defence: high ground, digging in and Bunkers',
+      brief: 'An enemy column is coming for your hill fort. Make it a place they break their teeth on.',
+      turns: 3,
+      players: { A: { name: 'You', cash: 8, arsenal: ['grunt'] }, B: { name: 'Raiders', ai: 'bot', diff: 'medium', cash: 6, arsenal: ['grunt', 'mauler'] } },
+      income: { A: 4, B: 10 },
+      map: [
+        '~ ~ ~ ~ ~ ~ ~ ~ ~ ~',
+        '~ .A .A . . . .B .B ~',
+        '~ .A@hq .A hA@fort . . .B@e1 .B ~',
+        '~ .A .A@g . . . .B .B@bhq ~',
+        '~ .A .A . f . .B@e2 .B ~',
+        '~ ~ ~ ~ ~ ~ ~ ~ ~ ~',
+      ],
+      structs: { hq: [['A', 'hq']], bhq: [['B', 'hq', 3]] },
+      units: { fort: [['A', 'grunt', 2]], g: [['A', 'grunt', 2]], e1: [['B', 'grunt', 4]], e2: [['B', 'grunt', 3], ['B', 'mauler', 1]] },
+      keep: ['fort'],
+      goal: { type: 'survive', hexes: ['fort'] },
+      intro: 'Hold the **hill fort** until your 3rd turn ends. Defenders win ties, and you can stack the odds: **Highlands** give defenders +2 Mult. A **Bunker** ($4) adds a garrison of +3 Chips and +2 Mult. And a stack that hasn\'t moved can **Dig In** (select it, press **G**): +1 Mult until it moves again. Hover your fort to see what an attacker faces.',
+      hints: ['Turn 1: build a Bunker on the fort, march the spare Grunts in, then select the fort stack and press G to dig in.', 'Spend what\'s left on Grunts at your HQ and walk them up next turn. Don\'t attack out of the fort: let them come to you.'],
+    },
+    {
+      id: 'river', name: 'Crossing', tier: 'Easy', technique: 'Rivers, bridges and combined arms',
       brief: 'A river stands between your tank column and the enemy. Infantry can wade it. Tanks can\'t.',
       turns: 2, reward: 200,
       players: { A: { name: 'You', cash: 6, arsenal: ['grunt', 'mauler'] }, B: { name: 'Rivermen', ai: 'passive' } },
@@ -99,7 +148,7 @@
       hints: ['Build a Bridge on the river beside your tank, drive the tank over it, and wade the Grunts across.', 'Turn 2: attack the outpost with the tank and the Grunts together.'],
     },
     {
-      id: 'airborne', n: 4, name: 'Over the Mountains', tier: 'Medium', technique: 'Helicopters carry Grunts',
+      id: 'airborne', name: 'Over the Mountains', tier: 'Medium', technique: 'Helicopters carry Grunts',
       brief: 'The enemy outpost sits behind a wall of mountains and sea. No road leads there. The sky does.',
       turns: 2, reward: 300,
       players: { A: { name: 'You', arsenal: ['grunt', 'stormcrow'] }, B: { name: 'Highlanders', ai: 'passive' } },
@@ -117,7 +166,7 @@
       hints: ['Turn 1: fly the whole stack over the mountains to the empty hex beside the outpost.', 'Turn 2: attack from there. Helicopters and infantry together earn Combined Arms.'],
     },
     {
-      id: 'leapfrog', n: 5, name: 'Breakthrough', tier: 'Medium', technique: 'Leapfrogging: each wave passes through the last to punch deeper',
+      id: 'leapfrog', name: 'Breakthrough', tier: 'Medium', technique: 'Leapfrogging: each wave passes through the last to punch deeper',
       brief: 'A mountain pass, held in depth. One turn to punch all the way through to the depot behind it.',
       turns: 1, reward: 400,
       players: { A: { name: 'You', arsenal: ['grunt'] }, B: { name: 'Pass Guard', ai: 'passive' } },
@@ -135,7 +184,7 @@
       hints: ['Only the Grunts are slow: they can reach the first defender and no further. Use them first.', 'Grunts take the first hex. The Jackals pass through them to take the second. The Skitters drive through both onto the depot.'],
     },
     {
-      id: 'guns', n: 6, name: 'Big Guns', tier: 'Hard', technique: 'Artillery: firing from range',
+      id: 'guns', name: 'Big Guns', tier: 'Hard', technique: 'Artillery: firing from range',
       brief: 'Four enemy units across the strait, out of reach of any assault. You have two guns and two turns.',
       turns: 2, reward: 600,
       players: { A: { name: 'You', arsenal: ['grunt'] }, B: { name: 'Coastal Battery', ai: 'passive' } },
@@ -154,7 +203,7 @@
       hints: ['Hover each target with each gun selected and compare the odds. Some shots are certain, some aren\'t.', 'The Thumper can only be sure of killing Grunts. Save the Basilisk for what the Thumper can\'t do.'],
     },
     {
-      id: 'cards', n: 7, name: 'All In', tier: 'Hard', technique: 'Battle cards: tipping a fight before the dice roll',
+      id: 'cards', name: 'All In', tier: 'Hard', technique: 'Battle cards: tipping a fight before the dice roll',
       brief: 'Two attacks that can\'t quite win on their own, and just $2 to tip the scales. Spend it exactly right.',
       turns: 1, reward: 800,
       players: { A: { name: 'You', cash: 2, arsenal: ['grunt'], tactics: ['rally', 'bayonets', 'barrage', 'reserves'] }, B: { name: 'Ridge Guard', ai: 'passive' } },
@@ -172,7 +221,7 @@
       hints: ['Rally (+2 Mult) and Fix Bayonets (+1 Chip per attacker) cost $1 each. Barrage and Reserves cost $2.', 'The three Grunts need either Rally or Bayonets. The tank column can only be tipped by Rally for $1. So: Bayonets for the Grunts, Rally for the tanks, one attack at a time.'],
     },
     {
-      id: 'beach', n: 8, name: 'Beachhead', tier: 'Very Hard', technique: 'Transports, landings and naval gunfire',
+      id: 'beach', name: 'Beachhead', tier: 'Very Hard', technique: 'Transports, landings and naval gunfire',
       brief: 'An island fort and an army on the wrong shore. You have a transport, two gunboats and three turns.',
       turns: 3, reward: 1000,
       players: { A: { name: 'You', arsenal: ['grunt'] }, B: { name: 'Island Garrison', ai: 'passive' } },
@@ -191,7 +240,7 @@
       hints: ['Turn 1: sail the Ark to the sea by the empty beach, and send both gunboats to the water beside the fort.', 'Turn 2: wade ashore. Turn 3: attack the fort from the beach while the gunboats sit next to it.'],
     },
     {
-      id: 'hold', n: 9, name: 'Hold the Line', tier: 'Expert', technique: 'Defence: bunkers, terrain and reserves',
+      id: 'hold', name: 'Hold the Line', tier: 'Expert', technique: 'Defence: bunkers, terrain and reserves',
       brief: 'A full assault is coming, and it keeps coming. Hold both hill forts and your HQ until your fifth turn ends.',
       turns: 5, reward: 1500,
       players: { A: { name: 'You', cash: 12, arsenal: ['grunt', 'lancer'] }, B: { name: 'Iron Tide', ai: 'bot', diff: 'hard', cash: 10, arsenal: ['grunt', 'mauler', 'thumper'] } },
@@ -213,7 +262,7 @@
       hints: ['Turn 1: Bunkers on both forts, and a squad from the HQ marching to each.', 'Big stacks on hills behind bunkers are very hard to crack. Keep feeding troops forward every turn, and don\'t leave the HQ empty.'],
     },
     {
-      id: 'blitz', n: 10, name: 'Lightning War', tier: 'Impossible', technique: 'Everything at once',
+      id: 'blitz', name: 'Lightning War', tier: 'Impossible', technique: 'Everything at once',
       brief: 'Two turns to take a ★★★ fortress HQ. Guns, tanks, a helicopter strike and three dollars. Every piece has a job, and every dollar too.',
       turns: 2, reward: 2500,
       players: { A: { name: 'You', cash: 3, arsenal: ['grunt'], tactics: ['rally', 'barrage', 'bayonets'] }, B: { name: 'High Command', ai: 'passive' } },
@@ -232,6 +281,8 @@
       hints: ['The guard in the woods blocks the only road for your tanks, and attacking it would leave them stuck there. Something else should deal with it.', 'Turn 1: the Basilisk shells the guard; the tanks drive through to the hex beside the HQ; the Stormcrow flies its Grunts to the clearing on the other side.', 'Turn 2: no single card is enough. Ready two that stack, like Rally with Fix Bayonets, then attack the HQ with both stacks at once (Shift-click).'],
     },
   ];
+  // missions are numbered by their place in the list (the order they're played and unlocked in)
+  SCENARIOS.forEach((sc, i) => { sc.n = i + 1; });
   const byId = Object.create(null); SCENARIOS.forEach(s => { byId[s.id] = s; });
 
   // build the starting state for a mission. heroId: the id of the human playing it
@@ -251,7 +302,9 @@
       t.structs.push(st); t.struct = t.structs.find(x => x.type === 'hq') || t.structs[0]; t.owner = ids[o];
       if (type === 'bridge') { t.bridge = true; if (t.river) t.riverBridge = true; }
     }
-    for (const [l, poi] of Object.entries(sc.pois || {})) tiles[at(l)].poi = poi;
+    // points of interest (a village's militia strength in gar), and resource nodes
+    for (const [l, poi] of Object.entries(sc.pois || {})) { const t = tiles[at(l)]; t.poi = poi; if (poi === 'village') t.gar = (sc.gar || {})[l] || 4; }
+    for (const l of sc.res || []) tiles[at(l)].res = true;
     for (const [l, list] of Object.entries(sc.units || {})) for (const [o, type, n, extra] of list)
       for (let i = 0; i < (n || 1); i++) { const uid = s.nextId++; s.units[uid] = { id: uid, owner: ids[o], type, hex: at(l), moved: false, fresh: false, stun: 0, mvBonus: 0, ...(extra || {}) }; }
     s.players.sort((a, b) => keys.indexOf(Object.keys(ids).find(k => ids[k] === a.id)) - keys.indexOf(Object.keys(ids).find(k => ids[k] === b.id)));
@@ -264,11 +317,14 @@
     s.phase = 'play'; delete s.draft;
     s.turn = { idx: 0, round: 1, stage: 'act', offer: [], rerolls: 0, crate: null, income: 0, deadline: 0 };
     const income = {}; for (const k in sc.income || {}) income[ids[k]] = sc.income[k];
-    s.scenario = { id, hero: heroId, goal: { ...sc.goal, hexes: (sc.goal.hexes || []).map(at) }, keep: (sc.keep || []).map(at), turns: sc.turns, heroTurns: 0, income, targets: (sc.goal.hexes || []).map(at), labels };
+    s.scenario = { id, hero: heroId, live: !!sc.live, goal: { ...sc.goal, hexes: (sc.goal.hexes || []).map(at) }, keep: (sc.keep || []).map(at), turns: sc.turns, heroTurns: 0, income, targets: (sc.goal.hexes || []).map(at), labels };
     s.log.push('🎯 ' + sc.name + ': ' + sc.brief);
     return s;
   }
   // what the menu and the client need about each mission (no boards)
   const list = () => SCENARIOS.map(({ id, n, name, tier, technique, brief, turns, reward }) => ({ id, n, name, tier, technique, brief, turns, reward }));
-  return { SCENARIOS, build, list, get: id => byId[id], parse };
+  // every mission pays REWARD the first time a commander clears it, and ALL_BONUS once they've cleared them all
+  const REWARD = 100, ALL_BONUS = 1000;
+  SCENARIOS.forEach(s => { s.reward = REWARD; });
+  return { SCENARIOS, build, list, get: id => byId[id], parse, REWARD, ALL_BONUS };
 });

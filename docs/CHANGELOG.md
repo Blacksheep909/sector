@@ -13,6 +13,16 @@ Every release, newest first. Each version also has its own post on the [Releases
 - **🗺 LOOK AT MAP** on the mission result hides it so you can look over the board, with a button to bring it back.
 - **Clouds between missions:** NEXT MISSION, RETRY and starting a mission roll in dark war-smoke from both sides while the board loads, then part, instead of a stutter and a flash of the menu.
 - Unlocking a faction ends with **AFFIRMATIVE**.
+- **Fix: joining a friend's game over LAN dropped you on the main menu.** Room codes belong to the server that made them, so typing a friend's code on your own server found nothing. A code your server doesn't know is now looked up on your network and takes you straight into your friend's room. **FIND LAN GAMES** lists every open lobby with its own JOIN (or WATCH), and an invite link now wins over a seat you had somewhere else.
+- **Fix: WATCH in FIND LAN GAMES showed the main menu over the war.**
+- **Fix: COPY INVITE LINK didn't copy over LAN.** Browsers only allow the modern clipboard on https; every copy button now falls back to the older copy command, and failing that shows the link selected, ready for Ctrl+C.
+- **Fix: the game lagged when zooming in and out.** While the camera moves, the map is redrawn at most once (softly, then sharp when you stop), and the sea background is cached. In testing, full redraws during a fast zoom went from 9 to 1, and frames from 24 ms to 17 ms.
+- **Fix: zooming out fast showed a box of sea** floating on a flat background until the redraw caught up.
+- **Fix: a card from a resupply ballooned** as it flew into an empty hand.
+- **Fog of war:** when no human can see what a bot is doing, it doesn't wait between moves (a far-off bot's turn now takes about a second), and sounds, encirclement banners and other effects for things you can't see no longer play.
+- **Air strikes** are drawn as swept-wing strike jets flying nose first (they were the gunship icon, turned sideways).
+- **General Hale** sits higher, clear of UNDO and END TURN. The lobby no longer shows a MISSIONS button (missions are on the front page), and the Esc menu in a mission has **↻ RESTART MISSION**.
+- **Missions:** every mission now pays **100 Valor** on its first clear, and clearing every mission pays **1,000** more. New: **War Chest** (income, resupply, Refineries and Warehouses) and **Holding Ground** (high ground, digging in and Bunkers against a live enemy). More missions are on the way.
 
 
 **Singleplayer with saves on your account, public wars you can host, a store overhaul, clean chat, and a round of security fixes.**

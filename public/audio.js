@@ -1,6 +1,6 @@
 /* SECTOR — synthesized sound effects (WebAudio, no assets) */
 const SFX = (() => {
-  let ctx = null, master = null, muted = false;
+  let ctx = null, master = null, muted = false, quiet = false;   // quiet: just for now (something happening out of sight)
   let vol = 1;   // master volume, 0–1 (Settings)
   try { muted = localStorage.getItem('sector.muted') === '1'; const v = parseFloat(localStorage.getItem('sector.vol')); if (v >= 0 && v <= 1) vol = v; } catch (e) {}
   function ensure() {
@@ -14,7 +14,7 @@ const SFX = (() => {
   }
   window.addEventListener('pointerdown', ensure, { once: false, passive: true });
   function tone(freq, dur, { type = 'square', vol = 0.3, slide = 0, delay = 0, attack = 0.004 } = {}) {
-    if (muted || !isFinite(freq) || !ensure()) return;
+    if (muted || quiet || !isFinite(freq) || !ensure()) return;
     const t = ctx.currentTime + delay;
     const o = ctx.createOscillator(), g = ctx.createGain();
     o.type = type; o.frequency.setValueAtTime(freq, t);
@@ -24,7 +24,7 @@ const SFX = (() => {
   }
   let noiseBuf = null;
   function noise(dur, { vol = 0.3, freq = 1200, q = 0.8, type = 'lowpass', delay = 0, sweep = 0 } = {}) {
-    if (muted || !ensure()) return;
+    if (muted || quiet || !ensure()) return;
     if (!noiseBuf) { noiseBuf = ctx.createBuffer(1, ctx.sampleRate * 2, ctx.sampleRate); const d = noiseBuf.getChannelData(0); for (let i = 0; i < d.length; i++) d[i] = Math.random() * 2 - 1; }
     const t = ctx.currentTime + delay;
     const src = ctx.createBufferSource(); src.buffer = noiseBuf;
@@ -115,6 +115,7 @@ const SFX = (() => {
   })();
   return { music: Music,
     get muted() { return muted; },
+    get quiet() { return quiet; }, set quiet(v) { quiet = !!v; },
     get volume() { return vol; },
     setVolume(v) { vol = Math.max(0, Math.min(1, +v || 0)); try { localStorage.setItem('sector.vol', String(vol)); } catch (e) {} if (master) master.gain.value = 0.32 * vol; },
     toggle() { muted = !muted; try { localStorage.setItem('sector.muted', muted ? '1' : '0'); } catch (e) {} return muted; },

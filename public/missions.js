@@ -12,7 +12,7 @@ const Missions = (() => {
   const local = () => { try { return JSON.parse(localStorage.getItem('sector.missions') || '[]'); } catch (e) { return []; } };
   const cleared = () => new Set([...local(), ...((typeof Locker !== 'undefined' && Locker.profile && Locker.profile.scenarios) || [])]);
   const markCleared = id => { try { const l = local(); if (!l.includes(id)) { l.push(id); localStorage.setItem('sector.missions', JSON.stringify(l)); } } catch (e) {} };
-  const unlocked = (sc, done) => sc.n === 1 || SC.SCENARIOS.some(o => o.n === sc.n - 1 && done.has(o.id));
+  const unlocked = (sc, done) => sc.n === 1 || done.has(sc.id) || SC.SCENARIOS.some(o => o.n === sc.n - 1 && done.has(o.id));
 
   // ── General Hale ──
   // General Hale: a peaked officer's cap with gold braid, grey moustache, general's stars on his collar, medal ribbons
@@ -40,7 +40,7 @@ const Missions = (() => {
     m.hidden = false; m.innerHTML = '';
     // unlocks follow anything you've cleared; the Valor badge follows what this commander has been paid for (once each)
     const done = cleared(), paid = new Set((typeof Locker !== 'undefined' && Locker.profile && Locker.profile.scenarios) || []), p = el('div', 'panel ms-panel');
-    p.innerHTML = `<div class="ix-head"><h2>MISSIONS</h2><div class="sub">${done.size} / ${SC.SCENARIOS.length} cleared · puzzles that teach a technique each, from basic training to impossible</div><button class="btn" id="msClose">✕</button></div>`;
+    p.innerHTML = `<div class="ix-head"><h2>MISSIONS</h2><div class="sub">${done.size} / ${SC.SCENARIOS.length} cleared · <i class="vm"></i>${SC.REWARD} for each first clear, and <i class="vm"></i>${SC.ALL_BONUS.toLocaleString()} for clearing them all</div><button class="btn" id="msClose">✕</button></div>`;
     const grid = el('div', 'ms-grid');
     for (const sc of SC.SCENARIOS.slice().sort((a, b) => a.n - b.n)) {
       const open = unlocked(sc, done), ok = done.has(sc.id);
@@ -165,6 +165,7 @@ const Missions = (() => {
     v.innerHTML = `<div class="panel mr ${m.won ? 'won' : 'lost'}"><div class="mr-face">${hale()}</div><h1>${m.won ? 'MISSION COMPLETE' : 'MISSION FAILED'}</h1>
       <div class="mr-name">${sc.n}. ${esc(sc.name)} · ${esc(sc.tier)}</div>
       <div class="mr-why">${m.won ? (m.first ? `First clear: <b><i class="vm"></i>${m.valor}</b> Valor` : 'Cleared again. Nice and tidy.') : esc(m.failed || 'The enemy held.')}</div>
+      ${m.bonus ? `<div class="mr-bonus">🏆 Every mission cleared: <b><i class="vm"></i>${m.bonus.toLocaleString()}</b> Valor</div>` : ''}
       <div class="mr-quote">${m.won ? (nx ? 'Outstanding, soldier. Next up: <b>' + esc(nx.name) + '</b>, ' + esc(nx.technique.toLowerCase()) + '.' : 'You\'ve done the impossible. I\'ve nothing left to teach you.') : 'Shake it off. Use a hint if you\'re stuck: the solution is in there somewhere.'}</div>
       <div class="row">${m.won && nx ? '<button class="btn big green" id="mrNext">NEXT MISSION ▶</button>' : ''}${m.won && !nx ? '<button class="btn big green" id="mrHome">🏆 MAIN MENU</button>' : ''}<button class="btn big ${m.won ? '' : 'gold'}" id="mrRetry">RETRY</button><button class="btn big" id="mrBoard">MISSIONS</button></div><button class="btn" id="mrMap">🗺 LOOK AT MAP</button></div>`;
     if (typeof SFX !== 'undefined') m.won ? SFX.win() : SFX.lose();
@@ -183,5 +184,11 @@ const Missions = (() => {
     $('#mrRetry').onclick = () => go(m.id);
     $('#mrBoard').onclick = () => { go(null); setTimeout(board, 600); };
   }
-  return { board, onState, result, say, hush, holdEnd };
+  // start the mission over (the Esc menu's RESTART): behind the clouds, like RETRY
+  function restart() {
+    const st = D().state(); if (!st || !st.scenario) return;
+    const id = st.scenario.id; hush(); cur = null;
+    clouds(() => { D().send({ t: 'toLobby' }); setTimeout(() => D().send({ t: 'scenario', id }), 300); }, ready(id));
+  }
+  return { board, onState, result, say, hush, holdEnd, restart };
 })();

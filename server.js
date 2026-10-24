@@ -109,7 +109,9 @@ const server = http.createServer((req, res) => {
     // discovery: other SECTOR clients on the LAN scan for this
     const f = focusRoom(), lobby = f ? f.lobby : { players: [] }, game = f && f.game, host = lobby.players.find(p => p.id === lobby.hostId), st = menuStats();
     res.writeHead(200, { 'Content-Type': 'application/json', 'Access-Control-Allow-Origin': '*', 'Cache-Control': 'no-cache' });
-    return res.end(JSON.stringify({ game: 'sector', version: VERSION, id: SERVER_ID, host: host ? host.name : null, players: allSeats().length, humans: allSeats().filter(x => !x.p.bot).length, online: st.online, rooms: st.rooms, wars: st.wars, inGame: !!game, round: game ? game.turn.round : 0, bots: game ? game.players.filter(p => p.alive && p.bot).length : lobby.players.filter(p => p.bot).length, port: PORT, lan: lanAddresses() }));
+    return res.end(JSON.stringify({ game: 'sector', version: VERSION, id: SERVER_ID, host: host ? host.name : null, players: allSeats().length, humans: allSeats().filter(x => !x.p.bot).length, online: st.online, rooms: st.rooms, wars: st.wars, inGame: !!game, round: game ? game.turn.round : 0, bots: game ? game.players.filter(p => p.alive && p.bot).length : lobby.players.filter(p => p.bot).length, port: PORT, lan: lanAddresses(),
+      // the lobbies people are in, so a LAN finder (or a code typed on another server) can go straight to one
+      lobbies: process.env.SECTOR_PUBLIC ? [] : [...rooms.values()].filter(r => r.humans() > 0 && r.kind !== 'public').map(r => ({ code: r.code, host: (r.lobby.players.find(p => p.id === r.lobby.hostId) || {}).name || null, humans: r.humans(), inGame: !!r.game, main: r.code === MAIN })) }));
   }
   if (url === '/news') {
     res.writeHead(200, { 'Content-Type': 'application/json', 'Cache-Control': 'max-age=300' });
@@ -757,6 +759,18 @@ function returnSeats(p) {
   broadcastLobby(); broadcastState([], null);   // everyone sees the seat handed back
   afterChange();
 }
+// could any human player (or someone watching) see these events? Watchers see everything; players see what their
+// side's vision covers. Events with no place on the map (a turn starting, a card drawn) count as unseen
+function seenByHumans(events) {
+  if (lobby.players.some(p => p.spectator && isConnected(p.id))) return true;
+  const humans = game.players.filter(gp => gp.alive && lobby.players.some(lp => lp.id === gp.id && !lp.bot) && !autoPids.has(gp.id));
+  if (!humans.length) return true;   // only bots left: the normal pace rules apply
+  const hexes = []; for (const e of events) for (const k of [e.hex, e.to, e.from, e.target, e.at, ...(e.path || []), ...(e.hexes || [])]) if (typeof k === 'string' && game.map.tiles[k]) hexes.push(k);
+  if (!hexes.length) return false;
+  if (events.some(e => humans.some(h => e.pid === h.id || e.to === h.id || e.victim === h.id || (e.def && e.def.pid === h.id)))) return true;
+  for (const h of humans) { const vis = E.visionOf(game, h.id); if (hexes.some(k => vis.has(k))) return true; }
+  return false;
+}
 // game speed: bots act faster on Fast, and much faster on Superspeed (always on once only bots are left)
 function speedOf() {
   if (!game) return lobby.settings.speed || 'fast';
@@ -902,7 +916,7 @@ function payOut() {
     // missions: first completion pays its Valor reward (no match coins)
     const sc = SCN.get(game.scenario.id), hero = game.scenario.hero, won = game.winner && game.winner.pid === hero && !game.winner.failed;
     const lp = lobby.players.find(x => x.id === hero), pr = lp && lp.profileId && profiles.get(lp.profileId);
-    const out = won && pr ? profiles.scenarioDone(pr, sc.id, sc.reward) : { first: false, valor: 0 };
+    const out = won && pr ? profiles.scenarioDone(pr, sc.id, SCN.REWARD, SCN.SCENARIOS.map(x => x.id), SCN.ALL_BONUS) : { first: false, valor: 0 };
     for (const cl of clients) if (cl.pid === hero) send(cl, { t: 'scenarioResult', id: sc.id, won, failed: game.winner && game.winner.failed, ...out, profile: pr ? profiles.view(pr) : null });
     return;
   }
@@ -1002,6 +1016,8 @@ function afterChange(events) {
       else if (e.e === 'turn') delay = Math.max(delay, 1500);
       else if (e.e === 'card') delay = Math.max(delay, 1200);
     }
+    // fog of war: if no human can see anything this bot just did, nobody is waiting to watch it, so it carries straight on
+    if (game.settings.fog === 'on' && events && !seenByHumans(events)) delay = 0;
     botTimer = setTimeout(runBot, Math.max(40, delay * (process.env.SECTOR_FAST ? 0.25 : 1) * BOT_PACE[speedOf()]));
     return;
   }
@@ -1278,7 +1294,8 @@ function route(c, m) {
       auth(c, m);
       const code = String(m.code || '').trim().toUpperCase();
       if (parties.has(code)) return route(c, { t: 'partyJoin', code });
-      const room = rooms.get(code); if (!room || code === MAIN) return send(c, { t: 'err', msg: 'No room with the code ' + code });
+      if (code === MAIN && !process.env.SECTOR_PUBLIC) return enterRoom(c, mainRoom());   // a LAN finder's link to the classic lobby
+      const room = rooms.get(code); if (!room || code === MAIN) return send(c, { t: 'err', msg: 'No room with the code ' + code, noRoom: code });
       return enterRoom(c, room);
     }
     case 'leave': leaveRoom(c); return;

@@ -111,7 +111,7 @@ const Home = (() => {
         ${party.members.length < party.max ? '<div class="pt-slot">waiting for friends…</div>' : ''}</div>
       <div class="sub pt-note">${lead ? 'You lead: <b>PLAY</b> or <b>PRIVATE ROOM</b> takes everyone on this screen with you.' : 'The leader picks the war. You can still play on your own.'}</div>
       <div class="pt-act"><button class="btn tiny" id="ptLeave">LEAVE PARTY</button></div>`;
-    box.querySelector('#ptCopy').onclick = () => { try { navigator.clipboard.writeText(link); toast('Invite link copied: send it to your friends'); } catch (e) { toast(link); } sfx('click'); };
+    box.querySelector('#ptCopy').onclick = () => { copyText(link).then(ok => ok && toast('Invite link copied: send it to your friends')); sfx('click'); };
     box.querySelector('#ptLeave').onclick = () => { sfx('click'); send({ t: 'partyLeave' }); };
     box.querySelectorAll('.pt-m').forEach(r => r.onclick = e => { if (e.target.closest('button')) return; if (r.dataset.h) profile(r.dataset.h); });
     box.querySelectorAll('[data-kick]').forEach(b => b.onclick = () => send({ t: 'partyKick', cid: b.dataset.kick }));

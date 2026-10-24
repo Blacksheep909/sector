@@ -27,7 +27,7 @@
     $('#hpUpdate').innerHTML = up;
     $('#hpStop').textContent = stopArm > Date.now() ? 'CLICK AGAIN TO STOP' : 'STOP SERVER';
     $('#hpFoot').textContent = h.packaged ? 'Closing this window keeps the server up while anyone is playing. It shuts down a minute after everyone leaves.' : 'Running from source.';
-    document.querySelectorAll('[data-copy]').forEach(b => b.onclick = () => { navigator.clipboard && navigator.clipboard.writeText(b.dataset.copy); b.textContent = 'COPIED'; setTimeout(() => { b.textContent = 'COPY'; }, 1200); });
+    document.querySelectorAll('[data-copy]').forEach(b => b.onclick = () => { copyText(b.dataset.copy); b.textContent = 'COPIED'; setTimeout(() => { b.textContent = 'COPY'; }, 1200); });
     if ($('#hpDoUpdate')) $('#hpDoUpdate').onclick = async () => { await api('/host/update', true); poll(); };
     if ($('#hpCheck')) $('#hpCheck').onclick = async () => { await api('/host/check', true); setTimeout(poll, 1500); };
   }
