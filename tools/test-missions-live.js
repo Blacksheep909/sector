@@ -87,8 +87,14 @@ const SOL = {
     for (let i = 0; i < RUNS; i++) {
       c.state = null; c.result = null; c.battle = null;
       c.send({ t: 'leave' }); await sleep(150);
-      c.send({ t: 'scenario', id: sc.id });
-      if (!await until(() => c.state && c.state.scenario && c.state.scenario.id === sc.id && c.state.phase === 'play')) { stuck++; const k = 'never started (' + ((c.msgs.filter(m => m.t === 'err').pop() || {}).msg || 'no error') + ', state ' + (c.state ? c.state.phase + ' ' + (c.state.scenario || {}).id : 'none') + ')'; why[k] = (why[k] || 0) + 1; continue; }
+      // the server rate-limits joining and leaving rooms (as it would a person clicking fast): when it says slow down, wait and ask again
+      let started = false;
+      for (let tries = 0; tries < 4 && !started; tries++) {
+        c.msgs.length = 0; c.send({ t: 'scenario', id: sc.id });
+        started = await until(() => (c.state && c.state.scenario && c.state.scenario.id === sc.id && c.state.phase === 'play') || c.msgs.some(m => m.t === 'err' && /Slow down/.test(m.msg)));
+        if (started && !(c.state && c.state.phase === 'play')) { started = false; await sleep(1200); }
+      }
+      if (!started) { stuck++; const k = 'never started (' + ((c.msgs.filter(m => m.t === 'err').pop() || {}).msg || 'no error') + ', state ' + (c.state ? c.state.phase + ' ' + (c.state.scenario || {}).id : 'none') + ')'; why[k] = (why[k] || 0) + 1; continue; }
       c.send({ t: 'speed', v: 'super' });
       const g = driver(c);
       try { await SOL[sc.id](g); } catch (e) { why['error: ' + e.message] = (why['error: ' + e.message] || 0) + 1; }
