@@ -2,7 +2,18 @@
 
 Every release, newest first. Each version also has its own post on the [Releases page](https://github.com/Blacksheep909/sector/releases).
 
-## v0.10.3
+## v0.10.4 (unreleased)
+
+**Mission fixes, a cloud transition between missions, and combined arms that works.**
+
+- **Fix: General Hale's face and cap could show up black** in his speech bubble after NEXT MISSION. Two copies of his portrait shared their colour gradients, and when one was hidden the other drew without them. Every copy now has its own.
+- **Fix: Shift-clicking a second stack moved your first stack onto it** instead of adding it to the selection. Shift on a hex with your own troops now always adds them (combined arms); Shift on an enemy hex still sends everything selected in.
+- **Fix: missions ended before the capture played out.** The result now waits until the last fight and the troops moving in have finished on screen.
+- **Fix: after the last mission there was nothing to do but replay it.** Its result now has a **🏆 MAIN MENU** button.
+- **🗺 LOOK AT MAP** on the mission result hides it so you can look over the board, with a button to bring it back.
+- **Clouds between missions:** NEXT MISSION, RETRY and starting a mission roll in dark war-smoke from both sides while the board loads, then part, instead of a stutter and a flash of the menu.
+- Unlocking a faction ends with **AFFIRMATIVE**.
+
 
 **Singleplayer with saves on your account, public wars you can host, a store overhaul, clean chat, and a round of security fixes.**
 

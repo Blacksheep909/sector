@@ -105,7 +105,12 @@
       case 'saved': toast('💾 Game saved. Resume it any time from the lobby.'); SFX.select(); break;
       case 'skipFx': if (curFight && curFight.att === m.att && curFight.to === m.to) fastForward = true; break;
       case 'battle': showBattle(m); break;
-      case 'scenarioResult': setTimeout(() => Missions.result(m), 900); break;
+      case 'scenarioResult': {
+        // the mission is decided the moment the last fight is won: let that fight and the troops moving in play out
+        // first (a short beat after the animations finish), so the result never covers the capture
+        const t0 = Date.now(), wait = () => (processing || msgQ.length || animating) && Date.now() - t0 < 15000 ? setTimeout(wait, 150) : setTimeout(() => Missions.result(m), 900);
+        wait(); break;
+      }
       case 'owPrompt': showOwPrompt(m); break;
       case 'owDone': { const r = $('#owPop'); if (r) r.remove(); break; }
       case 'notes': { const sig = JSON.stringify(m.notes || []); if (sig === notesSig) break; notesSig = sig; Render.ov.notes = (m.notes || []).flatMap(n => n.shapes.map(sh => ({ ...sh, pid: n.pid, color: pColor(n.pid) }))); Render.invalidate(); break; }   // only redraw the board when the marks changed
@@ -1079,7 +1084,7 @@
     menuGen++; Render.ov.notes = []; Render.extraUnits.length = 0;
     Missions.onState(null);   // the mission bar and General Hale go with the mission
     // anything a war put over the screen goes with it, or it would sit on top of the menu and swallow every click
-    for (const id of ['#battlePop', '#owPop', '#crateOpen', '#mapReel', '#afkCover', '#autoEnd', '#boxSel']) { const e = $(id); if (e) e.remove(); }
+    for (const id of ['#battlePop', '#owPop', '#crateOpen', '#mapReel', '#afkCover', '#autoEnd', '#boxSel', '#mrBack']) { const e = $(id); if (e) e.remove(); }
     for (const id of ['#combat', '#allyPop', '#supply', '#crate', '#draft', '#tooltip']) { const e = $(id); if (e) e.hidden = true; }
     for (const id of ['#missionsModal', '#missionResult']) { const e = $(id); if (e) e.hidden = true; }
     battleOpen = null;
@@ -1253,6 +1258,10 @@
       await doAction(a); return;
     }
     if (sel && sel.units.size && k && k !== sel.hex && (ctrlDown || marchArm) && (isMyTurn() || planning())) { marchArm = false; marchOrder(sel.hex, sel.units, k); return; }
+    // Shift on a hex with your own troops that can act always adds them to the selection (combined arms), even when the
+    // first stack could move there. Shift on an enemy hex still sends everything selected in
+    const addStack = shiftDown && sel && sel.units.size && k && k !== sel.hex && Object.values(dispState().units).some(u => u.hex === k && u.owner === you && E.canAct(dispState(), u));
+    if (addStack) { selectHex(k, true); return; }
     if (sel && sel.units.size && canCommand() && k && k !== sel.hex) {
       const ov = Render.ov;
       if (ov.fire && ov.fire.has(k)) { const a = { a: 'fire', from: sel.hex, units: ov.guns || [...sel.units], to: k }; sel = null; refreshAll(); await doAction(a); return; }

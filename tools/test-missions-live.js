@@ -88,7 +88,7 @@ const SOL = {
       c.state = null; c.result = null; c.battle = null;
       c.send({ t: 'leave' }); await sleep(150);
       c.send({ t: 'scenario', id: sc.id });
-      if (!await until(() => c.state && c.state.scenario && c.state.scenario.id === sc.id && c.state.phase === 'play')) { stuck++; why['never started'] = (why['never started'] || 0) + 1; continue; }
+      if (!await until(() => c.state && c.state.scenario && c.state.scenario.id === sc.id && c.state.phase === 'play')) { stuck++; const k = 'never started (' + ((c.msgs.filter(m => m.t === 'err').pop() || {}).msg || 'no error') + ', state ' + (c.state ? c.state.phase + ' ' + (c.state.scenario || {}).id : 'none') + ')'; why[k] = (why[k] || 0) + 1; continue; }
       c.send({ t: 'speed', v: 'super' });
       const g = driver(c);
       try { await SOL[sc.id](g); } catch (e) { why['error: ' + e.message] = (why['error: ' + e.message] || 0) + 1; }

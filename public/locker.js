@@ -237,7 +237,7 @@ const Locker = (() => {
     const close = () => { w.classList.add('gone'); setTimeout(() => w.remove(), 250); document.removeEventListener('keydown', key, true); };
     const key = e => { if (e.key === 'Escape' || e.key === 'Enter') { e.stopPropagation(); close(); } };
     if (it && !isOn(it)) { const eq = el('button', 'btn gold', 'EQUIP NOW'); eq.onclick = () => { SFX.select(); send({ t: 'equip', slot: it.slot, item: it.id }); close(); }; btns.appendChild(eq); }
-    const ok = el('button', 'btn', f ? 'NICE' : 'CONTINUE'); ok.onclick = () => { SFX.click(); close(); }; btns.appendChild(ok);
+    const ok = el('button', 'btn', f ? 'AFFIRMATIVE' : 'CONTINUE'); ok.onclick = () => { SFX.click(); close(); }; btns.appendChild(ok);
     w.appendChild(btns);
     document.addEventListener('keydown', key, true);
     w.onclick = e => { if (e.target === w) close(); };
