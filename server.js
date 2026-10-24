@@ -293,7 +293,7 @@ function filterEvents(events, pid) {
   // fog of war: where a rival set up their HQ stays secret
   if (game && game.settings.fog === 'on') out = out.filter(e => e.e !== 'spawnPicked' || e.pid === pid || (pid && E.isAlly(game, pid, e.pid)));
   if (game && game.settings.fog === 'on' && pl && pl.alive && game.phase === 'play') {
-    const vis = E.visionOf(game, pid), mine = e => e.pid === pid || (e.pid && E.isAlly(game, pid, e.pid));
+    const vis = E.visionOf(game, pid), mine = e => e.pid === pid || (e.pid && E.teammate(game, pid, e.pid));   // an ally's moves and fights out of your sight stay out of sight (a teammate's don't)
     const myLand = new Set(Object.keys(game.map.tiles).filter(k => game.map.tiles[k].owner === pid));
     const nearMe = k => k && E.area(k, 2).some(a => myLand.has(a));
     const radar = [];

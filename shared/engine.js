@@ -1662,6 +1662,7 @@
   }
   const blocCap = s => Math.max(2, Math.floor(s.players.filter(p => p.alive).length / 2));
   function blocTooBig(s, a, b) { const u = new Set([...blocOf(s, a), ...blocOf(s, b)]); return u.size > blocCap(s) ? blocCap(s) : 0; }
+  function teammate(s, a, b) { return !!(a && b && a !== b && (s.allies || []).some(x => x.team && ((x.a === a && x.b === b) || (x.a === b && x.b === a)))); }
   function isAlly(s, a, b) { return !!(a && b && a !== b && (s.allies || []).some(x => (x.a === a && x.b === b) || (x.a === b && x.b === a))); }
   function allyOffer(s, p, a, ev) {
     const to = player(s, a.to);
@@ -2557,6 +2558,10 @@
     for (const uid of t.give.cards) { const i = from.tactics.findIndex(c => c.uid === uid); p.tactics.push(from.tactics.splice(i, 1)[0]); }
     ev.push({ e: 'trade', status: 'accepted', ...t });
     pushLog(s, '🤝 ' + from.name + ' and ' + p.name + ' made a deal.'); addMood(s, from.id, p.id, 8); addMood(s, p.id, from.id, 8);
+    // a gift (or a deal that's mostly one) warms them to you: the bigger it is next to their own income, the more
+    const cardVal = id => { const d = TACTICS[id]; return d ? d.cost + ({ common: 2, uncommon: 4, rare: 7, epic: 10, legendary: 14, mythic: 22 }[d.rarity] || 0) : 0; };
+    const net = t.give.cash + (t.cardIds || []).reduce((x, id) => x + cardVal(id), 0) - t.get.cash;
+    if (net > 0) addMood(s, p.id, from.id, Math.min(30, 4 + Math.round(12 * net / Math.max(4, computeIncome(s, p.id).total))));
     return { ok: true, events: ev };
   }
 
@@ -2691,8 +2696,10 @@
 
   // fog of war: what a commander (and their allies) can currently see
   function visionOf(s, pid) {
+    // your own eyes, and your teammates' in a team game: an alliance struck mid-war doesn't hand you a map of everything
+    // your ally holds and sees
     const vis = new Set(), side = new Set([pid]);
-    for (const p of s.players) if (isAlly(s, pid, p.id)) side.add(p.id);
+    for (const p of s.players) if (teammate(s, pid, p.id)) side.add(p.id);
     const extra = s.weather && s.weather.id === 'clear' ? 2 : 0;
     for (const k in s.map.tiles) if (side.has(s.map.tiles[k].owner)) for (const a of area(k, 1 + extra)) vis.add(a);
     for (const q of s.players) if (side.has(q.id)) for (const x of q.intel || []) if (x.until >= (s.turn ? s.turn.round : 0)) for (const a of area(x.hex, 2)) vis.add(a);
@@ -2709,12 +2716,12 @@
     if (c.phase !== 'over') { delete c.heat; delete c.flips; delete c.bigBattle; }
     delete c.botMem; for (const q of c.players) delete q.persona;   // bot plans (and personalities) stay secret   // end-of-game report data stays secret until the end
     const pl = pid && c.players.find(p => p.id === pid);
-    if (s.settings.fog === 'on' && pl && pl.alive && c.phase === 'play') {
-      // real fog of war: unexplored hexes are unknown; explored-but-unseen hexes show what you last saw
+    if (s.settings.fog === 'on' && pl && pl.alive && (c.phase === 'play' || c.phase === 'draft')) {
+      // real fog of war (the opening draft too: the map behind it shows only what you'll see when the war starts): unexplored hexes are unknown; explored-but-unseen hexes show what you last saw
       mem = mem || { explored: new Set(), seen: {} };
       const vis = visionOf(s, pid);
       for (const k of vis) { const t0 = s.map.tiles[k]; if (!t0) continue; mem.explored.add(k); mem.seen[k] = { owner: t0.owner, structs: JSON.parse(JSON.stringify(structsOf(t0))), poi: t0.poi, gar: t0.gar, ruin: t0.ruin || 0, wreck: !!t0.wreck }; }
-      for (const id in c.units) { const u = c.units[id]; if (u.owner !== pid && !isAlly(s, pid, u.owner) && !vis.has(u.hex)) delete c.units[id]; }
+      for (const id in c.units) { const u = c.units[id]; if (u.owner !== pid && !teammate(s, pid, u.owner) && !vis.has(u.hex)) delete c.units[id]; }
       for (const k in c.map.tiles) {
         if (vis.has(k)) continue;
         const t = c.map.tiles[k], real = s.map.tiles[k], hq = getS(real, 'hq');
@@ -2758,7 +2765,7 @@
   for (const t of [RARITY, CRATES, DROP_TIERS, TURN_ODDS, TERRAIN, UNITS, TACTICS, STRUCTS, FACTIONS, DIFFICULTY, POI, WEATHER, TEAM_COLORS, TEAM_NAMES, CLASS_NAME]) Object.setPrototypeOf(t, null);
   return {
     DIRS, key, parse, dist, neighbors, area, line, mulberry32, hashStr,
-    POI, WEATHER, isAlly, recordHistory, RARITY, RARITY_ORDER, CRATES, DROP_TIERS, SCRAP_VALUE, DECK_MAX, MAX_LEVEL, TERRAIN, DIFFICULTY, UNITS, TACTICS, STRUCTS, BUILD_ORDER, UPGRADABLE, MAX_SLVL, FACTIONS, ROLL_BASE, COLORS, TEAM_COLORS, TEAM_NAMES, teamColor, MAX_STACK, GRUNT_STACK, stackFits, CLASS_NAME, cardDef,
+    POI, WEATHER, isAlly, teammate, recordHistory, RARITY, RARITY_ORDER, CRATES, DROP_TIERS, SCRAP_VALUE, DECK_MAX, MAX_LEVEL, TERRAIN, DIFFICULTY, UNITS, TACTICS, STRUCTS, BUILD_ORDER, UPGRADABLE, MAX_SLVL, FACTIONS, ROLL_BASE, COLORS, TEAM_COLORS, TEAM_NAMES, teamColor, MAX_STACK, GRUNT_STACK, stackFits, CLASS_NAME, cardDef,
     BATTLE_MAX, cacheCard, scenarioCheck, assaultPlan, openBattle, closeBattle, battleOdds, battleHand, battleCard, INTEL_COST, intelCost, overwatchTriggers, overwatchFire, attackTarget, ECON, infraValue, econOf, AIR_STRIKES, airDefenders, interceptChance, generateMap, createGame, applyAction, spawnChoices, visionOf, startTurn, endTurn, simulateTurnStart, view, drawCards,
     player, current, buildIndex, canAct, moveAllow, ownedTiles, ownedLand, spawnPoints, musterHexes, supplySet, computeIncome, levelOf, unitAtk, unitDef,
     payout: scaled, blocOf, blocCap, blocTooBig, riders, tsarArea, moodOf, addMood, threatOf, rerollCost, bountyValue, reachable, pathTo, rangedTargets, deployHexes, buildHexes, buildError, isSea, isWater, isCoastal, movers, combatCalc, tacticTargets, unitCost, structCost, buildCost, structsOf, MAX_STRUCTS, conquestTarget, isLandTile, flakCovered,

@@ -380,6 +380,9 @@ const Render = (() => {
     }
     ctx.globalAlpha = 1;
   }
+  // tiles are drawn into the cached map, which only refreshes now and then: anything there that moved with time hopped
+  // between positions (bobbing markers, swaying trees, waving flags). Tiles use a frozen clock, so they sit still and crisp
+  const tv = 0;
   function drawTile(k, pass) {
     const c = tc[k], tile = S_.map.tiles[k], z = cam.z, sc = S / 34;
     if (pass !== 'overlay' && c.fadeFrom) { if (t - c.fadeT0 >= FADE) { c.fadeFrom = null; setCols(c, c.base, c.owned); } else setCols(c, fadeNow(c, t), c.owned); }
@@ -424,7 +427,7 @@ const Render = (() => {
     }
     if (tile.fog === 2) {
       // unexplored: drifting cloud wisps, nothing else (except a known HQ)
-      const d = 0.5 + 0.5 * Math.sin(t * 0.3 + c.q * 0.7 + c.r * 0.5);
+      const d = 0.5 + 0.5 * Math.sin(tv * 0.3 + c.q * 0.7 + c.r * 0.5);
       ctx.fillStyle = `rgba(120,135,150,${0.06 + d * 0.05})`;
       ctx.beginPath(); ctx.ellipse(cx + (c.v - 0.5) * 10 * z, cy - 1 * z, s * 0.6, s * 0.2, 0, 0, Math.PI * 2); ctx.fill();
       if (tile.struct && tile.struct.type === 'hq') drawStruct(tile, cx, cy, z, k);
@@ -476,7 +479,7 @@ const Render = (() => {
       extra.forEach((st, i) => drawMini(st, cx - 16 * z + i * 32 * z, cy + 7 * z, z));
       const h = (tile.structs || []).find(st => st.type === 'hq');
       if (h && h.siege) {
-        const pulse = 0.5 + 0.5 * Math.sin(t * 8);
+        const pulse = 0.5 + 0.5 * Math.sin(tv * 8);
         ctx.strokeStyle = `rgba(255,70,40,${0.5 + pulse * 0.5})`; ctx.lineWidth = 4 * z;
         hexPath(cx, cy, S * 0.9 * z); ctx.stroke();
         if (Math.random() < 0.25) burst([tc[k].wx + (Math.random() - 0.5) * 30, tc[k].wy - tc[k].h - 10], ['#ff6a2a', '#ffb03a', '#444'], 2, { up: 120, size: 3, life: 0.6 });
@@ -632,7 +635,7 @@ const Render = (() => {
     line([[2, -7], [12, -15]], '#e0b33a', 1); line([[12, -15], [12, -9]], '#6d7680', 0.4);
     // flare boom off the left, its flame flickering
     line([[-11, -1], [-17, -9]], '#9aa3ab', 0.9);
-    const f = 0.7 + 0.3 * Math.sin(t * 9 + v * 20);
+    const f = 0.7 + 0.3 * Math.sin(tv * 9 + v * 20);
     ctx.fillStyle = `rgba(255,${120 + 80 * f | 0},30,.9)`; ctx.beginPath(); ctx.ellipse(...P(-17.3, -11 - f), 1.6 * z, 3 * z * f, -0.3, 0, Math.PI * 2); ctx.fill();
     ctx.fillStyle = 'rgba(255,240,180,.95)'; ctx.beginPath(); ctx.ellipse(...P(-17.2, -10.2 - f * 0.6), 0.7 * z, 1.4 * z * f, -0.3, 0, Math.PI * 2); ctx.fill();
     if (oc) {
@@ -640,8 +643,8 @@ const Render = (() => {
       const [fx0, fy] = P(-8.5, -22.6);
       ctx.strokeStyle = '#ddd'; ctx.lineWidth = 0.9 * z; ctx.beginPath(); ctx.moveTo(fx0, fy); ctx.lineTo(fx0, fy - 7 * z); ctx.stroke();
       ctx.fillStyle = oc; ctx.beginPath(); ctx.moveTo(fx0, fy - 7 * z);
-      for (let i = 0; i <= 4; i++) ctx.lineTo(fx0 + i * 2.2 * z, fy - 7 * z + Math.sin(t * 6 + i * 0.9 + v * 9) * 1.1 * z);
-      for (let i = 4; i >= 0; i--) ctx.lineTo(fx0 + i * 2.2 * z, fy - 3 * z + Math.sin(t * 6 + i * 0.9 + v * 9) * 1.1 * z);
+      for (let i = 0; i <= 4; i++) ctx.lineTo(fx0 + i * 2.2 * z, fy - 7 * z + Math.sin(tv * 6 + i * 0.9 + v * 9) * 1.1 * z);
+      for (let i = 4; i >= 0; i--) ctx.lineTo(fx0 + i * 2.2 * z, fy - 3 * z + Math.sin(tv * 6 + i * 0.9 + v * 9) * 1.1 * z);
       ctx.fill();
     }
     ctx.restore();
@@ -674,7 +677,7 @@ const Render = (() => {
       for (const [ox, oy, sz] of [[-0.3, 0.0, 0.75], [0.28, -0.12, 0.65], [0.05, 0.25, 0.8]]) {
         if (sz === 0.65 && v < 0.5) continue;
         const x = cx + ox * s, y = cy + oy * s * TILT * 1.6, hh = 16 * z * sz;
-        const sway = Math.sin(t * 1.3 + c.q + ox * 3) * 1.2 * z;
+        const sway = Math.sin(tv * 1.3 + c.q + ox * 3) * 1.2 * z;
         ctx.fillStyle = 'rgba(0,0,0,.18)'; ctx.beginPath(); ctx.ellipse(x, y, 6 * z * sz, 2.5 * z * sz, 0, 0, Math.PI * 2); ctx.fill();
         ctx.fillStyle = c.dark; ctx.beginPath(); ctx.moveTo(x + sway, y - hh); ctx.lineTo(x + 6.5 * z * sz, y); ctx.lineTo(x - 6.5 * z * sz, y); ctx.fill();
         ctx.fillStyle = 'rgba(255,255,255,.12)'; ctx.beginPath(); ctx.moveTo(x + sway, y - hh); ctx.lineTo(x - 6.5 * z * sz, y); ctx.lineTo(x - 1 * z, y); ctx.fill();
@@ -711,7 +714,7 @@ const Render = (() => {
     } else if (tile.t === 'jungle') {
       ctx.save(); if (c.owned) ctx.globalAlpha = 0.55;
       for (const [ox, oy, sz] of [[-0.32, 0.05, 0.9], [0.25, -0.1, 0.8], [0.02, 0.28, 1]]) {
-        const x = cx + ox * s, y = cy + oy * s * TILT * 1.6, sway = Math.sin(t * 1.1 + c.q + ox * 3) * 1.5 * z;
+        const x = cx + ox * s, y = cy + oy * s * TILT * 1.6, sway = Math.sin(tv * 1.1 + c.q + ox * 3) * 1.5 * z;
         ctx.fillStyle = 'rgba(0,0,0,.2)'; ctx.beginPath(); ctx.ellipse(x, y, 7 * z * sz, 2.6 * z * sz, 0, 0, Math.PI * 2); ctx.fill();
         ctx.fillStyle = '#4a3423'; ctx.fillRect(x - 1 * z, y - 11 * z * sz, 2 * z, 11 * z * sz);
         ctx.fillStyle = c.dark;
@@ -723,7 +726,7 @@ const Render = (() => {
       for (let i = 0; i < 4; i++) { const x = cx + (hash(c.q + i, c.r) - 0.5) * s * 0.9, y = cy + (hash(c.q, c.r + i) - 0.5) * s * 0.45; ctx.beginPath(); ctx.ellipse(x, y, 4 * z, 1.6 * z, 0, 0, Math.PI * 2); ctx.fill(); }
       if (v > 0.6 && !tile.struct) { ctx.save(); if (c.owned) ctx.globalAlpha = 0.5; const x = cx - s * 0.2, y = cy + 2 * z; ctx.fillStyle = '#3c5a4c'; ctx.beginPath(); ctx.moveTo(x, y - 13 * z); ctx.lineTo(x + 5 * z, y); ctx.lineTo(x - 5 * z, y); ctx.fill(); ctx.fillStyle = '#f2f6f8'; ctx.beginPath(); ctx.moveTo(x, y - 13 * z); ctx.lineTo(x + 2.4 * z, y - 7 * z); ctx.lineTo(x - 2.4 * z, y - 7 * z); ctx.fill(); ctx.restore(); }
     } else if (tile.t === 'swamp') {
-      const a = 0.3 + 0.1 * Math.sin(t * 1.5 + v * 7);
+      const a = 0.3 + 0.1 * Math.sin(tv * 1.5 + v * 7);
       ctx.fillStyle = `rgba(70,110,95,${a})`;
       for (const [ox, oy, r] of [[-0.25, 0.05, 0.22], [0.2, -0.08, 0.17], [0.08, 0.22, 0.14]]) { ctx.beginPath(); ctx.ellipse(cx + ox * s, cy + oy * s * TILT, r * s, r * s * TILT * 0.6, 0, 0, Math.PI * 2); ctx.fill(); }
       ctx.strokeStyle = c.owned ? 'rgba(0,0,0,.3)' : '#8a9a5a'; ctx.lineWidth = 1.3 * z;
@@ -733,7 +736,7 @@ const Render = (() => {
     }
 
     if (tile.fish) {
-      const bob = Math.sin(t * 2.4 + v * 9) * 1.5 * z, x = cx - 6 * z, y = cy + bob;
+      const bob = Math.sin(tv * 2.4 + v * 9) * 1.5 * z, x = cx - 6 * z, y = cy + bob;
       ctx.strokeStyle = 'rgba(200,240,255,.35)'; ctx.lineWidth = 1.2 * z;
       for (let i = 0; i < 2; i++) { const r = ((t * 0.6 + v + i * 0.5) % 1) * 12 * z; ctx.globalAlpha = 1 - r / (12 * z); ctx.beginPath(); ctx.ellipse(x, y + 3 * z, r, r * 0.4, 0, 0, Math.PI * 2); ctx.stroke(); }
       ctx.globalAlpha = 1;
@@ -744,15 +747,15 @@ const Render = (() => {
     }
     if (tile.res && tile.t === 'water') drawRig(cx, cy, z, v, tile.owner);
     else if (tile.res) {
-      const bob = Math.sin(t * 2.2 + v * 6) * 2 * z, x = cx + s * 0.38, y = cy - 4 * z + bob;
+      const bob = Math.sin(tv * 2.2 + v * 6) * 2 * z, x = cx + s * 0.38, y = cy - 4 * z + bob;
       const gl = ctx.createRadialGradient(x, y, 0, x, y, 16 * z); gl.addColorStop(0, 'rgba(110,255,240,.55)'); gl.addColorStop(1, 'rgba(110,255,240,0)');
       ctx.fillStyle = gl; ctx.fillRect(x - 16 * z, y - 16 * z, 32 * z, 32 * z);
       ctx.fillStyle = '#9ffcf2'; ctx.beginPath(); ctx.moveTo(x, y - 9 * z); ctx.lineTo(x + 4.5 * z, y); ctx.lineTo(x, y + 4 * z); ctx.lineTo(x - 4.5 * z, y); ctx.fill();
       ctx.fillStyle = '#34c7c0'; ctx.beginPath(); ctx.moveTo(x, y - 9 * z); ctx.lineTo(x + 4.5 * z, y); ctx.lineTo(x, y + 4 * z); ctx.fill();
     }
     if (tile.poi && !(tile.poi === 'fort' && tile.owner)) {
-      const bob = Math.sin(t * 2 + v * 6) * 1.6 * z, x = cx, y = cy - 14 * z + bob, col = POI_COL[tile.poi];
-      const pulse = (tile.poi === 'relic' || tile.poi === 'cache' || tile.poi === 'ruins') ? 0.5 + 0.5 * Math.sin(t * 3 + v * 5) : 0.3;
+      const bob = Math.sin(tv * 2 + v * 6) * 1.6 * z, x = cx, y = cy - 14 * z + bob, col = POI_COL[tile.poi];
+      const pulse = (tile.poi === 'relic' || tile.poi === 'cache' || tile.poi === 'ruins') ? 0.5 + 0.5 * Math.sin(tv * 3 + v * 5) : 0.3;
       ctx.fillStyle = 'rgba(0,0,0,.35)'; ctx.beginPath(); ctx.ellipse(x, cy + 2 * z, 8 * z, 3 * z, 0, 0, Math.PI * 2); ctx.fill();
       ctx.globalAlpha = 0.18 + pulse * 0.22; ctx.fillStyle = col; ctx.beginPath(); ctx.arc(x, y, (12.5 + pulse * 2.5) * z, 0, Math.PI * 2); ctx.fill(); ctx.globalAlpha = 1;
       ctx.fillStyle = '#121820'; ctx.beginPath(); ctx.arc(x, y, 9.5 * z, 0, Math.PI * 2); ctx.fill();
@@ -764,14 +767,14 @@ const Render = (() => {
       }
     }
     if (tile.contam) {
-      const a = 0.4 + 0.3 * Math.sin(t * 3 + v * 9);
+      const a = 0.4 + 0.3 * Math.sin(tv * 3 + v * 9);
       ctx.save(); ctx.globalAlpha = a; Art.drawIcon(ctx, 'tactic', 'nuke', cx, cy, 9 * z, '#d9ff3b'); ctx.restore();
     }
-    if (tile.smoke) { ctx.fillStyle = 'rgba(220,225,230,.35)'; for (let i = 0; i < 5; i++) { ctx.beginPath(); ctx.arc(cx + Math.sin(t * 0.8 + i * 1.3) * s * 0.4, cy + Math.cos(t * 0.6 + i) * s * 0.15 - 4 * z, (7 + i % 3 * 3) * z, 0, Math.PI * 2); ctx.fill(); } }
+    if (tile.smoke) { ctx.fillStyle = 'rgba(220,225,230,.35)'; for (let i = 0; i < 5; i++) { ctx.beginPath(); ctx.arc(cx + Math.sin(tv * 0.8 + i * 1.3) * s * 0.4, cy + Math.cos(tv * 0.6 + i) * s * 0.15 - 4 * z, (7 + i % 3 * 3) * z, 0, Math.PI * 2); ctx.fill(); } }
     if (S_.map.beacon && S_.map.beacon === c.q + ',' + c.r) {
       const g = ctx.createLinearGradient(0, cy - 140 * z, 0, cy); g.addColorStop(0, 'rgba(255,214,90,0)'); g.addColorStop(1, 'rgba(255,214,90,.55)');
       ctx.fillStyle = g; ctx.fillRect(cx - 7 * z, cy - 140 * z, 14 * z, 140 * z);
-      ctx.strokeStyle = '#ffd65a'; ctx.lineWidth = 2 * z; ctx.beginPath(); ctx.ellipse(cx, cy, s * (0.5 + 0.1 * Math.sin(t * 3)), s * 0.3, 0, 0, Math.PI * 2); ctx.stroke();
+      ctx.strokeStyle = '#ffd65a'; ctx.lineWidth = 2 * z; ctx.beginPath(); ctx.ellipse(cx, cy, s * (0.5 + 0.1 * Math.sin(tv * 3)), s * 0.3, 0, 0, Math.PI * 2); ctx.stroke();
     }
   }
 
@@ -806,7 +809,7 @@ const Render = (() => {
       ctx.strokeStyle = '#ffc53d'; ctx.lineDashOffset = -t * 14 + 4.5 * z; ctx.beginPath(); ctx.arc(0, 0, 15.5 * z, 0, Math.PI * 2); ctx.stroke();
       ctx.setLineDash([]);
       // crane: mast, jib, swinging hook
-      const sw = Math.sin(t * 2.2) * 2.5 * z;
+      const sw = Math.sin(tv * 2.2) * 2.5 * z;
       ctx.strokeStyle = '#ffc53d'; ctx.lineWidth = 2 * z; ctx.lineCap = 'round';
       ctx.beginPath(); ctx.moveTo(-17 * z, 10 * z); ctx.lineTo(-17 * z, -24 * z); ctx.lineTo(4 * z, -24 * z); ctx.stroke();
       ctx.lineWidth = 1.2 * z; ctx.beginPath(); ctx.moveTo(-17 * z, -18 * z); ctx.lineTo(-11 * z, -24 * z); ctx.moveTo(1 * z, -24 * z); ctx.lineTo(1 * z + sw, -14 * z); ctx.stroke();
@@ -843,8 +846,8 @@ const Render = (() => {
       const fx0 = x + 14 * z, fy = y - 24 * z;
       ctx.strokeStyle = '#ddd'; ctx.lineWidth = 1.6 * z; ctx.beginPath(); ctx.moveTo(fx0, fy + 18 * z); ctx.lineTo(fx0, fy - 6 * z); ctx.stroke();
       ctx.fillStyle = col; ctx.beginPath(); ctx.moveTo(fx0, fy - 6 * z);
-      for (let i = 0; i <= 6; i++) ctx.lineTo(fx0 + i * 2.6 * z, fy - 6 * z + Math.sin(t * 6 + i * 0.9) * 1.6 * z);
-      for (let i = 6; i >= 0; i--) ctx.lineTo(fx0 + i * 2.6 * z, fy + 3 * z + Math.sin(t * 6 + i * 0.9) * 1.6 * z);
+      for (let i = 0; i <= 6; i++) ctx.lineTo(fx0 + i * 2.6 * z, fy - 6 * z + Math.sin(tv * 6 + i * 0.9) * 1.6 * z);
+      for (let i = 6; i >= 0; i--) ctx.lineTo(fx0 + i * 2.6 * z, fy + 3 * z + Math.sin(tv * 6 + i * 0.9) * 1.6 * z);
       ctx.fill();
     }
     if (type === 'refinery' && Math.random() < 0.04) smoke([world(k).wx + 4, world(k).wy - world(k).h - 22], 1, 'rgba(180,180,180,');
