@@ -2,9 +2,9 @@
 
 Every release, newest first. Each version also has its own post on the [Releases page](https://github.com/Blacksheep909/sector/releases).
 
-## v0.10.3 (unreleased)
+## v0.10.3
 
-**Public wars you can host, and a fix for the game stalling on DEPLOY.**
+**Singleplayer with saves on your account, public wars you can host, a store overhaul, clean chat, and a round of security fixes.**
 
 - **Fix: the game stalled on DEPLOY (and then missions wouldn't start).** On a server running the console dashboard (Sector.exe), the dashboard crashed as soon as someone joined a room. Logging that crash redrew the dashboard, which crashed again, so the server spent all its time writing errors and games stopped moving. The dashboard is fixed, and a dashboard error can no longer loop or hold up a game.
 - **PLAY: join an open war, or host your own.** PLAY puts you in a public war that's still open; if none is, it opens a new one with you as host. You can change the settings, add bots and press DEPLOY when you're ready (bots fill the empty seats), and anyone else pressing PLAY joins you until then. The 30-second countdown is gone. **＋ PRIVATE ROOM** is the same but invite-only.
