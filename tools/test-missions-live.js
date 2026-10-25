@@ -50,7 +50,8 @@ function driver(c) {
     fire: (from, to, types) => act({ a: 'fire', from: L(from), units: unitsAt(from).filter(u => !types || types.includes(u.type)).map(u => u.id), to: L(to) }),
     deploy: (unit, hex) => act({ a: 'deploy', unit, hex: L(hex) }),
     build: (struct, hex) => act({ a: 'build', struct, hex: L(hex) }),
-    cards: ids => { cardsFor = ids; },   // played in the battle window of the next attack, as a player would
+    cards: ids => { cardsFor = ids; },
+    tactic: (id, target) => { const c = ((S().players.find(p => p.id === me()) || {}).tactics || []).find(x => x.id === id); return act({ a: 'tactic', uid: c && c.uid, target: target && L(target) }); },   // played in the battle window of the next attack, as a player would
     async end() {
       if (S().phase === 'over') return;
       const r = S().turn.round; await act({ a: 'end' });
@@ -74,6 +75,8 @@ const SOL = {
   cards: async g => { g.cards(['bayonets']); await g.assault('ox', ['x']); g.cards(['rally']); await g.assault('oy', ['y']); },
   beach: async g => { await g.move('ark', 's2'); await g.move('navy', 's1'); await g.end(); await g.move('s2', 'beach', ['grunt']); await g.end(); await g.assault('obj', ['beach']); },
   blitz: async g => { await g.fire('art', 'guard'); await g.move('tank', 'stage'); await g.move('heli', 'lz'); await g.end(); g.cards(['rally', 'barrage']); await g.assault('bhq', ['lz'], ['stage']); },
+  // the Basilisk fires twice at the air defence (the second shot only if the first left anything standing)
+  endgame: async g => { await g.fire('art', 'aa'); await g.move('sh', 'br'); await g.move('n', 'c2'); await g.end(); await g.fire('art', 'aa'); await g.move('br', 'gate'); await g.move('c2', 'lz', ['grunt']); await g.end(); await g.tactic('buster', 'bhq'); g.cards(['rally', 'bayonets']); await g.assault('bhq', ['lz'], ['gate']); if (!g.won()) await g.end(); },
   hold: null,   // a live defence against a real bot: measured by test-scenarios.js
 };
 (async () => {

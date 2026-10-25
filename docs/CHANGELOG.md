@@ -5,6 +5,8 @@ Every release, newest first. Each version also has its own post on the [Releases
 ## Unreleased
 
 - **Arks fixed.** Troops who boarded an Ark could get stuck: the Ark refused to sail with them aboard. It now carries its troops whether you pick the Ark alone or the whole stack.
+- **Mission 20: Endgame** (new tier: Nightmare). Take a ★★★ fortress in three turns behind a guarded bridge and an air-defence screen: clear the bridge before the Ark can sail under it, knock out the Skyguard and Sentinel before the Bunker Buster goes in, then storm the HQ from two sides with your cards. Get the order wrong and it's close to hopeless.
+- The commander card now counts all 20 missions (it said /10).
 - **Rewards for leaving early:** walk out of a war and you're paid Valor for what you did up to then (kills and captures; no win or placing bonus, and nothing for what the bot does after). Kills and captures still count toward your orders.
 - **A game counts for rewards** once you've played **5+ minutes** and destroyed **10+ enemy units** (it used to be 6 rounds).
 - **Main menu fix:** the end-of-game MAIN MENU button always brings the front page back, even if something goes wrong tidying up the war.

@@ -304,20 +304,30 @@ The same goes for water: a pocket of 12 or fewer sea hexes walled in by your coa
 
 ## Missions and the tutorial
 
-**🎯 MISSIONS & TUTORIAL** (front page or lobby) opens ten hand-built puzzle missions, each teaching one technique. Each is a fixed board with set armies, cash and cards, a goal and a turn limit: no resupply draws and no weather, so every mission has a solution to find. General Hale briefs you on each one, and the mission bar has a **HINT** button if you're stuck. Clear a mission to unlock the next; your first clear of each pays Valor.
+**🎯 MISSIONS & TUTORIAL** (front page or lobby) opens 20 hand-built missions, each teaching one technique. Most are fixed boards with set armies, cash and cards, a goal and a turn limit: no resupply draws and no weather, so every one has a solution to find. General Hale briefs you on each, and the mission bar has a **HINT** button if you're stuck. Clear a mission to unlock the next. Your first clear of each pays **100 Valor**, and clearing them all pays a **1,000 Valor** bonus. The last one, **Endgame** (Nightmare), needs every arm in the right order: take the bridge before the Ark sails under it, knock out the air defence before the Bunker Buster goes in, then storm the ★★★ fortress from two sides with your cards.
 
-| # | Mission | Tier | Technique | First clear |
-|---|---|---|---|---|
-| 1 | Basic Training | Tutorial | Moving, capturing, deploying, attacking (General Hale walks you through it step by step) | 100 |
-| 2 | Strength in Numbers | Easy | Pincer attacks | 150 |
-| 3 | Crossing | Easy | Rivers, bridges, combined arms | 200 |
-| 4 | Over the Mountains | Medium | Helicopters carry Grunts | 300 |
-| 5 | Breakthrough | Medium | Leapfrogging: each wave passes through the last | 400 |
-| 6 | Big Guns | Hard | Artillery | 600 |
-| 7 | All In | Hard | Battle cards | 800 |
-| 8 | Beachhead | Very Hard | Transports, landings, naval gunfire | 1,000 |
-| 9 | Hold the Line | Expert | Defence against a live enemy | 1,500 |
-| 10 | Lightning War | Impossible | Everything at once | 2,500 |
+| # | Mission | Tier | Technique |
+|---|---|---|---|
+| 1 | Basic Training | Tutorial | Moving, capturing, deploying and attacking |
+| 2 | War Chest | Tutorial | Income, resupply and economic buildings |
+| 3 | Strength in Numbers | Easy | Pincer attacks: hit one hex from several sides at once |
+| 4 | Holding Ground | Easy | Defence: holding ground and your HQ (high ground, digging in, Bunkers, fortifying the HQ) |
+| 5 | Crossing | Easy | Rivers, bridges and combined arms |
+| 6 | Forward Base | Easy | FOBs: deploying at the front, not just at home |
+| 7 | Breakthrough | Medium | Leapfrogging: each wave passes through the last to punch deeper |
+| 8 | Spoils of War | Medium | Ruins, caches, villages, relics and abandoned FOBs |
+| 9 | Over the Mountains | Medium | Helicopters carry Grunts |
+| 10 | Big Guns | Hard | Artillery: firing from range |
+| 11 | All In | Hard | Battle cards: tipping a fight before the dice roll |
+| 12 | Air Power | Hard | Air strikes, Gun Runs, Heli Drops and air defence |
+| 13 | Air Wing | Medium | Airbases, strike cards and the black market |
+| 14 | Sky Shield | Hard | Anti-air: shooting down aircraft from range |
+| 15 | Sea Lanes | Hard | Ports, warships and sea control |
+| 16 | Beachhead | Very Hard | Transports, landings and naval gunfire |
+| 17 | The Cauldron | Hard | Encirclement: cutting off a pocket to take it whole |
+| 18 | Hold the Line | Expert | Defence: bunkers, terrain and reserves |
+| 19 | Lightning War | Impossible | Everything at once |
+| 20 | Endgame | Nightmare | Every arm in the right order: armour, sea, guns, air and cards |
 
 ## Battle cards
 

@@ -133,6 +133,16 @@ const SOLUTIONS = {
     g.tactic('rally'); g.tactic('barrage');
     return g.assault('bhq', ['lz'], ['stage']);
   },
+  endgame(g) {
+    // order matters: the tanks clear the bridge before the Ark can sail under it; the guns open the sky for the Buster
+    g.fire('art', 'aa'); g.move('sh', 'br'); g.move('n', 'c2'); g.end();
+    g.move('br', 'gate'); g.move('c2', 'lz', ['grunt']); g.end();
+    g.tactic('buster', 'bhq');
+    console.log('     odds: no cards ' + Math.round(g.odds('bhq', ['lz'], ['gate']) * 100) + '%');
+    g.tactic('rally'); g.tactic('bayonets');
+    console.log('     odds: Rally + Bayonets ' + Math.round(g.odds('bhq', ['lz'], ['gate']) * 100) + '%');
+    return g.assault('bhq', ['lz'], ['gate']);
+  },
   hold() {
     // a live enemy: play a plain defence many times. It should usually hold, and doing nothing should always lose
     const run = defend => {

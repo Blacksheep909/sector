@@ -426,6 +426,29 @@
       intro: 'The enemy HQ is a ★★★ fortress packed with troops. Nothing you have can take it alone. Plan both turns before you touch anything: **where must each force be at the start of turn 2?**',
       hints: ['The guard in the woods blocks the only road for your tanks, and attacking it would leave them stuck there. Something else should deal with it.', 'Turn 1: the Basilisk shells the guard; the tanks drive through to the hex beside the HQ; the Stormcrow flies its Grunts to the clearing on the other side.', 'Turn 2: no single card is enough. Ready two that stack, like Rally with Fix Bayonets, then attack the HQ with both stacks at once (Shift-click).'],
     },
+    {
+      id: 'endgame', name: 'Endgame', tier: 'Nightmare', technique: 'Every arm in the right order: armour, sea, guns, air and cards',
+      brief: 'The last enemy fortress sits behind a guarded bridge and an air-defence screen. Three turns, eight dollars and everything you have left. Finish them.',
+      turns: 3, reward: 3000,
+      players: { A: { name: 'You', cash: 8, arsenal: ['grunt'], tactics: ['buster', 'rally', 'bayonets'] }, B: { name: 'Last Bastion', ai: 'passive' } },
+      map: [
+        '~ ~ ~ ~ ~ ~@n ~ m m m m',
+        '.A .A .A .A@art .A ~@c1 .B@aa .B m m m',
+        '.A .A@hq .A .A .A@sh ~@br .B@gate f .B m',
+        '.A .A .A .A .A ~@c2 .B@lz .B@bhq .B m m',
+        '~ ~ ~ ~ ~ ~ ~@s .B@back .B m m',
+        '~ ~ ~ ~ ~ ~ ~ ~ ~ m m m',
+      ],
+      structs: { hq: [['A', 'hq']], bhq: [['B', 'hq', 3]], br: [['B', 'bridge']] },
+      units: {
+        art: [['A', 'basilisk', 1]], sh: [['A', 'mauler', 1], ['A', 'lancer', 1]], n: [['A', 'ark', 1], ['A', 'grunt', 3]],
+        br: [['B', 'grunt', 2, { dug: true }], ['B', 'mauler', 1, { dug: true }]], gate: [['B', 'grunt', 3, { dug: true }]],
+        aa: [['B', 'skyguard', 1], ['B', 'sentinel', 1]], bhq: [['B', 'grunt', 7], ['B', 'mauler', 2], ['B', 'lancer', 1]],
+      },
+      goal: { type: 'capture', hexes: ['bhq'] },
+      intro: 'The enemy HQ is a ★★★ fortress with ten defenders. Your tanks are cut off from it by a guarded bridge, your landing force is on the wrong side of that bridge, and a **Skyguard** and a **Sentinel** cover the fortress against your **Bunker Buster**. Nothing here works alone, and **the order you do things in matters**: ships can sail under a bridge, but not while enemy troops stand on it.',
+      hints: ['Ships can sail under a bridge, but not while enemy troops stand on it. Take the bridge with your tanks first, then send the Ark through to the far side.', 'Those two air-defence batteries would shoot your Bunker Buster down. Your Basilisk can reach them from where it stands.', 'Turn 2: land the Grunts beside the fortress and push the tanks through the gate. Turn 3: Bunker Buster on the HQ, ready Rally and Fix Bayonets, then attack it from both hexes at once (Shift-click).'],
+    },
     // ───────── situations: bigger boards, live enemies, real income and resupply ─────────
     {
       id: 'breakout', draft: true, name: 'Breakout', tier: 'Situation', technique: 'A cut-off division and a relief push: two forces, one plan',
@@ -454,7 +477,7 @@
     },
   ];
   // the order they're played and unlocked in (each builds on the ones before), and so their numbers
-  const ORDER = ['basic', 'economy', 'pincer', 'ground', 'river', 'fob', 'leapfrog', 'loot', 'airborne', 'guns', 'cards', 'air', 'airwing', 'skyshield', 'navy', 'beach', 'encircle', 'hold', 'blitz', 'breakout', 'islands', 'relief', 'fronts', 'total'];
+  const ORDER = ['basic', 'economy', 'pincer', 'ground', 'river', 'fob', 'leapfrog', 'loot', 'airborne', 'guns', 'cards', 'air', 'airwing', 'skyshield', 'navy', 'beach', 'encircle', 'hold', 'blitz', 'endgame', 'breakout', 'islands', 'relief', 'fronts', 'total'];
   SCENARIOS.sort((a, b) => (ORDER.indexOf(a.id) + 1 || 99) - (ORDER.indexOf(b.id) + 1 || 99));
   // missions still being tuned (draft: true) aren't on the board yet; the tests can still reach them
   const DRAFTS = SCENARIOS.filter(sc => sc.draft);

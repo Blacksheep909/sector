@@ -6,7 +6,7 @@ const Missions = (() => {
   const esc = s => String(s).replace(/[&<>"]/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;' })[c]);
   const fmt = s => esc(s).replace(/\*\*(.+?)\*\*/g, '<b>$1</b>');
   const D = () => window.SECTOR_DEBUG;
-  const TIER = { Tutorial: '#59f08a', Easy: '#3fd07a', Medium: '#3fa0ff', Hard: '#c25cff', 'Very Hard': '#ff7a3a', Expert: '#ff4f5e', Impossible: '#ffb52e', Situation: '#e8edf2' };
+  const TIER = { Tutorial: '#59f08a', Easy: '#3fd07a', Medium: '#3fa0ff', Hard: '#c25cff', 'Very Hard': '#ff7a3a', Expert: '#ff4f5e', Impossible: '#ffb52e', Nightmare: '#ff2a55', Situation: '#e8edf2' };
 
   // progress: kept on your profile when you have one, and in this browser either way
   const local = () => { try { return JSON.parse(localStorage.getItem('sector.missions') || '[]'); } catch (e) { return []; } };

@@ -60,7 +60,7 @@ const Home = (() => {
     box.innerHTML = `<h3>COMMANDER</h3>
       <div class="pchip demo cc-chip${bannerCls(eq.banner)}"><div class="pn">${esc(nameOf())}</div><div class="ps"><span>🏆 <b>${t.wins || 0}</b></span><span>⚔ <b>${t.kills || 0}</b></span></div></div>
       <div class="cc-terr"><canvas width="300" height="150"></canvas><div class="cc-tag">${esc(itemName(eq.territory))}</div></div>
-      <div class="cc-grid"><div><b>${t.games || 0}</b><span>wars</span></div><div><b>${t.games ? Math.round((t.wins || 0) / t.games * 100) : 0}%</b><span>won</span></div><div><b>${(p.scenarios || []).length}/10</b><span>missions</span></div></div>
+      <div class="cc-grid"><div><b>${t.games || 0}</b><span>wars</span></div><div><b>${t.games ? Math.round((t.wins || 0) / t.games * 100) : 0}%</b><span>won</span></div><div><b>${(p.scenarios || []).length}/${SectorScenarios.SCENARIOS.length}</b><span>missions</span></div></div>
       <div class="cc-row"><span>Banner</span><b>${esc(itemName(eq.banner))}</b></div><div class="cc-row"><span>Border</span><b>${esc(itemName(eq.border))}</b></div>
       <button class="btn gold cc-go" id="ccLocker">CUSTOMIZE</button>
       ${accountBox(p)}
@@ -156,7 +156,7 @@ const Home = (() => {
       <div class="pf-body"><div class="pf-terr"><canvas width="280" height="140"></canvas><div class="cc-tag">${esc(itemName(v.equipped.territory))}</div></div>
         <div class="pf-stats">
           <div><b>${s.wins}</b><span>wins</span></div><div><b>${s.games}</b><span>wars</span></div><div><b>${s.games ? Math.round(s.wins / s.games * 100) : 0}%</b><span>win rate</span></div>
-          <div><b>${s.kills.toLocaleString()}</b><span>units destroyed</span></div><div><b>${s.captured.toLocaleString()}</b><span>hexes taken</span></div><div><b>${v.missions}/10</b><span>missions</span></div>
+          <div><b>${s.kills.toLocaleString()}</b><span>units destroyed</span></div><div><b>${s.captured.toLocaleString()}</b><span>hexes taken</span></div><div><b>${v.missions}/${SectorScenarios.SCENARIOS.length}</b><span>missions</span></div>
         </div></div>
       <div class="pf-week">This week: <b>${w.wins}</b> win${w.wins === 1 ? '' : 's'} in <b>${w.games}</b> war${w.games === 1 ? '' : 's'} · <b>${w.kills}</b> kills</div>
       <div class="pf-gear"><div><span>Banner</span><b>${esc(itemName(v.equipped.banner))}</b></div><div><span>Territory</span><b>${esc(itemName(v.equipped.territory))}</b></div><div><span>Border</span><b>${esc(itemName(v.equipped.border))}</b></div><div><span>Skins owned</span><b>${v.skins}</b></div></div>
