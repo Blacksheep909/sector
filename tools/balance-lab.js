@@ -3,6 +3,8 @@
 //   node tools/balance-lab.js games [n]            bot games: $ of enemy kit each unit type destroys per $ spent on it
 //   node tools/balance-lab.js ab [n] [unit,...]    A/B: one bot leans on a unit (deploys it whenever it can); its win rate vs the 25% baseline
 //   node tools/balance-lab.js skill [n]            does a better bot beat worse ones? (skill curve check)
+//   node tools/balance-lab.js cards [n]            bot games: what each tactic card destroys per $ played, how often it's shot down
+//   node tools/balance-lab.js strat [n]            A/B on economy choices: one bot forced to build airbases, banned from them, or banned from the black market
 'use strict';
 const { Worker, isMainThread, parentPort, workerData } = require('worker_threads');
 const os = require('os');
@@ -90,6 +92,8 @@ function playGame(cfg) {
   const focus = cfg.focus;   // A/B: p0 leans on this unit
   if (focus) { const p0 = s.players[0]; if (!p0.arsenal.includes(focus)) p0.arsenal.push(focus); }
   const stats = {};   // per unit type: spent, killedValue (credited), lostValue
+  const cards = {};   // per tactic card: played, $ paid, enemy $ destroyed, buildings hit, shot down
+  const econ = { airbaseCards: 0, airbases: 0, marketBuys: 0, marketSpent: 0 };   // p0's
   const st = t => stats[t] = stats[t] || { spent: 0, deployed: 0, kv: 0, lost: 0 };
   let actions = 0;
   while (s.phase === 'play' && actions < 70000) {
@@ -99,11 +103,30 @@ function playGame(cfg) {
       if (focus && p.id === 'p0' && a.a === 'deploy' && a.unit !== focus && E.unitCost(p, focus) <= p.cash) {
         const hx = E.deployHexes(s, p.id, focus); if (hx.length) a = { a: 'deploy', unit: focus, hex: hx.includes(a.hex) ? a.hex : hx[0] };
       }
+      // A/B economy strategies for p0
+      if (cfg.strat && p.id === 'p0') {
+        if (cfg.strat === 'no-airbase' && a.a === 'build' && a.struct === 'airbase') continue;
+        if (cfg.strat === 'no-market' && a.a === 'marketBuy') continue;
+        if (cfg.strat === 'airbase' && !mem.abDone && s.turn.stage === 'act' && s.turn.round >= 3) {
+          mem.abDone = true;
+          const mine = Object.keys(s.map.tiles).filter(k => E.structsOf(s.map.tiles[k]).some(x => x.type === 'airbase' && x.owner === 'p0'));
+          const up = mine.find(k => { const x = E.structsOf(s.map.tiles[k]).find(x => x.type === 'airbase'); return !x.lock && (x.lvl || 1) < 3; });
+          const hx = up || (mine.length < 2 ? E.buildHexes(s, 'p0', 'airbase').find(k => !E.structsOf(s.map.tiles[k]).length) : null);
+          if (hx && p.cash >= E.buildCost(s, p, 'airbase', hx)) a = { a: 'build', struct: 'airbase', hex: hx };
+        }
+      }
       const before = {}; for (const id in s.units) before[id] = { type: s.units[id].type, owner: s.units[id].owner };
       const r = E.applyAction(s, p.id, a); actions++;
       if (!r.ok) { if (a.a === 'end') break; continue; }
       if (a.a === 'deploy') { const x = st(a.unit); x.deployed++; x.spent += E.unitCost(p, a.unit); }
       for (const e of r.events) {
+        if (e.e === 'tactic' && e.pid === p.id) {
+          const c = cards[e.id] = cards[e.id] || { played: 0, paid: 0, kv: 0, infra: 0, shot: 0 };
+          c.played++; c.paid += E.TACTICS[e.id].cost; if (e.intercepted) c.shot++;
+          c.kv += (e.kills || []).map(id => before[id]).filter(u => u && u.owner !== p.id).reduce((v, u) => v + E.UNITS[u.type].cost, 0);
+          c.infra += (e.infra || []).length + (e.hexes || []).reduce((n, h) => n + (h.infra || []).length, 0) + (e.hit || 0);
+        }
+        if (e.pid === 'p0') { if (e.e === 'airbase') econ.airbaseCards++; if (e.e === 'build' && e.struct === 'airbase') econ.airbases++; if (e.e === 'marketBuy') { econ.marketBuys++; econ.marketSpent += e.price; } }
         if (e.e !== 'combat') continue;
         const dead = (e.killed || []).concat(e.pyrrhic || []).map(id => before[id]).filter(Boolean);
         for (const side of ['att', 'def']) {
@@ -117,7 +140,7 @@ function playGame(cfg) {
     }
   }
   const winner = s.winner ? s.winner.pid : null;
-  return { winner, rounds: s.turn.round, stats, decks: s.players.map(p => ({ id: p.id, arsenal: p.arsenal.slice(), alive: p.alive, land: E.ownedLand(s, p.id).length })) };
+  return { winner, rounds: s.turn.round, stats, cards, econ, decks: s.players.map(p => ({ id: p.id, arsenal: p.arsenal.slice(), alive: p.alive, land: E.ownedLand(s, p.id).length })) };
 }
 function runParallel(jobs, cb) {
   return new Promise(res => {
@@ -162,6 +185,26 @@ if (!isMainThread && workerData && workerData.worker) {
     console.log(`A/B: one of 4 medium bots deploys the named unit whenever it can afford it (${n} games each)`);
     console.log('focus unit   win rate   survived   avg land at end');
     for (const [k, b] of Object.entries(by).sort((x, y) => y[1].w / y[1].n - x[1].w / x[1].n)) console.log(k.padEnd(12), pct(b.w / b.n).padStart(8), pct(b.alive / b.n).padStart(10), (b.land / b.n).toFixed(0).padStart(12));
+    return;
+  }
+  if (mode === 'cards') {
+    const n = +a1 || 40, res = await runParallel(Array.from({ length: n }, () => ({})), tick); console.error();
+    const agg = {};
+    for (const g of res) for (const [t, x] of Object.entries(g.cards)) { const a = agg[t] = agg[t] || { played: 0, paid: 0, kv: 0, infra: 0, shot: 0 }; for (const k in x) a[k] += x[k]; }
+    console.log(`${n} four-bot games: tactic cards played by bots`);
+    console.log('card          played   enemy $ destroyed per play   per $ paid   buildings hit per play   shot down');
+    for (const [t, a] of Object.entries(agg).sort((x, y) => y[1].kv / y[1].played - x[1].kv / x[1].played)) console.log(t.padEnd(13), String(a.played).padStart(6), (a.kv / a.played).toFixed(1).padStart(22), (a.paid ? (a.kv / a.paid).toFixed(2) : '  -').padStart(14), (a.infra / a.played).toFixed(2).padStart(20), pct(a.shot / a.played).padStart(14));
+    return;
+  }
+  if (mode === 'strat') {
+    const n = +a1 || 40, strats = ['airbase', 'no-airbase', 'no-market', null];
+    const jobs = []; for (const st of strats) for (let i = 0; i < n; i++) jobs.push({ strat: st });
+    const res = await runParallel(jobs, tick); console.error();
+    const by = {};
+    jobs.forEach((j, i) => { const k = j.strat || '(control)'; const b = by[k] = by[k] || { n: 0, w: 0, land: 0, alive: 0, ab: 0, abc: 0, mb: 0, ms: 0 }; const r = res[i]; b.n++; if (r.winner === 'p0') b.w++; const d = r.decks[0]; b.land += d.land; if (d.alive) b.alive++; b.ab += r.econ.airbases; b.abc += r.econ.airbaseCards; b.mb += r.econ.marketBuys; b.ms += r.econ.marketSpent; });
+    console.log(`economy A/B: one of 4 medium bots plays a strategy (${n} games each; 25% wins = average)`);
+    console.log('strategy       win rate   survived   avg land   airbases built/upgraded   airbase cards   market buys ($)');
+    for (const [k, b] of Object.entries(by)) console.log(k.padEnd(14), pct(b.w / b.n).padStart(8), pct(b.alive / b.n).padStart(10), (b.land / b.n).toFixed(0).padStart(10), (b.ab / b.n).toFixed(1).padStart(18), (b.abc / b.n).toFixed(1).padStart(20), ((b.mb / b.n).toFixed(1) + ' ($' + (b.ms / b.n).toFixed(0) + ')').padStart(18));
     return;
   }
   if (mode === 'skill') {
