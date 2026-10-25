@@ -175,6 +175,10 @@ const land = (s, from, d) => Object.keys(s.map.tiles).find(k => E.dist(k, from) 
     s.units.sn = { id: 'sn', type: 'sentinel', owner: o.id, hex: k, moved: false, fresh: false };
     const r2 = E.applyAction(s, p.id, { a: 'fire', from: sea, units: ['tr'], to: k }, () => 0.1);
     ok(r2.ok && r2.events.some(e => e.e === 'intercept'), 'a Sentinel can intercept the missile');
+    delete s.units.sn; s.units.gr = { id: 'gr', type: 'grumble', owner: o.id, hex: k, moved: false, fresh: false }; s.units.tr.moved = false;
+    const r3 = E.applyAction(s, p.id, { a: 'fire', from: sea, units: ['tr'], to: k }, () => 0.1);
+    ok(r3.ok && r3.events.some(e => e.e === 'intercept'), 'a Grumble can intercept the missile too');
+    ok(E.UNITS.grumble.mv === 1, 'the Grumble moves 1');
   }
 }
 { // bridges: no neighbours, airstrikes drop them, and the wreckage costs extra to rebuild

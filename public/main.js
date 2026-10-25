@@ -2459,7 +2459,7 @@
           await sleep(400); break;
         }
         case 'intercept': {
-          // a Sentinel battery swats the missile out of the sky
+          // a SAM battery (Sentinel or Grumble) swats the missile out of the sky
           SFX.whoosh(); Render.beam(ev.from, ev.to, '#ffb03a', 0.7 * speed(), 260); await sleep(550 * speed());
           flakFire(ev.by || [], ev.to); await sleep(200);
           Render.burst(ev.to, ['#ffb03a', '#fff', '#7ff3ff'], 40, { up: 260, speed: 1.6 }); SFX.boom(0.8);

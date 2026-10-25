@@ -142,7 +142,7 @@ $3 base
 - **Artillery and warships** can shell undefended economic buildings in range: each salvo knocks off a level.
 - **Strategic Bombing** (Rare) hits a hex and its neighbours: their economic buildings lose a level, and that land is **bombed out**, paying nothing for its owner's next 2 turns (supply still runs through it).
 
-**Air defence.** Anti-air units can shoot down air strikes (Gun Run, Kamikaze Drone, Airstrike, Precision Strike, Cruise Missile, Bunker Buster, Carpet and Strategic Bombing) aimed near them. A Stinger covers its own hex (25%), a Scorpion 1 hex (35%), a Skyguard 2 (50%), a Grumble 3 (55%) and a Sentinel 3 (60%). Chances stack, up to 90%. Precision Strikes are only 60% as likely to be caught. A downed strike still spends the card. Anti-air also blocks Heli Drops and EMPs within that same reach. (The old Flak building is gone: anti-air units do its job.) **Nukes and the Tsar Bomba can't be stopped.** The **Trident** submarine's missile (range 8) can only be intercepted by Sentinels within 3 of its target.
+**Air defence.** Anti-air units can shoot down air strikes (Gun Run, Kamikaze Drone, Airstrike, Precision Strike, Cruise Missile, Bunker Buster, Carpet and Strategic Bombing) aimed near them. A Stinger covers its own hex (25%), a Scorpion 1 hex (35%), a Skyguard 2 (50%), a Grumble 3 (55%) and a Sentinel 3 (60%). Chances stack, up to 90%. Precision Strikes are only 60% as likely to be caught. A downed strike still spends the card. Anti-air also blocks Heli Drops and EMPs within that same reach. (The old Flak building is gone: anti-air units do its job.) **Nukes and the Tsar Bomba can't be stopped.** The **Trident** submarine's missile (range 8) can only be intercepted by Sentinel and Grumble batteries within 3 of its target.
 
 **Supply:** a hex pays only if it connects through your own territory to your HQ or a Port. A **FOB supplies land only while it's connected** that way too (a cut-off FOB still takes reinforcements, but supplies nothing), and you can only build a FOB on supplied land. Owned sea counts as territory, so sea lanes carry supply to your islands. Cut-off hexes are hatched on the map and pay nothing.
 
@@ -211,7 +211,7 @@ You **throw your own die**: drag and fling it in the dice tray, or press `Space`
 | Bunker / FOB / HQ | +2 / +1 / +2 defender mult; an HQ also has +3 garrison chips |
 | Smoke Screen | +2 defender mult |
 | Tank Hunter / Torpedoes | +3 chips vs vehicles / +4 chips vs ships |
-| Anti-Air | Stinger +3, Scorpion +4, Skyguard +6, Sentinel +4, Grumble +6 chips in any fight involving enemy aircraft |
+| Anti-Air | Stinger +3, Scorpion +4, Skyguard +6, Sentinel +7, Grumble +7 chips in any fight involving enemy aircraft |
 | Strafing Run | +2 mult when gunships (Valkyrie, Seraph, Wren, Ravager, Banshee) attack ground targets |
 | Hellfire | +3 chips per Banshee against vehicles |
 | Ground Fire | +1 chip per infantry unit in any fight against helicopters (rifles hit helicopters too) |

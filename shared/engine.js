@@ -150,8 +150,8 @@
     stormcrow: { name: 'Stormcrow', cls: 'air', cost: 9, atk: 3, def: 2, mv: 4, rarity: 'epic', lift: 6, heli: true, desc: 'Utility helicopter with door guns. Carries up to 6 Grunts over mountains and water (it sets them down on land).' },
     phantom: { name: 'Phantom', cls: 'air', cost: 10, atk: 7, def: 3, mv: 5, rarity: 'epic', ability: 'stealth', desc: 'Stealth bomber. Immune to artillery, airstrikes and bombardment.' },
     hailstorm: { name: 'Hailstorm', cls: 'art', cost: 11, atk: 9, def: 3, mv: 2, range: 4, rarity: 'epic', ability: 'salvo', desc: 'Tracked rocket launcher (MLRS). Range 4. A hit also rains rockets on every enemy stack next to the target: 1 unit each.' },
-    sentinel: { name: 'Sentinel', cls: 'art', cost: 9, atk: 6, def: 1, mv: 1, range: 3, rarity: 'epic', ability: 'sam', aa: 7, desc: 'Patriot SAM battery. Fires at aircraft 3 hexes away (+7 Chips vs aircraft); 60% to shoot down air strikes within 3, and the only defence against a Trident missile. Weak against ground troops.' },
-    grumble: { name: 'Grumble', cls: 'veh', cost: 10, atk: 5, def: 1, mv: 2, range: 3, rarity: 'epic', ability: 'sam', aa: 7, desc: 'S-300 long-range SAM launcher. Fires at aircraft 3 hexes away (+7 Chips vs aircraft) and moves 2; 55% to shoot down air strikes within 3. Weak against ground troops.' },
+    sentinel: { name: 'Sentinel', cls: 'art', cost: 9, atk: 6, def: 1, mv: 1, range: 3, rarity: 'epic', ability: 'sam', aa: 7, desc: 'Patriot SAM battery. Fires at aircraft 3 hexes away (+7 Chips vs aircraft); 60% to shoot down air strikes within 3, and can intercept a Trident missile. Weak against ground troops.' },
+    grumble: { name: 'Grumble', cls: 'veh', cost: 10, atk: 5, def: 1, mv: 1, range: 3, rarity: 'epic', ability: 'sam', aa: 7, desc: 'S-300 long-range SAM launcher. Fires at aircraft 3 hexes away (+7 Chips vs aircraft); 55% to shoot down air strikes within 3, and can intercept a Trident missile. Weak against ground troops.' },
     bastion: { name: 'Bastion', cls: 'sea', cost: 11, atk: 8, def: 8, mv: 3, range: 3, rarity: 'epic', desc: 'Battleship. Long guns, range 3.' },
     leviathan: { name: 'Leviathan', cls: 'veh', cost: 14, atk: 12, def: 10, mv: 1, rarity: 'legendary', ability: 'juggernaut', desc: 'Land dreadnought. Never suffers pyrrhic losses.' },
     titan: { name: 'Titan', cls: 'veh', cost: 16, atk: 13, def: 12, mv: 1, rarity: 'legendary', ability: 'titan', desc: 'Landship with naval guns. Siege Breaker and never suffers pyrrhic losses.' },
@@ -159,7 +159,7 @@
     banshee: { name: 'Banshee', cls: 'air', cost: 14, atk: 8, def: 2, mv: 4, rarity: 'legendary', ability: 'hellfire', heli: true, desc: 'Attack helicopter with anti-tank missiles. Hellfire: +3 Chips against vehicles, and Strafing Run: +2 Mult attacking ground targets.' },
     carrier: { name: 'Carrier', cls: 'sea', cost: 13, atk: 2, def: 2, mv: 1, rarity: 'legendary', ability: 'carrier', desc: 'Floating airbase: deploy aircraft onto it and fly them off it. Holds 4.' },
     oracle: { name: 'Oracle', cls: 'art', cost: 11, atk: 8, def: 3, mv: 2, range: 4, rarity: 'legendary', ability: 'orbital', desc: 'Orbital uplink. Range 4, ignores mountains.' },
-    trident: { name: 'Trident', cls: 'sea', cost: 16, atk: 10, def: 6, mv: 3, range: 8, rarity: 'legendary', ability: 'ballistic', desc: 'Missile submarine. Fires at any troops or buildings within 8, over mountains; a hit kills one extra unit. Only a Sentinel can intercept.' },
+    trident: { name: 'Trident', cls: 'sea', cost: 16, atk: 10, def: 6, mv: 3, range: 8, rarity: 'legendary', ability: 'ballistic', desc: 'Missile submarine. Fires at any troops or buildings within 8, over mountains; a hit kills one extra unit. Only Sentinel and Grumble batteries can intercept it.' },
     abyssal: { name: 'Abyssal', cls: 'sea', cost: 15, atk: 12, def: 10, mv: 3, range: 4, rarity: 'legendary', ability: 'juggernaut', desc: 'Sea dreadnought. Range 4. Never suffers pyrrhic losses.' },
   };
 
@@ -2321,11 +2321,11 @@
       if (!rangedTargets(s, pid, a.units, a.from).includes(a.to)) return fail('Target out of range or blocked');
       if (units.some(u => UNITS[u.type].ability === 'ballistic')) {
         // a ballistic missile: only Sentinel SAM batteries within 3 of the target can try to intercept it
-        const sams = Object.values(s.units).filter(u => u.type === 'sentinel' && !u.stun && u.owner !== pid && !isAlly(s, pid, u.owner) && dist(u.hex, a.to) <= 3);
+        const sams = Object.values(s.units).filter(u => (u.type === 'sentinel' || u.type === 'grumble') && !u.stun && u.owner !== pid && !isAlly(s, pid, u.owner) && dist(u.hex, a.to) <= 3);
         if (sams.length && rng() < 1 - Math.pow(0.4, sams.length)) {
           units.forEach(u => u.moved = true);
           ev.push({ e: 'intercept', pid, from: a.from, to: a.to, by: [...new Set(sams.map(u => u.hex))] });
-          pushLog(s, '🛡 A Sentinel battery intercepted ' + p.name + "'s missile.");
+          pushLog(s, '🛡 A SAM battery intercepted ' + p.name + "'s missile.");
           return { ok: true, events: ev };
         }
       }

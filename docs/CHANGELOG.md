@@ -2,6 +2,12 @@
 
 Every release, newest first. Each version also has its own post on the [Releases page](https://github.com/Blacksheep909/sector/releases).
 
+## v0.10.5
+
+**Hotfix.**
+
+- **Grumble** (S-300) moves **1** (was 2), and it can now **intercept a Trident missile**, like the Sentinel.
+
 ## v0.10.4
 
 **Airbases, the black market, Industrial Revolution, anti-air and artillery reworked, a balance pass over about 1,000 simulated games, and nine new missions.**
