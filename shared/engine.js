@@ -178,10 +178,7 @@
     fortify: { name: 'Fortify', rarity: 'common', cost: 2, target: 'ownHex', desc: 'Build or upgrade a Bunker on one of your hexes for free (on your HQ hex it fortifies the HQ instead).' },
     conscript: { name: 'Conscription', rarity: 'common', cost: 1, target: 'spawn', desc: 'Deploy 5 free Grunts at a deploy point (as many as fit).' },
     kamikaze: { name: 'Kamikaze Drone', rarity: 'common', cost: 2, target: 'enemyUnits', range: 5, desc: 'A loitering munition dives on a target within 5 of your land. Troops: roll 4+ kills 1. Undefended buildings: knocks a level off one.' },
-    warthog: { name: 'A-10 Warthog', rarity: 'common', cost: 2, target: 'enemyUnits', range: 4, desc: 'Tank-busting jet, within 4 of your land. Its 30mm cannon hits every enemy vehicle there on a 4+, and one other unit on a 4+. Undefended buildings: knocks a level off one.' },
-    fpv: { name: 'FPV Drones', rarity: 'common', cost: 1, target: 'enemyUnits', range: 3, desc: 'A swarm of 3 cheap racing drones dives on a hex within 3 of your land: each kills a unit on a 5+. Undefended buildings: knocks a level off one.' },
     cruise: { name: 'Cruise Missile', rarity: 'rare', cost: 4, target: 'precision', range: 8, desc: 'A missile at any hex within 8 of your land, over mountains: kills the strongest unit on a 2+ (and the next strongest too on a 5+), or destroys a building outright.' },
-    arclight: { name: 'Arc Light', rarity: 'epic', cost: 7, target: 'area', range: 6, desc: 'B-52s bomb a hex and every hex around it, within 6 of your land: each enemy unit there is destroyed on a 3+, and every enemy building loses a level.' },
     gunrun: { name: 'Gun Run', rarity: 'common', cost: 2, target: 'enemyUnits', range: 3, desc: 'Attack jet, within 3 of your land. Troops: roll 3+ kills 1. Undefended buildings: knocks a level off one.' },
     airstrike: { name: 'Airstrike', rarity: 'uncommon', cost: 4, target: 'enemyUnits', range: 4, desc: 'Bomb a hex within 4 of your land. Troops: roll to kill 1–3. Undefended buildings: knocks 1–2 levels off them.' },
     heli: { name: 'Heli Drop', rarity: 'uncommon', cost: 3, target: 'heli', range: 5, desc: 'Fly a stack up to 5 hexes onto any empty land and seize it.' },
@@ -219,7 +216,7 @@
     bridge: { name: 'Bridge', cost: 6, desc: 'Span a 1-hex sea gap between two shores. Land units cross; ships cannot pass. Not next to another bridge. A destroyed bridge leaves wreckage: rebuilding there costs $8 more.' },
     bunker: { name: 'Bunker', cost: 4, desc: 'Strongpoint with its own garrison: +3 Chips per level even when empty, so enemies must attack it. +2 Mult defence (+1 per extra level). ★★+ also gives your neighbouring hexes +1 Mult. Digs in against big attacks: +40% of the attacker chip lead (up to 4 per level). ★★★ Citadel: 14 garrison Chips, +5 Mult, +2 Mult to neighbours, and holds 60% of the lead (up to 20). Destroyed if an enemy captures it.' },
     mine: { name: 'Sea Mine', cost: 4, desc: 'A minefield on one of your sea hexes: the naval Bunker. +3 Chips per level even when empty, so enemy ships must fight their way through instead of sailing past. +2 Mult defence (+1 per extra level). Cleared if an enemy captures the hex.' },
-    airbase: { name: 'Airbase', cost: 15, lvlCost: [15, 30, 50], ramp: 5, desc: 'Every turn it hands you an air-strike card: commons (A-10 Warthog, FPV Drones, Gun Run, Kamikaze Drone) at ★, rares (Cruise Missile, Precision Strike, Strategic Bombing) at ★★, epics (Arc Light, Carpet Bombing, Bunker Buster) at ★★★. Takes a turn to build and a turn to upgrade. $15, $30, $50, more for each one you already have.' },
+    airbase: { name: 'Airbase', cost: 15, lvlCost: [15, 30, 50], ramp: 5, desc: 'Every turn it hands you an air-strike card: commons (Gun Run, Kamikaze Drone) at ★, rares (Cruise Missile, Precision Strike, Strategic Bombing) at ★★, epics (Carpet Bombing, Bunker Buster) at ★★★. Takes a turn to build and a turn to upgrade. $15, $30, $50, more for each one you already have.' },
     flak: { name: 'Flak', cost: 5, desc: 'Air defence: can shoot down enemy air strikes nearby (range = level, 35% +10% per level). Blocks Heli Drops and EMPs (nukes cannot be stopped). +2 Mult vs air.' },
   };
   const BUILD_ORDER = ['hq', 'fob', 'warehouse', 'refinery', 'depot', 'port', 'bridge', 'bunker', 'mine', 'flak', 'airbase'];
@@ -942,9 +939,9 @@
     return false;
   }
   // ── air defence: Flak and anti-air units can shoot down air strikes aimed near them, the way a bunker defends its hex ──
-  const AIR_STRIKES = ['kamikaze', 'gunrun', 'airstrike', 'precision', 'buster', 'strategic', 'carpet', 'warthog', 'fpv', 'cruise', 'arclight'];
+  const AIR_STRIKES = ['kamikaze', 'gunrun', 'airstrike', 'precision', 'buster', 'strategic', 'carpet', 'cruise'];
   // what an airbase hands out each turn, by its level
-  const AIRBASE_CARDS = { 1: ['warthog', 'fpv', 'gunrun', 'kamikaze'], 2: ['cruise', 'precision', 'strategic'], 3: ['arclight', 'carpet', 'buster'] };
+  const AIRBASE_CARDS = { 1: ['gunrun', 'kamikaze'], 2: ['cruise', 'precision', 'strategic'], 3: ['carpet', 'buster'] };
   const AA_COVER = { stinger: [0, 0.25], scorpion: [1, 0.35], skyguard: [2, 0.5], sentinel: [3, 0.6], grumble: [3, 0.55] };   // [reach, shoot-down chance]
   function airDefenders(s, pid, k) {
     const out = [];
@@ -1640,7 +1637,7 @@
     }
   }
   function stockMarket(s, p, rng, ev) {
-    if (!p.marketOpen && s.turn.income >= MARKET_UNLOCK) {
+    if (!p.marketOpen && (s.turn.income >= MARKET_UNLOCK || (s.scenario && s.scenario.market && !p.scenarioAI))) {   // a mission can open it from the start
       p.marketOpen = true;
       ev.push({ e: 'marketOpen', pid: p.id });
       pushLog(s, '🕶 ' + p.name + "'s economy has opened the black market.");
@@ -2430,28 +2427,6 @@
         pushLog(s, '✈ ' + p.name + ' called an airstrike: ' + kills.length + ' destroyed.');
         break;
       }
-      case 'warthog': case 'fpv': {
-        if (!Object.values(s.units).some(u => u.hex === a.target)) {
-          const infra = damageInfra(s, a.target, 1);
-          ev.push({ ...base, roll: 6, kills: [], infra, structs: structsOf(tiles[a.target]) });
-          pushLog(s, '✈ ' + p.name + "'s " + def.name + ' hit ' + (player(s, tiles[a.target].owner) || {}).name + "'s infrastructure."); break;
-        }
-        const occ = Object.values(s.units).filter(u => u.hex === a.target && u.owner !== pid && UNITS[u.type].ability !== 'stealth');
-        const kills = [], rolls = [];
-        if (id === 'warthog') {
-          // the cannon walks over every vehicle, then one more pass at whatever else is there
-          for (const u of occ.filter(u => UNITS[u.type].cls === 'veh')) { const r = rollDie(rng); rolls.push(r); if (r >= 4) kills.push(u); }
-          const soft = occ.filter(u => UNITS[u.type].cls !== 'veh');
-          if (soft.length) { const r = rollDie(rng); rolls.push(r); if (r >= 4) kills.push(soft[Math.floor(rng() * soft.length)]); }
-        } else {
-          const pool = occ.slice();
-          for (let i = 0; i < 3 && pool.length; i++) { const r = rollDie(rng); rolls.push(r); if (r >= 5) kills.push(pool.splice(Math.floor(rng() * pool.length), 1)[0]); }
-        }
-        kills.forEach(kill);
-        ev.push({ ...base, roll: Math.max(0, ...rolls), rolls, kills: kills.map(u => u.id) });
-        pushLog(s, '✈ ' + p.name + "'s " + def.name + ': ' + (kills.length ? kills.length + ' destroyed.' : 'missed.'));
-        break;
-      }
       case 'cruise': {
         if (!Object.values(s.units).some(u => u.hex === a.target) && isEnemyBridge(s, pid, a.target)) {
           wreckBridge(s, a.target); ev.push({ ...base, roll: 6, kills: [], bridge: true }); pushLog(s, '🚀 ' + p.name + "'s cruise missile dropped a bridge."); break;
@@ -2466,16 +2441,6 @@
         kills.forEach(kill);
         ev.push({ ...base, roll, kills: kills.map(u => u.id) });
         pushLog(s, '🚀 ' + p.name + "'s cruise missile: " + (kills.length ? kills.length + ' destroyed.' : 'missed.'));
-        break;
-      }
-      case 'arclight': {
-        // the bomber stream: every hex gets its own interception roll; units under the bombs go on a 3+, buildings lose a level
-        const ar = area(a.target, 1).filter(k => tiles[k]), kills = [], hexes = [], shot = ar.filter(k => { const ch = interceptChance(s, pid, k, id); return ch > 0 && rng() < ch; });
-        for (const u of Object.values(s.units)) if (ar.includes(u.hex) && !shot.includes(u.hex) && u.owner !== pid && !isAlly(s, pid, u.owner) && UNITS[u.type].ability !== 'stealth' && rollDie(rng) >= 3) kills.push(u);
-        kills.forEach(kill);
-        for (const k of ar) { const t = tiles[k]; if (shot.includes(k) || !t.owner || t.owner === pid || isAlly(s, pid, t.owner)) continue; const infra = damageInfra(s, k, 1); if (infra.length) hexes.push({ k, infra, structs: structsOf(t) }); }
-        ev.push({ ...base, area: ar, kills: kills.map(u => u.id), shot, hexes });
-        pushLog(s, '💣 ' + p.name + "'s Arc Light raid: " + kills.length + ' destroyed.');
         break;
       }
       case 'kamikaze': {

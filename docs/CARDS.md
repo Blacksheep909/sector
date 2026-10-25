@@ -69,6 +69,7 @@ Single-use cards from your hand.
 | **Covering Barrage** | Rare | $2 | Battle card (attack or defence): +3 Mult to your side. |
 | **Reserves** | Rare | $2 | Battle card (attack or defence): every unit on your side gets +2 Chips. |
 | **Steady Nerves** | Rare | $2 | Battle card (attack or defence): your die never rolls below 3. |
+| **Cruise Missile** | Rare | $4 | A missile at any hex within 8 of your land, over mountains: kills the strongest unit on a 2+ (and the next strongest too on a 5+), or destroys a building outright. |
 | **Precision Strike** | Rare | $5 | Guided bomb within 5 of your land, ignores Flak. Kills the strongest unit (2 on a 5+), or destroys a building. |
 | **Strategic Bombing** | Rare | $5 | Bombers hit an enemy hex within 6 and its neighbours: their economic buildings lose a level, and that land pays nothing for 2 turns. |
 | **Quarry Blast** | Rare | $3 | Blast a mountain within 3 of your land, and the mountain behind it, down into Highlands: a 2-hex pass. |
@@ -93,6 +94,7 @@ Built from the hotbar (keys Z–M) on hexes you own that are connected to supply
 | **Bridge** | $6 | Span a 1-hex sea gap between two shores. Land units cross; ships cannot pass. Not next to another bridge. A destroyed bridge leaves wreckage: rebuilding there costs $8 more. |
 | **Bunker** | $4 | Strongpoint with its own garrison: +3 Chips per level even when empty, so enemies must attack it. +2 Mult defence (+1 per extra level). ★★+ also gives your neighbouring hexes +1 Mult. Digs in against big attacks: +40% of the attacker chip lead (up to 4 per level). ★★★ Citadel: 14 garrison Chips, +5 Mult, +2 Mult to neighbours, and holds 60% of the lead (up to 20). Destroyed if an enemy captures it. |
 | **Sea Mine** | $4 | A minefield on one of your sea hexes: the naval Bunker. +3 Chips per level even when empty, so enemy ships must fight their way through instead of sailing past. +2 Mult defence (+1 per extra level). Cleared if an enemy captures the hex. |
+| **Airbase** | $15 | Every turn it hands you an air-strike card: commons (Gun Run, Kamikaze Drone) at ★, rares (Cruise Missile, Precision Strike, Strategic Bombing) at ★★, epics (Carpet Bombing, Bunker Buster) at ★★★. Takes a turn to build and a turn to upgrade. $15, $30, $50, more for each one you already have. |
 | **Flak** | $5 | Air defence: can shoot down enemy air strikes nearby (range = level, 35% +10% per level). Blocks Heli Drops and EMPs (nukes cannot be stopped). +2 Mult vs air. |
 
 ## Factions

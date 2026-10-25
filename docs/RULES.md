@@ -142,7 +142,7 @@ $3 base
 - **Artillery and warships** can shell undefended economic buildings in range: each salvo knocks off a level.
 - **Strategic Bombing** (Rare) hits a hex and its neighbours: their economic buildings lose a level, and that land is **bombed out**, paying nothing for its owner's next 2 turns (supply still runs through it).
 
-**Air defence.** Flak and anti-air units can shoot down air strikes (Gun Run, Airstrike, Precision Strike, Bunker Buster, Carpet and Strategic Bombing) aimed near them. Flak covers hexes within its level (35% at ★, +10% per level); a Stinger covers its own hex (25%), a Scorpion 1 hex (35%), a Skyguard 2 (50%), a Grumble 3 (55%) and a Sentinel 3 (60%). Chances stack, up to 90%. Precision Strikes are only 60% as likely to be caught. A downed strike still spends the card. Flak also blocks Heli Drops and EMPs. **Nukes and the Tsar Bomba can't be stopped.** The **Trident** submarine's missile (range 8) can only be intercepted by Sentinels within 3 of its target.
+**Air defence.** Flak and anti-air units can shoot down air strikes (Gun Run, Kamikaze Drone, Airstrike, Precision Strike, Cruise Missile, Bunker Buster, Carpet and Strategic Bombing) aimed near them. Flak covers hexes within its level (35% at ★, +10% per level); a Stinger covers its own hex (25%), a Scorpion 1 hex (35%), a Skyguard 2 (50%), a Grumble 3 (55%) and a Sentinel 3 (60%). Chances stack, up to 90%. Precision Strikes are only 60% as likely to be caught. A downed strike still spends the card. Flak also blocks Heli Drops and EMPs. **Nukes and the Tsar Bomba can't be stopped.** The **Trident** submarine's missile (range 8) can only be intercepted by Sentinels within 3 of its target.
 
 **Supply:** a hex pays only if it connects through your own territory to your HQ or a Port. A **FOB supplies land only while it's connected** that way too (a cut-off FOB still takes reinforcements, but supplies nothing), and you can only build a FOB on supplied land. Owned sea counts as territory, so sea lanes carry supply to your islands. Cut-off hexes are hatched on the map and pay nothing.
 
@@ -249,7 +249,7 @@ Units with a range stat fire instead of moving.
 
 ## Buildings and upgrades
 
-Build from the build bar (`Z` and onward, nine slots). To **upgrade** a structure, build the same one again on the same hex. Each structure goes up to ★★★, and each level costs more: ×1.5, then ×2.25. Every building you buy also makes the next one of that type $2 dearer (HQ fortification excepted), so spreading out across building types is cheaper than spamming one.
+Build from the build bar (`Z` and onward; the Airbase is `;`). To **upgrade** a structure, build the same one again on the same hex. Each structure goes up to ★★★, and each level costs more: ×1.5, then ×2.25. Every building you buy also makes the next one of that type $2 dearer (HQ fortification excepted), so spreading out across building types is cheaper than spamming one.
 
 | Structure | Per level |
 |---|---|
@@ -261,6 +261,7 @@ Build from the build bar (`Z` and onward, nine slots). To **upgrade** a structur
 | **Bunker** | +3 garrison chips (even when empty, so it must be attacked) and +1 defence mult (★ gives +2). From ★★, your neighbouring hexes get +1 mult (Bunker Line). **Hold the Line:** when defended against a stronger attack, +40% of the attacker's chip lead (max 4 per level). **★★★ Citadel:** 14 garrison chips, +5 mult, +2 mult to neighbours, and Hold the Line takes 60% of the lead (max 20). **Destroyed** when an enemy captures its hex |
 | **Sea Mine** | The naval Bunker, built on your own sea: +3 garrison chips per level (so enemy ships must fight through instead of sailing past) and +2 defence mult (+1 per extra level). Cleared when an enemy captures the hex |
 | **Flak** | +1 hex of air-defence coverage, and +10% to shoot down air strikes |
+| **Airbase** | Hands you one air-strike card at the start of each of your turns: a common at ★ (Gun Run or Kamikaze Drone), a rare at ★★ (Cruise Missile, Precision Strike or Strategic Bombing), an epic at ★★★ (Carpet Bombing or Bunker Buster). It costs **$15, $30 and $50** for its three levels, plus $5 for every airbase you've bought or upgraded before. Like a FOB it **takes a turn to get ready**, after building and after each upgrade (no card that turn). A captured airbase is yours after a turn |
 
 Ports and bridges don't upgrade. **Sabotage** knocks a level off a structure, and destroys it only at ★.
 

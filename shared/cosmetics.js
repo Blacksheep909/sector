@@ -110,7 +110,7 @@
     valkyrie: 'Einherjar', mule: 'Sleipnir', wren: 'Hummingstar', ravager: 'Starfall', stormcrow: 'Odin’s Raven', phantom: 'Ghost Protocol', hailstorm: 'Meteor Shower', sentinel: 'Watcher of Worlds', grumble: 'Polar Night', bastion: 'Celestial Keep',
     leviathan: 'World Serpent', titan: 'Atlas', seraph: 'Archangel', banshee: 'Wailing Star', carrier: 'Starhaven', oracle: 'Pythia', trident: 'Poseidon', abyssal: 'Event Horizon',
     ambush: 'Shadowfall', holdfast: 'Unbroken', bayonets: 'Starsteel', barrage: 'Skyfire', reserves: 'Legion', steady: 'Fate’s Hand', smoke: 'Nebular Veil', march: 'Long Night',
-    rally: 'Clarion', fortify: 'Bastion of Stars', conscript: 'The Many', kamikaze: 'Shooting Star', gunrun: 'Wild Hunt', warthog: 'Hammer of Thor', fpv: 'Locust Cloud', cruise: 'Long Spear', arclight: 'Arc of Heaven', airstrike: 'Heaven’s Wrath', heli: 'Skyborne', sabotage: 'Saboteur Saint',
+    rally: 'Clarion', fortify: 'Bastion of Stars', conscript: 'The Many', kamikaze: 'Shooting Star', gunrun: 'Wild Hunt', cruise: 'Long Spear', airstrike: 'Heaven’s Wrath', heli: 'Skyborne', sabotage: 'Saboteur Saint',
     embargo: 'Iron Curtain', bounty: 'Golden Contract', precision: 'Needle of God', strategic: 'Firestorm', quarry: 'Worldbreaker', spy: 'Nightingale', bonds: 'Treasury of Stars', blitz: 'Lightning War',
     drop_rare: 'Manna', emp: 'Solar Wind', buster: 'Bunkerfall', carpet: 'Rain of Stars', orbital: 'Kinetic Halo', nuke: 'Sunrise', mutiny: 'Turncoat Crown', tsar: 'Doomsday', regime: 'New Dawn', aegis: 'Celestial Ward',
   };

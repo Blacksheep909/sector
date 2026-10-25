@@ -161,6 +161,25 @@ const SOLUTIONS = {
     g.fire('bas', 't1'); g.fire('thu', 't3'); g.end();
     g.fire('bas', 't2'); return g.fire('thu', 't4');
   },
+  airwing(g) {
+    const p = E.player(g.s, HERO), choose = () => { if (g.s.turn.stage === 'choose') E.applyAction(g.s, HERO, { a: 'choose', pick: 'income' }); };
+    const foes = () => Object.values(g.s.units).filter(u => u.owner !== HERO);
+    g.build('airbase', 'ab'); g.end(); choose(); g.end(); choose();
+    const log = [];
+    for (let t = 0; t < 4 && foes().length; t++) {
+      // the black market's cheapest strike, if there's one
+      const m = p.market && p.market.cards.findIndex(c => !c.sold && E.AIR_STRIKES.includes(c.id) && c.price <= p.cash);
+      if (m >= 0) E.applyAction(g.s, HERO, { a: 'marketBuy', idx: m });
+      for (const c of p.tactics.slice()) {
+        if (!E.AIR_STRIKES.includes(c.id) || !foes().length) continue;
+        const k = foes()[0].hex, r = E.applyAction(g.s, HERO, { a: 'tactic', uid: c.uid, target: k }, () => 0.5);
+        log.push(c.id + (r.ok ? '' : ' ✗ ' + r.err));
+      }
+      if (foes().length) { g.end(); choose(); }
+    }
+    console.log('     strikes: ' + log.join(', ') + ' · enemy left ' + foes().length);
+    return { won: g.won() || !foes().length };
+  },
   skyshield(g) {
     g.fire('sg', 'h2'); g.fire('st', 'h3'); g.move('gr', 'g'); g.end();
     return g.fire('sg', 'h1');

@@ -280,6 +280,35 @@
       hints: ['The northern clearing is inside the Flak\'s reach; the southern one isn\'t.', 'Turn 1: Airstrike and Gun Run the woods, then Heli Drop your Grunts onto the southern clearing. Turn 2: attack.'],
     },
     {
+      id: 'airwing', name: 'Air Wing', tier: 'Medium', technique: 'Airbases, strike cards and the black market',
+      brief: 'An enemy garrison sits on an island your troops can\'t reach. Build an airbase and bomb it out, with a little help from the black market.',
+      turns: 7, live: true, market: true,
+      players: { A: { name: 'You', cash: 40, arsenal: ['grunt'] }, B: { name: 'Island Garrison', ai: 'passive' } },
+      map: [
+        '~ ~ ~ ~ ~ ~ ~ ~ ~',
+        '~ .A .A .A .A ~ .B .B ~',
+        '~ .A .A@hq .A .A@ab ~ .B@e1 .B@bhq ~',
+        '~ .A .A .A .A ~ .B@e2 .B ~',
+        '~ .A .A .A .A ~ .B .B ~',
+        '~ ~ ~ ~ ~ ~ ~ ~ ~',
+      ],
+      structs: { hq: [['A', 'hq']], bhq: [['B', 'hq', 3]] },
+      units: { hq: [['A', 'grunt', 3]], e1: [['B', 'grunt', 1]], e2: [['B', 'grunt', 1]] },
+      goal: { type: 'destroy' },
+      guide: [
+        { text: 'No boats and no bridge, recruit, so this one is done from the air. An **Airbase** hands you an **air-strike card every turn**. Click to go on.', wait: 'click' },
+        { text: 'Open the build bar (bottom left), pick **Airbase** ($15) and build it on the glowing hex by the coast. Each one you own makes the next dearer.', focus: 'ab', wait: 'build' },
+        { text: 'Like a FOB, an airbase **takes a turn to get ready**: see the crane. **END TURN.**', wait: 'turn' },
+        { text: 'Resupply: take a card or the full income, your call.', wait: 'pick' },
+        { text: 'The ground crew are still at it; your first strike card comes **next turn**. **END TURN.**', wait: 'turn' },
+        { text: 'Resupply again.', wait: 'pick' },
+        { text: 'Your airbase delivered a **strike card**: it\'s in your hand. A ★ airbase sends commons (**Gun Run**, **Kamikaze Drone**). Click it, then click the enemy troops on the island.', focus: 'e1', wait: 'tactic' },
+        { text: 'See the **purple badge** on your cash panel? That\'s the **black market**: 5 tactic cards for cash, new stock every turn. In a real war it opens once you earn **$50 a turn**. Open it and buy something useful.', wait: 'market' },
+        { text: 'Upgrade the airbase (build it again on the same hex) and it hands out **rares at ★★** (Cruise Missile, Precision Strike, Strategic Bombing) and **epics at ★★★**. Each upgrade takes a turn. **Destroy every enemy unit on the island.**', wait: 'win' },
+      ],
+      hints: ['Each strike card needs a roll: a Gun Run kills on a 3+, a Kamikaze Drone on a 4+. Keep the cards coming and play them all on the island.', 'Upgrade to ★★ when you can afford it: a Cruise Missile kills the strongest unit on a 2+. The black market may sell strikes too.'],
+    },
+    {
       id: 'skyshield', name: 'Sky Shield', tier: 'Hard', technique: 'Anti-air: shooting down aircraft from range',
       brief: 'Enemy helicopters have landed in the valley. Your air defence has two turns to bring them all down, and your Grunts must clear their guard.',
       turns: 2, reward: 100,
@@ -425,7 +454,7 @@
     },
   ];
   // the order they're played and unlocked in (each builds on the ones before), and so their numbers
-  const ORDER = ['basic', 'economy', 'pincer', 'ground', 'river', 'fob', 'leapfrog', 'loot', 'airborne', 'guns', 'cards', 'air', 'skyshield', 'navy', 'beach', 'encircle', 'hold', 'blitz', 'breakout', 'islands', 'relief', 'fronts', 'total'];
+  const ORDER = ['basic', 'economy', 'pincer', 'ground', 'river', 'fob', 'leapfrog', 'loot', 'airborne', 'guns', 'cards', 'air', 'airwing', 'skyshield', 'navy', 'beach', 'encircle', 'hold', 'blitz', 'breakout', 'islands', 'relief', 'fronts', 'total'];
   SCENARIOS.sort((a, b) => (ORDER.indexOf(a.id) + 1 || 99) - (ORDER.indexOf(b.id) + 1 || 99));
   // missions still being tuned (draft: true) aren't on the board yet; the tests can still reach them
   const DRAFTS = SCENARIOS.filter(sc => sc.draft);
@@ -465,7 +494,7 @@
     s.phase = 'play'; delete s.draft;
     s.turn = { idx: 0, round: 1, stage: 'act', offer: [], rerolls: 0, crate: null, income: 0, deadline: 0 };
     const income = {}; for (const k in sc.income || {}) income[ids[k]] = sc.income[k];
-    s.scenario = { id, hero: heroId, live: !!sc.live, goal: { ...sc.goal, hexes: (sc.goal.hexes || []).map(at) }, keep: (sc.keep || []).map(at), turns: sc.turns, heroTurns: 0, income, targets: (sc.goal.hexes || []).map(at), labels };
+    s.scenario = { id, hero: heroId, live: !!sc.live, market: !!sc.market, goal: { ...sc.goal, hexes: (sc.goal.hexes || []).map(at) }, keep: (sc.keep || []).map(at), turns: sc.turns, heroTurns: 0, income, targets: (sc.goal.hexes || []).map(at), labels };
     s.log.push('🎯 ' + sc.name + ': ' + sc.brief);
     return s;
   }

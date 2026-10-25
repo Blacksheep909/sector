@@ -137,7 +137,7 @@ const Missions = (() => {
     if (!guide || !guide.step) return;
     const w = guide.step.wait, mine = e => e.pid === me;
     const hit = (events || []).some(e => mine(e) && ((w === 'move' && (e.e === 'move' || e.e === 'advance')) || (w === 'deploy' && e.e === 'deploy') || (w === 'turn' && e.e === 'turn')
-      || (w === 'build' && e.e === 'build') || (w === 'pick' && (e.e === 'income' || e.e === 'card'))));
+      || (w === 'build' && e.e === 'build') || (w === 'pick' && (e.e === 'income' || e.e === 'card')) || (w === 'tactic' && e.e === 'tactic') || (w === 'market' && e.e === 'marketBuy')));
     if (hit) next(st);
   }
   function next(st) {

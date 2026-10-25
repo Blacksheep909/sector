@@ -271,7 +271,7 @@ function botStep(s, pid, mem) {
     else if (c.id === 'aegis' && (enemyNear(p.hq, 3) || Object.values(s.units).some(u => u.owner !== pid && E.dist(u.hex, p.hq) <= 2))) act = { a: 'tactic', uid: c.uid };
     else if (c.id === 'spy') { const ts = E.tacticTargets(s, pid, 'spy'); const k = ts.sort((a, b) => E.player(s, tiles[b].owner).tactics.length - E.player(s, tiles[a].owner).tactics.length)[0]; if (k) act = { a: 'tactic', uid: c.uid, target: k }; }
     else if (c.id === 'quarry') { const ts = E.tacticTargets(s, pid, 'quarry'); const k = ts.find(k => E.neighbors(k).some(n => tiles[n] && tiles[n].owner && tiles[n].owner !== pid) && E.neighbors(k).some(n => tiles[n] && tiles[n].owner === pid)); if (k) act = { a: 'tactic', uid: c.uid, target: k }; }
-    else if (['airstrike', 'kamikaze', 'gunrun', 'precision', 'buster', 'strategic', 'mutiny', 'nuke', 'sabotage', 'emp', 'carpet', 'orbital', 'tsar', 'regime', 'warthog', 'fpv', 'cruise', 'arclight'].includes(c.id)) {
+    else if (['airstrike', 'kamikaze', 'gunrun', 'precision', 'buster', 'strategic', 'mutiny', 'nuke', 'sabotage', 'emp', 'carpet', 'orbital', 'tsar', 'regime', 'cruise'].includes(c.id)) {
       const ts = E.tacticTargets(s, pid, c.id);
       let best = null, bv = 0;
       for (const k of ts) {
@@ -279,16 +279,16 @@ function botStep(s, pid, mem) {
         if (c.id === 'sabotage') v = tiles[k].struct.type === 'fob' ? 10 : 5;
         else if (c.id === 'precision' || c.id === 'cruise') v = (idx[k] || []).length ? Math.max(0, ...(idx[k] || []).map(u => unitValue(u.type))) * 1.3 : E.infraValue(s, k) * 1.5;
         else if (c.id === 'strategic') { for (const a of E.area(k, 1)) { const t = tiles[a]; if (t && t.owner && t.owner !== pid && !E.isAlly(s, pid, t.owner) && E.isLandTile(t)) v += 1 + E.infraValue(s, a) * 0.6 + (t.res ? 1 : 0); } }
-        else if (['airstrike', 'gunrun', 'kamikaze', 'warthog', 'fpv'].includes(c.id) && !(idx[k] || []).length) v = E.infraValue(s, k) * (c.id === 'airstrike' ? 1.4 : 0.9);
+        else if (['airstrike', 'gunrun', 'kamikaze'].includes(c.id) && !(idx[k] || []).length) v = E.infraValue(s, k) * (c.id === 'airstrike' ? 1.4 : 0.9);
         else if (c.id === 'buster') { v = stackValue(idx[k] || []) * 0.5; for (const x of E.structsOf(tiles[k])) if (['bunker', 'fob', 'flak', 'mine', 'hq'].includes(x.type) && x.owner === tiles[k].owner) v += 5 * (x.lvl || 1); }
-        else if (c.id === 'nuke' || c.id === 'emp' || c.id === 'carpet' || c.id === 'arclight') for (const a of E.area(k, 1)) for (const u of idx[a] || []) v += u.owner === pid ? -unitValue(u.type) * 2 : unitValue(u.type);
+        else if (c.id === 'nuke' || c.id === 'emp' || c.id === 'carpet') for (const a of E.area(k, 1)) for (const u of idx[a] || []) v += u.owner === pid ? -unitValue(u.type) * 2 : unitValue(u.type);
         else if (c.id === 'tsar') for (const a of E.tsarArea(s, k)) { for (const u of idx[a] || []) v += u.owner === pid ? -unitValue(u.type) * 2 : unitValue(u.type); if (tiles[a].owner === pid) v -= 3; else if (tiles[a].owner) v += 1; }
         else if (c.id === 'regime') for (const a of E.area(k, 1)) { if (tiles[a] && tiles[a].owner === tiles[k].owner && !E.structsOf(tiles[a]).some(x => x.type === 'hq')) { v += 2; for (const u of idx[a] || []) v += unitValue(u.type); } }
         else v = stackValue(idx[k] || []);
         if (v > bv) { bv = v; best = k; }
       }
       if (best && E.AIR_STRIKES.includes(c.id)) bv *= 1 - E.interceptChance(s, pid, best, c.id);   // air defences might shoot it down
-      const need = { warthog: 4, fpv: 3, cruise: 8, arclight: 16, strategic: 12, kamikaze: 4, gunrun: 4, precision: 9, buster: 12, airstrike: 9, mutiny: 8, nuke: 30, sabotage: 5, emp: 20, carpet: 18, orbital: 14, tsar: 36, regime: 14 }[c.id];
+      const need = { cruise: 8, strategic: 12, kamikaze: 4, gunrun: 4, precision: 9, buster: 12, airstrike: 9, mutiny: 8, nuke: 30, sabotage: 5, emp: 20, carpet: 18, orbital: 14, tsar: 36, regime: 14 }[c.id];
       if (best && bv >= need) act = { a: 'tactic', uid: c.uid, target: best };
     } else if (c.id === 'conscript') {
       const ts = E.tacticTargets(s, pid, c.id); if (ts.length) act = { a: 'tactic', uid: c.uid, target: ts[0] };
@@ -571,10 +571,10 @@ function botStep(s, pid, mem) {
     mem.airTried = true;
     const mine = Object.keys(tiles).filter(k => { const ab = E.structsOf(tiles[k]).find(x => x.type === 'airbase'); return ab && ab.owner === pid && tiles[k].owner === pid; });
     const up = mine.filter(k => { const ab = E.structsOf(tiles[k]).find(x => x.type === 'airbase'); return !ab.lock && (ab.lvl || 1) < 3 && sup.has(k); })[0];
-    if (up && p.cash >= E.buildCost(s, p, 'airbase', up) + 12 + s.turn.income * 0.3) return { a: 'build', struct: 'airbase', hex: up };
+    if (up && p.cash >= E.buildCost(s, p, 'airbase', up) + 8 + s.turn.income * 0.15) return { a: 'build', struct: 'airbase', hex: up };
     if (mine.length < 1 + Math.floor(s.turn.round / 20) && p.cash >= E.structCost(p, 'airbase') + 10) {
       const ok = new Set(E.buildHexes(s, pid, 'airbase'));
-      const spot = supLand.filter(k => ok.has(k) && !enemyNear(k, 3)).sort((a, b) => nearest(b, enemyTiles) - nearest(a, enemyTiles))[0];
+      const spot = supLand.filter(k => ok.has(k) && !mine.includes(k) && !E.structsOf(tiles[k]).some(x => x.type === 'airbase') && !enemyNear(k, 3)).sort((a, b) => nearest(b, enemyTiles) - nearest(a, enemyTiles))[0];
       if (spot) return { a: 'build', struct: 'airbase', hex: spot };
     }
   }

@@ -2633,13 +2633,12 @@
       case 'smoke': Render.smoke(ev.target, 22); SFX.whoosh(); break;
       case 'march': Render.ring(ev.target, pColor(ev.pid), 60, 0.6, 4); Render.float(ev.target, 'FORCED MARCH', '#fff', 16); SFX.select(); break;
       case 'conscript': for (const u of ev.units) { S.units[u.id] = u; } Render.ring(ev.target, pColor(ev.pid), 50, 0.5); SFX.deploy(); Render.shake(4); break;
-      case 'carpet': case 'arclight': {
+      case 'carpet': {
         // a three-jet formation lays bombs along the strip
         SFX.whoosh();
         Render.flyover(ev.area.filter(k2 => S.map.tiles[k2]), { count: 3, color: pColor(ev.pid), dur: 2.1, onBomb: () => { SFX.boom(0.5); Render.shake(6); } });
         await sleep(2000);
         Render.float(ev.target, ev.kills.length + ' DESTROYED', '#ff4f5e', 20); killUnits(ev.kills);
-        for (const h of ev.hexes || []) infraHit(h.k, h.infra, h.structs);   // Arc Light also knocks buildings down a level
         for (const k of ev.shot || []) { Render.burst(k, ['#ffb03a', '#fff'], 20, { up: 200 }); Render.float(k, '🛡 SHOT DOWN', '#7ff3ff', 14); }
         await sleep(300); break;
       }
@@ -2664,9 +2663,9 @@
         Render.float(ev.target, (ev.hit ? ev.hit + ' FORT' + (ev.hit > 1 ? 'S' : '') + ' WRECKED · ' : '') + ev.kills.length + ' DESTROYED', '#ff8a5a', 18);
         killUnits(ev.kills); await sleep(300); break;
       }
-      case 'kamikaze': case 'gunrun': case 'precision': case 'airstrike': case 'warthog': case 'fpv': case 'cruise': {
+      case 'kamikaze': case 'gunrun': case 'precision': case 'airstrike': case 'cruise': {
         // a jet in the striker's colour makes a bombing run over the target (the Warthog announces itself)
-        if (ev.id === 'gunrun' || ev.id === 'warthog') SFX.brrrt(); else SFX.whoosh();
+        if (ev.id === 'gunrun') SFX.brrrt(); else SFX.whoosh();
         { const [x, y] = Render.topOf(ev.target); const k1 = ev.target, sp = n => { const [q, r] = E.parse(k1); return E.key(q + n, r); };
           Render.flyover([k1, sp(-1), sp(1)].filter(k2 => S.map.tiles[k2]).slice(0, 1).concat([k1, k1]), { color: pColor(ev.pid), dur: 1.6, onBomb: () => { SFX.boom(0.7); Render.shake(9); } }); }
         await sleep(1500);
