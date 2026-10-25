@@ -83,6 +83,8 @@ An optional round limit gives the win to whoever holds the most land when time r
 
 Legendaries and Mythics are unique: only one copy exists until it's spent or its owner is eliminated. Mythics are very rare (a sliver of resupply picks and Gilded/Mythic crates, or a superweapon silo in World War).
 
+**The black market.** Once your income reaches **$50 a turn**, the black market opens for good (you'll see a banner). Every turn it stocks **5 random tactic cards** that you can buy outright for cash with the round purple **black market** button on your cash panel. Each costs a set price for its rarity (common $6, uncommon $9, rare $14, epic $22, legendary $34, mythic $50) plus a fifth of your income. The stock is yours alone and changes every turn: what you don't buy is gone. Like resupply, a big economy finds rarer cards there.
+
 **Rerolls** at resupply cost a quarter of your income (min $2), and each further reroll that turn costs that much again. **Bounty** pays a fifth of your income (min $2) per enemy unit you destroy.
 
 ### Supply Drops: the slot machine

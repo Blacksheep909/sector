@@ -253,6 +253,12 @@ function botStep(s, pid, mem) {
       const spot = E.deployHexes(s, pid, land[0] || 'grunt', idx).find(k => mh.includes(k));
       if (land.length && spot) { mem.musterN = (mem.musterN || 0) + 1; return { a: 'deploy', unit: land[0], hex: spot }; }
     } }
+  // 0b. the black market: with cash to spare, buy the best tactic on offer (keeping a reserve to deploy with)
+  if (p.market && p.market.round === s.turn.round && (mem.bought || 0) < 2) {
+    const reserve = Math.max(10, s.turn.income * 0.6);
+    const best = p.market.cards.map((c, i) => ({ c, i, v: cardScore(s, p, c.id) })).filter(x => !x.c.sold && p.cash - x.c.price >= reserve && x.v >= 2).sort((a, b) => b.v - a.v)[0];
+    if (best) { mem.bought = (mem.bought || 0) + 1; return { a: 'marketBuy', idx: best.i }; }
+  }
   // 1. instant / opportunistic tactics
   for (const c of p.tactics) {
     const d = E.TACTICS[c.id];

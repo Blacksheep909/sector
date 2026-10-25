@@ -341,6 +341,26 @@ input:focus, select:focus { border-color: var(--blue); }
 .flip { --rc: #9fb3c8; position: relative; width: 190px; height: 266px; transform-style: preserve-3d; transition: transform .55s cubic-bezier(.3,1.5,.5,1); animation: deal .55s cubic-bezier(.2,1.4,.4,1) both; animation-delay: var(--dl); cursor: default; transform: rotateY(180deg); }
 .flip.r-uncommon { --rc: #3fd07a; } .flip.r-rare { --rc: #3fa0ff; } .flip.r-legendary { --rc: #ffb52e; }
 .flip.open { transform: rotateY(0deg); cursor: pointer; }
+/* the black market */
+#market { position: fixed; inset: 0; z-index: 75; background: rgba(4,8,12,.72); display: grid; place-items: center; animation: fadeIn .2s; }
+.mk-card { width: min(980px, 96vw); max-height: 92vh; overflow: auto; text-align: center; animation: popIn .25s cubic-bezier(.2,1.5,.5,1); border-color: #8a5cff; }
+.mk-card h3 { color: #c58bff; letter-spacing: 3px; }
+.mk-row { display: flex; flex-wrap: wrap; justify-content: center; gap: 14px; margin: 16px 0 12px; }
+.mk-slot { display: flex; flex-direction: column; align-items: center; gap: 10px; }
+.mk-slot .card { width: 160px; height: 224px; animation: none; }
+.mk-slot .card .c-name { font-size: 16px; } .mk-slot .card .c-desc { font-size: 11px; }
+.mk-slot.sold .card { filter: grayscale(1) brightness(.45); }
+/* the market's door: a round purple badge on the cash panel, glowing while there's stock */
+.market-btn { position: absolute; top: 10px; right: 10px; width: 46px; height: 46px; border-radius: 50%; padding: 9px; border: 2px solid #b48cff; background: radial-gradient(circle at 35% 30%, #9b6bff, #4b1f9e 70%); color: #f3eaff; cursor: pointer; box-shadow: 0 3px 0 #22104a, 0 0 0 0 rgba(155,107,255,.6); transition: transform .15s; }
+.market-btn svg { width: 100%; height: 100%; display: block; }
+.market-btn:hover { transform: scale(1.1) rotate(-6deg); }
+.market-btn.stocked { animation: mkPulse 2s ease-in-out infinite; }
+.market-btn b { position: absolute; right: -6px; top: -6px; min-width: 20px; height: 20px; border-radius: 10px; background: #f3eaff; color: #3b1688; font-size: 12px; line-height: 20px; text-align: center; border: 2px solid #4b1f9e; }
+.market-btn b:empty { display: none; }
+@keyframes mkPulse { 50% { box-shadow: 0 3px 0 #22104a, 0 0 0 7px rgba(155,107,255,0); } 0%, 100% { box-shadow: 0 3px 0 #22104a, 0 0 0 0 rgba(155,107,255,.55); } }
+.mk-buy { background: linear-gradient(#9b6bff, #6a35d8); border-color: #c4a6ff; color: #fff; box-shadow: 0 4px 0 #2e1270; }
+.mk-buy:hover:not(:disabled) { background: linear-gradient(#ab80ff, #7a45e8); }
+.mk-buy:disabled { background: linear-gradient(#5a3d96, #432a78); border-color: #7a5cc0; color: #cbb8f0; box-shadow: 0 4px 0 #1e0d48; opacity: .7; filter: none; }
 /* the cash you keep with this card: under it, readable once it's turned over */
 .flip .sp-keep { position: absolute; left: 0; right: 0; bottom: -50px; text-align: center; font-weight: 800; font-size: 17px; color: #7cf29a; text-shadow: 0 1px 3px #000; opacity: 0; transition: opacity .3s; transform: rotateY(0deg); backface-visibility: hidden; -webkit-backface-visibility: hidden; }
 .flip.open .sp-keep { opacity: 1; }

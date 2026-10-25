@@ -1018,6 +1018,7 @@
     if (e.key === 'Escape') {
       if (!$('#hostPanel').hidden) closeHost();
       else if (!$('#escMenu').hidden) closeEsc();
+      else if (!$('#market').hidden) $('#market').hidden = true;
       else if (!$('#index').hidden) $('#index').hidden = true;
       else if (!$('#rules').hidden) $('#rules').hidden = true;
       else if (mode || sel) cancel();
@@ -1025,7 +1026,7 @@
     }
     if (e.key === 'Enter' && S) {
       // Enter ends your turn (when nothing is open); otherwise it opens chat. T always opens chat.
-      const overlay = ['#supply', '#crate', '#draft', '#combat', '#escMenu', '#trade', '#modal', '#index', '#rules', '#passCover', '#hostPanel', '#victory', '#allyPop', '#offerPop'].some(id => $(id) && !$(id).hidden);
+      const overlay = ['#supply', '#crate', '#draft', '#combat', '#escMenu', '#trade', '#market', '#modal', '#index', '#rules', '#passCover', '#hostPanel', '#victory', '#allyPop', '#offerPop'].some(id => $(id) && !$(id).hidden);
       const eb = $('#endBtn');
       // safe: never during or just after a fight/animation, and it takes two presses
       const busy = animating || executing || Date.now() - lastAnimEnd < 1500;
@@ -1095,7 +1096,7 @@
     S = null; Render.setState(null); msgQ = []; plan = []; sel = null; mode = null; passTo = null; unlocked = null; lastTurnKey = '';
     for (const k in plans) delete plans[k];
     Cards.hideDraft(); Cards.closeSupply(); Cards.closeCrate();
-    for (const id of ['#escMenu', '#trade', '#modal', '#offerPop', '#victory', '#passCover', '#index', '#rules']) { const e = $(id); if (e) e.hidden = true; }
+    for (const id of ['#escMenu', '#trade', '#market', '#modal', '#offerPop', '#victory', '#passCover', '#index', '#rules']) { const e = $(id); if (e) e.hidden = true; }
     for (const id of ['#siegeWarn', '#spawnBar']) { const e = $(id); if (e) e.remove(); }
     const z = $('#cardZoom'); if (z) z.hidden = true;
     document.body.classList.remove('pp-idle');
@@ -1310,7 +1311,7 @@
     const P = window.__refreshPerf || (window.__refreshPerf = {}), tm = (n, f) => { const t0 = performance.now(); f(); const d = performance.now() - t0; P[n] = +((P[n] || 0) * 0.8 + d * 0.2).toFixed(2); if (d > (P[n + '^'] || 0)) P[n + '^'] = +d.toFixed(1); };
     tm('state', () => Render.setState(S));
     tm('overlays', updateOverlays);
-    tm('top', renderTop); tm('cash', renderCash); renderSiege(); renderUndo(); renderWeather(); tm('ally', renderAlly); tm('plan', renderPlan); tm('hex', renderHexPanel); tm('hand', renderHand); renderEnd(); renderModeHint(); renderOffer(); renderTurnPill(); renderAfk(); renderSpeed(); renderWait(); checkAutoEnd(); layoutHud();
+    tm('top', renderTop); tm('cash', renderCash); renderSiege(); renderUndo(); renderMarket(); renderWeather(); tm('ally', renderAlly); tm('plan', renderPlan); tm('hex', renderHexPanel); tm('hand', renderHand); renderEnd(); renderModeHint(); renderOffer(); renderTurnPill(); renderAfk(); renderSpeed(); renderWait(); checkAutoEnd(); layoutHud();
   }
   // game speed button: the host sets the pace; anyone may once only bots are left
   // speed strip: ⏸ and > >> >>> (and 🚀 when only bots are left). The host controls it; anyone may once only bots play
@@ -1418,6 +1419,36 @@
     if (!w) { w = el('div', '', ''); w.id = 'siegeWarn'; $('#centerStack').appendChild(w); w.onclick = () => Render.focus(me.hq); }
     w.innerHTML = `🔥 YOUR HQ IS UNDER SIEGE by <b>${esc(pName(h.siege.by))}</b> — deploy troops next to it (they can attack right away) and retake it this turn, or you're eliminated <span>(click to look)</span>`;
   }
+  // ───────────── the black market: opens once your income reaches $50 a turn; 5 tactic cards a turn, bought outright ─────────────
+  const marketStock = () => { const me = myP(); return me && me.market && S.turn && me.market.round === S.turn.round ? me.market : null; };
+  function renderMarket() {
+    const b = $('#marketBtn'), box = $('#market'); if (!b) return;
+    const m = marketStock(), on = !!(m && isMyTurn() && S.phase === 'play' && S.turn.stage === 'act');
+    const left = m ? m.cards.filter(c => !c.sold).length : 0;
+    b.hidden = !on;
+    b.querySelector('b').textContent = left || ''; b.classList.toggle('stocked', left > 0);
+    if (!on) { box.hidden = true; return; }
+    if (!box.hidden) drawMarket();
+  }
+  function drawMarket() {
+    const box = $('#market'), m = marketStock(), me = myP(); if (!m || !me) { box.hidden = true; return; }
+    box.innerHTML = `<div class="panel mk-card"><h3>🕶 BLACK MARKET</h3>
+      <div class="sub">Tactic cards for cash, no questions asked. New stock every turn; what you don't buy is gone. You have <b class="gold">$${me.cash}</b>.</div>
+      <div class="mk-row"></div>
+      <div class="row" style="justify-content:center"><button class="btn big" id="mkClose">CLOSE</button></div></div>`;
+    const row = box.querySelector('.mk-row');
+    m.cards.forEach((c, i) => {
+      const slot = el('div', 'mk-slot' + (c.sold ? ' sold' : ''));
+      slot.appendChild(Cards.make(c.id, { variant: 0 }));
+      const btn = el('button', 'btn mk-buy', c.sold ? 'SOLD' : 'BUY $' + c.price);
+      btn.disabled = c.sold || me.cash < c.price;
+      btn.onclick = async () => { btn.disabled = true; SFX.coin(4); if (!(await act({ a: 'marketBuy', idx: i }))) btn.disabled = false; else drawMarket(); };
+      slot.appendChild(btn); row.appendChild(slot);
+    });
+    $('#mkClose').onclick = () => { box.hidden = true; SFX.click(); };
+  }
+  $('#marketBtn').onclick = () => { if (!marketStock()) return; $('#market').hidden = false; drawMarket(); SFX.select(); };
+  $('#market').onclick = e => { if (e.target.id === 'market') { $('#market').hidden = true; } };
   function renderUndo() {
     const b = $('#undoBtn'); if (!b) return;
     b.hidden = !(isMyTurn() && S.turn.stage === 'act' && undoCount > 0 && !executing);
@@ -1634,7 +1665,7 @@
   let slotTipFor = null;
   // any menu opening clears hover-only UI (card zoom, build tips, hex tooltip) so nothing floats on top of it
   function clearHoverUI() { Cards.zoomHide(); hideSlotTip(); const t = $('#tooltip'); if (t) t.hidden = true; }
-  { const watched = ['#supply', '#crate', '#draft', '#combat', '#trade', '#offerPop', '#index', '#rules', '#modal', '#escMenu', '#hostPanel', '#victory', '#passCover', '#closedCover'];
+  { const watched = ['#supply', '#crate', '#draft', '#combat', '#trade', '#market', '#offerPop', '#index', '#rules', '#modal', '#escMenu', '#hostPanel', '#victory', '#passCover', '#closedCover'];
     const covers = ['#supply', '#crate', '#draft', '#index', '#mapReel'];
     const mo = new MutationObserver(muts => {
       if (muts.some(m => !m.target.hidden)) clearHoverUI();
@@ -2378,6 +2409,10 @@
           if (landed) for (const id of ev.units) { if (S.units[id]) S.units[id].hex = ev.to; } else await animMove({ pid: ev.pid, units: ev.units, path, captures: [] }, true);
           flipTile(ev.to, ev.pid, 6); Render.ring(ev.to, pColor(ev.pid), 70, 0.6, 5);
           await sleep(200); break;
+        }
+        case 'marketOpen': {
+          if (ev.pid === you) { banner('🕶 BLACK MARKET OPEN', 'Your economy has connections now: buy tactic cards for cash every turn', '#c58bff'); SFX.legendary(); await sleep(900); }
+          break;
         }
         case 'silo': {
           const d = E.cardDef(ev.card);

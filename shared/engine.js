@@ -95,6 +95,11 @@
   // taking a resupply card costs part of that turn's income: a little for the rarity plus 15% of the income, never more than half.
   // Early on that's about half, as it always was; with a big economy a card stays worth taking
   const CARD_FEE = { common: 2, uncommon: 3, rare: 5, epic: 8, legendary: 12, mythic: 16 };
+  // the black market: once you earn MARKET_UNLOCK a turn it opens for good, and every turn it stocks 5 tactic cards to buy
+  // outright. Each costs a set price for its rarity plus a fifth of your income
+  const MARKET_UNLOCK = (typeof process !== 'undefined' && process.env && +process.env.SECTOR_MARKET_AT) || 50, MARKET_SIZE = 5;   // SECTOR_MARKET_AT: a lower bar, for testing
+  const MARKET_BASE = { common: 6, uncommon: 9, rare: 14, epic: 22, legendary: 34, mythic: 50 };
+  function marketPrice(income, id) { const d = cardDef(id); return (MARKET_BASE[d && d.rarity] || 10) + Math.round((income || 0) * 0.2); }
   function cardFee(income, id) { const d = cardDef(id); return Math.min(Math.floor((income || 0) / 2), (CARD_FEE[d && d.rarity] || 4) + Math.round((income || 0) * 0.15)); }
   const SCRAP_VALUE = 2, DECK_MAX = 10, MAX_LEVEL = 3;
 
@@ -1432,11 +1437,11 @@
     return held;
   }
   // draw n distinct cards: roll a rarity from `odds`, then a card of that rarity
-  function drawCards(s, p, n, odds, rng, noDrops) {
+  function drawCards(s, p, n, odds, rng, noDrops, tacticsOnly) {
     const held = heldLegendaries(s);
     const pools = {};
     for (const r of RARITY_ORDER) pools[r] = [];
-    for (const id in UNITS) {
+    if (!tacticsOnly) for (const id in UNITS) {
       if (['legendary', 'mythic'].includes(UNITS[id].rarity) && held.has(id)) continue;
       if (p.arsenal.includes(id) && (p.levels[id] || 0) >= MAX_LEVEL) continue;
       pools[UNITS[id].rarity].push(id);
@@ -1583,6 +1588,7 @@
       ev.push({ e: 'embargoHit', pid: p.id, left: p.embargo || 0 }); pushLog(s, '⛔ ' + p.name + "'s income is halved by an embargo" + (p.embargo ? ' (1 more turn).' : '.'));
     }
     s.turn.rerolls = 0; s.turn.crate = null;
+    if (!preview && !(s.scenario && !s.scenario.live)) stockMarket(s, p, rng || Math.random, ev);
     if (!preview) { delete s.drops; delete p.snap; delete p.snapNext; }   // old saves: map crates and quick decisions are gone
     ev.push({ e: 'turn', pid: p.id, round: s.turn.round });
     // puzzles: a fixed allowance and no resupply cards. A 'live' mission (the economy lesson, the situations) plays the
@@ -1609,6 +1615,30 @@
     }
   }
 
+  function stockMarket(s, p, rng, ev) {
+    if (!p.marketOpen && s.turn.income >= MARKET_UNLOCK) {
+      p.marketOpen = true;
+      ev.push({ e: 'marketOpen', pid: p.id });
+      pushLog(s, '🕶 ' + p.name + "'s economy has opened the black market.");
+    }
+    if (!p.marketOpen) { delete p.market; return; }
+    const ids = drawCards(s, p, MARKET_SIZE, turnOdds(s.turn.income), rng, true, true);
+    p.market = { round: s.turn.round, cards: ids.map(id => ({ id, price: marketPrice(s.turn.income, id), sold: false })) };
+  }
+  function marketBuy(s, p, a, ev) {
+    const fail = err => ({ ok: false, err, events: [] });
+    const m = p.market;
+    if (!m || m.round !== s.turn.round) return fail('The black market is closed');
+    const c = m.cards[a.idx | 0];
+    if (!c || c.sold) return fail('That card is gone');
+    if (p.cash < c.price) return fail('Need $' + c.price);
+    if (['legendary', 'mythic'].includes(TACTICS[c.id].rarity) && heldLegendaries(s).has(c.id)) return fail('Someone else already holds that one');
+    p.cash -= c.price; c.sold = true;
+    grantCard(s, p, c.id, null, ev);
+    ev.push({ e: 'marketBuy', pid: p.id, price: c.price });
+    pushLog(s, '🕶 ' + p.name + ' bought a card on the black market.');
+    return { ok: true, events: ev };
+  }
   function endTurn(s, ev, rng) {
     if (s.phase !== 'play') return;
     // scenarios: count the hero's turns, and see whether time is up
@@ -2063,6 +2093,7 @@
     if (a.a === 'tradeCancel') { if (s.trade && s.trade.from === pid) { s.trade = null; ev.push({ e: 'trade', status: 'cancelled', from: pid }); } return { ok: true, events: ev }; }
     if (a.a === 'intel') return intelOp(s, p, a, ev);
     if (a.a === 'prepick') return prePick(s, p, a, ev);
+    if (a.a === 'marketBuy') { if (current(s).id !== pid) return fail('Not your turn'); if (s.turn.stage !== 'act') return fail('Pick your resupply first'); return marketBuy(s, p, a, ev); }
     if (current(s).id !== pid) return fail('Not your turn');
     const tiles = s.map.tiles;
     const stage = s.turn.stage;
@@ -2770,7 +2801,7 @@
       for (const id in c.units) if (hide(c.units[id].owner)) delete c.units[id];
       c.fogSpawn = true;
     }
-    for (const p of c.players) { p.tacticCount = p.tactics.length; if (p.id !== pid) { p.tactics = []; delete p.nextOffer; delete p.prePick; delete p.intel; } }
+    for (const p of c.players) { p.tacticCount = p.tactics.length; if (p.id !== pid) { p.tactics = []; delete p.nextOffer; delete p.prePick; delete p.intel; delete p.market; } }
     if (c.trade && c.trade.to !== pid && c.trade.from !== pid) c.trade = { from: c.trade.from, to: c.trade.to, hidden: true };
     const cur = c.players[c.turn.idx];
     if (c.turn.crate && (!cur || cur.id !== pid)) c.turn.crate = { tier: c.turn.crate.tier, hidden: true, cards: [] };
@@ -2785,7 +2816,7 @@
   return {
     DIRS, key, parse, dist, neighbors, area, line, mulberry32, hashStr,
     POI, WEATHER, isAlly, teammate, recordHistory, RARITY, RARITY_ORDER, CRATES, DROP_TIERS, SCRAP_VALUE, DECK_MAX, MAX_LEVEL, TERRAIN, DIFFICULTY, UNITS, TACTICS, STRUCTS, BUILD_ORDER, UPGRADABLE, MAX_SLVL, FACTIONS, ROLL_BASE, COLORS, TEAM_COLORS, TEAM_NAMES, teamColor, MAX_STACK, GRUNT_STACK, stackFits, CLASS_NAME, cardDef,
-    BATTLE_MAX, cardFee, turnOdds, cacheCard, scenarioCheck, assaultPlan, openBattle, closeBattle, battleOdds, battleHand, battleCard, INTEL_COST, intelCost, overwatchTriggers, overwatchFire, attackTarget, ECON, infraValue, econOf, AIR_STRIKES, airDefenders, interceptChance, generateMap, createGame, applyAction, spawnChoices, visionOf, startTurn, endTurn, simulateTurnStart, view, drawCards,
+    BATTLE_MAX, cardFee, turnOdds, marketPrice, MARKET_UNLOCK, cacheCard, scenarioCheck, assaultPlan, openBattle, closeBattle, battleOdds, battleHand, battleCard, INTEL_COST, intelCost, overwatchTriggers, overwatchFire, attackTarget, ECON, infraValue, econOf, AIR_STRIKES, airDefenders, interceptChance, generateMap, createGame, applyAction, spawnChoices, visionOf, startTurn, endTurn, simulateTurnStart, view, drawCards,
     player, current, buildIndex, canAct, moveAllow, ownedTiles, ownedLand, spawnPoints, musterHexes, supplySet, computeIncome, levelOf, unitAtk, unitDef,
     payout: scaled, blocOf, blocCap, blocTooBig, riders, tsarArea, moodOf, addMood, threatOf, rerollCost, bountyValue, reachable, pathTo, rangedTargets, deployHexes, buildHexes, buildError, isSea, isWater, isCoastal, movers, combatCalc, tacticTargets, unitCost, structCost, buildCost, structsOf, MAX_STRUCTS, conquestTarget, isLandTile, flakCovered,
   };
