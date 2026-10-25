@@ -1239,13 +1239,17 @@ const Art = (() => {
     },
   });
   const STRUCT = {
-    // a curved hangar with a jet's tail showing, a control tower and a stripe of runway
+    // airfield emblem: a runway running off into the distance, and a swept-wing jet climbing away above it
     airbase(c) {
-      c.beginPath(); c.moveTo(-0.9, 0.55); c.quadraticCurveTo(-0.9, -0.35, -0.15, -0.35); c.quadraticCurveTo(0.6, -0.35, 0.6, 0.55); c.closePath(); c.fill();
-      rr(c, 0.62, -0.62, 0.22, 1.17, 0.03); c.fill(); rr(c, 0.52, -0.82, 0.42, 0.24, 0.05); c.fill();   // tower and its cab
-      rr(c, -1.0, 0.62, 2.0, 0.2, 0.04); c.fill();                                                       // runway
-      sh(c, () => { rr(c, -0.62, -0.02, 0.94, 0.57, 0.03); c.fill(); c.fillRect(0.56, -0.74, 0.34, 0.07); for (const x of [-0.8, -0.4, 0.0, 0.4, 0.8]) c.fillRect(x - 0.08, 0.7, 0.16, 0.04); });
-      poly(c, [-0.34, 0.55, -0.2, 0.1, -0.08, 0.1, -0.12, 0.55]); c.fill();                             // a tail fin inside the hangar
+      poly(c, [-0.85, 0.95, 0.85, 0.95, 0.22, 0.3, -0.22, 0.3]); c.fill();                                   // runway in perspective
+      sh(c, () => { for (const [y, w, h] of [[0.82, 0.08, 0.12], [0.6, 0.06, 0.09], [0.43, 0.045, 0.06]]) c.fillRect(-w / 2, y - h / 2, w, h);   // centre-line dashes
+        poly(c, [-0.7, 0.9, -0.63, 0.9, -0.19, 0.34, -0.21, 0.34]); c.fill(); poly(c, [0.7, 0.9, 0.63, 0.9, 0.19, 0.34, 0.21, 0.34]); c.fill(); }, SH2);   // edge lines
+      c.save(); c.translate(0.06, -0.38); c.rotate(0.45); c.scale(1.45, 1.45);
+      c.beginPath(); c.moveTo(0, -0.5); c.quadraticCurveTo(0.07, -0.4, 0.07, -0.2); c.lineTo(0.06, 0.32); c.lineTo(-0.06, 0.32); c.lineTo(-0.07, -0.2); c.quadraticCurveTo(-0.07, -0.4, 0, -0.5); c.fill();   // fuselage
+      poly(c, [0.06, -0.12, 0.48, 0.14, 0.48, 0.22, 0.06, 0.1, -0.06, 0.1, -0.48, 0.22, -0.48, 0.14, -0.06, -0.12]); c.fill();   // swept wings
+      poly(c, [0.05, 0.2, 0.22, 0.34, 0.22, 0.39, 0.05, 0.33, -0.05, 0.33, -0.22, 0.39, -0.22, 0.34, -0.05, 0.2]); c.fill();   // tailplanes
+      sh(c, () => { c.beginPath(); c.ellipse(0, -0.3, 0.035, 0.08, 0, 0, P * 2); c.fill(); }, SH2);   // canopy
+      c.restore();
     },
     mine(c) {
       circ(c, 0, -0.05, 0.5); c.fill();

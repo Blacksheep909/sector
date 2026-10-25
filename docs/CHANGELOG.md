@@ -34,6 +34,7 @@ Every release, newest first. Each version also has its own post on the [Releases
   - **Bots buy anti-air only when an enemy flies**, and no more of it than the aircraft they've seen. They used to fill their armies with it.
   - **Bots use the black market**: they kept too much cash back and only bought rare cards. Now they buy about one card every turn or two once it's open.
   - **Thumper** attack 5 (was 4).
+  - **Every anti-air unit has 1 defence** (Stinger was 2, Scorpion 3, Skyguard 4, Sentinel 3, Grumble 3): they're for shooting down aircraft, and need guarding.
   - **Factions:** **Volt** aircraft get +1 defence and all cost $1 less (not just Hornets). **Verdant** buildings cost $3 less (was $2), and its starting Bunker is ★★. **Iron**'s Steel Wall is +1 defence chip per unit, +2 on an HQ, FOB or Bunker (was +2 everywhere). In 120 five-faction bot games every faction now wins 17–24% of the time (20% is even); before, Iron won about 34% and Volt 10%.
   - **Airbases** cost $25 / $40 / $60 (+$8 for each earlier one), up to 5 each: forced to build them, a bot wins a little more than average, not by a mile. **Cruise Missile** is now an epic ($5) from a ★★★ airbase.
 - **New mission: Air Wing** (Medium): build an airbase, bomb an island garrison your troops can't reach, and try the black market.
