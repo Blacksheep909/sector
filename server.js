@@ -921,6 +921,7 @@ function payLeaver(lp) {
   if (!gp || !pr || game.scenario || game.phase !== 'play' || lp.bot) return;
   const humans = game.players.filter(p => !p.bot || (lobby.players.find(x => x.id === p.id) || {}).away);
   const out = profiles.finishGame(pr, { ...playedBy(lp, gp), left: true, won: false, place: game.players.length, players: game.players.length, rounds: game.turn.round, vsHumans: humans.length > 1 });
+  if (!out.match && !out.objectives.length) return;   // nothing earned: no popup on the way out
   for (const cl of clients) if (cl.pid === lp.id) send(cl, { t: 'reward', reward: out, profile: profiles.view(pr) });
 }
 function payOut() {
