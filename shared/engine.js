@@ -238,10 +238,10 @@
   function removeStruct(t, st) { t.structs = structsOf(t).filter(x => x !== st); syncStructs(t); }
 
   const FACTIONS = {
-    iron: { name: 'Iron Covenant', perk: 'Steel Wall', desc: '+1 defence Chip per unit when defending, +2 on a fortified hex (HQ, FOB or Bunker).', starter: 'bulwark', glyph: 'shield' },
-    volt: { name: 'Volt Syndicate', perk: 'Overclock', desc: 'Air units get +1 move and +1 defence, and cost $1 less.', starter: 'hornet', glyph: 'bolt' },
+    iron: { name: 'Iron Covenant', perk: 'Steel Wall', desc: '+1 defence Chip per unit when defending.', starter: 'bulwark', glyph: 'shield' },
+    volt: { name: 'Volt Syndicate', perk: 'Overclock', desc: 'Air units get +1 move, +1 attack and +1 defence, and cost $1 less.', starter: 'hornet', glyph: 'bolt' },
     ashen: { name: 'Ashen Nomads', perk: 'Looters', desc: 'Earn $2 for every enemy hex you capture. Skitters cost $1 less.', starter: 'skitter', glyph: 'skull' },
-    verdant: { name: 'Verdant Host', perk: 'Deep Roots', desc: 'Structures cost $3 less. Start with a ★★ Bunker by your HQ.', starter: 'thumper', glyph: 'leaf' },
+    verdant: { name: 'Verdant Host', perk: 'Deep Roots', desc: 'Structures cost $3 less, and each building you own pays +$1 a turn. Start with a ★★ Bunker by your HQ.', starter: 'thumper', glyph: 'leaf' },
     null: { name: 'Null Order', perk: 'Loaded Dice', desc: 'Your combat rolls of 1 and 2 count as 3.', starter: 'lancer', glyph: 'eye' },
   };
 
@@ -743,7 +743,7 @@
   const isSea = type => !!UNITS[type] && UNITS[type].cls === 'sea';
   const isCoastal = (s, k) => neighbors(k).some(n => isWater(s.map.tiles[n]));
   function levelOf(s, u) { const p = player(s, u.owner); return (p && p.levels && p.levels[u.type]) || 0; }
-  function unitAtk(s, u) { const d = UNITS[u.type]; return d.atk + (d.atk ? levelOf(s, u) : 0); }
+  function unitAtk(s, u) { const d = UNITS[u.type]; if (!d.atk) return 0; const p = player(s, u.owner); return d.atk + levelOf(s, u) + (p && p.faction === 'volt' && d.cls === 'air' ? 1 : 0); }
   function unitDef(s, u) { const p = player(s, u.owner); return UNITS[u.type].def + levelOf(s, u) + (p && p.faction === 'volt' && UNITS[u.type].cls === 'air' ? 1 : 0); }
   function unitCost(p, type) { let c = UNITS[type].cost - (p && p.wx === 'armsfair' ? 1 : 0); if (p && p.faction === 'volt' && UNITS[type].cls === 'air') c--; if (p && p.faction === 'ashen' && type === 'skitter') c--; return Math.max(1, c); }
   const STRUCT_RAMP = 2;   // +$ per earlier purchase of the same structure type
@@ -920,8 +920,11 @@
     const base = 3, fromHex = Math.floor(hexes / 3), fromSea = Math.floor(sea / 4), fromRes = res * 2 * rush;
     fish *= rush;
     const fromRiver = Math.floor(river / 3);
-    let total = base + fromHex + fromSea + fromRes + ref + ware + taper + poi + fish + lanes + fromRiver;
     const p = player(s, pid), d = p && p.bot && DIFFICULTY[p.diff];
+    // Verdant's Deep Roots: +$1 a turn for every building it owns on its own land (bridges aside)
+    let roots = 0;
+    if (p && p.faction === 'verdant') for (const k in s.map.tiles) { const t = s.map.tiles[k]; if (t.owner === pid) roots += structsOf(t).filter(x => x.owner === pid && x.type !== 'bridge').length; }
+    let total = base + fromHex + fromSea + fromRes + ref + ware + taper + poi + fish + lanes + fromRiver + roots;
     // alliances that have held for 2+ rounds pay a dividend; a traitor's economy takes a 40% hit
     let pact = 0;
     for (const x of s.allies || []) if ((x.a === pid || x.b === pid) && !x.ending && !x.team && s.turn && s.turn.round - (x.since || s.turn.round) >= 2) pact += Math.min(4, 2 + Math.floor((s.turn.round - x.since - 2) / 3));
@@ -934,7 +937,7 @@
     total += traitor;
     const bonus = d ? Math.round(total * d.income) - total : 0;
     total += bonus;
-    return { total, base, fromHex, fromSea, fromRes, ref, trade, ware, taper, cap: taper_, poi, fish, lanes, fromRiver, river, pact, traitor, bonus, hexes, sea, cut, ruined, res };
+    return { total, base, fromHex, fromSea, fromRes, ref, trade, ware, taper, cap: taper_, poi, fish, lanes, fromRiver, river, pact, traitor, bonus, roots, hexes, sea, cut, ruined, res };
   }
   function nearOwned(s, pid, k, r) {
     for (const a of area(k, r)) { const t = s.map.tiles[a]; if (t && t.owner === pid) return true; }
@@ -1164,7 +1167,7 @@
     const bombard = ranged && units.every(u => UNITS[u.type].cls === 'art' && !airOnly(u));
     const dlv = defenders.reduce((a, u) => a + levelOf(s, u), 0);
     if (dlv) def.bonuses.push({ label: 'Veteran ★', chips: dlv, note: true });
-    if (dp && dp.faction === 'iron' && defenders.length) { const per = structsOf(t).some(x => ['hq', 'fob', 'bunker'].includes(x.type) && x.owner === defPid) ? 2 : 1; def.chips += per * defenders.length; def.bonuses.push({ label: 'Steel Wall', chips: per * defenders.length }); }
+    if (dp && dp.faction === 'iron' && defenders.length) { def.chips += defenders.length; def.bonuses.push({ label: 'Steel Wall', chips: defenders.length }); }
     { const gf = defenders.filter(u => UNITS[u.type].cls === 'inf').length; if (gf && units.some(isHeli)) { def.chips += gf; def.bonuses.push({ label: 'Ground Fire', chips: gf }); } }
     const aaD = defenders.reduce((n, u) => n + (UNITS[u.type].aa || 0), 0);
     if (aaD && has(units, 'air')) { def.chips += aaD; def.bonuses.push({ label: 'Anti-Air', chips: aaD }); }
