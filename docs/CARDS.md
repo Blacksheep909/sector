@@ -100,8 +100,8 @@ Built from the hotbar (keys Z–M) on hexes you own that are connected to supply
 
 | Faction | Perk | Starts with |
 |---|---|---|
-| **Iron Covenant** | Steel Wall: +2 defence Chips per unit when defending. | Bulwark |
-| **Volt Syndicate** | Overclock: Air units get +1 move and +1 defence. Hornets cost $1 less. | Hornet |
+| **Iron Covenant** | Steel Wall: +1 defence Chip per unit when defending, +2 on a fortified hex (HQ, FOB or Bunker). | Bulwark |
+| **Volt Syndicate** | Overclock: Air units get +1 move and +1 defence, and cost $1 less. | Hornet |
 | **Ashen Nomads** | Looters: Earn $2 for every enemy hex you capture. Skitters cost $1 less. | Skitter |
 | **Verdant Host** | Deep Roots: Structures cost $3 less. Start with a ★★ Bunker by your HQ. | Thumper |
 | **Null Order** | Loaded Dice: Your combat rolls of 1 and 2 count as 3. | Lancer |
