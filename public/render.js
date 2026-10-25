@@ -205,10 +205,10 @@ const Render = (() => {
     const n = opts.count || 1, dur = opts.dur || 1.7, t0 = t;
     for (let i = 0; i < n; i++) {
       const side = (i - (n - 1) / 2) * 46;     // formation spacing, perpendicular to the flight path
-      planes.push({ x0: cx - dx * L - dy * side, y0: cy - dy * L + dx * side * 0.5, x1: cx + dx * L - dy * side, y1: cy + dy * L + dx * side * 0.5, alt, t0: t0 + i * 0.12, dur, color: opts.color || '#e9edf2', ang });
+      planes.push({ x0: cx - dx * L - dy * side, y0: cy - dy * L + dx * side * 0.5, x1: cx + dx * L - dy * side, y1: cy + dy * L + dx * side * 0.5, alt, t0: t0 + i * 0.12, dur, color: opts.color || '#e9edf2', ang, down: i === 0 ? opts.downAt : null });
     }
-    // bombs leave the lead plane as it passes over each target, in flight order
-    pts.slice().sort((a, b) => (a[0] - cx) * dx + (a[1] - cy) * dy - ((b[0] - cx) * dx + (b[1] - cy) * dy)).forEach((p, i) => {
+    // bombs leave the lead plane as it passes over each target, in flight order (a plane that gets shot down drops none)
+    if (!opts.noBombs) pts.slice().sort((a, b) => (a[0] - cx) * dx + (a[1] - cy) * dy - ((b[0] - cx) * dx + (b[1] - cy) * dy)).forEach((p, i) => {
       const along = ((p[0] - cx) * dx + (p[1] - cy) * dy + L) / (2 * L);   // 0..1 along the path
       const tDrop = t0 + along * dur - 0.32 + i * 0.03;
       bombs.push({ tx: p[0], ty: p[1], tDrop, fall: 0.42, alt, colors: opts.colors });
@@ -231,6 +231,113 @@ const Render = (() => {
       ctx.fillStyle = '#16324a'; ctx.beginPath(); ctx.ellipse(0.55 * s, 0, 0.17 * s, 0.06 * s, 0, 0, Math.PI * 2); ctx.fill();   // canopy
     }
   }
+  // ── guided missiles: a fast dart with a white smoke trail that hangs in the air after it hits ──
+  // a, b: hex keys or world points; alt0/alt1: height at launch and at the end; loft: extra height mid-flight.
+  // stopAt (0..1) makes it burst early (an interception in mid-air); onHit fires on the clock when it gets there
+  const missiles = [];
+  const ptOf = k => Array.isArray(k) ? k : topOf(k);
+  function missilePos(m, p) {
+    const e = Math.pow(p, m.accel), [ax, ay] = m.a, [bx, by] = m.b;
+    return [ax + (bx - ax) * e, ay + (by - ay) * e - (m.alt0 + (m.alt1 - m.alt0) * e + Math.sin(Math.PI * e) * m.loft)];
+  }
+  function missile(a, b, opts = {}) {
+    const m = { a: ptOf(a), b: ptOf(b), alt0: opts.alt0 ?? 12, alt1: opts.alt1 ?? 0, loft: opts.loft ?? 18, accel: opts.accel ?? 1.5, t0: t + (opts.delay || 0), dur: opts.dur || 0.55, stop: opts.stopAt || 1, color: opts.color || '#ffffff', size: opts.size || 1, trail: [], boom: opts.boom !== false, gone: null };
+    missiles.push(m);
+    if (opts.onHit) setTimeout(opts.onHit, Math.max(0, (m.t0 + m.dur * m.stop - t) * 1000));
+    return m;
+  }
+  // where a missile fired with these options will be at fraction p of its flight (to aim interceptors at it)
+  function missileAt(a, b, opts = {}, p = 1) { return missilePos({ a: ptOf(a), b: ptOf(b), alt0: opts.alt0 ?? 12, alt1: opts.alt1 ?? 0, loft: opts.loft ?? 18, accel: opts.accel ?? 1.5 }, p); }
+  // a little arrowhead of a missile, facing +x
+  function dart(s, fill) {
+    ctx.fillStyle = '#0b0f13'; ctx.beginPath(); ctx.moveTo(s * 1.25, 0); ctx.lineTo(-s, -s * 0.42); ctx.lineTo(-s, s * 0.42); ctx.closePath(); ctx.fill();
+    ctx.fillStyle = fill; ctx.beginPath(); ctx.moveTo(s, 0); ctx.lineTo(-s * 0.8, -s * 0.24); ctx.lineTo(-s * 0.8, s * 0.24); ctx.closePath(); ctx.fill();
+  }
+  function drawMissiles() {
+    const z = cam.z;
+    for (let i = missiles.length - 1; i >= 0; i--) {
+      const m = missiles[i], p = (t - m.t0) / m.dur;
+      if (p < 0) continue;
+      if (!m.gone) {
+        const q = Math.min(p, m.stop), [x, y] = missilePos(m, q);
+        m.trail.push([x, y, t]);
+        if (Math.random() < 0.7) fx.parts.push({ x: x + (Math.random() - 0.5) * 3, y: y + (Math.random() - 0.5) * 3, vx: (Math.random() - 0.5) * 8, vy: -4 - Math.random() * 6, life: 0, max: 0.9 + Math.random() * 0.5, col: null, smoke: 'rgba(235,240,245,', sa: 0.5, sz: 2.2 + Math.random() * 1.6, g: -6 });
+        if (p >= m.stop) {
+          m.gone = t;
+          if (m.boom) { burst([x, y], ['#fff', '#ffd27a', '#ff8a3a', '#9aa4ad'], 16, { speed: 1.1, size: 2.6, up: 40, g: 120 }); ring([x, y], '#fff', 34, 0.35, 3); }
+        } else {
+          // the dart, nose along its flight on screen, with a hot exhaust
+          const [px, py] = missilePos(m, Math.max(0, q - 0.03)), [sx, sy] = toScreen(x, y), [ox, oy] = toScreen(px, py), head = Math.atan2(sy - oy, sx - ox);
+          ctx.save(); ctx.translate(sx, sy); ctx.rotate(head);
+          ctx.fillStyle = 'rgba(255,190,90,.85)'; ctx.beginPath(); ctx.ellipse(-6 * z * m.size, 0, 4 * z * m.size, 2 * z * m.size, 0, 0, Math.PI * 2); ctx.fill();
+          dart(4.2 * z * m.size, m.color); ctx.restore();
+        }
+      }
+      // the trail: a crisp white line that thins and fades from the tail
+      const life = 1.1, tr = m.trail;
+      while (tr.length && t - tr[0][2] > life) tr.shift();
+      if (tr.length > 1) {
+        ctx.lineCap = 'round';
+        for (let j = 1; j < tr.length; j++) {
+          const k = 1 - (t - tr[j][2]) / life; if (k <= 0) continue;
+          const [x0, y0] = toScreen(tr[j - 1][0], tr[j - 1][1]), [x1, y1] = toScreen(tr[j][0], tr[j][1]);
+          ctx.strokeStyle = 'rgba(255,255,255,' + (0.85 * k).toFixed(3) + ')'; ctx.lineWidth = (1 + 2.2 * k) * z * m.size;
+          ctx.beginPath(); ctx.moveTo(x0, y0); ctx.lineTo(x1, y1); ctx.stroke();
+        }
+      }
+      if (m.gone && !tr.length) missiles.splice(i, 1);
+    }
+  }
+  // ── kamikaze drones: a delta-wing drone cruises in low, noses over and dives into the target ──
+  const drones = [];
+  function drone(k, opts = {}) {
+    const b = ptOf(k), ang = opts.angle ?? (Math.PI + (Math.random() - 0.5) * 1.2), dx = Math.cos(ang), dy = Math.sin(ang) * 0.5;
+    const d = { b, p0: [b[0] + dx * 620, b[1] + dy * 620], p1: [b[0] + dx * 120, b[1] + dy * 120], alt: 115, t0: t + (opts.delay || 0), dur: opts.dur || 1.5, stop: opts.stopAt || 1, color: opts.color || '#e9edf2', gone: false };
+    drones.push(d);
+    if (opts.onHit) setTimeout(opts.onHit, Math.max(0, (d.t0 + d.dur * d.stop - t) * 1000));
+    return d;
+  }
+  // [ground x, ground y, height] at fraction p: a level run in, then a steepening dive
+  function dronePos(d, p) {
+    const C = 0.62;
+    if (p < C) { const e = p / C; return [d.p0[0] + (d.p1[0] - d.p0[0]) * e, d.p0[1] + (d.p1[1] - d.p0[1]) * e, d.alt + Math.sin(e * Math.PI) * 8]; }
+    const e = (p - C) / (1 - C), f = e * e;
+    return [d.p1[0] + (d.b[0] - d.p1[0]) * e, d.p1[1] + (d.b[1] - d.p1[1]) * e, d.alt * (1 - f)];
+  }
+  function droneAt(d, p) { const [x, y, h] = dronePos(d, p); return [x, y - h]; }
+  // the drone from above: a delta wing with canards and a pusher prop disc, facing +x
+  function deltaWing(s, fill, ink) {
+    const P = pts => { ctx.beginPath(); pts.forEach(([x, y], i) => i ? ctx.lineTo(x * s, y * s) : ctx.moveTo(x * s, y * s)); ctx.closePath(); };
+    const body = () => P([[1.0, 0], [0.55, -0.12], [-0.55, -0.92], [-0.78, -0.92], [-0.62, -0.1], [-0.82, -0.06], [-0.82, 0.06], [-0.62, 0.1], [-0.78, 0.92], [-0.55, 0.92], [0.55, 0.12]]);
+    if (ink) { ctx.strokeStyle = ink; ctx.lineWidth = Math.max(1.5, s * 0.16); ctx.lineJoin = 'round'; body(); ctx.stroke(); }
+    ctx.fillStyle = fill; body(); ctx.fill();
+    if (ink) {
+      ctx.fillStyle = 'rgba(255,255,255,.3)'; P([[0.95, 0], [0.5, -0.06], [-0.6, -0.05], [-0.6, 0.02], [0.5, 0.03]]); ctx.fill();
+      ctx.fillStyle = '#ffcf5a'; ctx.beginPath(); ctx.arc(0.78 * s, 0, 0.09 * s, 0, Math.PI * 2); ctx.fill();   // warhead seeker
+      ctx.strokeStyle = 'rgba(30,36,42,.55)'; ctx.lineWidth = Math.max(1, s * 0.08); ctx.beginPath(); ctx.moveTo(-0.9 * s, -0.32 * s); ctx.lineTo(-0.9 * s, 0.32 * s); ctx.stroke();   // spinning prop
+    }
+  }
+  function drawDrones() {
+    const z = cam.z;
+    for (let i = drones.length - 1; i >= 0; i--) {
+      const d = drones[i], p = (t - d.t0) / d.dur;
+      if (p < 0) continue;
+      if (p >= d.stop) {
+        const [x, y] = droneAt(d, d.stop), inAir = d.stop < 0.99;
+        burst([x, y], inAir ? ['#fff', '#ffb03a', '#ff5a2a', '#555'] : ['#ffb03a', '#ff5a2a', '#fff2a8', '#555'], inAir ? 26 : 34, { speed: inAir ? 1.3 : 1.7, size: 3.2, up: inAir ? 60 : 150 });
+        ring([x, y], '#ffb03a', inAir ? 45 : 70, 0.45, 4); if (!inAir) smoke([x, y], 8, 'rgba(70,65,60,');
+        drones.splice(i, 1); continue;
+      }
+      const [gx, gy, h] = dronePos(d, p), [ax, ay, ah] = dronePos(d, Math.max(0, p - 0.02));
+      const [sx, sy] = toScreen(gx, gy - h), [ox, oy] = toScreen(ax, ay - ah), head = Math.atan2(sy - oy, sx - ox);
+      const [hx, hy] = toScreen(gx, gy), [hx0, hy0] = toScreen(ax, ay), gh = Math.atan2(hy - hy0, hx - hx0);
+      // shadow on the ground, the faint exhaust behind it, then the drone itself (it grows as it dives at the camera)
+      ctx.save(); ctx.translate(hx, hy); ctx.rotate(gh); ctx.scale(1, 0.5); ctx.globalAlpha = 0.28; deltaWing(13 * z, '#000', null); ctx.restore();
+      if (Math.random() < 0.5) fx.parts.push({ x: gx, y: gy - h, vx: 0, vy: -3, life: 0, max: 0.6, col: null, smoke: 'rgba(200,200,200,', sz: 2.5, g: -4 });
+      const grow = 1 + Math.max(0, (p - 0.62) / 0.38) * 0.35;
+      ctx.save(); ctx.translate(sx, sy); ctx.rotate(head); deltaWing(14 * z * grow, d.color, '#0b0f13'); ctx.restore();
+    }
+  }
   function drawAir() {
     for (let i = bombs.length - 1; i >= 0; i--) {
       const b = bombs[i], p = (t - b.tDrop) / b.fall;
@@ -244,6 +351,11 @@ const Render = (() => {
     for (let i = planes.length - 1; i >= 0; i--) {
       const pl = planes[i], p = (t - pl.t0) / pl.dur;
       if (p > 1) { planes.splice(i, 1); continue; }
+      if (pl.down != null && p >= pl.down) {   // shot down: it blows apart in the air
+        const wx = pl.x0 + (pl.x1 - pl.x0) * pl.down, wy = pl.y0 + (pl.y1 - pl.y0) * pl.down - pl.alt;
+        burst([wx, wy], ['#fff', '#ffb03a', '#ff5a2a', '#3a3f44'], 30, { speed: 1.4, size: 3, up: 30, g: 200 }); ring([wx, wy], '#ffb03a', 50, 0.45, 4); smoke([wx, wy], 6, 'rgba(60,60,60,');
+        planes.splice(i, 1); continue;
+      }
       if (p < 0) continue;
       const wx = pl.x0 + (pl.x1 - pl.x0) * p, wy = pl.y0 + (pl.y1 - pl.y0) * p, z = cam.z;
       const [gx, gy] = toScreen(wx, wy), [sx, sy] = toScreen(wx, wy - pl.alt);
@@ -1108,7 +1220,7 @@ const Render = (() => {
       const p = fx.parts[i]; p.life += dt; if (p.life > p.max) { fx.parts.splice(i, 1); continue; }
       p.vy += p.g * dt; p.x += p.vx * dt; p.y += p.vy * dt; p.vx *= 0.985;
       const [x, y] = toScreen(p.x, p.y), k = 1 - p.life / p.max;
-      if (p.smoke) { ctx.fillStyle = p.smoke + (k * 0.35) + ')'; ctx.beginPath(); ctx.arc(x, y, p.sz * z * (1.6 - k * 0.6), 0, Math.PI * 2); ctx.fill(); }
+      if (p.smoke) { ctx.fillStyle = p.smoke + (k * (p.sa || 0.35)) + ')'; ctx.beginPath(); ctx.arc(x, y, p.sz * z * (1.6 - k * 0.6), 0, Math.PI * 2); ctx.fill(); }
       else { ctx.fillStyle = p.col; ctx.globalAlpha = Math.min(1, k * 1.6); const sz = p.sz * z * (0.4 + k * 0.6); if (p.sq) { ctx.save(); ctx.translate(x, y); ctx.rotate(p.life * 8); ctx.fillRect(-sz, -sz, sz * 2, sz * 2); ctx.restore(); } else { ctx.beginPath(); ctx.arc(x, y, sz, 0, Math.PI * 2); ctx.fill(); } ctx.globalAlpha = 1; }
     }
     for (let i = fx.rings.length - 1; i >= 0; i--) {
@@ -1254,7 +1366,7 @@ const Render = (() => {
     drawUnits();
     if (ov.troops) drawNotes();
     const p3 = performance.now();
-    drawAir();
+    drawAir(); drawDrones(); drawMissiles();
     // blueprint ghosts: stacks where the queued orders put them, and buildings the queue will raise
     if (ov.planGhost) for (const g of ov.planGhost.slice().sort((a, b) => (tc[a.hex] ? tc[a.hex].wy : 0) - (tc[b.hex] ? tc[b.hex].wy : 0))) {
       if (!tc[g.hex]) continue;
@@ -1278,5 +1390,5 @@ const Render = (() => {
   // Settings → Graphics: Low draws at 1× pixel density (much lighter on high-DPI screens and older machines)
   function setLowGfx(on) { lowGfx = !!on; try { localStorage.setItem('sector.gfx', on ? 'low' : 'high'); } catch (e) {} dispatchEvent(new Event('resize')); }
 
-  return { setLowGfx, get lowGfx() { return lowGfx; }, invalidate, perf, flyover, init, setState, recolor, focus, fitMap, pan, zoomAt, hexAt, screenOf, topOf, world, ov, unitPos, unitHidden, extraUnits, burst, smoke, float, ring, beam, lance, emp, shake, flash, pop, cam, get time() { return t; }, get roads() { return roads; } };
+  return { setLowGfx, get lowGfx() { return lowGfx; }, invalidate, perf, flyover, missile, missileAt, drone, droneAt, init, setState, recolor, focus, fitMap, pan, zoomAt, hexAt, screenOf, topOf, world, ov, unitPos, unitHidden, extraUnits, burst, smoke, float, ring, beam, lance, emp, shake, flash, pop, cam, get time() { return t; }, get roads() { return roads; } };
 })();

@@ -2477,13 +2477,19 @@
             if (ev.att.units && ev.att.units.includes('trident')) {
               // the missile breaks the surface, climbs, and falls on the target
               SFX.whoosh(); Render.smoke(ev.from, 14, 'rgba(220,220,220,'); Render.burst(ev.from, ['#ffd27a', '#fff'], 18, { up: 200 });
-              Render.beam(ev.from, ev.to, '#ffb03a', 0.9 * speed(), 260); await sleep(900 * speed());
+              Render.missile(ev.from, ev.to, { loft: 220, dur: 0.9 * speed(), size: 1.5, color: '#ffd27a' }); await sleep(900);
               Render.flash(0.3, '#ffd9a0'); Render.shake(14); Render.burst(ev.to, ['#fff', '#ffb03a', '#ff5a2a'], 50, { speed: 2 }); SFX.boom(1.2); await sleep(300);
             } else if (ev.att.units && ev.att.units.includes('oracle')) {
               // the Oracle calls its strike down from orbit, not out of its dish
               SFX.zap(); Render.ring(ev.from, '#7ff3ff', 40, 0.5, 3); await sleep(250);
               Render.lance(ev.to, '#7ff3ff', 0.9 * speed()); await sleep(260 * speed());
               Render.flash(0.25, '#bff6ff'); Render.shake(10); Render.burst(ev.to, ['#fff', '#bff6ff', '#36c9ff'], 30, { speed: 1.8 }); SFX.boom(1); await sleep(300);
+            } else if (ev.att.units && ev.att.units.length && ev.att.units.every(ut => ['aa', 'sam'].includes((E.UNITS[ut] || {}).ability))) {
+              // anti-air: a salvo of missiles, straight in on white trails (aircraft fly, so they're hit up in the air)
+              const n = Math.min(4, ev.att.units.length), [x, y] = Render.topOf(ev.to);
+              for (let i = 0; i < n; i++) Render.missile(ev.from, [x + (i - (n - 1) / 2) * 8, y - 40], { alt0: 14, loft: 12, accel: 1.35, dur: (0.45 + i * 0.06) * speed(), delay: i * 0.09 * speed() });
+              Render.burst(ev.from, ['#fff', '#ffd27a'], 10, { up: 60, speed: 0.8 }); SFX.whoosh(); await sleep(520 + n * 90);
+              SFX.boom(0.6);
             } else {
               SFX.shot(); Render.beam(ev.from, ev.to, '#ffcf5a', 0.45 * speed(), 70); await sleep(450);
               Render.burst(ev.to, ['#ffcf5a', '#fff'], 14, { speed: 1.2 }); SFX.boom(0.6);
@@ -2560,9 +2566,10 @@
         }
         case 'intercept': {
           // a SAM battery (Sentinel or Grumble) swats the missile out of the sky
-          SFX.whoosh(); Render.beam(ev.from, ev.to, '#ffb03a', 0.7 * speed(), 260); await sleep(550 * speed());
-          flakFire(ev.by || [], ev.to); await sleep(200);
-          Render.burst(ev.to, ['#ffb03a', '#fff', '#7ff3ff'], 40, { up: 260, speed: 1.6 }); SFX.boom(0.8);
+          { const o = { loft: 220, dur: 0.9 * speed(), stopAt: 0.75, size: 1.5, color: '#ffd27a' };
+            SFX.whoosh(); Render.smoke(ev.from, 10, 'rgba(220,220,220,'); Render.missile(ev.from, ev.to, o);
+            samFire(ev.by || [], Render.missileAt(ev.from, ev.to, o, 0.75), o.dur * 0.75); await sleep(675); }
+          Render.burst(Render.missileAt(ev.from, ev.to, { loft: 220 }, 0.75), ['#ffb03a', '#fff', '#7ff3ff'], 40, { up: 60, speed: 1.6 }); SFX.boom(0.8);
           Render.float(ev.to, '🛡 MISSILE INTERCEPTED', '#7ff3ff', 18);
           if (S.units) for (const id in S.units) { const u = S.units[id]; if (u.owner === ev.pid && u.hex === ev.from) u.moved = true; }
           await sleep(300); break;
@@ -2703,9 +2710,15 @@
     Render.invalidate && Render.invalidate();
   }
   // air defence fire: tracer bursts climbing from each defender toward the target
-  function flakFire(from, to) {
-    for (const k of from) { Render.beam(k, to, '#ffd27a', 0.35, 40); Render.burst(k, ['#ffd27a', '#fff'], 8, { up: 120 }); }
-    SFX.shot();
+  // anti-air: each battery looses a missile, straight and fast with a white smoke trail, timed to meet `at`
+  // (a world point in the air) `inSec` seconds from now
+  function samFire(from, at, inSec) {
+    from.forEach((k, i) => {
+      const dur = Math.min(0.42 + i * 0.04, inSec * 0.85), delay = Math.max(0, inSec - dur);
+      Render.missile(k, at, { alt0: 14, alt1: 0, loft: 10, accel: 1.35, dur, delay, boom: false });
+      setTimeout(() => { Render.burst(k, ['#fff', '#ffd27a'], 10, { up: 60, speed: 0.8 }); Render.smoke(k, 4, 'rgba(230,230,230,'); }, delay * 1000);
+    });
+    setTimeout(() => SFX.whoosh(), Math.max(0, inSec - 0.45) * 1000);
   }
   // a bridge goes into the water and leaves wreckage behind
   function dropBridge(k) {
@@ -2719,9 +2732,12 @@
     const who = pName(ev.pid);
     toast(`${who} played ${d.name}`, d.rarity === 'legendary' ? 'leg' : '');
     if (ev.intercepted) {
-      SFX.whoosh(); Render.flyover([ev.target, ev.target], { color: pColor(ev.pid), dur: 1.4 });
-      await sleep(700); flakFire(ev.by || [], ev.target); await sleep(250);
-      Render.burst(ev.target, ['#ffb03a', '#ff5a2a', '#fff'], 40, { up: 220, speed: 1.6 }); SFX.boom(0.7); Render.shake(6);
+      // the missiles meet it over the target: a drone mid-dive, a jet right overhead
+      SFX.whoosh();
+      const sp = speed();   // effects run on the render clock: scale them like sleep() is scaled
+      if (ev.id === 'kamikaze') { const dr = Render.drone(ev.target, { color: pColor(ev.pid), dur: 1.5 * sp, stopAt: 0.8 }); samFire(ev.by || [], Render.droneAt(dr, 0.8), 1.2 * sp); await sleep(1200); }
+      else { const [x, y] = Render.topOf(ev.target); Render.flyover([ev.target, ev.target], { color: pColor(ev.pid), dur: 1.4 * sp, noBombs: true, downAt: 0.5 }); samFire(ev.by || [], [x, y - 150], 0.7 * sp); await sleep(700); }
+      SFX.boom(0.7); Render.shake(6); await sleep(150);
       Render.float(ev.target, '🛡 SHOT DOWN', '#7ff3ff', 20);
       if (ev.pid === you) toast(`🛡 Your ${d.name} was shot down by air defences`, 'err');
       await sleep(500); return;
@@ -2763,7 +2779,17 @@
         Render.float(ev.target, (ev.hit ? ev.hit + ' FORT' + (ev.hit > 1 ? 'S' : '') + ' WRECKED · ' : '') + ev.kills.length + ' DESTROYED', '#ff8a5a', 18);
         killUnits(ev.kills); await sleep(300); break;
       }
-      case 'kamikaze': case 'gunrun': case 'precision': case 'airstrike': case 'cruise': {
+      case 'kamikaze': {
+        // the drone runs in low, noses over and flies straight into the target
+        SFX.whoosh();
+        Render.drone(ev.target, { color: pColor(ev.pid), dur: 1.5 * speed(), onHit: () => { SFX.boom(0.9); Render.shake(10); } });
+        await sleep(1550);
+        if (ev.bridge !== undefined) { if (ev.bridge) { dropBridge(ev.target); Render.float(ev.target, 'BRIDGE DESTROYED', '#ff8a5a', 20); } else Render.float(ev.target, 'MISSED THE BRIDGE', '#cfd8df', 18); }
+        else if (ev.infra) infraHit(ev.target, ev.infra, ev.structs);
+        else Render.float(ev.target, ev.kills.length ? ev.kills.length + ' DESTROYED' : 'MISSED', ev.kills.length ? '#ff4f5e' : '#cfd8df', 20);
+        killUnits(ev.kills); await sleep(300); break;
+      }
+      case 'gunrun': case 'precision': case 'airstrike': case 'cruise': {
         // a jet in the striker's colour makes a bombing run over the target (the Warthog announces itself)
         if (ev.id === 'gunrun') SFX.brrrt(); else SFX.whoosh();
         { const [x, y] = Render.topOf(ev.target); const k1 = ev.target, sp = n => { const [q, r] = E.parse(k1); return E.key(q + n, r); };
@@ -3103,6 +3129,6 @@
   if (!seat) showHome();
 
   Locker.init({ send }); window.SECTOR_TOAST = t => toast(t, 'good');
-  window.SECTOR_DEBUG = { flyTo: (a, b) => flyTo(a, b), resume: () => pump(), refresh: () => refreshAll(), victoryFx: () => showVictory(), crushFx: ev => obliterate(ev), combatFx: ev => showCombat(ev), send, state: () => S, you: () => you, plan: () => plan, planState: () => planState, act: doAction, click: onHexClick };
+  window.SECTOR_DEBUG = { flyTo: (a, b) => flyTo(a, b), resume: () => pump(), refresh: () => refreshAll(), victoryFx: () => showVictory(), crushFx: ev => obliterate(ev), combatFx: ev => showCombat(ev), tacticFx: ev => animTactic(ev), send, state: () => S, you: () => you, plan: () => plan, planState: () => planState, act: doAction, click: onHexClick };
   connect();
 })();

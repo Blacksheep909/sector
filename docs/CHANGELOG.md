@@ -5,6 +5,8 @@ Every release, newest first. Each version also has its own post on the [Releases
 ## Unreleased
 
 - **Arks fixed.** Troops who boarded an Ark could get stuck: the Ark refused to sail with them aboard. It now carries its troops whether you pick the Ark alone or the whole stack.
+- **Kamikaze Drones dive in:** a delta-wing drone runs in low and flies straight into its target instead of a jet dropping a bomb.
+- **Anti-air fires missiles:** fast, direct missiles on white smoke trails, for anti-air units shooting at aircraft and for batteries intercepting air strikes and Trident missiles. A downed jet or drone now blows up in mid-air.
 - **Card tracking:** every tactic card remembers where it came from. When an epic or better card is played, the log says so ("Morrow's Orbital Strike came from the black market (round 9)"), and picking one up now shows in the log too. Black market buys name the card if it's epic or better.
 - **The log scrolls:** scroll up over it to read older lines (it keeps the last 80).
 - **Trident nerf:** missile range **4** (was 8), defence **4** (was 6).
