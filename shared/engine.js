@@ -216,7 +216,7 @@
     bridge: { name: 'Bridge', cost: 6, desc: 'Span a 1-hex sea gap between two shores. Land units cross; ships cannot pass. Not next to another bridge. A destroyed bridge leaves wreckage: rebuilding there costs $8 more.' },
     bunker: { name: 'Bunker', cost: 4, desc: 'Strongpoint with its own garrison: +3 Chips per level even when empty, so enemies must attack it. +2 Mult defence (+1 per extra level). ★★+ also gives your neighbouring hexes +1 Mult. Digs in against big attacks: +40% of the attacker chip lead (up to 4 per level). ★★★ Citadel: 14 garrison Chips, +5 Mult, +2 Mult to neighbours, and holds 60% of the lead (up to 20). Destroyed if an enemy captures it.' },
     mine: { name: 'Sea Mine', cost: 4, desc: 'A minefield on one of your sea hexes: the naval Bunker. +3 Chips per level even when empty, so enemy ships must fight their way through instead of sailing past. +2 Mult defence (+1 per extra level). Cleared if an enemy captures the hex.' },
-    airbase: { name: 'Airbase', cost: 15, lvlCost: [15, 30, 50], ramp: 5, desc: 'Every turn it hands you an air-strike card: commons (Gun Run, Kamikaze Drone) at ★, rares (Precision Strike, Strategic Bombing) at ★★, epics (Cruise Missile, Carpet Bombing, Bunker Buster) at ★★★. Up to 5 per commander. Takes a turn to build and a turn to upgrade. $15, $30, $50, more for each one you already have.' },
+    airbase: { name: 'Airbase', cost: 25, lvlCost: [25, 40, 60], ramp: 8, desc: 'Every turn it hands you an air-strike card: commons (Gun Run, Kamikaze Drone) at ★, rares (Precision Strike, Strategic Bombing) at ★★, epics (Cruise Missile, Carpet Bombing, Bunker Buster) at ★★★. Up to 5 per commander. Takes a turn to build and a turn to upgrade. $25, $40, $60, plus $8 for each one you bought or upgraded before.' },
     flak: { name: 'Flak', cost: 5, desc: 'Air defence: can shoot down enemy air strikes nearby (range = level, 35% +10% per level). Blocks Heli Drops and EMPs (nukes cannot be stopped). +2 Mult vs air.' },
   };
   const BUILD_ORDER = ['hq', 'fob', 'warehouse', 'refinery', 'depot', 'port', 'bridge', 'bunker', 'mine', 'flak', 'airbase'];
@@ -944,7 +944,6 @@
   // what an airbase hands out each turn, by its level
   const AIRBASE_CARDS = { 1: ['gunrun', 'kamikaze'], 2: ['precision', 'strategic'], 3: ['cruise', 'carpet', 'buster'] };
   const MAX_AIRBASES = 5;
-  if (typeof process !== 'undefined' && process.env && process.env.TUNE_AB) { const [c, r] = process.env.TUNE_AB.split('/'); STRUCTS.airbase.lvlCost = c.split(',').map(Number); STRUCTS.airbase.ramp = +r; }   // TUNING-ONLY
   const AA_COVER = { stinger: [0, 0.25], scorpion: [1, 0.35], skyguard: [2, 0.5], sentinel: [3, 0.6], grumble: [3, 0.55] };   // [reach, shoot-down chance]
   function airDefenders(s, pid, k) {
     const out = [];
