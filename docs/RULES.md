@@ -338,7 +338,7 @@ Battle cards are thrown into a fight **before the dice roll**, by either side. W
 | Reserves | Rare | $2 | Either | +2 Chips for each unit on your side |
 | Steady Nerves | Rare | $2 | Either | Your die never rolls below 3 |
 
-They turn up in resupply and in supply caches like any other tactic. Smoke Screen, Fortify and Aegis Protocol are played on your own turn.
+They turn up in resupply and in supply caches like any other tactic. Smoke Screen, Fortify and Industrial Revolution are played on your own turn.
 
 ## Trading
 

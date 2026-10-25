@@ -202,7 +202,8 @@
     mutiny: { name: 'Mutiny', rarity: 'legendary', cost: 6, target: 'mutiny', desc: 'An enemy stack (≤3) bordering your land defects to you.' },
     tsar: { name: 'Tsar Bomba', rarity: 'mythic', cost: 14, target: 'tsar', range: 7, desc: 'Erase everything in a 9-hex blast. Fallout for 5 rounds. HQs survive; their troops do not.' },
     regime: { name: 'Regime Change', rarity: 'mythic', cost: 10, target: 'regime', range: 4, desc: 'An enemy hex within 4 and their land around it flip to you (not HQs). Their troops there join you.' },
-    aegis: { name: 'Aegis Protocol', rarity: 'mythic', cost: 8, target: 'none', desc: 'Until your next turn: your land gets +3 Mult on defence and is immune to enemy tactics.' },
+    // (the id is still 'aegis': this card replaced Aegis Protocol, and old saves and owned card skins carry over)
+    aegis: { name: 'Industrial Revolution', rarity: 'mythic', cost: 8, target: 'none', desc: 'Every building you own goes up a level at once, free and ready straight away: HQ, FOBs, Warehouses, Refineries, Depots, Bunkers, Sea Mines and Airbases (up to ★★★).' },
   };
 
   // structures are the economy/base layer, separate from the unit deck
@@ -1201,7 +1202,6 @@
     if (ranged && units.some(u => u.ow)) { att.mult += 1; att.bonuses.push({ label: 'Overwatch', mult: 1 }); }
     if (aaShot && has(defenders, 'air')) { const ec = AA_EVADE_CHIPS * defenders.filter(u => UNITS[u.type].cls === 'air').length; def.chips += ec; def.mult += AA_EVADE; def.bonuses.push({ label: 'Evasive Flying', chips: ec, mult: AA_EVADE }); }
     if (defenders.length && defenders.every(u => u.dug)) { def.mult += 1; def.bonuses.push({ label: 'Dug In', mult: 1 }); }
-    if (dp && dp.shield && t.owner === defPid) { def.mult += 3; def.bonuses.push({ label: 'Aegis Protocol', mult: 3 }); }
     // allies cover each other: a hex bordering an ally's land holds a little harder
     if (defPid && (s.allies || []).length && isLandTile(t) && neighbors(target).some(n => { const nb = s.map.tiles[n]; return nb && nb.owner && nb.owner !== defPid && isAlly(s, defPid, nb.owner); })) { def.mult += 1; def.bonuses.push({ label: 'Allied Support', mult: 1 }); }
     const aegis = Math.min(2, defenders.filter(u => UNITS[u.type].ability === 'aegis').length);
@@ -2612,7 +2612,18 @@
         pushLog(s, '🏛 ' + p.name + ' staged a regime change: ' + flipped.length + ' hexes and ' + turned.length + ' units switched sides.');
         addMood(s, o, pid, -40); break;
       }
-      case 'aegis': p.shield = true; ev.push(base); pushLog(s, '🛡 ' + p.name + ' raised the Aegis Protocol.'); break;
+      case 'aegis': {
+        // Industrial Revolution: every building you own goes up a level, free and in service at once
+        const ups = [];
+        for (const k in tiles) for (const st of structsOf(tiles[k])) {
+          if (st.owner !== pid || !UPGRADABLE.includes(st.type) || slvlOf(st) >= MAX_SLVL || st.siege) continue;
+          st.lvl = slvlOf(st) + 1; delete st.lock; ups.push({ k, type: st.type, lvl: st.lvl });
+        }
+        if (!ups.length) return 'Nothing to upgrade: every building you own is already ★★★';
+        ev.push({ ...base, ups });
+        pushLog(s, '🏭 ' + p.name + ' launched an Industrial Revolution: ' + ups.length + ' building' + (ups.length > 1 ? 's' : '') + ' upgraded.');
+        break;
+      }
       case 'mutiny': {
         const us = Object.values(s.units).filter(u => u.hex === a.target);
         us.forEach(u => { u.owner = pid; u.moved = true; u.fresh = false; });

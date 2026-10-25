@@ -74,7 +74,11 @@ const play = (s, a) => E.applyAction(s, me(s).id, a);
   const r = play(s, { a: 'tactic', uid: spy.uid, target: tk }); ok(r.ok && p.tactics.some(c => c.uid === 9001), 'spy ring steals a card ' + (r.err || '') + ' target=' + tk);
   const m = Object.keys(s.map.tiles).find(k => s.map.tiles[k].t === 'mountain');
   if (m) { s.map.tiles[E.neighbors(m).find(k => s.map.tiles[k]) || m].owner = p.id; const q = give(s, 'quarry'); const r2 = play(s, { a: 'tactic', uid: q.uid, target: m }); ok(r2.ok && s.map.tiles[m].t === 'hills', 'quarry blast flattens a mountain ' + (r2.err || '')); }
-  const ae = give(s, 'aegis'); ok(play(s, { a: 'tactic', uid: ae.uid }).ok && p.shield, 'aegis raises the shield');
+  { // Industrial Revolution: every building of yours goes up a level, free
+    const hqS = E.structsOf(s.map.tiles[p.hq]).find(x => x.type === 'hq'), before = hqS.lvl || 1, cash = p.cash;
+    const ae = give(s, 'aegis'), r = play(s, { a: 'tactic', uid: ae.uid });
+    ok(r.ok && (hqS.lvl || 1) === Math.min(3, before + 1) && p.cash === cash - E.TACTICS.aegis.cost, 'industrial revolution upgrades your buildings ' + (r.err || ''));
+  }
   const ts = give(s, 'tsar'); const tt = E.tacticTargets(s, p.id, 'tsar').find(k => s.map.tiles[k].owner === o.id);
   const r3 = play(s, { a: 'tactic', uid: ts.uid, target: tt }); ok(r3.ok && r3.events[0].area.length >= 7, 'tsar bomba hits ' + (r3.events[0] && r3.events[0].area.length) + ' hexes ' + (r3.err || '') + ' target=' + tt);
   const rg = give(s, 'regime'); const rt = E.tacticTargets(s, p.id, 'regime').find(k => s.map.tiles[k].owner === o.id) || E.tacticTargets(s, p.id, 'regime')[0];
@@ -100,10 +104,6 @@ const play = (s, a) => E.applyAction(s, me(s).id, a);
   const r = play(s, { a: 'move', from: hq, units: ['h1'], to: far });
   const took = over.filter(k => s.map.tiles[k].owner === p.id).length;
   ok(r.ok && s.map.tiles[far].owner === p.id && took === 0, 'hornet flying 3+ hexes takes only its landing hex (took ' + took + ' on the way)');
-}
-{ // shield blocks enemy tactics
-  const s = game('continent', 2); const p = me(s), o = s.players.find(q => q.id !== p.id); o.shield = true; p.cash = 99;
-  ok(!E.tacticTargets(s, p.id, 'embargo').some(k => s.map.tiles[k].owner === o.id), 'aegis blocks enemy tactics');
 }
 { // sea mines: build on your own sea, block enemy ships, defend like a bunker
   const s = game('ocean'); const p = me(s), o = s.players.find(q => q.id !== p.id); p.cash = 99;

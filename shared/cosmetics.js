@@ -112,7 +112,7 @@
     ambush: 'Shadowfall', holdfast: 'Unbroken', bayonets: 'Starsteel', barrage: 'Skyfire', reserves: 'Legion', steady: 'Fate’s Hand', smoke: 'Nebular Veil', march: 'Long Night',
     rally: 'Clarion', fortify: 'Bastion of Stars', conscript: 'The Many', kamikaze: 'Shooting Star', gunrun: 'Wild Hunt', cruise: 'Long Spear', airstrike: 'Heaven’s Wrath', heli: 'Skyborne', sabotage: 'Saboteur Saint',
     embargo: 'Iron Curtain', bounty: 'Golden Contract', precision: 'Needle of God', strategic: 'Firestorm', quarry: 'Worldbreaker', spy: 'Nightingale', bonds: 'Treasury of Stars', blitz: 'Lightning War',
-    drop_rare: 'Manna', emp: 'Solar Wind', buster: 'Bunkerfall', carpet: 'Rain of Stars', orbital: 'Kinetic Halo', nuke: 'Sunrise', mutiny: 'Turncoat Crown', tsar: 'Doomsday', regime: 'New Dawn', aegis: 'Celestial Ward',
+    drop_rare: 'Manna', emp: 'Solar Wind', buster: 'Bunkerfall', carpet: 'Rain of Stars', orbital: 'Kinetic Halo', nuke: 'Sunrise', mutiny: 'Turncoat Crown', tsar: 'Doomsday', regime: 'New Dawn', aegis: 'Golden Age',
   };
   for (const cid of cardIds()) for (const v in VARIANTS) {
     const d = E.cardDef(cid), V = VARIANTS[v], mythic = v === 'celestial' && MYTHIC_NAME[cid];

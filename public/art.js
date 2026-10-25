@@ -1201,15 +1201,19 @@ const Art = (() => {
       sh(c, () => { circ(c, 0, -0.25, 0.04); c.fill(); for (let i = 0; i < 3; i++) { const a0 = -P / 2 + i * P * 2 / 3; c.beginPath(); c.moveTo(0, -0.25); c.arc(0, -0.25, 0.17, a0 - 0.5, a0 + 0.5); c.closePath(); c.fill(); } c.fillRect(-0.21, 0.2, 0.42, 0.05); }, SH2);
       c.restore();
     },
-    // an Aegis destroyer: the octagonal SPY-1 radar face on its bridge, radar beams sweeping out
+    // Industrial Revolution: a factory with saw-tooth roofs and smoking chimneys, a big cog, and an arrow climbing past it
     aegis(c) {
-      poly(c, [-1.0, 0.35, 0.95, 0.35, 1.05, 0.15, 0.72, 0.68, -0.85, 0.68]); c.fill();                  // hull
-      poly(c, [-0.5, 0.35, -0.42, -0.25, 0.3, -0.25, 0.42, 0.35]); c.fill();                            // superstructure
-      rr(c, -0.04, -0.85, 0.08, 0.62, 0.02); c.fill(); rr(c, -0.22, -0.7, 0.44, 0.05, 0.02); c.fill();   // mast
-      const oct = (cx, cy, r) => { c.beginPath(); for (let i = 0; i < 8; i++) { const a0 = P / 8 + i * P / 4; c.lineTo(cx + Math.cos(a0) * r, cy + Math.sin(a0) * r); } c.closePath(); };
-      sh(c, () => { oct(-0.05, 0.02, 0.2); c.fill(); }, SH2);
-      sh(c, () => { c.fillRect(-0.9, 0.48, 1.75, 0.05); rr(c, 0.55, 0.22, 0.22, 0.12, 0.03); c.fill(); });
-      c.lineWidth = 0.06; c.strokeStyle = c.fillStyle; for (const r of [0.32, 0.5]) { c.beginPath(); c.arc(-0.05, 0.02, r, -2.6, -1.9); c.stroke(); c.beginPath(); c.arc(-0.05, 0.02, r, -1.25, -0.55); c.stroke(); }
+      poly(c, [-0.95, 0.85, -0.95, 0.1, -0.6, -0.15, -0.6, 0.1, -0.25, -0.15, -0.25, 0.1, 0.1, -0.15, 0.1, 0.85]); c.fill();   // saw-tooth factory
+      for (const [x, h] of [[-0.82, 0.75], [-0.5, 0.95]]) { rr(c, x, 0.1 - h, 0.14, h, 0.02); c.fill(); }                        // chimneys
+      for (const [x, y, r] of [[-0.68, -0.8, 0.12], [-0.55, -0.95, 0.09], [-0.36, -1.0, 0.07]]) { circ(c, x, y, r); c.fill(); }   // smoke
+      sh(c, () => { for (const x of [-0.8, -0.45, -0.1]) c.fillRect(x, 0.32, 0.18, 0.14); c.fillRect(-0.95, 0.66, 1.05, 0.05); });
+      // a cog
+      c.save(); c.translate(0.52, 0.4); for (let i = 0; i < 8; i++) { c.save(); c.rotate(i * P / 4); rr(c, -0.08, -0.46, 0.16, 0.18, 0.03); c.fill(); c.restore(); }
+      circ(c, 0, 0, 0.33); c.fill(); sh(c, () => { circ(c, 0, 0, 0.12); c.fill(); }, SH2); c.restore();
+      // the boom: an arrow shooting up
+      c.lineWidth = 0.1; c.strokeStyle = c.fillStyle; c.lineCap = 'round'; c.lineJoin = 'round';
+      c.beginPath(); c.moveTo(0.05, -0.15); c.lineTo(0.3, -0.42); c.lineTo(0.45, -0.3); c.lineTo(0.82, -0.78); c.stroke();
+      poly(c, [0.92, -0.92, 0.9, -0.6, 0.62, -0.78]); c.fill();
     },
   });
   const POI = {

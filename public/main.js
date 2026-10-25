@@ -2731,9 +2731,15 @@
         await sleep(400); break;
       }
       case 'aegis': {
-        const me2 = S.players.find(p => p.id === ev.pid);
-        if (me2 && me2.hq) for (let i = 0; i < 3; i++) { Render.ring(me2.hq, ['#7ff3ff', '#ffffff', '#b48cff'][i], 120 + i * 60, 0.9, 6); }
-        banner('🛡 AEGIS PROTOCOL', who + ' — untouchable until their next turn', '#bff6ff'); SFX.zap(); await sleep(700); break;
+        // Industrial Revolution: every building of theirs goes up a level, one after another
+        banner('🏭 INDUSTRIAL REVOLUTION', who + ' — every building up a level', '#ffc53d'); SFX.legendary();
+        for (const u of ev.ups || []) {
+          const tt = S.map.tiles[u.k]; const st = tt && (tt.structs || []).find(x => x.type === u.type && x.owner === ev.pid);
+          if (st) { st.lvl = u.lvl; delete st.lock; }
+          if (!unseen({ hex: u.k })) { Render.ring(u.k, '#ffc53d', 46, 0.5, 4); Render.float(u.k, '★'.repeat(u.lvl), '#ffc53d', 16); }
+          await sleep(60);
+        }
+        Render.invalidate(); await sleep(500); break;
       }
       case 'rally': case 'bayonets': case 'barrage': case 'reserves': case 'steady': banner(d.name.toUpperCase() + '!', who + ' — readied for their next attack', pColor(ev.pid)); SFX.rare(); await sleep(500); break;
       case 'bounty': Render.float(me.hq, 'BOUNTY: $' + (ev.amount || 2) + ' PER KILL', '#ffc53d', 18); SFX.coin(3); break;
