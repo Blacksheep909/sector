@@ -1225,7 +1225,62 @@ const Art = (() => {
     silo(c) { rr(c, -0.42, -0.2, 0.84, 1.05, 0.06); c.fill(); poly(c, [-0.24, -0.2, 0, -0.95, 0.24, -0.2]); c.fill(); c.save(); c.fillStyle = 'rgba(0,0,0,.4)'; rr(c, -0.42, 0.3, 0.84, 0.12, 0.02); c.fill(); poly(c, [0, -0.95, 0.24, -0.2, 0, -0.2]); c.fill(); c.restore(); poly(c, [-0.24, 0.85, -0.5, 0.95, -0.24, 0.55]); c.fill(); poly(c, [0.24, 0.85, 0.5, 0.95, 0.24, 0.55]); c.fill(); },
     relic(c) { poly(c, [0, -0.95, 0.5, -0.1, 0, 0.95, -0.5, -0.1]); c.fill(); c.save(); c.fillStyle = 'rgba(0,0,0,.3)'; poly(c, [0, -0.95, 0.5, -0.1, 0, -0.1]); c.fill(); c.restore(); },
   };
+  // ── the airbase's strike cards ──
+  Object.assign(TACTIC, {
+    // A-10 Warthog side-on, its 30mm cannon blazing at a tank below
+    warthog(c) {
+      c.beginPath(); c.moveTo(0.92, -0.42); c.quadraticCurveTo(0.8, -0.52, 0.55, -0.5); c.lineTo(-0.62, -0.46); c.lineTo(-0.9, -0.42); c.lineTo(-0.9, -0.32); c.lineTo(0.55, -0.32); c.quadraticCurveTo(0.84, -0.32, 0.92, -0.42); c.fill();
+      poly(c, [0.1, -0.36, -0.3, -0.12, -0.5, -0.12, -0.32, -0.38]); c.fill();                          // straight wing
+      for (const x of [-0.42, -0.22]) { c.beginPath(); c.ellipse(x, -0.6, 0.13, 0.07, 0, 0, P * 2); c.fill(); }   // engines high on the back
+      poly(c, [-0.66, -0.44, -0.78, -0.8, -0.88, -0.8, -0.86, -0.42]); c.fill();                       // twin tail
+      rr(c, 0.9, -0.43, 0.14, 0.04, 0.01); c.fill();                                                    // the GAU-8's muzzle
+      c.save(); c.lineWidth = 0.05; c.strokeStyle = c.fillStyle; c.setLineDash([0.12, 0.08]); c.beginPath(); c.moveTo(1.0, -0.38); c.lineTo(0.35, 0.5); c.stroke(); c.restore();   // tracer
+      tracks(c, -0.1, 0.62, 0.9, 0.22, 3); poly(c, [-0.1, 0.62, -0.04, 0.48, 0.74, 0.48, 0.8, 0.62]); c.fill(); rr(c, 0.12, 0.34, 0.36, 0.16, 0.04); c.fill();   // the tank
+      for (let i = 0; i < 6; i++) { c.save(); c.translate(0.36, 0.44); c.rotate(i * P / 3); poly(c, [0, -0.2, 0.05, 0, 0, 0.06, -0.05, 0]); c.fill(); c.restore(); }   // hits
+      sh(c, () => { c.beginPath(); c.ellipse(0.62, -0.5, 0.12, 0.05, -0.05, P, 0); c.fill(); c.fillRect(-0.7, -0.4, 1.3, 0.03); }, SH2);
+    },
+    // FPV racing drones: an X-frame quad diving in, two more behind it
+    fpv(c) {
+      const quad = (x, y, r, k) => {
+        c.save(); c.translate(x, y); c.rotate(k);
+        for (const a of [P / 4, 3 * P / 4]) { c.save(); c.rotate(a); rr(c, -r, -r * 0.09, r * 2, r * 0.18, r * 0.05); c.fill(); c.restore(); }
+        for (const [dx, dy] of [[-1, -1], [1, -1], [-1, 1], [1, 1]]) { c.save(); c.lineWidth = r * 0.12; c.strokeStyle = c.fillStyle; c.beginPath(); c.arc(dx * r * 0.7, dy * r * 0.7, r * 0.36, 0, P * 2); c.stroke(); c.restore(); circ(c, dx * r * 0.7, dy * r * 0.7, r * 0.1); c.fill(); }
+        rr(c, -r * 0.3, -r * 0.42, r * 0.6, r * 0.84, r * 0.12); c.fill();
+        sh(c, () => { circ(c, 0, -r * 0.24, r * 0.12); c.fill(); });
+        c.restore();
+      };
+      quad(0.22, 0.2, 0.62, 0.35); quad(-0.62, -0.58, 0.3, 0.2); quad(-0.1, -0.84, 0.22, 0.1);
+      c.save(); c.globalAlpha *= 0.5; c.lineWidth = 0.05; c.strokeStyle = c.fillStyle; for (const [x, y] of [[-0.3, -0.25], [-0.5, -0.05], [-0.18, -0.45]]) { c.beginPath(); c.moveTo(x, y); c.lineTo(x - 0.35, y - 0.35); c.stroke(); } c.restore();
+    },
+    // Tomahawk cruise missile: a long tube with pop-out wings and a cross of tail fins, its booster still burning
+    cruise(c) {
+      c.save(); c.rotate(-0.4);
+      c.beginPath(); c.moveTo(0.95, 0); c.quadraticCurveTo(0.9, -0.13, 0.7, -0.13); c.lineTo(-0.7, -0.13); c.lineTo(-0.7, 0.13); c.lineTo(0.7, 0.13); c.quadraticCurveTo(0.9, 0.13, 0.95, 0); c.fill();
+      poly(c, [0.15, -0.1, -0.1, -0.62, -0.22, -0.62, -0.08, -0.1]); c.fill(); poly(c, [0.15, 0.1, -0.1, 0.62, -0.22, 0.62, -0.08, 0.1]); c.fill();   // wings
+      for (const sy of [-1, 1]) { poly(c, [-0.52, sy * 0.1, -0.7, sy * 0.36, -0.78, sy * 0.36, -0.7, sy * 0.1]); c.fill(); }   // tail fins
+      c.save(); c.globalAlpha *= 0.75; poly(c, [-0.72, -0.1, -1.1, -0.2, -0.95, 0, -1.1, 0.2, -0.72, 0.1]); c.fill(); c.restore();   // flame
+      sh(c, () => { c.fillRect(0.4, -0.13, 0.04, 0.26); c.fillRect(-0.4, -0.13, 0.04, 0.26); circ(c, 0.82, 0, 0.05); c.fill(); });
+      c.restore();
+    },
+    // B-52 from above: long swept wings with eight engines in four pods, bombs trailing down the line
+    arclight(c) {
+      c.beginPath(); c.moveTo(0, -0.98); c.quadraticCurveTo(0.08, -0.92, 0.08, -0.7); c.lineTo(0.07, 0.52); c.lineTo(-0.07, 0.52); c.lineTo(-0.08, -0.7); c.quadraticCurveTo(-0.08, -0.92, 0, -0.98); c.fill();
+      poly(c, [0.06, -0.42, 1.0, 0.08, 1.0, 0.16, 0.06, -0.18, -0.06, -0.18, -1.0, 0.16, -1.0, 0.08, -0.06, -0.42]); c.fill();   // swept wings
+      for (const x of [0.32, 0.64, -0.32, -0.64]) { const y = -0.26 + Math.abs(x) * 0.52; rr(c, x - 0.06, y - 0.06, 0.12, 0.22, 0.04); c.fill(); }   // engine pods
+      poly(c, [0.04, 0.4, 0.38, 0.6, 0.38, 0.66, 0.04, 0.56, -0.04, 0.56, -0.38, 0.66, -0.38, 0.6, -0.04, 0.4]); c.fill();   // tailplane
+      for (const [x, y] of [[0.0, 0.72], [0.0, 0.86], [0.0, 1.0]]) { c.beginPath(); c.ellipse(x, y, 0.04, 0.06, 0, 0, P * 2); c.fill(); }
+      sh(c, () => { c.beginPath(); c.ellipse(0, -0.82, 0.04, 0.08, 0, 0, P * 2); c.fill(); for (const x of [0.32, 0.64, -0.32, -0.64]) { const y = -0.26 + Math.abs(x) * 0.52; c.fillRect(x - 0.01, y - 0.04, 0.02, 0.18); } });
+    },
+  });
   const STRUCT = {
+    // a curved hangar with a jet's tail showing, a control tower and a stripe of runway
+    airbase(c) {
+      c.beginPath(); c.moveTo(-0.9, 0.55); c.quadraticCurveTo(-0.9, -0.35, -0.15, -0.35); c.quadraticCurveTo(0.6, -0.35, 0.6, 0.55); c.closePath(); c.fill();
+      rr(c, 0.62, -0.62, 0.22, 1.17, 0.03); c.fill(); rr(c, 0.52, -0.82, 0.42, 0.24, 0.05); c.fill();   // tower and its cab
+      rr(c, -1.0, 0.62, 2.0, 0.2, 0.04); c.fill();                                                       // runway
+      sh(c, () => { rr(c, -0.62, -0.02, 0.94, 0.57, 0.03); c.fill(); c.fillRect(0.56, -0.74, 0.34, 0.07); for (const x of [-0.8, -0.4, 0.0, 0.4, 0.8]) c.fillRect(x - 0.08, 0.7, 0.16, 0.04); });
+      poly(c, [-0.34, 0.55, -0.2, 0.1, -0.08, 0.1, -0.12, 0.55]); c.fill();                             // a tail fin inside the hangar
+    },
     mine(c) {
       circ(c, 0, -0.05, 0.5); c.fill();
       for (let i = 0; i < 8; i++) { const a = i * Math.PI / 4; c.save(); c.translate(Math.cos(a) * 0.5, -0.05 + Math.sin(a) * 0.5); c.rotate(a); rr(c, -0.02, -0.07, 0.26, 0.14, 0.04); c.fill(); circ(c, 0.26, 0, 0.09); c.fill(); c.restore(); }

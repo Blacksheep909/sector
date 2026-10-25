@@ -288,7 +288,7 @@ function sendNotes() {
   }
 }
 function filterEvents(events, pid) {
-  let out = events.map(e => (e.e === 'card' && e.pid !== pid && e.kind === 'tactic' && e.rarity !== 'legendary') ? { ...e, id: null } : e);
+  let out = events.map(e => (e.e === 'card' && e.pid !== pid && e.kind === 'tactic' && e.rarity !== 'legendary') ? { ...e, id: null } : (e.e === 'airbase' && e.pid !== pid) ? { ...e, card: null } : e);   // which card someone drew stays theirs
   const pl = game && pid && game.players.find(p => p.id === pid);
   // fog of war: where a rival set up their HQ stays secret
   if (game && game.settings.fog === 'on') out = out.filter(e => e.e !== 'spawnPicked' || e.pid === pid || (pid && E.isAlly(game, pid, e.pid)));
