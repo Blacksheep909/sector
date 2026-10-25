@@ -2351,7 +2351,9 @@
     });
   }
   const ease = p => 1 - Math.pow(1 - p, 3);
-  function banner(text, sub, color) {
+  // at Super and Max speed only banners about you show (your turn, your HQ, a betrayal of you...): the rest would just flash past
+  function banner(text, sub, color, mine) {
+    if (!mine && ['super', 'max'].includes(gameSpeed())) return;
     const b = $('#banner'); b.innerHTML = '';
     const d = el('div', 'bn', esc(text) + (sub ? `<small>${esc(sub)}</small>` : '')); d.style.setProperty('--bc', color || '#000');
     b.appendChild(d);
@@ -2408,7 +2410,7 @@
         case 'turn': {
           const p = S.players.find(x => x.id === ev.pid);
           if (ev.pid === you) {
-            SFX.yourTurn(); banner('YOUR TURN', 'Round ' + ev.round, pColor(you));
+            SFX.yourTurn(); banner('YOUR TURN', 'Round ' + ev.round, pColor(you), true);
             const [hx, hy] = Render.screenOf(p.hq);
             if (hx < 0 || hx > innerWidth || hy < 0 || hy > innerHeight) Render.focus(p.hq);
           }
@@ -2522,7 +2524,7 @@
           break;
         }
         case 'marketOpen': {
-          if (ev.pid === you) { banner('🕶 BLACK MARKET OPEN', 'Your economy has connections now: buy tactic cards for cash every turn', '#c58bff'); SFX.legendary(); await sleep(900); }
+          if (ev.pid === you) { banner('🕶 BLACK MARKET OPEN', 'Your economy has connections now: buy tactic cards for cash every turn', '#c58bff', true); SFX.legendary(); await sleep(900); }
           break;
         }
         case 'silo': {
@@ -2598,7 +2600,7 @@
           if (ev.status === 'formed') { banner('🤝 ALLIANCE FORMED', a + ' & ' + b, '#2f6b4a'); SFX.rare(); await sleep(900); }
           else if (ev.status === 'declined' && meIn) toast(ev.cap ? `🤝 That alliance would be too big for the commanders left` : `${b} declined the alliance`);
           else if (ev.status === 'offer' && !meIn) toast(`🤝 ${a} offered ${b} an alliance`);
-          else if (ev.status === 'breaking') { if (ev.to === you || ev.from === you) { banner('🗡 BETRAYAL INCOMING', (ev.to === you ? a + ' is breaking your alliance next turn' : 'Your pact with ' + b + ' ends next turn') + ' — pull your troops out of their land', '#7a1f2b'); SFX.alarm(); } else toast(`🗡 ${a} is breaking the alliance with ${b}`); }
+          else if (ev.status === 'breaking') { if (ev.to === you || ev.from === you) { banner('🗡 BETRAYAL INCOMING', (ev.to === you ? a + ' is breaking your alliance next turn' : 'Your pact with ' + b + ' ends next turn') + ' — pull your troops out of their land', '#7a1f2b', true); SFX.alarm(); } else toast(`🗡 ${a} is breaking the alliance with ${b}`); }
           else if (ev.status === 'broken') { toast(`💔 ${a} broke the alliance with ${b}`, 'err'); }
           else if (ev.status === 'renewed') { banner('🤝 ALLIANCE RENEWED', a + ' & ' + b + ' · 5 more rounds', '#2f6b4a'); SFX.rare(); await sleep(700); }
           else if (ev.status === 'renewing' && ev.to === you) { toast(`🤝 ${a} wants to renew your alliance — press RENEW on their name`); SFX.select(); }
@@ -2619,7 +2621,7 @@
           if (S.map.tiles[ev.hex]) delete S.map.tiles[ev.hex].poi;
           await sleep(350); break;
         }
-        case 'embargoHit': if (ev.pid === you) banner('EMBARGO', 'Your income is halved this turn', '#b52b38'); else toast(`⛔ ${pName(ev.pid)} is under embargo`); break;
+        case 'embargoHit': if (ev.pid === you) banner('EMBARGO', 'Your income is halved this turn', '#b52b38', true); else toast(`⛔ ${pName(ev.pid)} is under embargo`); break;
         case 'annex': {
           // encirclement: ring pulse, then the pocket flips hex by hex
           const mid = ev.hexes[Math.floor(ev.hexes.length / 2)];
@@ -2632,7 +2634,7 @@
         case 'siege': {
           follow(ev.hex);
           Render.ring(ev.hex, '#ff4a2a', 120, 0.9, 7); Render.shake(14); SFX.alarm();
-          if (ev.victim === you) banner('YOUR HQ IS UNDER SIEGE', 'Muster troops around it and retake it on your turn', '#b52b38');
+          if (ev.victim === you) banner('YOUR HQ IS UNDER SIEGE', 'Muster troops around it and retake it on your turn', '#b52b38', true);
           else toast(`🔥 ${pName(ev.pid)} is besieging ${pName(ev.victim)}'s HQ!`, 'leg');
           await sleep(900); break;
         }
