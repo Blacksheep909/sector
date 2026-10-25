@@ -130,5 +130,15 @@ function crossing(s) {
     ok(res.ok && s.units.g1.hex === to && s.units.g2.hex === to, 'the ark sails with its troops (' + pick.join('+') + ')' + (res.ok ? '' : ': ' + res.err));
   }
 }
+{ // big cards say where they came from when they're played
+  const s = board(), T = s.map.tiles, p = E.player(s, 'A');
+  const k = Object.keys(T).find(x => E.isLandTile(T[x]) && T[x].t !== 'mountain' && !T[x].river && !T[x].owner), n = E.neighbors(k).find(x => T[x] && E.isLandTile(T[x]) && !T[x].river);
+  T[n].owner = 'A'; put(s, 'e', 'grunt', k, 'B');
+  s.turn.stage = 'choose'; s.turn.offer = ['orbital', 'orbital', 'orbital']; s.turn.income = 10;
+  ok(E.applyAction(s, 'A', { a: 'choose', pick: 'card', idx: 0 }).ok, 'took an Orbital Strike from the resupply');
+  const c = p.tactics.find(x => x.id === 'orbital'); ok(c && /resupply/.test(c.src), 'the card remembers it came from a resupply pick');
+  p.cash = 50; const r = E.applyAction(s, 'A', { a: 'tactic', uid: c.uid, target: k });
+  ok(r.ok && s.log.some(l => /Orbital Strike came from a resupply pick \(round \d+\)/.test(l)), 'playing it logs where it came from');
+}
 console.log(fails ? fails + ' FAILED' : 'all passed');
 process.exit(fails ? 1 : 0);

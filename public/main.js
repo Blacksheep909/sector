@@ -424,7 +424,7 @@
       Render.fitMap();
       if (me && me.hq) setTimeout(() => Render.focus(me.hq, Math.max(Render.cam.z, 1.05)), 300);
     }
-    $('#log').innerHTML = ''; for (const l of state.log.filter(logWorthy).slice(-6)) addLog(esc(l));
+    $('#log').innerHTML = ''; for (const l of state.log.filter(logWorthy).slice(-30)) addLog(esc(l));
     applyState(state, true);
   }
 
@@ -441,9 +441,9 @@
   const pColor = id => { const p = S.players.find(x => x.id === id); return p ? p.color : '#aaa'; };
 
   // the log keeps headlines only: falls, sieges, pacts, nukes, wins, and fights that involve you
-  const LOG_ALWAYS = ['☠', '🏆', '🔥', '🤝', '🗡', '☢', '⛔', '🚪', '🛰', '💔', '🃏', 'Draft complete'];
+  const LOG_ALWAYS = ['☠', '🏆', '🔥', '🤝', '🗡', '☢', '⛔', '🚪', '🛰', '💔', '🃏', '🚀', 'Draft complete'];
   function logWorthy(l) {
-    if (LOG_ALWAYS.some(p => l.startsWith(p))) return true;
+    if (LOG_ALWAYS.some(p => l.startsWith(p)) || l.includes('★')) return true;   // ★: someone picked up an epic-or-better card
     const me = myP(); return !!me && l.includes(me.name) && /^(⚔|💥|⭕|🧨|🏴|⚡|💣|✈)/u.test(l);
   }
   function applyState(state, initial) {
@@ -3049,8 +3049,10 @@
     while ($('#toasts').children.length > 4) $('#toasts').firstChild.remove();
   }
   function addLog(html, cls = '') {
-    const l = el('div', 'lg ' + cls, html); $('#log').appendChild(l);
-    while ($('#log').children.length > 14) $('#log').firstChild.remove();
+    const box = $('#log'), atEnd = box.scrollHeight - box.scrollTop - box.clientHeight < 24;
+    const l = el('div', 'lg ' + cls, html); box.appendChild(l);
+    while (box.children.length > 80) box.firstChild.remove();
+    if (atEnd) box.scrollTop = box.scrollHeight;   // follow the newest line, unless you've scrolled up to read
   }
   $('#chatIn').addEventListener('keydown', e => { if (e.key === 'Enter') { const v = e.target.value.trim(); if (v) send({ t: 'chat', text: v }); e.target.value = ''; e.target.blur(); } });
   $('#muteBtn').onclick = () => { const m = SFX.toggle(); setTimeout(menuMusic, 50); $('#muteBtn').textContent = m ? '✕' : '♪'; };

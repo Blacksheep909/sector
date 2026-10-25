@@ -124,7 +124,8 @@ input:focus, select:focus { border-color: var(--blue); }
 .pempty { font-size: 12px; color: var(--dim); font-style: italic; }
 
 #logBox { position: absolute; left: 12px; bottom: 190px; width: 300px; display: flex; flex-direction: column; gap: 6px; pointer-events: none; }
-#log { display: flex; flex-direction: column; gap: 3px; max-height: 26vh; overflow: hidden; justify-content: flex-end; mask-image: linear-gradient(transparent, #000 30%); }
+#log { display: flex; flex-direction: column; gap: 3px; max-height: 26vh; overflow-y: auto; overflow-x: hidden; pointer-events: auto; scrollbar-width: thin; scrollbar-color: #3a4b5c transparent; mask-image: linear-gradient(transparent, #000 30px); overscroll-behavior: contain; }
+#log > :first-child { margin-top: auto; }   /* newest at the bottom; scroll up for older lines */
 .lg { font-size: 12px; background: rgba(10,16,22,.78); padding: 4px 8px; border-radius: 6px; border-left: 3px solid #3a4b5c; animation: slideIn .25s ease-out; color: #c9d3dc; }
 .lg.chat b { color: var(--c); }
 @keyframes slideIn { from { transform: translateX(-20px); opacity: 0; } }

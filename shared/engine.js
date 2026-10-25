@@ -625,7 +625,7 @@
       };
       const starter = FACTIONS[p.faction] ? FACTIONS[p.faction].starter : null;
       if (starter && !pl.arsenal.includes(starter)) pl.arsenal.push(starter);
-      pl.tactics.push({ uid: state.nextId++, id: 'drop_rare' });
+      pl.tactics.push({ uid: state.nextId++, id: 'drop_rare', src: 'their starting kit' });
       state.players.push(pl);
       if (hq) placeHQ(state, pl, hq);
     });
@@ -1446,7 +1446,7 @@
     const dead = [];
     for (const id in s.units) if (s.units[id].owner === loser) { dead.push(+id); delete s.units[id]; }
     const bp = player(s, by);
-    if (bp) { bp.cash += spoilsCash; for (const c of spoilsCards) bp.tactics.push(c); }
+    if (bp) { bp.cash += spoilsCash; for (const c of spoilsCards) { c.src = 'the spoils of war from ' + lp.name + ' (round ' + s.turn.round + ')'; bp.tactics.push(c); } }
     if (s.trade && (s.trade.from === loser || s.trade.to === loser)) s.trade = null;
     const taken = hexes.filter(k => s.map.tiles[k].owner === by);
     ev.push({ e: 'eliminate', pid: loser, by, hexes, taken, units: dead, hq: lp.hq, plunder: bp ? spoilsCash : 0, cards: bp ? spoilsCards.length : 0 });
@@ -1498,9 +1498,10 @@
     ev.push({ e: 'crate', pid: p.id, tier, source, best: cards.map(id => cardDef(id).rarity).sort((a, b) => RARITY_ORDER.indexOf(b) - RARITY_ORDER.indexOf(a))[0] });
   }
   // give a card to a player: units join the deck (or level up), tactics go to the hand
-  function grantCard(s, p, id, replace, ev) {
+  // src: where a tactic came from, shown in the log when a big one is played
+  function grantCard(s, p, id, replace, ev, src) {
     const d = cardDef(id);
-    if (d.kind === 'tactic') { p.tactics.push({ uid: s.nextId++, id }); ev.push({ e: 'card', pid: p.id, id, rarity: d.rarity, kind: 'tactic' }); return null; }
+    if (d.kind === 'tactic') { p.tactics.push({ uid: s.nextId++, id, src: (src || 'somewhere') + ' (round ' + (s.turn ? s.turn.round : 0) + ')' }); ev.push({ e: 'card', pid: p.id, id, rarity: d.rarity, kind: 'tactic' }); return null; }
     if (p.arsenal.includes(id)) {
       const lv = (p.levels[id] || 0);
       if (lv >= MAX_LEVEL) { const refund = scaled(s, p.id, 4); p.cash += refund; ev.push({ e: 'card', pid: p.id, id, rarity: d.rarity, kind: 'unit', refund }); return null; }
@@ -1523,7 +1524,7 @@
     if (d.picked[p.id]) return fail('Waiting for the others');
     const offer = d.offers[p.id] || [];
     const id = offer[a.idx]; if (!id) return fail('No such card');
-    const err = grantCard(s, p, id, a.replace, ev); if (err) return fail(err);
+    const err = grantCard(s, p, id, a.replace, ev, 'the opening draft'); if (err) return fail(err);
     d.step[p.id] = (d.step[p.id] || 0) + 1;
     ev.push({ e: 'draftPick', pid: p.id, round: d.step[p.id] });
     if (d.step[p.id] >= d.rounds) { d.picked[p.id] = true; d.offers[p.id] = []; }
@@ -1605,7 +1606,7 @@
           p.silo[k] = 0;
           const held = heldLegendaries(s), pool = Object.keys(TACTICS).filter(id => TACTICS[id].rarity === 'mythic' && !held.has(id));
           const id = (pool.length ? pool : Object.keys(TACTICS).filter(id => TACTICS[id].rarity === 'legendary' && !id.startsWith('drop_')))[Math.floor((rng || Math.random)() * (pool.length || 1))];
-          if (id) { p.tactics.push({ uid: s.nextId++, id }); ev.push({ e: 'silo', pid: p.id, hex: k, card: id }); pushLog(s, '🚀 ' + p.name + ' armed a superweapon silo: ' + TACTICS[id].name + '!'); }
+          if (id) { p.tactics.push({ uid: s.nextId++, id, src: 'a superweapon silo (round ' + s.turn.round + ')' }); ev.push({ e: 'silo', pid: p.id, hex: k, card: id }); pushLog(s, '🚀 ' + p.name + ' armed a superweapon silo: ' + TACTICS[id].name + '!'); }
         }
       }
     }
@@ -1633,7 +1634,7 @@
       const pre = p.prePick; if (!preview) delete p.prePick;
       if (pre && !preview) {
         if (pre.pick === 'income') { p.cash += s.turn.income; ev.push({ e: 'income', pid: p.id, amount: s.turn.income, hq: p.hq }); s.turn.offer = []; s.turn.stage = 'act'; }
-        else if (s.turn.offer[pre.idx] && !grantCard(s, p, s.turn.offer[pre.idx], pre.replace, ev)) {
+        else if (s.turn.offer[pre.idx] && !grantCard(s, p, s.turn.offer[pre.idx], pre.replace, ev, 'a resupply pick')) {
           const keep = s.turn.income - cardFee(s.turn.income, s.turn.offer[pre.idx]); p.cash += keep; if (keep) ev.push({ e: 'income', pid: p.id, amount: keep, hq: p.hq });
           s.turn.offer = []; s.turn.stage = 'act';
         }
@@ -1646,7 +1647,7 @@
       const t = s.map.tiles[k], ab = getS(t, 'airbase');
       if (!ab || ab.owner !== p.id || ab.lock || t.owner !== p.id) continue;
       const pool = AIRBASE_CARDS[Math.min(3, slvlOf(ab))], id = pool[Math.floor(rng() * pool.length)];
-      p.tactics.push({ uid: s.nextId++, id });
+      p.tactics.push({ uid: s.nextId++, id, src: 'an airbase (round ' + s.turn.round + ')' });
       ev.push({ e: 'airbase', pid: p.id, hex: k, card: id, lvl: slvlOf(ab) });
     }
   }
@@ -1669,9 +1670,9 @@
     if (p.cash < c.price) return fail('Need $' + c.price);
     if (['legendary', 'mythic'].includes(TACTICS[c.id].rarity) && heldLegendaries(s).has(c.id)) return fail('Someone else already holds that one');
     p.cash -= c.price; c.sold = true;
-    grantCard(s, p, c.id, null, ev);
+    grantCard(s, p, c.id, null, ev, 'the black market');
     ev.push({ e: 'marketBuy', pid: p.id, price: c.price });
-    pushLog(s, '🕶 ' + p.name + ' bought a card on the black market.');
+    pushLog(s, '🕶 ' + p.name + ' bought ' + (RARITY_ORDER.indexOf(TACTICS[c.id].rarity) >= 3 ? TACTICS[c.id].name + ' ★' : 'a card') + ' on the black market.');
     return { ok: true, events: ev };
   }
   function endTurn(s, ev, rng) {
@@ -1886,7 +1887,7 @@
   function rerollCost(s) { return Math.max(2, Math.ceil((s.turn.income || 0) * 0.25)) * (1 + (s.turn.rerolls || 0)); }
   // bounty pays a fifth of your income per kill (min $2)
   function bountyValue(s, p) { return Math.max(2, Math.round(computeIncome(s, p.id).total * 0.2)); }
-  function pushLog(s, text) { s.log.push(text); if (s.log.length > 40) s.log.shift(); }
+  function pushLog(s, text) { s.log.push(text); if (s.log.length > 120) s.log.shift(); }
 
   // ───────────────────────── tactics targeting ─────────────────────────
   function tacticTargets(s, pid, id, from) {
@@ -2083,7 +2084,7 @@
       const t = s.map.tiles[k];
       if (!t || !(t.poi === 'ruins' || t.poi === 'cache')) continue;
       if (t.poi === 'ruins') { const amt = scaled(s, pid, 4 + Math.floor(rng() * 7)); p.cash += amt; ev.push({ e: 'loot', pid, hex: k, poi: 'ruins', amount: amt }); pushLog(s, '🏺 ' + p.name + ' looted ruins: +$' + amt + '.'); }
-      else { const id = cacheCard(rng); p.tactics.push({ uid: s.nextId++, id }); ev.push({ e: 'loot', pid, hex: k, poi: 'cache', card: id }); pushLog(s, '📦 ' + p.name + ' found a supply cache.'); }
+      else { const id = cacheCard(rng); p.tactics.push({ uid: s.nextId++, id, src: 'a supply cache (round ' + s.turn.round + ')' }); ev.push({ e: 'loot', pid, hex: k, poi: 'cache', card: id }); pushLog(s, '📦 ' + p.name + ' found a supply cache.'); }
       delete t.poi;
     }
   }
@@ -2145,7 +2146,7 @@
         pushLog(s, p.name + ' collected $' + s.turn.income + '.');
       } else {
         const id = s.turn.offer[a.idx]; if (!id) return fail('No such card');
-        const err = grantCard(s, p, id, a.replace, ev); if (err) return fail(err);
+        const err = grantCard(s, p, id, a.replace, ev, 'a resupply pick'); if (err) return fail(err);
         const keep = s.turn.income - cardFee(s.turn.income, id);
         p.cash += keep;
         if (keep) ev.push({ e: 'income', pid, amount: keep, hq: p.hq });
@@ -2169,7 +2170,7 @@
       const crate = s.turn.crate;
       if (a.a === 'pick') {
         const id = crate.cards[a.idx]; if (!id) return fail('No such card');
-        const err = grantCard(s, p, id, a.replace, ev); if (err) return fail(err);
+        const err = grantCard(s, p, id, a.replace, ev, 'a ' + CRATES[crate.tier].name); if (err) return fail(err);
         const d = cardDef(id);
         pushLog(s, p.name + ' pulled ' + (d.kind === 'unit' || RARITY_ORDER.indexOf(d.rarity) >= 3 ? d.name : 'a ' + RARITY[d.rarity].name + ' tactic') + ' from a ' + CRATES[crate.tier].name + (RARITY_ORDER.indexOf(d.rarity) >= 3 ? ' ★' : '') + '.');
       } else {
@@ -2351,11 +2352,18 @@
     if (a.a === 'tactic') {
       const ci = p.tactics.findIndex(c => c.uid === a.uid);
       if (ci < 0) return fail('Card not in hand');
-      const id = p.tactics[ci].id, def = TACTICS[id];
+      const card = p.tactics[ci], id = card.id, def = TACTICS[id];
       if (p.cash < def.cost) return fail('Need $' + def.cost);
       const r = useTactic(s, p, id, a, rng, ev);
       if (r) return fail(r);
       p.cash -= def.cost;
+      // big cards say where they came from, and a card played twice is flagged (it should never happen)
+      if (!s._preview) {
+        if (RARITY_ORDER.indexOf(def.rarity) >= 3 && !id.startsWith('drop_')) pushLog(s, '🃏 ' + p.name + "'s " + def.name + ' came from ' + (card.src || 'an unknown source') + '.');
+        s.playedUids = s.playedUids || [];
+        if (s.playedUids.includes(card.uid)) { pushLog(s, '🃏 ' + p.name + ' played a copy of ' + def.name + ' that was already spent.'); if (typeof console !== 'undefined') console.warn('[cards] ' + p.name + ' replayed tactic uid ' + card.uid + ' (' + id + ')'); }
+        s.playedUids.push(card.uid); if (s.playedUids.length > 400) s.playedUids.shift();
+      }
       const still = p.tactics.findIndex(c => c.uid === a.uid);
       if (still >= 0) p.tactics.splice(still, 1);
       return { ok: true, events: ev };
@@ -2592,7 +2600,7 @@
         if (!pool.length) return 'They have no cards you can steal';
         const pick = pool[Math.floor(rng() * pool.length)];
         let card;
-        if (pick.c) { o.tactics.splice(o.tactics.indexOf(pick.c), 1); p.tactics.push(pick.c); card = pick.c.id; }
+        if (pick.c) { o.tactics.splice(o.tactics.indexOf(pick.c), 1); pick.c.src = 'Espionage on ' + o.name + ' (round ' + s.turn.round + ')'; p.tactics.push(pick.c); card = pick.c.id; }
         else {
           card = pick.id; o.arsenal = o.arsenal.filter(x => x !== card); delete o.levels[card];
           if (p.arsenal.includes(card)) p.levels[card] = Math.min(MAX_LEVEL, (p.levels[card] || 0) + 1); else p.arsenal.push(card);
@@ -2671,7 +2679,7 @@
     if (from.cash < t.give.cash || p.cash < t.get.cash || t.give.cards.some(uid => !from.tactics.some(c => c.uid === uid))) { ev.push({ e: 'trade', status: 'failed', ...t }); return { ok: true, events: ev }; }
     from.cash -= t.give.cash; p.cash += t.give.cash;
     p.cash -= t.get.cash; from.cash += t.get.cash;
-    for (const uid of t.give.cards) { const i = from.tactics.findIndex(c => c.uid === uid); p.tactics.push(from.tactics.splice(i, 1)[0]); }
+    for (const uid of t.give.cards) { const i = from.tactics.findIndex(c => c.uid === uid), c = from.tactics.splice(i, 1)[0]; c.src = 'a trade with ' + from.name + ' (round ' + s.turn.round + ')'; p.tactics.push(c); }
     ev.push({ e: 'trade', status: 'accepted', ...t });
     pushLog(s, '🤝 ' + from.name + ' and ' + p.name + ' made a deal.'); addMood(s, from.id, p.id, 8); addMood(s, p.id, from.id, 8);
     // a gift (or a deal that's mostly one) warms them to you: the bigger it is next to their own income, the more
@@ -2831,7 +2839,7 @@
   function view(s, pid, mem) {
     const c = JSON.parse(JSON.stringify(s));
     if (c.phase !== 'over') { delete c.heat; delete c.flips; delete c.bigBattle; }
-    delete c.botMem; for (const q of c.players) delete q.persona;   // bot plans (and personalities) stay secret   // end-of-game report data stays secret until the end
+    delete c.botMem; delete c.playedUids; for (const q of c.players) delete q.persona;   // bot plans (and personalities) stay secret   // end-of-game report data stays secret until the end
     const pl = pid && c.players.find(p => p.id === pid);
     if (s.settings.fog === 'on' && pl && pl.alive && (c.phase === 'play' || c.phase === 'draft')) {
       // real fog of war (the opening draft too: the map behind it shows only what you'll see when the war starts): unexplored hexes are unknown; explored-but-unseen hexes show what you last saw
