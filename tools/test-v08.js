@@ -168,10 +168,10 @@ const land = (s, from, d) => Object.keys(s.map.tiles).find(k => E.dist(k, from) 
   const nk = Object.keys(s.map.tiles).filter(x => E.dist(x, k) <= 1);
   ok(E.tacticTargets(s, p.id, 'nuke').some(x => nk.includes(x)) || !E.tacticTargets(s, p.id, 'nuke').length, 'flak does not block nukes');
   // Trident
-  const sea = Object.keys(s.map.tiles).find(x => E.isWater(s.map.tiles[x]) && E.dist(x, k) <= 8 && !Object.values(s.units).some(u => u.hex === x));
+  const sea = Object.keys(s.map.tiles).find(x => E.isWater(s.map.tiles[x]) && E.dist(x, k) <= 4 && !Object.values(s.units).some(u => u.hex === x));
   if (sea) {
     s.units.tr = { id: 'tr', type: 'trident', owner: p.id, hex: sea, moved: false, fresh: false };
-    ok(E.rangedTargets(s, p.id, ['tr'], sea).includes(k), 'the Trident can reach a target 8 hexes away');
+    ok(E.rangedTargets(s, p.id, ['tr'], sea).includes(k), 'the Trident can reach a target within 4 hexes');
     s.units.sn = { id: 'sn', type: 'sentinel', owner: o.id, hex: k, moved: false, fresh: false };
     const r2 = E.applyAction(s, p.id, { a: 'fire', from: sea, units: ['tr'], to: k }, () => 0.1);
     ok(r2.ok && r2.events.some(e => e.e === 'intercept'), 'a Sentinel can intercept the missile');
