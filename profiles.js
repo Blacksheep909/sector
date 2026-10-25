@@ -45,6 +45,10 @@ function createProfiles(file, opts = {}) {
     if (startValor && !p.startValor) { p.coins += startValor; p.startValor = startValor; }
     if (name) p.name = String(name).slice(0, 16);
     if (!Number.isFinite(p.coins) || p.coins < 0) p.coins = 0;   // never NaN or negative, whatever happened before
+    // tactic cards no longer have versions: any bought before are refunded in full and taken off
+    const retired = (p.owned || []).filter(it => it.startsWith('c-') && !C.ITEMS[it]);
+    if (retired.length) { p.coins += retired.reduce((v, it) => v + C.retiredCardPrice(it), 0); p.owned = p.owned.filter(it => !retired.includes(it)); }
+    for (const cid in p.cards || {}) if (!E.UNITS[cid]) delete p.cards[cid];
     roll(p); save();
     return p;
   }

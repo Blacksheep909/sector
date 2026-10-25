@@ -101,7 +101,13 @@
     celestial: { name: 'Celestial', rarity: 'mythic', price: 2400, desc: 'Night sky and drifting stars inside a shifting aurora frame. The rarest version there is.' },
   };
   const CARD_MULT = { common: 1, uncommon: 1, rare: 1.25, epic: 1.5, legendary: 2, mythic: 2.5 };
-  const cardIds = () => Object.keys(E.UNITS).concat(Object.keys(E.TACTICS).filter(id => !id.startsWith('drop_') || id === 'drop_rare'));
+  // card versions are for units only, the cards you put on the map (tactic cards have none)
+  const cardIds = () => Object.keys(E.UNITS);
+  // a tactic-card version bought before they were retired: what it cost, to refund it
+  function retiredCardPrice(itemId) {
+    const m = /^c-(.+)-([a-z]+)$/.exec(itemId || ''); if (!m || E.UNITS[m[1]] || !VARIANTS[m[2]]) return 0;
+    const d = E.cardDef(m[1]); return d ? Math.round(VARIANTS[m[2]].price * (CARD_MULT[d.rarity] || 1) / 10) * 10 : 0;
+  }
   // every card's mythic version has a name of its own
   const MYTHIC_NAME = {
     grunt: 'Valhalla', skitter: 'Phantom Limb', thumper: 'Thunderclap', barracuda: 'Moonshark', stinger: 'Starwasp', corpsman: 'Seraphic', jackal: 'Anubis', coyote: 'Trickster',
@@ -109,10 +115,6 @@
     marlin: 'Tidecaller', basilisk: 'Gorgon', ranger: 'Pathfinder', skyguard: 'Heavenward', hellcat: 'Inferno Queen', wraith: 'Revenant', kraken: 'Leviathan Deep', goliath: 'Colossus',
     valkyrie: 'Einherjar', mule: 'Sleipnir', wren: 'Hummingstar', ravager: 'Starfall', stormcrow: 'Odin’s Raven', phantom: 'Ghost Protocol', hailstorm: 'Meteor Shower', sentinel: 'Watcher of Worlds', grumble: 'Polar Night', bastion: 'Celestial Keep',
     leviathan: 'World Serpent', titan: 'Atlas', seraph: 'Archangel', banshee: 'Wailing Star', carrier: 'Starhaven', oracle: 'Pythia', trident: 'Poseidon', abyssal: 'Event Horizon',
-    ambush: 'Shadowfall', holdfast: 'Unbroken', bayonets: 'Starsteel', barrage: 'Skyfire', reserves: 'Legion', steady: 'Fate’s Hand', smoke: 'Nebular Veil', march: 'Long Night',
-    rally: 'Clarion', fortify: 'Bastion of Stars', conscript: 'The Many', kamikaze: 'Shooting Star', gunrun: 'Wild Hunt', cruise: 'Long Spear', airstrike: 'Heaven’s Wrath', heli: 'Skyborne', sabotage: 'Saboteur Saint',
-    embargo: 'Iron Curtain', bounty: 'Golden Contract', precision: 'Needle of God', strategic: 'Firestorm', quarry: 'Worldbreaker', spy: 'Nightingale', bonds: 'Treasury of Stars', blitz: 'Lightning War',
-    drop_rare: 'Manna', emp: 'Solar Wind', buster: 'Bunkerfall', carpet: 'Rain of Stars', orbital: 'Kinetic Halo', nuke: 'Sunrise', mutiny: 'Turncoat Crown', tsar: 'Doomsday', regime: 'New Dawn', aegis: 'Golden Age',
   };
   for (const cid of cardIds()) for (const v in VARIANTS) {
     const d = E.cardDef(cid), V = VARIANTS[v], mythic = v === 'celestial' && MYTHIC_NAME[cid];
@@ -134,7 +136,7 @@
   // ───────── crates: card skins aren't sold outright. A few rotate through the daily store; otherwise you open crates ─────────
   // odds are percentages by rarity; a duplicate pays back part of its value
   const BOXES = {
-    field: { name: 'Field Crate', price: 300, odds: { uncommon: 62, rare: 28, epic: 8, legendary: 1.8, mythic: 0.2 }, desc: 'A card skin for any card: mostly Battle-Worn and Foil, with a slim chance of something special.' },
+    field: { name: 'Field Crate', price: 300, odds: { uncommon: 62, rare: 28, epic: 8, legendary: 1.8, mythic: 0.2 }, desc: 'A card skin for any unit card: mostly Battle-Worn and Foil, with a slim chance of something special.' },
     elite: { name: 'Elite Crate', price: 1000, odds: { rare: 55, epic: 32, legendary: 11, mythic: 2 }, desc: 'Rare or better, guaranteed. One in fifty is Mythic.' },
   };
   const DUP_REFUND = 0.3;
@@ -214,5 +216,5 @@
 
   // plain dictionaries: '__proto__', 'constructor' and the like are never items, crates or slots (see engine.js)
   for (const t of [ITEMS, VARIANTS, SLOTS, BOXES, PRICE, CARD_MULT]) Object.setPrototypeOf(t, null);
-  return { OFF_ROTATION, priceOf, FACTION_START, FACTION_PRICE, factionsOf, ITEMS, VARIANTS, SLOTS, LOOKS, BOXES, rollBox, DAILY, WEEKLY, DAY_SOFT, matchCoins, diminish, dayKey, weekKey, msToNextDay, dailyStore, dailyObjectives, weeklyObjectives, botLoadout, cleanLoadout };
+  return { retiredCardPrice, OFF_ROTATION, priceOf, FACTION_START, FACTION_PRICE, factionsOf, ITEMS, VARIANTS, SLOTS, LOOKS, BOXES, rollBox, DAILY, WEEKLY, DAY_SOFT, matchCoins, diminish, dayKey, weekKey, msToNextDay, dailyStore, dailyObjectives, weeklyObjectives, botLoadout, cleanLoadout };
 });
