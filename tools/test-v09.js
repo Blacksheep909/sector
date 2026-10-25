@@ -58,7 +58,7 @@ const idle = (s, pid) => s.players.find(p => p.id !== pid && p.id !== me(s).id) 
   E.applyAction(s, p.id, { a: 'choose', pick: 'income' });
   E.applyAction(s, p.id, { a: 'allyOffer', to: o.id }); E.applyAction(s, o.id, { a: 'allyReply', accept: true });
   // hand the ally a strip of land right next to our HQ
-  const k = E.neighbors(p.hq).find(n => s.map.tiles[n] && E.isLandTile(s.map.tiles[n]) && s.map.tiles[n].t !== 'mountain');
+  const k = E.neighbors(p.hq).find(n => s.map.tiles[n] && E.isLandTile(s.map.tiles[n]) && s.map.tiles[n].t !== 'mountain' && !s.map.tiles[n].river);   // nobody stops in a river
   s.map.tiles[k].owner = o.id; for (const id in s.units) if (s.units[id].hex === k) delete s.units[id];
   for (const id in s.units) if (s.units[id].hex === p.hq) delete s.units[id];
   s.units.g = { id: 'g', type: 'grunt', owner: p.id, hex: p.hq, moved: false, fresh: false };

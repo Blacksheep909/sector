@@ -2,57 +2,52 @@
 
 Every release, newest first. Each version also has its own post on the [Releases page](https://github.com/Blacksheep909/sector/releases).
 
-## v0.10.4 (unreleased)
+## v0.10.4
 
-**Mission fixes, a cloud transition between missions, and combined arms that works.**
+**Airbases, the black market, Industrial Revolution, anti-air and artillery reworked, a balance pass over about 1,000 simulated games, and three new missions.**
 
-- **Fix: General Hale's face and cap could show up black** in his speech bubble after NEXT MISSION. Two copies of his portrait shared their colour gradients, and when one was hidden the other drew without them. Every copy now has its own.
-- **Fix: Shift-clicking a second stack moved your first stack onto it** instead of adding it to the selection. Shift on a hex with your own troops now always adds them (combined arms); Shift on an enemy hex still sends everything selected in.
-- **Fix: missions ended before the capture played out.** The result now waits until the last fight and the troops moving in have finished on screen.
-- **Fix: after the last mission there was nothing to do but replay it.** Its result now has a **🏆 MAIN MENU** button.
-- **🗺 LOOK AT MAP** on the mission result hides it so you can look over the board, with a button to bring it back.
-- **Clouds between missions:** NEXT MISSION, RETRY and starting a mission roll in dark war-smoke from both sides while the board loads, then part, instead of a stutter and a flash of the menu.
-- Unlocking a faction ends with **AFFIRMATIVE**.
-- **Fix: joining a friend's game over LAN dropped you on the main menu.** Room codes belong to the server that made them, so typing a friend's code on your own server found nothing. A code your server doesn't know is now looked up on your network and takes you straight into your friend's room. **FIND LAN GAMES** lists every open lobby with its own JOIN (or WATCH), and an invite link now wins over a seat you had somewhere else.
-- **Fix: WATCH in FIND LAN GAMES showed the main menu over the war.**
-- **Fix: COPY INVITE LINK didn't copy over LAN.** Browsers only allow the modern clipboard on https; every copy button now falls back to the older copy command, and failing that shows the link selected, ready for Ctrl+C.
-- **Fix: the game lagged when zooming in and out.** While the camera moves, the map is redrawn at most once (softly, then sharp when you stop), and the sea background is cached. In testing, full redraws during a fast zoom went from 9 to 1, and frames from 24 ms to 17 ms.
-- **Fix: zooming out fast showed a box of sea** floating on a flat background until the redraw caught up.
-- **Fix: a card from a resupply ballooned** as it flew into an empty hand.
-- **Fog of war:** when no human can see what a bot is doing, it doesn't wait between moves (a far-off bot's turn now takes about a second), and sounds, encirclement banners and other effects for things you can't see no longer play.
-- **Air strikes** are drawn as swept-wing strike jets flying nose first (they were the gunship icon, turned sideways).
-- **General Hale** sits higher, clear of UNDO and END TURN. The lobby no longer shows a MISSIONS button (missions are on the front page), and the Esc menu in a mission has **↻ RESTART MISSION**.
-- **New rare card: the Mule**, a tandem-rotor heavy-lift helicopter. Attack 1, defence 1, 4 move, and it carries up to 8 Grunts over mountains and water. It's for moving troops, not fighting.
-- **Carriers** are slower and lighter: 1 move, attack 2, defence 2.
-- **A captured HQ becomes your FOB.** When a siege knocks a commander out, their old capital is a deploy point for whoever took it.
-- **Intel ops** cost a quarter of your income (at least $2), so scouting stays a real choice later in a war.
-- **Card versions (Foil, Gilded, Blackout and the rest) are for unit cards only**, the cards you put on the map. Tactic cards no longer have them: any you bought are refunded in full in Valor the next time you sign in, and taken off.
-- **New mythic card: Industrial Revolution** (replaces Aegis Protocol). Every building you own goes up a level at once, free and in service straight away (HQ, FOBs, Warehouses, Refineries, Depots, Bunkers, Sea Mines and Airbases, up to ★★★). If you held Aegis Protocol, or bought a version of it, it's now this card.
-- **The Flak building is retired.** Anti-air units do its job: besides shooting down air strikes, they now keep Heli Drops and EMPs out of their reach (a Stinger its own hex, a Scorpion 1 hex, a Skyguard 2, a Sentinel or Grumble 3). The Airbase takes its slot on the build bar. Old saves keep any Flak they had, but it does nothing.
-- **✈ Airbases (new building).** An Airbase hands you an **air-strike card every turn**: Gun Run or Kamikaze Drone at ★, Precision Strike or Strategic Bombing at ★★, Cruise Missile, Carpet Bombing or Bunker Buster at ★★★. It costs $25, then $40 and $60 to upgrade (+$8 for each one you bought or upgraded before), you can own up to 5, and like a FOB it takes a turn to get ready after building and after each upgrade. Bots build them too.
-- **New epic card ($5): the Cruise Missile.** A missile at any hex within 8 of your land, over mountains: kills the strongest unit on a 2+ (and the next strongest too on a 5+), or destroys a building outright.
-- **Balance pass** (from about 1,000 simulated bot games):
-  - **Anti-air no longer swats every aircraft.** A ranged anti-air shot uses only its anti-air chips, aircraft get **Evasive Flying** (+2 chips each and +1 mult) against it, and a hit downs one aircraft. A lone Stinger now rarely downs a helicopter (two or three of them usually do); a Skyguard downs a Banshee about 2 times in 3. The Sentinel and Grumble go up to +7 anti-air to match their price.
-  - **Bots buy anti-air only when an enemy flies**, and no more of it than the aircraft they've seen. They used to fill their armies with it.
-  - **Bots use the black market**: they kept too much cash back and only bought rare cards. Now they buy about one card every turn or two once it's open.
-  - **Thumper** attack 5 (was 4).
-  - **Every anti-air unit has 1 defence** (Stinger was 2, Scorpion 3, Skyguard 4, Sentinel 3, Grumble 3): they're for shooting down aircraft, and need guarding.
-  - **Factions:** **Volt** aircraft get +1 defence and all cost $1 less (not just Hornets). **Verdant** buildings cost $3 less (was $2), and its starting Bunker is ★★. **Iron**'s Steel Wall is +1 defence chip per unit, +2 on an HQ, FOB or Bunker (was +2 everywhere). In 120 five-faction bot games every faction now wins 17–24% of the time (20% is even); before, Iron won about 34% and Volt 10%.
-  - **Airbases** cost $25 / $40 / $60 (+$8 for each earlier one), up to 5 each: forced to build them, a bot wins a little more than average, not by a mile. **Cruise Missile** is now an epic ($5) from a ★★★ airbase.
-- **New mission: Air Wing** (Medium): build an airbase, bomb an island garrison your troops can't reach, and try the black market.
-- **🕶 The black market.** Once your income reaches $50 a turn, a round purple **black market** button appears on your cash panel. Every turn it stocks 5 random tactic cards to buy outright for cash (a price for the rarity plus a fifth of your income), so a big economy can turn money into cards. What you don't buy is gone next turn. Bots shop there too.
-- **Resupply cards stay worth taking all game.** A card used to cost half your income, so at $200 a turn a common Airstrike cost $100. Now a card costs a little for its rarity plus 15% of your income (never more than half), and the cash you keep shows under each card: at $200 a turn a common card costs $32. Big economies also flip rarer cards: from $30 a turn the odds slide toward rare, epic and legendary (at $150+, about 1 card in 3 is epic or better, up from 1 in 10).
-- **Anti-air fires from range, like artillery, but only at aircraft.** Stinger teams reach 1 hex, Scorpions and Skyguards 2, and SAM batteries 3. A shot hits or misses on the dice like a shell. Against ground troops anti-air is now weak: each anti-air unit counts half its attack when it attacks a hex with no aircraft in it.
-- **New epic card: the Grumble**, an S-300 long-range SAM launcher. Range 3, moves 2, +6 chips against aircraft, and a 55% chance to shoot down air strikes within 3. The **Sentinel** is the Patriot battery: it moves 1 and is still the only defence against a Trident missile.
-- **Artillery hits harder.** A shot that beats the defence by half again kills 2 units (it took double before), and one that beats it by two and a half times kills 3. Against artillery alone, Bunker and FOB walls count for half. The **Hailstorm** MLRS has 9 attack (was 7) and the **Thumper** 4 (was 3). In testing, a ★★★ Hailstorm now kills about 2 of a 5-Grunt stack per shot (1.3 before), and about 0.8 units in a bunker (0.25 before).
-- **New mission: Sky Shield** (Hard), on shooting down aircraft with anti-air. The Big Guns briefing explains the new multi-kill hits.
-- **Bots use combined arms.** When a bot masses stacks into one attack it now looks for a stack that adds a new kind of unit (troops, armour, air), and brings it in even when the odds are already good.
-- **Alliances no longer share vision.** Each side sees only with its own troops and land; an ally's moves out of your sight stay hidden. You still know where your ally's HQ is. Teammates in a team game still share vision.
-- **Gifts win bots over.** Giving a bot cash or cards (or a deal that's mostly a gift) raises its mood towards you, more for a gift that's big next to its income.
-- **The opening draft shows fog of war** behind it, not the whole map. Markers, trees and flags on the map no longer bob and hop.
-- **The Ravager** is redrawn as an Mi-28 and **the Seraph** as a C-130 gunship.
-- **Missions:** every mission now pays **100 Valor** on its first clear, and clearing every mission pays **1,000** more. There are now **19 missions** in teaching order. New: **War Chest** (income, resupply, Refineries and Warehouses), **Holding Ground** (holding a fort and your HQ: high ground, digging in, Bunkers, fortifying the HQ), **Forward Base** (FOBs and Depots), **Spoils of War** (ruins, caches, villages, relics and abandoned FOBs), **Air Power** (Airstrikes, Gun Runs, Heli Drops and Flak), **Sea Lanes** (Ports, warships and sea control) and **The Cauldron** (encirclement). Missions you'd already cleared stay unlocked. Bigger "situation" missions are on the way.
+### New
+- **✈ Airbases.** A new building that hands you an **air-strike card every turn**: Gun Run or Kamikaze Drone at ★, Precision Strike or Strategic Bombing at ★★, Cruise Missile, Carpet Bombing or Bunker Buster at ★★★. It costs $25, then $40 and $60 to upgrade (+$8 for each one you've bought or upgraded before), you can own up to 5, and like a FOB it takes a turn to get ready after building and after each upgrade. It takes the old Flak building's slot on the build bar.
+- **🕶 The black market.** Once your income reaches $50 a turn, a round purple **black market** button appears on your cash panel. Every turn it stocks 5 random tactic cards to buy outright for cash (a price for the rarity plus a fifth of your income). What you don't buy is gone next turn, and nobody else sees your stock.
+- **🏭 Industrial Revolution** (new mythic card, replaces Aegis Protocol): every building you own goes up a level at once, free and ready straight away. If you held Aegis Protocol it's now this card.
+- **New epic card: the Cruise Missile** ($5). Any hex within 8 of your land, over mountains: kills the strongest unit on a 2+ (and the next strongest too on a 5+), or destroys a building outright.
+- **New epic unit: the Grumble**, an S-300 long-range SAM launcher (range 3, moves 2). The **Sentinel** is the Patriot battery: it moves 1 and is still the only defence against a Trident missile.
+- **New rare unit: the Mule**, a tandem-rotor heavy-lift helicopter. Attack 1, defence 1, 4 move, and it carries up to 8 Grunts over mountains and water.
 
+### Anti-air, artillery and air defence
+- **Anti-air fires from range, but only at aircraft:** Stinger teams 1 hex, Scorpions and Skyguards 2, Sentinels and Grumbles 3. Aircraft get **Evasive Flying** against it (+2 chips each and +1 mult) and a hit downs one aircraft, so a lone Stinger rarely brings down a helicopter but two or three together usually do; a Skyguard downs a Banshee about 2 times in 3. Anti-air is weak against ground troops (half its attack) and every anti-air unit has **1 defence**, so it needs guarding.
+- **The Flak building is retired.** Anti-air units do its job: besides shooting down air strikes, they keep Heli Drops and EMPs out of their reach. Old saves keep any Flak, but it does nothing.
+- **Artillery hits harder.** A shot that beats the defence by half again kills 2 units, and by two and a half times kills 3. Against artillery alone, Bunker and FOB walls count for half. **Hailstorm** attack 9 (was 7), **Thumper** 5 (was 3). Every ranged unit now destroys about the same value per dollar.
+
+### Economy
+- **Resupply cards stay worth taking all game.** A card now costs a little for its rarity plus 15% of your income (never more than half), not half your income, and the cash you keep shows under each card. Big economies also flip rarer cards.
+- **Card versions** (Foil, Gilded, Blackout and the rest) are for **unit cards only** now. Tactic-card versions you bought are refunded in full in Valor on your next sign-in.
+
+### Balance (checked over about 1,000 bot games)
+- **Factions rebalanced:** **Volt** aircraft get +1 attack and +1 defence and all cost $1 less; **Verdant** buildings cost $3 less, each building it owns pays +$1 a turn, and its starting Bunker is ★★; **Iron**'s Steel Wall is +1 defence chip per unit (was +2). In 160 five-faction bot games every faction now wins 18–24% of the time (20% is even); before, Iron won about a third and Volt and Verdant about a tenth.
+- **Carriers** are slower and lighter (1 move, attack 2, defence 2). **Intel ops** cost a quarter of your income (at least $2). **A captured HQ becomes the conqueror's FOB.**
+
+### Bots
+- **Combined arms:** when massing an attack they bring in stacks that add a new kind of unit.
+- They buy **anti-air only when an enemy flies**, use the **black market** and **airbases**, and play the new cards.
+- **Gifts win them over:** cash or cards given to a bot raise its mood towards you.
+
+### Alliances and fog of war
+- **Alliances no longer share vision**; you still know where your ally's HQ is. Teammates in a team game still share vision.
+- The **opening draft shows fog of war** behind it. When no human can see a bot, it doesn't wait between moves, and sounds and banners for things you can't see no longer play.
+
+### Missions
+- **19 missions**, each paying **100 Valor** on its first clear, and **1,000** more for clearing them all. New: **War Chest**, **Holding Ground**, **Forward Base**, **Spoils of War**, **Air Power**, **Sea Lanes**, **The Cauldron**, **Air Wing** (airbases and the black market) and **Sky Shield** (anti-air).
+- Clouds roll across between missions, **LOOK AT MAP** and **MAIN MENU** on the result, **RESTART MISSION** in the Esc menu, and missions no longer end before the last capture plays out.
+
+### Fixes and polish
+- Joining a friend's game over LAN, WATCH in FIND LAN GAMES, and COPY INVITE LINK over LAN all work.
+- Zooming is much smoother, with no sea box on a fast zoom-out; markers on the map no longer bob.
+- Shift-clicking a second stack adds it to the selection instead of moving onto it.
+- General Hale's portrait no longer turns black, and he sits clear of UNDO and END TURN.
+- Redrawn: the Ravager (Mi-28), the Seraph (C-130 gunship), air strikes (swept-wing jets) and the Airbase.
+
+## v0.10.3
 
 **Singleplayer with saves on your account, public wars you can host, a store overhaul, clean chat, and a round of security fixes.**
 
