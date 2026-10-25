@@ -142,7 +142,7 @@ $3 base
 - **Artillery and warships** can shell undefended economic buildings in range: each salvo knocks off a level.
 - **Strategic Bombing** (Rare) hits a hex and its neighbours: their economic buildings lose a level, and that land is **bombed out**, paying nothing for its owner's next 2 turns (supply still runs through it).
 
-**Air defence.** Flak and anti-air units can shoot down air strikes (Gun Run, Kamikaze Drone, Airstrike, Precision Strike, Cruise Missile, Bunker Buster, Carpet and Strategic Bombing) aimed near them. Flak covers hexes within its level (35% at ★, +10% per level); a Stinger covers its own hex (25%), a Scorpion 1 hex (35%), a Skyguard 2 (50%), a Grumble 3 (55%) and a Sentinel 3 (60%). Chances stack, up to 90%. Precision Strikes are only 60% as likely to be caught. A downed strike still spends the card. Flak also blocks Heli Drops and EMPs. **Nukes and the Tsar Bomba can't be stopped.** The **Trident** submarine's missile (range 8) can only be intercepted by Sentinels within 3 of its target.
+**Air defence.** Anti-air units can shoot down air strikes (Gun Run, Kamikaze Drone, Airstrike, Precision Strike, Cruise Missile, Bunker Buster, Carpet and Strategic Bombing) aimed near them. A Stinger covers its own hex (25%), a Scorpion 1 hex (35%), a Skyguard 2 (50%), a Grumble 3 (55%) and a Sentinel 3 (60%). Chances stack, up to 90%. Precision Strikes are only 60% as likely to be caught. A downed strike still spends the card. Anti-air also blocks Heli Drops and EMPs within that same reach. (The old Flak building is gone: anti-air units do its job.) **Nukes and the Tsar Bomba can't be stopped.** The **Trident** submarine's missile (range 8) can only be intercepted by Sentinels within 3 of its target.
 
 **Supply:** a hex pays only if it connects through your own territory to your HQ or a Port. A **FOB supplies land only while it's connected** that way too (a cut-off FOB still takes reinforcements, but supplies nothing), and you can only build a FOB on supplied land. Owned sea counts as territory, so sea lanes carry supply to your islands. Cut-off hexes are hatched on the map and pay nothing.
 
@@ -179,7 +179,7 @@ Maps have climate. It's colder toward the top and bottom edges and hotter in the
 - Mountains block movement except for air units. Open water blocks land units unless they're aboard an Ark; aircraft fly across it, and can end their move over it.
 - A hex holds at most 5 units, and mixed types share a stack freely. A hex of nothing but Grunts can hold 10, and so can a stack whose Grunts ride in carriers (never more than 10).
 - Entering an empty enemy hex captures it. Entering an occupied hex starts a fight.
-- **Sweeping advance:** undefended enemy land doesn't slow you down. Troops keep moving at full speed through empty enemy hexes and capture every one on the way. They stop when they take a fortified hex (FOB or Flak), when they come next to enemy troops, or at a river. Bunkers and HQs still have to be attacked.
+- **Sweeping advance:** undefended enemy land doesn't slow you down. Troops keep moving at full speed through empty enemy hexes and capture every one on the way. They stop when they take a fortified hex (a FOB), when they come next to enemy troops, or at a river. Bunkers and HQs still have to be attacked.
 
 ## Combined assaults (pincers)
 
@@ -216,7 +216,7 @@ You **throw your own die**: drag and fling it in the dice tray, or press `Space`
 | Hellfire | +3 chips per Banshee against vehicles |
 | Ground Fire | +1 chip per infantry unit in any fight against helicopters (rifles hit helicopters too) |
 | Siege Breaker | +2 mult vs fortified hexes |
-| Aegis / Flak | +1 defender mult / +2 vs air |
+| Aegis | +1 defender mult |
 | Shore Assault | −1 mult when ships alone attack a land hex |
 
 **No contest.** When the odds show 100%, every possible roll wins, so there's no dice roll at all. The defenders are **obliterated** on the spot, and you take no pyrrhic losses.
@@ -249,7 +249,7 @@ Units with a range stat fire instead of moving.
 
 ## Buildings and upgrades
 
-Build from the build bar (`Z` and onward; the Airbase is `;`). To **upgrade** a structure, build the same one again on the same hex. Each structure goes up to ★★★, and each level costs more: ×1.5, then ×2.25. Every building you buy also makes the next one of that type $2 dearer (HQ fortification excepted), so spreading out across building types is cheaper than spamming one.
+Build from the build bar (`Z` to `/`; the Airbase is `/`). To **upgrade** a structure, build the same one again on the same hex. Each structure goes up to ★★★, and each level costs more: ×1.5, then ×2.25. Every building you buy also makes the next one of that type $2 dearer (HQ fortification excepted), so spreading out across building types is cheaper than spamming one.
 
 | Structure | Per level |
 |---|---|
@@ -260,7 +260,6 @@ Build from the build bar (`Z` and onward; the Airbase is `;`). To **upgrade** a 
 | **Depot** | +1 to its range for the move bonus |
 | **Bunker** | +3 garrison chips (even when empty, so it must be attacked) and +1 defence mult (★ gives +2). From ★★, your neighbouring hexes get +1 mult (Bunker Line). **Hold the Line:** when defended against a stronger attack, +40% of the attacker's chip lead (max 4 per level). **★★★ Citadel:** 14 garrison chips, +5 mult, +2 mult to neighbours, and Hold the Line takes 60% of the lead (max 20). **Destroyed** when an enemy captures its hex |
 | **Sea Mine** | The naval Bunker, built on your own sea: +3 garrison chips per level (so enemy ships must fight through instead of sailing past) and +2 defence mult (+1 per extra level). Cleared when an enemy captures the hex |
-| **Flak** | +1 hex of air-defence coverage, and +10% to shoot down air strikes |
 | **Airbase** | Hands you one air-strike card at the start of each of your turns: a common at ★ (Gun Run or Kamikaze Drone), a rare at ★★ (Precision Strike or Strategic Bombing), an epic at ★★★ (Cruise Missile, Carpet Bombing or Bunker Buster). It costs **$25, $40 and $60** for its three levels, plus $8 for every airbase you've bought or upgraded before, and you can own **up to 5**. Like a FOB it **takes a turn to get ready**, after building and after each upgrade (no card that turn). A captured airbase is yours after a turn |
 
 Ports and bridges don't upgrade. **Sabotage** knocks a level off a structure, and destroys it only at ★.

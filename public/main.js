@@ -1590,7 +1590,7 @@
 
   // ───────────── bars: unit deck (cards, keys 1-0), build bar (Z-M), tactic hand ─────────────
   const UNIT_KEYS = ['1', '2', '3', '4', '5', '6', '7', '8', '9', '0'];
-  const BUILD_KEYS = ['z', 'x', 'c', 'v', 'b', 'n', 'm', ',', '.', '/', ';'];
+  const BUILD_KEYS = ['z', 'x', 'c', 'v', 'b', 'n', 'm', ',', '.', '/'];
   let hotbarSig = '';
   function hotbarItems() {
     const ds = dispState(); const me = ds && ds.players.find(p => p.id === you);

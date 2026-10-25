@@ -26,6 +26,7 @@ Every release, newest first. Each version also has its own post on the [Releases
 - **Carriers** are slower and lighter: 1 move, attack 2, defence 2.
 - **A captured HQ becomes your FOB.** When a siege knocks a commander out, their old capital is a deploy point for whoever took it.
 - **Intel ops** cost a quarter of your income (at least $2), so scouting stays a real choice later in a war.
+- **The Flak building is retired.** Anti-air units do its job: besides shooting down air strikes, they now keep Heli Drops and EMPs out of their reach (a Stinger its own hex, a Scorpion 1 hex, a Skyguard 2, a Sentinel or Grumble 3). The Airbase takes its slot on the build bar. Old saves keep any Flak they had, but it does nothing.
 - **✈ Airbases (new building).** An Airbase hands you an **air-strike card every turn**: Gun Run or Kamikaze Drone at ★, Precision Strike or Strategic Bombing at ★★, Cruise Missile, Carpet Bombing or Bunker Buster at ★★★. It costs $25, then $40 and $60 to upgrade (+$8 for each one you bought or upgraded before), you can own up to 5, and like a FOB it takes a turn to get ready after building and after each upgrade. Bots build them too.
 - **New epic card ($5): the Cruise Missile.** A missile at any hex within 8 of your land, over mountains: kills the strongest unit on a 2+ (and the next strongest too on a 5+), or destroys a building outright.
 - **Balance pass** (from about 1,000 simulated bot games):

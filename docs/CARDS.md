@@ -22,7 +22,7 @@ Unit cards are permanent unlocks: deploy as many as you can afford.
 | **Lancer** | Infantry | Uncommon | $5 | 3 | 2 | 2 | – | Tank Hunter: +3 Chips when fighting vehicles. |
 | **Warden** | Air | Uncommon | $4 | 1 | 3 | 3 | – | Airborne radar plane. Aegis: +1 Mult when its hex defends. |
 | **Sapper** | Infantry | Uncommon | $4 | 2 | 2 | 2 | – | Demolitions: +3 Chips attacking a hex with buildings. |
-| **Scorpion** | Vehicle | Uncommon | $5 | 2 | 3 | 3 | 2 | Flak tank. Fires at aircraft 2 hexes away (+4 Chips vs aircraft); 35% to shoot down air strikes within 1. Weak against ground troops. |
+| **Scorpion** | Vehicle | Uncommon | $5 | 2 | 3 | 3 | 2 | Self-propelled anti-air gun. Fires at aircraft 2 hexes away (+4 Chips vs aircraft); 35% to shoot down air strikes within 1. Weak against ground troops. |
 | **Bulwark** | Vehicle | Uncommon | $6 | 3 | 5 | 3 | – | Armoured personnel carrier. Holds the line, and carries up to 4 Grunts with it at its own speed. |
 | **Mauler** | Vehicle | Uncommon | $6 | 5 | 4 | 2 | – | Main battle tank. |
 | **Ark** | Naval | Uncommon | $4 | 0 | 3 | 4 | – | Transport. Carries up to 3 land units across the sea. |
@@ -69,7 +69,7 @@ Single-use cards from your hand.
 | **Covering Barrage** | Rare | $2 | Battle card (attack or defence): +3 Mult to your side. |
 | **Reserves** | Rare | $2 | Battle card (attack or defence): every unit on your side gets +2 Chips. |
 | **Steady Nerves** | Rare | $2 | Battle card (attack or defence): your die never rolls below 3. |
-| **Precision Strike** | Rare | $5 | Guided bomb within 5 of your land, ignores Flak. Kills the strongest unit (2 on a 5+), or destroys a building. |
+| **Precision Strike** | Rare | $5 | Guided bomb within 5 of your land, hard for anti-air to catch. Kills the strongest unit (2 on a 5+), or destroys a building. |
 | **Strategic Bombing** | Rare | $5 | Bombers hit an enemy hex within 6 and its neighbours: their economic buildings lose a level, and that land pays nothing for 2 turns. |
 | **Quarry Blast** | Rare | $3 | Blast a mountain within 3 of your land, and the mountain behind it, down into Highlands: a 2-hex pass. |
 | **War Bonds** | Rare | $0 | Gain $1 for every 2 hexes you own. |
@@ -94,7 +94,7 @@ Built from the hotbar (keys Z–M) on hexes you own that are connected to supply
 | **Bunker** | $4 | Strongpoint with its own garrison: +3 Chips per level even when empty, so enemies must attack it. +2 Mult defence (+1 per extra level). ★★+ also gives your neighbouring hexes +1 Mult. Digs in against big attacks: +40% of the attacker chip lead (up to 4 per level). ★★★ Citadel: 14 garrison Chips, +5 Mult, +2 Mult to neighbours, and holds 60% of the lead (up to 20). Destroyed if an enemy captures it. |
 | **Sea Mine** | $4 | A minefield on one of your sea hexes: the naval Bunker. +3 Chips per level even when empty, so enemy ships must fight their way through instead of sailing past. +2 Mult defence (+1 per extra level). Cleared if an enemy captures the hex. |
 | **Airbase** | $25 | Every turn it hands you an air-strike card: commons (Gun Run, Kamikaze Drone) at ★, rares (Precision Strike, Strategic Bombing) at ★★, epics (Cruise Missile, Carpet Bombing, Bunker Buster) at ★★★. Up to 5 per commander. Takes a turn to build and a turn to upgrade. $25, $40, $60, plus $8 for each one you bought or upgraded before. |
-| **Flak** | $5 | Air defence: can shoot down enemy air strikes nearby (range = level, 35% +10% per level). Blocks Heli Drops and EMPs (nukes cannot be stopped). +2 Mult vs air. |
+| **Flak (retired)** | $5 | No longer built and has no effect: anti-air units took over air defence. Only found in old saves. |
 
 ## Factions
 
