@@ -1904,3 +1904,13 @@ body.calm .unlock-fx::after, body.calm .ul-spark { display: none; }
 body.calm .cl-side { transition-duration: .2s !important; }
 .copy-card { display: grid; gap: 10px; width: min(460px, 92vw); } .copy-card input { font-size: 14px; padding: 10px; }
 .mr-bonus { margin: 6px 0 2px; font-size: 18px; color: #ffd34d; text-shadow: 0 0 14px rgba(255,200,60,.5); animation: ulUp .5s ease-out .6s both; }
+
+/* ── touch screens ── */
+#map { touch-action: none; }   /* the game handles panning and pinching itself */
+#touchBar { position: fixed; left: 50%; transform: translateX(-50%); top: calc(env(safe-area-inset-top, 0px) + 64px); z-index: 60; display: flex; gap: 8px; }
+#touchBar[hidden] { display: none; }
+#touchBar .btn { padding: 8px 14px; font-size: 14px; box-shadow: 0 3px 0 #000; }
+#touchBar #tbCancel { background: #3a1d22; border-color: #ff4f5e; color: #ffd8dc; }
+#touchBar #tbMulti.on { background: var(--gold); color: #1a1205; border-color: #fff3c4; }
+body.touch #tooltip { max-width: 70vw; }
+#tooltip .tip-confirm { margin-top: 5px; color: var(--gold); font-weight: 800; letter-spacing: .5px; }

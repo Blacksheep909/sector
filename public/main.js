@@ -932,6 +932,7 @@
   // war-room drawing: only while the Alt view is on
   let warDraw = null;
   cvs.addEventListener('pointerdown', e => {
+    if (e.pointerType === 'touch') return;   // fingers are handled by the touch layer below
     if (!Render.ov.troops || !S || S.phase !== 'play' || !myP()) return;
     e.stopImmediatePropagation();
     const k = Render.hexAt(e.clientX, e.clientY); if (!k) return;
@@ -950,16 +951,19 @@
   }, true);
   let boxSel = null;
   cvs.addEventListener('pointerdown', e => {
+    if (e.pointerType === 'touch') return;   // fingers are handled by the touch layer below
     down = { x: e.clientX, y: e.clientY, b: e.button, moved: false }; cvs.setPointerCapture(e.pointerId);
     if (e.shiftKey && e.button === 0 && canCommand()) { boxSel = { x: e.clientX, y: e.clientY, el: el('div', '', '') }; boxSel.el.id = 'boxSel'; document.body.appendChild(boxSel.el); }
   });
   cvs.addEventListener('pointermove', e => {
+    if (e.pointerType === 'touch') return;   // fingers are handled by the touch layer below
     if (!boxSel) return;
     const x0 = Math.min(boxSel.x, e.clientX), y0 = Math.min(boxSel.y, e.clientY), b = boxSel.el.style;
     b.left = x0 + 'px'; b.top = y0 + 'px'; b.width = Math.abs(e.clientX - boxSel.x) + 'px'; b.height = Math.abs(e.clientY - boxSel.y) + 'px';
     if (down) down.boxing = true;
   }, true);
   cvs.addEventListener('pointerup', e => {
+    if (e.pointerType === 'touch') return;   // fingers are handled by the touch layer below
     if (!boxSel) return; const bs = boxSel; boxSel = null; bs.el.remove();
     if (!down || !down.boxing) return;
     const x0 = Math.min(bs.x, e.clientX), x1 = Math.max(bs.x, e.clientX), y0 = Math.min(bs.y, e.clientY), y1 = Math.max(bs.y, e.clientY);
@@ -971,6 +975,7 @@
     SFX.select(); toast(`${hexes.length} stack${hexes.length > 1 ? 's' : ''} selected — click a hex to send them all, or a red target to attack together`); refreshAll();
   }, true);
   cvs.addEventListener('pointermove', e => {
+    if (e.pointerType === 'touch') return;   // fingers are handled by the touch layer below
     if (down) {
       const dx = e.clientX - down.x, dy = e.clientY - down.y;
       if (down.moved || Math.hypot(dx, dy) > 6) { down.moved = true; Render.pan(e.movementX, e.movementY); cvs.style.cursor = 'grabbing'; hideTip(); return; }
@@ -980,6 +985,7 @@
     showHexTip(k, e.clientX, e.clientY);
   });
   cvs.addEventListener('pointerup', e => {
+    if (e.pointerType === 'touch') return;   // fingers are handled by the touch layer below
     cvs.style.cursor = 'default';
     if (down && !down.moved) {
       if (down.b === 2) cancel();
@@ -987,9 +993,89 @@
     }
     down = null;
   });
-  cvs.addEventListener('pointerleave', () => { hideTip(); });
+  cvs.addEventListener('pointerleave', e => { if (e.pointerType !== 'touch') hideTip(); });   // a lifted finger 'leaves' too: keep its tooltip
   cvs.addEventListener('contextmenu', e => e.preventDefault());
   cvs.addEventListener('wheel', e => { e.preventDefault(); Render.zoomAt(e.clientX, e.clientY, e.deltaY < 0 ? 1.12 : 1 / 1.12); }, { passive: false });
+
+  // ───────────── touch: one finger pans, two pinch to zoom, a tap acts, holding a finger down shows a hex's details ─────────────
+  // there is no hover on a touchscreen, so an order (a move, an attack, a shot, a tactic) takes two taps: the first shows
+  // the route and the odds, the second on the same hex sends it. Cancel and multi-select get buttons of their own
+  var isTouchDevice = matchMedia('(pointer: coarse)').matches || navigator.maxTouchPoints > 0;   // var: the HUD may refresh before this line runs
+  if (isTouchDevice) document.body.classList.add('touch');
+  const fingers = new Map();
+  var gest = null, touchPreview = null, multiArm = false;
+  const spread = () => { const [a, b] = [...fingers.values()]; return { d: Math.hypot(a.x - b.x, a.y - b.y), x: (a.x + b.x) / 2, y: (a.y + b.y) / 2 }; };
+  const ownActable = k => { const ds = dispState(); return !!ds && Object.values(ds.units).some(u => u.hex === k && u.owner === you && E.canAct(ds, u)); };
+  // would tapping this hex send an order straight away?
+  function wouldOrder(k) {
+    if (!k || !S || S.phase !== 'play') return false;
+    if (mode && mode.type === 'tactic') return !!(Render.ov.targets && Render.ov.targets.has(k) && !(E.TACTICS[mode.id].target === 'heli' && !mode.from));
+    if (mode || !sel || !sel.units.size || k === sel.hex || !canCommand()) return false;
+    if (multiArm && ownActable(k)) return false;
+    const ov = Render.ov; if (ov.fire && ov.fire.has(k)) return true;
+    const r = ov.reach && ov.reach[k];
+    return !!(r && r.kind !== 'start' && r.kind !== 'pass') || !!(sel.extra && sel.extra.length && !ownActable(k));
+  }
+  function touchTap(k, x, y) {
+    if (wouldOrder(k) && touchPreview !== k) {
+      touchPreview = k; hoverK = k; Render.ov.hover = k; hoverPath(k); Render.invalidate();
+      showHexTip(k, x, Math.max(10, y - 150)); Render.ring(k, '#ffc53d', 40, 0.4, 3); SFX.click();
+      // say what the second tap will do, even where the hex itself has nothing to show
+      const tip = $('#tooltip'); if (tip.hidden) { tip.innerHTML = '<b>' + (mode && mode.type === 'tactic' ? 'TARGET' : 'MOVE HERE') + '</b>'; tip.hidden = false; tip.style.left = Math.min(innerWidth - 200, x + 16) + 'px'; tip.style.top = Math.max(10, y - 80) + 'px'; }
+      tip.insertAdjacentHTML('beforeend', '<div class="tip-confirm">Tap again to ' + (mode && mode.type === 'tactic' ? 'fire' : 'send') + '</div>');
+      return;
+    }
+    touchPreview = null; hideTip();
+    shiftDown = multiArm; ctrlDown = false;
+    onHexClick(k).finally(() => { shiftDown = false; renderTouchBar(); });
+  }
+  cvs.addEventListener('pointerdown', e => {
+    if (e.pointerType !== 'touch') return;
+    if (e.isPrimary) { fingers.clear(); if (gest) clearTimeout(gest.hold); gest = null; }   // a new gesture: forget any finger whose lift we never heard about
+    fingers.set(e.pointerId, { x: e.clientX, y: e.clientY }); try { cvs.setPointerCapture(e.pointerId); } catch (err) {}
+    if (fingers.size === 1) {
+      const x = e.clientX, y = e.clientY;
+      gest = { x0: x, y0: y, last: { x, y }, moved: false, held: false };
+      gest.hold = setTimeout(() => { if (!gest || gest.moved || fingers.size !== 1) return; gest.held = true; const k = Render.hexAt(x, y); hoverK = k; Render.ov.hover = k; hoverPath(k); Render.invalidate(); showHexTip(k, x, Math.max(10, y - 160)); if (navigator.vibrate) navigator.vibrate(12); }, 420);
+    } else if (gest) { clearTimeout(gest.hold); gest.moved = true; gest.pinch = spread(); }
+  });
+  cvs.addEventListener('pointermove', e => {
+    if (e.pointerType !== 'touch' || !fingers.has(e.pointerId) || !gest) return;
+    fingers.set(e.pointerId, { x: e.clientX, y: e.clientY });
+    if (fingers.size >= 2 && gest.pinch) {
+      const now = spread(), p0 = gest.pinch;
+      if (p0.d > 0 && now.d > 0) Render.zoomAt(now.x, now.y, now.d / p0.d);
+      Render.pan(now.x - p0.x, now.y - p0.y); gest.pinch = now; hideTip(); return;
+    }
+    const dx = e.clientX - gest.last.x, dy = e.clientY - gest.last.y; gest.last = { x: e.clientX, y: e.clientY };
+    if (!gest.moved && Math.hypot(e.clientX - gest.x0, e.clientY - gest.y0) > 9) { gest.moved = true; clearTimeout(gest.hold); if (!gest.held) hideTip(); }
+    if (gest.moved && !gest.held) Render.pan(dx, dy);
+  });
+  const fingerUp = e => {
+    if (e.pointerType !== 'touch' || !fingers.has(e.pointerId)) return;
+    fingers.delete(e.pointerId);
+    if (fingers.size === 1 && gest) { const [f] = fingers.values(); gest.last = { x: f.x, y: f.y }; gest.pinch = null; return; }   // one finger left: keep panning, never a tap
+    if (fingers.size || !gest) return;
+    const g = gest; gest = null; clearTimeout(g.hold);
+    if (g.held) { setTimeout(hideTip, 1600); return; }
+    if (!g.moved && e.type === 'pointerup') touchTap(Render.hexAt(e.clientX, e.clientY), e.clientX, e.clientY);
+  };
+  cvs.addEventListener('pointerup', fingerUp); cvs.addEventListener('pointercancel', fingerUp);
+  // on-screen stand-ins for Esc / right-click (cancel) and Shift (add another stack to the selection)
+  function renderTouchBar() {
+    if (!isTouchDevice) return;
+    let bar = $('#touchBar');
+    if (!bar) {
+      bar = el('div', '', '<button class="btn" id="tbCancel">✕ CANCEL</button><button class="btn" id="tbMulti">＋ ADD STACKS</button>'); bar.id = 'touchBar'; document.body.appendChild(bar);
+      $('#tbCancel').onclick = () => { multiArm = false; touchPreview = null; cancel(); renderTouchBar(); SFX.click(); };
+      $('#tbMulti').onclick = () => { multiArm = !multiArm; touchPreview = null; renderTouchBar(); SFX.click(); toast(multiArm ? 'Tap more of your stacks to add them, then a target to send them all' : 'Multi-select off'); };
+    }
+    const playing = !!(S && S.phase === 'play' && !$('#hud').hidden);
+    if (!sel) multiArm = false;
+    bar.hidden = !(playing && (sel || mode || touchPreview));
+    $('#tbMulti').hidden = !(sel && sel.units.size && canCommand());
+    $('#tbMulti').classList.toggle('on', multiArm);
+  }
   // sign of life for the server's AFK check (throttled); while a bot covers your AFK seat, any input takes it back
   let aliveAt = 0;
   const imAfk = () => !!(lobby && S && lobby.players.some(p => (p.id === realId || (p.local && p.controller === realId)) && p.afk));
@@ -1311,7 +1397,7 @@
     const P = window.__refreshPerf || (window.__refreshPerf = {}), tm = (n, f) => { const t0 = performance.now(); f(); const d = performance.now() - t0; P[n] = +((P[n] || 0) * 0.8 + d * 0.2).toFixed(2); if (d > (P[n + '^'] || 0)) P[n + '^'] = +d.toFixed(1); };
     tm('state', () => Render.setState(S));
     tm('overlays', updateOverlays);
-    tm('top', renderTop); tm('cash', renderCash); renderSiege(); renderUndo(); renderMarket(); renderWeather(); tm('ally', renderAlly); tm('plan', renderPlan); tm('hex', renderHexPanel); tm('hand', renderHand); renderEnd(); renderModeHint(); renderOffer(); renderTurnPill(); renderAfk(); renderSpeed(); renderWait(); checkAutoEnd(); layoutHud();
+    tm('top', renderTop); tm('cash', renderCash); renderSiege(); renderUndo(); renderMarket(); renderTouchBar(); renderWeather(); tm('ally', renderAlly); tm('plan', renderPlan); tm('hex', renderHexPanel); tm('hand', renderHand); renderEnd(); renderModeHint(); renderOffer(); renderTurnPill(); renderAfk(); renderSpeed(); renderWait(); checkAutoEnd(); layoutHud();
   }
   // game speed button: the host sets the pace; anyone may once only bots are left
   // speed strip: ⏸ and > >> >>> (and 🚀 when only bots are left). The host controls it; anyone may once only bots play

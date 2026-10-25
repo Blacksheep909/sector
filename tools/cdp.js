@@ -4,7 +4,7 @@ const { spawn } = require('child_process');
 const fs = require('fs');
 const path = require('path');
 const sleep = ms => new Promise(r => setTimeout(r, ms));
-async function launch({ browser, url, width = 1600, height = 900, port = 9333 }) {
+async function launch({ browser, url, width = 1600, height = 900, port = 9333, mobile = false }) {
   const prof = path.join(require('os').tmpdir(), 'sector-cdp-' + Date.now());
   const proc = spawn(browser || process.env.SECTOR_BROWSER || 'C:/Program Files (x86)/Microsoft/Edge/Application/msedge.exe', ['--headless=new', '--remote-debugging-port=' + port, '--user-data-dir=' + prof, `--window-size=${width},${height}`, '--hide-scrollbars', ...(process.platform === 'win32' ? [] : ['--no-sandbox']), 'about:blank'], { stdio: 'ignore' });
   let target;
@@ -26,7 +26,9 @@ async function launch({ browser, url, width = 1600, height = 900, port = 9333 })
   } catch (e) {} };
   process.on('exit', killAll);
   process.on('unhandledRejection', e => { console.error(e); process.exit(1); });
-  await cmd('Emulation.setDeviceMetricsOverride', { width, height, deviceScaleFactor: 1, mobile: false });
+  await cmd('Emulation.setDeviceMetricsOverride', { width, height, deviceScaleFactor: mobile ? 2 : 1, mobile: !!mobile });
+  // a phone: touch input, a phone browser's user agent and a coarse pointer, so the page lays itself out for touch
+  if (mobile) { await cmd('Emulation.setTouchEmulationEnabled', { enabled: true, maxTouchPoints: 5 }); await cmd('Emulation.setUserAgentOverride', { userAgent: 'Mozilla/5.0 (iPhone; CPU iPhone OS 17_0 like Mac OS X) AppleWebKit/605.1.15 (KHTML, like Gecko) Version/17.0 Mobile/15E148 Safari/604.1' }); await cmd('Emulation.setEmitTouchEventsForMouse', { enabled: true, configuration: 'mobile' }); }
   await cmd('Page.enable');
   await cmd('Page.navigate', { url });
   await sleep(2500);
