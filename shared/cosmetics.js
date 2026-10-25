@@ -153,10 +153,14 @@
   // a finished match pays by placement and how well you fought; the more you've earned today, the less each match adds
   // (a smooth curve, not a wall: nobody gets an insane amount from a mis-tuned reward, and nobody is ever cut off)
   const DAY_SOFT = 600;   // after this many coins in a day, a match pays half; after twice this, a third…
+  // a game counts once you've played at least 5 minutes of it and destroyed at least 10 enemy units
+  const MIN_MINUTES = 5, MIN_KILLS = 10;
+  const counts = r => !!r && (r.minutes ?? 99) >= MIN_MINUTES && (r.kills || 0) >= MIN_KILLS;
   function matchCoins(r) {
-    // r: { won, place, players, rounds, kills, captured, vsHumans }
-    if (!r || r.rounds < 6) return { base: 0, total: 0, why: 'Too short to count (6+ rounds)' };
-    let base = 30 + Math.max(0, (r.players - r.place)) * 12 + (r.won ? 70 : 0) + Math.min(30, r.kills) + Math.min(25, Math.floor(r.captured / 4));
+    // r: { won, place, players, rounds, minutes, kills, captured, vsHumans, left }
+    // left: you walked out mid-war. You're paid for what you did up to then (no win, no placing), and nothing after
+    if (!counts(r)) return { base: 0, total: 0, why: 'Too short to count: play ' + MIN_MINUTES + '+ minutes and destroy ' + MIN_KILLS + '+ enemy units' };
+    let base = (r.left ? 15 : 30 + Math.max(0, (r.players - r.place)) * 12 + (r.won ? 70 : 0)) + Math.min(30, r.kills) + Math.min(25, Math.floor(r.captured / 4));
     if (!r.vsHumans) base = Math.round(base * 0.6);   // bot games count, at a lower rate
     return { base, total: base };
   }
@@ -216,5 +220,5 @@
 
   // plain dictionaries: '__proto__', 'constructor' and the like are never items, crates or slots (see engine.js)
   for (const t of [ITEMS, VARIANTS, SLOTS, BOXES, PRICE, CARD_MULT]) Object.setPrototypeOf(t, null);
-  return { retiredCardPrice, OFF_ROTATION, priceOf, FACTION_START, FACTION_PRICE, factionsOf, ITEMS, VARIANTS, SLOTS, LOOKS, BOXES, rollBox, DAILY, WEEKLY, DAY_SOFT, matchCoins, diminish, dayKey, weekKey, msToNextDay, dailyStore, dailyObjectives, weeklyObjectives, botLoadout, cleanLoadout };
+  return { retiredCardPrice, OFF_ROTATION, priceOf, FACTION_START, FACTION_PRICE, factionsOf, ITEMS, VARIANTS, SLOTS, LOOKS, BOXES, rollBox, DAILY, WEEKLY, DAY_SOFT, matchCoins, matchCounts: counts, MIN_MINUTES, MIN_KILLS, diminish, dayKey, weekKey, msToNextDay, dailyStore, dailyObjectives, weeklyObjectives, botLoadout, cleanLoadout };
 });

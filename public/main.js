@@ -1186,21 +1186,25 @@
   // tear down every in-game overlay and return to the title screen
   let menuGen = 0;
   function backToMenu() {
-    menuGen++; Render.ov.notes = []; Render.extraUnits.length = 0;
-    Missions.onState(null);   // the mission bar and General Hale go with the mission
+    // every step is fenced off: one failing cleanup must never strand you on a blank screen with no menu
+    const safe = f => { try { f(); } catch (e) { console.warn('back to menu', e); } };
+    menuGen++; safe(() => { Render.ov.notes = []; Render.extraUnits.length = 0; });
+    safe(() => Missions.onState(null));   // the mission bar and General Hale go with the mission
     // anything a war put over the screen goes with it, or it would sit on top of the menu and swallow every click
     for (const id of ['#battlePop', '#owPop', '#crateOpen', '#mapReel', '#afkCover', '#autoEnd', '#boxSel', '#mrBack']) { const e = $(id); if (e) e.remove(); }
     for (const id of ['#combat', '#allyPop', '#supply', '#crate', '#draft', '#tooltip']) { const e = $(id); if (e) e.hidden = true; }
     for (const id of ['#missionsModal', '#missionResult']) { const e = $(id); if (e) e.hidden = true; }
     battleOpen = null;
-    S = null; Render.setState(null); msgQ = []; plan = []; sel = null; mode = null; passTo = null; unlocked = null; lastTurnKey = '';
+    S = null; safe(() => Render.setState(null)); msgQ = []; plan = []; sel = null; mode = null; passTo = null; unlocked = null; lastTurnKey = '';
     for (const k in plans) delete plans[k];
-    Cards.hideDraft(); Cards.closeSupply(); Cards.closeCrate();
+    safe(() => Cards.hideDraft()); safe(() => Cards.closeSupply()); safe(() => Cards.closeCrate());
     for (const id of ['#escMenu', '#trade', '#market', '#modal', '#offerPop', '#victory', '#passCover', '#index', '#rules']) { const e = $(id); if (e) e.hidden = true; }
     for (const id of ['#siegeWarn', '#spawnBar']) { const e = $(id); if (e) e.remove(); }
     const z = $('#cardZoom'); if (z) z.hidden = true;
     document.body.classList.remove('pp-idle');
-    showMenu(); showHome();
+    safe(showMenu); safe(showHome);
+    // belt and braces: the front page must be up, whatever happened above
+    $('#menu').hidden = false; $('#hud').hidden = true; if ($('#home').hidden && $('#lobbyBox').hidden) { $('#home').hidden = false; document.body.classList.add('at-home'); }
   }
 
   // ───────────── host panel: only answers on the computer running the server ─────────────
@@ -2929,7 +2933,7 @@
     $('#vicLook').onclick = () => { v.hidden = true; setTimeout(() => { if (S && S.phase === 'over') { v.hidden = false; } }, 8000); };
     const bl = $('#vicLobby'); if (bl) bl.onclick = () => send({ t: 'toLobby' });
     const ag = $('#vicAgain'); if (ag) ag.onclick = () => { SFX.select(); send({ t: 'quick', name: myName() }); };
-    $('#vicMenu').onclick = () => { SFX.click(); send({ t: 'leave' }); setTimeout(() => { if (S) backToMenu(); }, 1500); };
+    $('#vicMenu').onclick = () => { SFX.click(); send({ t: 'leave' }); setTimeout(() => { if (S || $('#home').hidden) { lobby = null; backToMenu(); } }, 1500); };
   }
 
   // ── random map type: a slot reel of battlefield thumbnails that lands on the real map ──

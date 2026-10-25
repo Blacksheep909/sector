@@ -375,6 +375,7 @@ function onMessage(c, m) {
       const name = cleanName(m.name, c) || 'Commander', was = gp.name.replace(/ \(bot\)$/, '');
       lp.bot = false; lp.diff = null; lp.spectator = false; lp.token = crypto.randomBytes(12).toString('hex'); lp.name = name;
       gp.bot = false; gp.diff = null; gp.name = name;
+      lp.since = Date.now(); lp.base = { kills: gp.stats.kills, captured: gp.stats.captured, crates: gp.stats.crates };   // rewards count from here
       c.pid = lp.id; botMem = {};
       if (!lobby.hostId || !lobby.players.some(x => x.id === lobby.hostId && !x.bot)) lobby.hostId = lp.id;
       game.log.push('🎮 ' + name + ' took over from ' + was + '.');
@@ -580,7 +581,7 @@ function onMessage(c, m) {
     case 'leave': {
       // leaving: in a running game your seats become bots so the match carries on
       const seats = seatsOf(c);
-      if (game) { pushLeave(seats); botifySeats(seats, true); } else lobby.players = lobby.players.filter(p => !seats.includes(p.id));
+      if (game) { for (const id of seats) { const lp = lobby.players.find(p => p.id === id); if (lp) payLeaver(lp); } pushLeave(seats); botifySeats(seats, true); } else lobby.players = lobby.players.filter(p => !seats.includes(p.id));
       if (seats.includes(lobby.hostId)) { const h = lobby.players.find(p => !p.bot && !p.local && isConnected(p.id) && !seats.includes(p.id)); lobby.hostId = h ? h.id : null; }
       { const p = lobby.players.find(x => x.id === seats[0]); if (p) note(p.name.replace(/ \(bot\)$/, '') + (game ? ' left — a bot took over' : ' left the lobby')); }
       c.pid = null; c.left = true;
@@ -644,7 +645,7 @@ function startGame(c) {
   for (const k in bankLeft) delete bankLeft[k]; bankKey = ''; bankPid = null;
   const r = E.createGame(s, roster);
   resetWar();
-  game = r.state;
+  game = r.state; game.t0 = Date.now(); for (const lp of lobby.players) { delete lp.since; delete lp.base; }
   // a private war is saved for the commander who started it (public wars aren't saved)
   const owner = !isPublic && (lobby.players.find(p => p.id === lobby.hostId) || {}).profileId;
   game.saveId = owner ? 'g' + Date.now().toString(36) + crypto.randomBytes(4).toString('hex') : null; game.saveOwner = owner || null;
@@ -735,7 +736,7 @@ function loadSave(c, id) {
   // clocks were wall-clock times when saved: restart this turn's
   g.turn.pausedAt = 0; g.paused = false;
   g.turn.deadline = g.settings.timer ? Date.now() + g.settings.timer * 1000 : 0; g.turn.prevDeadline = 0;
-  game = g; game.v = (game.v || 0) + 1; botMem = {}; undoStack.length = 0; undoStack.owner = null;
+  game = g; game.v = (game.v || 0) + 1; game.t0 = Date.now(); for (const lp of lobby.players) { delete lp.since; delete lp.base; } botMem = {}; undoStack.length = 0; undoStack.owner = null;
   fogMem = {}; for (const k in d.fog || {}) fogMem[k] = { explored: new Set(d.fog[k].explored || []), seen: d.fog[k].seen || {} };
   for (const k in bankLeft) delete bankLeft[k]; Object.assign(bankLeft, d.bank || {}); bankKey = ''; bankPid = null; turnKey = '';
   for (const k in warNotes) delete warNotes[k];
@@ -909,6 +910,19 @@ function onDisconnect(c) {
 // after every change: schedule bots, timers, idle-skips
 let tradeTimer = null, draftTimer = null, allyTimer = null;
 // a finished game pays every human commander who played it (coins, objectives, a recruit's first game)
+// what one commander did in this war, from when they took the seat (game start, or a takeover) to now
+function playedBy(lp, gp) {
+  const b = lp.base || {}, since = lp.since || game.t0 || Date.now();
+  return { minutes: (Date.now() - since) / 60000, kills: gp.stats.kills - (b.kills || 0), captured: gp.stats.captured - (b.captured || 0), crates: gp.stats.crates - (b.crates || 0) };
+}
+// walking out of a war pays for what you did up to then (the bot that takes over earns you nothing more)
+function payLeaver(lp) {
+  const gp = game && game.players.find(p => p.id === lp.id), pr = lp.profileId && profiles.get(lp.profileId);
+  if (!gp || !pr || game.scenario || game.phase !== 'play' || lp.bot) return;
+  const humans = game.players.filter(p => !p.bot || (lobby.players.find(x => x.id === p.id) || {}).away);
+  const out = profiles.finishGame(pr, { ...playedBy(lp, gp), left: true, won: false, place: game.players.length, players: game.players.length, rounds: game.turn.round, vsHumans: humans.length > 1 });
+  for (const cl of clients) if (cl.pid === lp.id) send(cl, { t: 'reward', reward: out, profile: profiles.view(pr) });
+}
 function payOut() {
   if (!game || game.phase !== 'over' || game.paid) return;
   game.paid = true;
@@ -928,7 +942,7 @@ function payOut() {
   for (const gp of game.players) {
     const lp = lobby.players.find(x => x.id === gp.id), pr = lp && !lp.bot && lp.profileId && profiles.get(lp.profileId);
     if (!pr) continue;
-    const r = { won: winners.includes(gp.id), place: order.indexOf(gp) + 1, players: game.players.length, rounds: game.turn.round, kills: gp.stats.kills, captured: gp.stats.captured, crates: gp.stats.crates, vsHumans: humans.length > 1 };
+    const r = { ...playedBy(lp, gp), won: winners.includes(gp.id), place: order.indexOf(gp) + 1, players: game.players.length, rounds: game.turn.round, vsHumans: humans.length > 1 };
     const out = profiles.finishGame(pr, r);
     for (const cl of clients) if (cl.pid === lp.id || (lp.local && cl.pid === lp.controller)) send(cl, { t: 'reward', reward: out, profile: profiles.view(pr) });
   }

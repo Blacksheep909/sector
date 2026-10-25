@@ -9,7 +9,10 @@ ok(P.open('bad id', 's'.repeat(20)) === null, 'malformed ids are refused');
 const g = { won: true, place: 1, players: 4, rounds: 20, kills: 10, captured: 40, crates: 1, vsHumans: true };
 const pays = []; for (let i = 0; i < 8; i++) pays.push(P.finishGame(a, g).match);
 ok(pays.every((v, i) => !i || v < pays[i - 1]) && pays[7] > 0, 'each extra match in a day pays less, but never nothing (' + pays.join(', ') + ')');
-ok(P.finishGame(a, { ...g, rounds: 3 }).match === 0, 'games under 6 rounds pay nothing');
+ok(P.finishGame(a, { ...g, minutes: 3 }).match === 0, 'games under 5 minutes pay nothing');
+ok(P.finishGame(a, { ...g, minutes: 20, kills: 9 }).match === 0, 'fewer than 10 kills pays nothing');
+{ const before = a.total.games || 0, l = P.finishGame(a, { ...g, minutes: 12, kills: 14, left: true, won: false, place: 4 });
+  ok(l.match > 0 && (a.total.games || 0) === before, 'leaving mid-war pays for what you did, but is not a finished game'); }
 { const before = a.coins; P.finishGame(b, { ...g, won: false, place: 3 }); ok(a.recruits === 0 && a.coins === before, 'a recruit playing a game pays no referral'); P.finishGame(b, g);
   const r = P.linkAccount(b, 'google', { id: 'g-b' }); ok(r.referral === 100 && a.recruits === 1 && a.coins === before + 250, 'a recruit making an account pays them 100 and the recruiter 250');
   P.unlink(b, 'google'); ok(!P.linkAccount(b, 'discord', { id: 'd-b' }).referral && a.recruits === 1, 'the referral pays once'); }

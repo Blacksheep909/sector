@@ -95,8 +95,9 @@ function createProfiles(file, opts = {}) {
     const m = C.matchCoins(r), match = C.diminish(m.base, p.earned.amount);
     p.earned.amount += match; p.coins += match;
     const out = { match, base: m.base, why: m.why || null, objectives: [] };
-    if (r.rounds < 6) { save(); return out; }
-    const add = { games: 1, wins: r.won ? 1 : 0, kills: r.kills || 0, captured: r.captured || 0, crates: r.crates || 0 };
+    if (!C.matchCounts(r)) { save(); return out; }
+    // leaving early still counts your kills and captures toward orders, but not a finished game or a win
+    const add = { games: r.left ? 0 : 1, wins: r.won && !r.left ? 1 : 0, kills: r.kills || 0, captured: r.captured || 0, crates: r.crates || 0 };
     for (const k in add) { p.day.stats[k] = (p.day.stats[k] || 0) + add[k]; p.week.stats[k] = (p.week.stats[k] || 0) + add[k]; p.total[k] = (p.total[k] || 0) + add[k]; }
     for (const [list, period] of [[C.dailyObjectives(), p.day], [C.weeklyObjectives(), p.week]])
       for (const o of list) if (!period.done.includes(o.id) && (period.stats[o.stat] || 0) >= o.need) { period.done.push(o.id); p.coins += o.coins; out.objectives.push({ text: o.text, coins: o.coins }); }
