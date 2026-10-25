@@ -27,6 +27,11 @@
   let qid = -1;      // placeholder ids for units deployed inside a blueprint
   const remap = (a, m) => a.a === 'move' ? { ...a, units: a.units.map(id => m[id] || id) } : a;
   let hoverK = null;
+  // a phone or tablet: fingers, not a mouse (see the touch layer by the map's input handlers)
+  const isTouchDevice = matchMedia('(pointer: coarse)').matches || navigator.maxTouchPoints > 0;
+  if (isTouchDevice) document.body.classList.add('touch');
+  // phones play in landscape: lock the screen there where the system lets a page do it (installed app, fullscreen)
+  if (isTouchDevice) addEventListener('pointerdown', () => { try { const o = screen.orientation; if (o && o.lock) o.lock('landscape').catch(() => {}); } catch (e) {} }, { once: true, passive: true });
   let lastTurnKey = '';
   // your seat in a room survives a reload: the room's code and the seat's token
   let seat = null; try { seat = JSON.parse(localStorage.getItem('sector.seat') || 'null'); localStorage.removeItem('sector.token'); } catch (e) {}
@@ -565,6 +570,8 @@
     root.setProperty('--topH', Math.ceil(t.bottom / z) + 'px');
     root.setProperty('--dockH', Math.ceil((innerHeight - d.top) / z) + 'px');
     root.setProperty('--stackB', Math.ceil(cs.getBoundingClientRect().bottom) + 'px');
+    // the chat button (compact screens) sits just under the cash panel, wherever the layout put it
+    const ct = $('#chatToggle'), cb = $('#cashBox'); if (ct && cb) { const r = cb.getBoundingClientRect(); ct.style.top = Math.round(r.bottom + 8) + 'px'; ct.style.left = Math.round(r.left) + 'px'; }
   }
   // the hand overlaps its cards more as it fills up, so it always fits the space between the deck and the buttons
   function fitHand() {
@@ -575,6 +582,15 @@
     const fit = n > 1 ? (avail - total) / (n - 1) : 0;
     h.style.setProperty('--sq', Math.max(-(cards[0].offsetWidth - 34), Math.min(-32, fit)) + 'px');
   }
+  // compact screens (phones): the build bar and the chat log fold away; their labels open them
+  const compactMq = matchMedia('(max-height: 520px), (max-width: 520px)');
+  const setCompact = () => { document.body.classList.toggle('compact', compactMq.matches); layoutHud(); };
+  compactMq.addEventListener ? compactMq.addEventListener('change', setCompact) : compactMq.addListener(setCompact);
+  document.body.classList.toggle('compact', compactMq.matches);
+  if (isTouchDevice) $('#buildBar .bar-label').textContent = 'BUILD';
+  $('#buildBar .bar-label').onclick = () => { if (!document.body.classList.contains('compact')) return; $('#buildBar').classList.toggle('open'); SFX.click(); layoutHud(); };
+  { const ct = el('button', '', '💬'); ct.id = 'chatToggle'; ct.title = 'Chat and log'; document.body.appendChild(ct);
+    ct.onclick = () => { const lb = $('#logBox'); lb.classList.toggle('open'); ct.classList.remove('unread'); SFX.click(); if (lb.classList.contains('open')) setTimeout(() => $('#chatIn').focus(), 50); }; }
   addEventListener('resize', () => layoutHud());
   if (window.ResizeObserver) { const ro = new ResizeObserver(() => layoutHud()); for (const id of ['#topbar', '#dock', '#centerStack', '#hand', '#deckBar', '#buildBar']) ro.observe($(id)); }
   // ───────────── between turns: next resupply, intel ─────────────
@@ -1000,8 +1016,6 @@
   // ───────────── touch: one finger pans, two pinch to zoom, a tap acts, holding a finger down shows a hex's details ─────────────
   // there is no hover on a touchscreen, so an order (a move, an attack, a shot, a tactic) takes two taps: the first shows
   // the route and the odds, the second on the same hex sends it. Cancel and multi-select get buttons of their own
-  var isTouchDevice = matchMedia('(pointer: coarse)').matches || navigator.maxTouchPoints > 0;   // var: the HUD may refresh before this line runs
-  if (isTouchDevice) document.body.classList.add('touch');
   const fingers = new Map();
   var gest = null, touchPreview = null, multiArm = false;
   const spread = () => { const [a, b] = [...fingers.values()]; return { d: Math.hypot(a.x - b.x, a.y - b.y), x: (a.x + b.x) / 2, y: (a.y + b.y) / 2 }; };
@@ -1710,7 +1724,7 @@
     if (sig === hotbarSig) return; hotbarSig = sig;
     const prevIds = new Set([...hu.children].map(c => c.dataset.id));
     hu.innerHTML = ''; hb.innerHTML = '';
-    $('#deckBar .bar-label').textContent = `DECK ${units.length}/${E.DECK_MAX} · KEYS 1–0`;
+    $('#deckBar .bar-label').textContent = `DECK ${units.length}/${E.DECK_MAX}` + (isTouchDevice ? '' : ' · KEYS 1–0');   // no keyboard on a phone
     units.forEach((id, i) => {
       const cost = E.unitCost(me, id);
       const c = cardEl(id, { mini: true, cost, level: me.levels[id] || 0, key: UNIT_KEYS[i], count: counts[id] });

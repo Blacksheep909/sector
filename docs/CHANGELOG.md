@@ -2,6 +2,13 @@
 
 Every release, newest first. Each version also has its own post on the [Releases page](https://github.com/Blacksheep909/sector/releases).
 
+## Unreleased
+
+- **Arks fixed.** Troops who boarded an Ark could get stuck: the Ark refused to sail with them aboard. It now carries its troops whether you pick the Ark alone or the whole stack.
+- **Ships sail under bridges.** A sea bridge no longer blocks the channel. Ships pass underneath (they can't stop there), unless enemy troops stand on the bridge.
+- **Mobile:** phone layouts (compact HUD, collapsible build bar and log, chat toggle), landscape only on phones with a "turn your phone sideways" screen.
+- The zoomed card now shows the same price as the card in your hand (it ignored discounts like the Arms Fair).
+
 ## v0.10.5
 
 **Hotfix.**

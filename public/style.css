@@ -899,6 +899,20 @@ body.host-page { overflow: auto; background: radial-gradient(ellipse at top, #16
 @media (max-width: 1180px), (max-height: 720px) { #hud { zoom: .76; } }
 @media (max-width: 900px) { #hud { zoom: .62; } }
 @media (max-width: 760px) { #hud { zoom: .5; } }
+/* phones: scale to fit the short side (a landscape phone is under 520px tall) */
+@media (max-height: 520px) { #hud { zoom: .5; } }
+@media (max-height: 420px) { #hud { zoom: .45; } }
+@media (max-width: 520px) { #hud { zoom: .5; } }
+/* compact screens: the build bar and the chat log fold away behind buttons */
+body.compact #buildBar:not(.open) #hbBuild { display: none; }
+body.compact #buildBar .bar-label { cursor: pointer; padding: 6px 14px; font-size: 15px; }
+body.compact #buildBar .bar-label::after { content: ' ▸'; }
+body.compact #buildBar.open .bar-label::after { content: ' ▾'; }
+body.compact #logBox:not(.open) { display: none; }
+#chatToggle { display: none; }
+body.compact #hud:not([hidden]) ~ #chatToggle, body.compact #chatToggle.show { display: grid; }
+#chatToggle { position: fixed; left: 10px; top: 120px; z-index: 55; width: 40px; height: 40px; border-radius: 50%; place-items: center; font-size: 18px; background: #16212b; border: 2px solid #2a3947; color: #fff; box-shadow: 0 3px 0 #000; }
+#chatToggle.unread::after { content: ''; position: absolute; top: 2px; right: 2px; width: 10px; height: 10px; border-radius: 50%; background: var(--red); }
 #leftCol > #buildBar, #leftCol > #cashBox, #leftCol > #planBox { position: relative !important; }
 
 /* v0.6 UI */
@@ -1914,3 +1928,16 @@ body.calm .cl-side { transition-duration: .2s !important; }
 #touchBar #tbMulti.on { background: var(--gold); color: #1a1205; border-color: #fff3c4; }
 body.touch #tooltip { max-width: 70vw; }
 #tooltip .tip-confirm { margin-top: 5px; color: var(--gold); font-weight: 800; letter-spacing: .5px; }
+body.touch #hostBtn { display: none !important; }   /* phones join servers; they don't host them */
+@media (max-width: 520px) { #missionBar { flex-wrap: wrap; white-space: normal; justify-content: center; row-gap: 6px; } }
+/* compact screens: the build bar sits just above the deck (and opens upwards), so nothing in the dock can cover it */
+body.compact #buildBar, body.compact #leftCol > #buildBar { position: fixed !important; left: 12px; bottom: calc(var(--dockH, 120px) + 18px); z-index: 6; margin: 0; }
+
+/* phones play in landscape only: held upright, a rotate prompt covers everything */
+#rotateHint { display: none; position: fixed; inset: 0; z-index: 9999; background: #0b0f13; color: #fff; flex-direction: column; align-items: center; justify-content: center; gap: 14px; text-align: center; padding: 24px; }
+@media (orientation: portrait) and (max-width: 820px) { body.touch #rotateHint { display: flex; } }
+#rotateHint .rh-t { font-family: var(--title); font-size: 22px; letter-spacing: 2px; color: var(--gold); }
+#rotateHint .rh-s { color: var(--dim); font-size: 14px; }
+#rotateHint .rh-phone { width: 54px; height: 92px; border: 5px solid #e9edf2; border-radius: 12px; position: relative; animation: rhTurn 2.4s ease-in-out infinite; }
+#rotateHint .rh-phone::after { content: ''; position: absolute; left: 50%; bottom: 6px; width: 12px; height: 4px; margin-left: -6px; border-radius: 2px; background: #e9edf2; }
+@keyframes rhTurn { 0%, 25% { transform: rotate(0deg); } 50%, 85% { transform: rotate(-90deg); } 100% { transform: rotate(0deg); } }

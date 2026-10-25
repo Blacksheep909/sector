@@ -10,7 +10,7 @@ process.on('exit', () => { try { srv.kill(); } catch (e) {} });
 let problems = 0;
 (async () => {
   await sleep(900);
-  const b = await launch({ browser: process.env.SECTOR_BROWSER || '/opt/pw-browsers/chromium', url: U, width: W, height: H, port: 9390 });
+  const b = await launch({ browser: process.env.SECTOR_BROWSER || '/opt/pw-browsers/chromium', url: U, width: W, height: H, port: 9390, mobile: !!process.env.MOBILE });   // MOBILE=1: a phone (touch, mobile layout)
   const { evalJS } = b; await sleep(1800);
   await evalJS(`window.__err=[]; window.onerror=(m,s,l,c)=>{__err.push(m+' @'+(s||'').split('/').pop()+':'+l)}; window.addEventListener('unhandledrejection',e=>__err.push('rej '+e.reason)); true`);
   // every visible, enabled button: is its centre (and a point a little in) really the button?

@@ -105,5 +105,30 @@ function crossing(s) {
   s.players.find(p => p.id === 'p4').alive = false; s.players.find(p => p.id === 'p3').alive = false;
   ok(E.blocCap(s) === 2, 'the cap is never below 2');
 }
+{ // ships sail under a sea bridge, but can't stop beneath it, and enemy troops on it block the way
+  const s = board(), T = s.map.tiles;
+  const k = Object.keys(T).find(x => E.isWater(T[x]) && !T[x].river && E.neighbors(x).filter(n => T[n] && E.isWater(T[n])).length >= 2);
+  const w1 = E.neighbors(k).find(n => T[n] && E.isWater(T[n]) && !T[n].river);
+  T[k].bridge = true; T[k].owner = 'A';
+  put(s, 'sh', 'barracuda', w1);
+  const r = E.reachable(s, 'A', ['sh'], w1);
+  ok(r[k] && r[k].kind === 'pass', 'a ship can pass under a bridge');
+  ok(Object.keys(r).some(n => r[n].prev === k && r[n].kind !== 'pass'), 'and come out the other side');
+  put(s, 'g', 'grunt', k, 'B');
+  const r2 = E.reachable(s, 'A', ['sh'], w1);
+  ok(!r2[k] || r2[k].kind === 'attack', 'enemy troops on the bridge block the channel');
+}
+{ // arks: troops who used their move to embark still sail with the ark, whether you pick the ark or the whole stack
+  for (const pick of [['ark'], ['ark', 'g1', 'g2']]) {
+    const s = board({ seed: 'ark1' }), T = s.map.tiles;
+    const w = Object.keys(T).find(k => E.isWater(T[k]) && !T[k].river && E.neighbors(k).some(n => T[n] && T[n].t === 'plains' && !T[n].river) && E.neighbors(k).filter(n => T[n] && E.isWater(T[n])).length >= 3);
+    const l = E.neighbors(w).find(n => T[n] && T[n].t === 'plains' && !T[n].river); T[l].owner = 'A';
+    put(s, 'ark', 'ark', w); put(s, 'g1', 'grunt', l); put(s, 'g2', 'grunt', l);
+    ok(E.applyAction(s, 'A', { a: 'move', units: ['g1', 'g2'], from: l, to: w }).ok, 'grunts board the ark');
+    const r = E.reachable(s, 'A', pick, w), to = Object.keys(r).find(k => r[k].c >= 2 && E.isWater(T[k]) && r[k].kind !== 'pass');
+    const res = E.applyAction(s, 'A', { a: 'move', units: pick, from: w, to });
+    ok(res.ok && s.units.g1.hex === to && s.units.g2.hex === to, 'the ark sails with its troops (' + pick.join('+') + ')' + (res.ok ? '' : ': ' + res.err));
+  }
+}
 console.log(fails ? fails + ' FAILED' : 'all passed');
 process.exit(fails ? 1 : 0);

@@ -214,7 +214,7 @@
     refinery: { name: 'Refinery', cost: 6, desc: '+$1 per turn per level (+$3 per level on a Resource node or oil rig).' },
     depot: { name: 'Depot', cost: 4, desc: 'Logistics hub: your units starting their turn nearby get +1 move. Range = level.' },
     port: { name: 'Port', cost: 5, desc: 'Coast only. Launch ships into the adjacent sea. Supply source for sea lanes.' },
-    bridge: { name: 'Bridge', cost: 6, desc: 'Span a 1-hex sea gap between two shores. Land units cross; ships cannot pass. Not next to another bridge. A destroyed bridge leaves wreckage: rebuilding there costs $8 more.' },
+    bridge: { name: 'Bridge', cost: 6, desc: 'Span a 1-hex sea gap between two shores. Land units cross on top; ships sail underneath (but cannot stop there). Not next to another bridge. A destroyed bridge leaves wreckage: rebuilding there costs $8 more.' },
     bunker: { name: 'Bunker', cost: 4, desc: 'Strongpoint with its own garrison: +3 Chips per level even when empty, so enemies must attack it. +2 Mult defence (+1 per extra level). ★★+ also gives your neighbouring hexes +1 Mult. Digs in against big attacks: +40% of the attacker chip lead (up to 4 per level). ★★★ Citadel: 14 garrison Chips, +5 Mult, +2 Mult to neighbours, and holds 60% of the lead (up to 20). Destroyed if an enemy captures it.' },
     mine: { name: 'Sea Mine', cost: 4, desc: 'A minefield on one of your sea hexes: the naval Bunker. +3 Chips per level even when empty, so enemy ships must fight their way through instead of sailing past. +2 Mult defence (+1 per extra level). Cleared if an enemy captures the hex.' },
     airbase: { name: 'Airbase', cost: 25, lvlCost: [25, 40, 60], ramp: 8, desc: 'Every turn it hands you an air-strike card: commons (Gun Run, Kamikaze Drone) at ★, rares (Precision Strike, Strategic Bombing) at ★★, epics (Cruise Missile, Carpet Bombing, Bunker Buster) at ★★★. Up to 5 per commander. Takes a turn to build and a turn to upgrade. $25, $40, $60, plus $8 for each one you bought or upgraded before.' },
@@ -1015,7 +1015,11 @@
         const c = cn.c + 1;
         if (navy) {
           // ships: sail open water; strike enemies on adjacent coasts
-          if (!isWater(t)) { if (enemy && canFight && c <= mv && isLandTile(t)) set(n, c, cur, 'attack'); continue; }
+          if (!isWater(t)) {
+            if (enemy && canFight && c <= mv && isLandTile(t)) set(n, c, cur, 'attack');
+            else if (t.bridge && t.t === 'water' && !enemy && c <= mv) set(n, c, cur, 'pass');   // sail under a bridge (but can't moor beneath it)
+            continue;
+          }
           if (c > mv) continue;
           const mined = getS(t, 'mine'); const enemyMine = mined && mined.owner && mined.owner !== pid && t.owner === mined.owner && !isAlly(s, pid, mined.owner);
           if (enemy || enemyMine) { if (canFight) set(n, c, cur, 'attack'); continue; }
@@ -2047,12 +2051,15 @@
   function validGroup(s, pid, g, to, idx) {
     const units = (g.units || []).map(id => s.units[id]);
     if (!units.length || units.some(u => !u || u.owner !== pid || u.hex !== g.from)) return { err: 'Invalid units' };
-    if (units.some(u => !canAct(s, u))) return { err: 'Some units cannot act this turn' };
+    // a fleet sails with its cargo: troops already aboard (who used their move to embark) ride along
+    const fleetMove = units.some(u => isSea(u.type));
+    if (units.some(u => !canAct(s, u) && !(fleetMove && !isSea(u.type)))) return { err: 'Some units cannot act this turn' };
     const reach = reachable(s, pid, g.units, g.from, idx);
     const dest = reach[to];
     if (!dest || dest.kind === 'start' || dest.kind === 'pass') return { err: 'Cannot reach that hex' };
     // a carrier can't drive off and leave more Grunts behind than the hex holds without it
-    { const ft = s.map.tiles[g.from], left = (idx[g.from] || []).filter(u => u.owner === pid && !g.units.includes(u.id));
+    { const ft = s.map.tiles[g.from], mine = (idx[g.from] || []).filter(u => u.owner === pid), cargo = fleetMove ? ridersOf(mine, movers(units)) : [];
+      const left = mine.filter(u => !g.units.includes(u.id) && !cargo.includes(u));
       if (isLandTile(ft) && !(ft.river && !ft.bridge) && left.length && !stackFits(left, [])) return { err: 'Take the Grunts along: they would not fit on the hex without their transport' };
       // over water a helicopter can't fly off and leave its passengers hanging in the air
       if ((isWater(ft) || (ft.river && !ft.bridge)) && left.some(u => !isSea(u.type) && !isAirU(u))) {

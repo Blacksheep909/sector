@@ -245,7 +245,7 @@ Units with a range stat fire instead of moving.
 - **Transports.** An Ark launches from a Port, or from any **coastal HQ or connected FOB**, so you don't need a Port to use one. Land units move onto an Ark to board it (3 per Ark). The Ark carries them as it sails. Select the Ark's hex and its passengers' landing hexes light up too: click one to wade ashore. If the Ark sinks, its cargo drowns.
 - **Carrier** (Legendary). A floating airbase: deploy aircraft straight onto it, fly them off it and land them back on it (4 per Carrier). They ride along when it sails. If it sinks, aircraft still on board ditch into the sea.
 - **Open Ocean** maps are a scatter of small islands with lots of oil rigs. Every commander starts with a Port and an Ark.
-- **Bridges** span a one-hex sea gap between two shores. Land units walk across, but ships can't pass, so a bridge blocks the channel. Two bridges can't sit next to each other. Sabotage, an Airstrike (on a 3+), a Precision Strike or a Bunker Buster can destroy an enemy bridge, and anyone standing on it drowns. A destroyed bridge leaves **wreckage**: building a new bridge there costs $8 more.
+- **Bridges** span a one-hex sea gap between two shores. Land units walk across on top and ships sail underneath, though a ship can't stop under a bridge (and enemy troops standing on one block the way). Two bridges can't sit next to each other. Sabotage, an Airstrike (on a 3+), a Precision Strike or a Bunker Buster can destroy an enemy bridge, and anyone standing on it drowns. A destroyed bridge leaves **wreckage**: building a new bridge there costs $8 more.
 
 ## Buildings and upgrades
 

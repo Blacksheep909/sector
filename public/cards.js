@@ -635,7 +635,9 @@ const Cards = (() => {
     const id = card.dataset.id; if (!id) return;
     let z = $('#cardZoom'); if (!z) { z = el('div', ''); z.id = 'cardZoom'; document.body.appendChild(z); }
     const lvl = (card.querySelector('.c-stars') || {}).textContent;
-    z.innerHTML = ''; const big = make(id, { level: lvl ? lvl.length : 0 }); big.classList.add('zoomed'); z.appendChild(big);
+    // the enlarged copy shows the price the small card shows (what you'd pay now, e.g. $1 off in an Arms Fair round)
+    const shown = parseInt(((card.querySelector('.c-cost') || {}).textContent || '').replace('$', ''), 10);
+    z.innerHTML = ''; const big = make(id, { level: lvl ? lvl.length : 0, cost: Number.isFinite(shown) ? shown : undefined }); big.classList.add('zoomed'); z.appendChild(big);
     const r = card.getBoundingClientRect(), W = 236, H = 336;
     let x = r.left + r.width / 2 - W / 2, y = r.top - H - 18;
     if (y < 8) y = Math.min(innerHeight - H - 8, r.bottom + 14);
