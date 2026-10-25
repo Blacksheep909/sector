@@ -1239,16 +1239,19 @@ const Art = (() => {
     },
   });
   const STRUCT = {
-    // airfield emblem: a runway running off into the distance, and a swept-wing jet climbing away above it
+    // an airfield from above: two runways crossing on a slant, a taxiway, and hangars and a terminal beside them
     airbase(c) {
-      poly(c, [-0.85, 0.95, 0.85, 0.95, 0.22, 0.3, -0.22, 0.3]); c.fill();                                   // runway in perspective
-      sh(c, () => { for (const [y, w, h] of [[0.82, 0.08, 0.12], [0.6, 0.06, 0.09], [0.43, 0.045, 0.06]]) c.fillRect(-w / 2, y - h / 2, w, h);   // centre-line dashes
-        poly(c, [-0.7, 0.9, -0.63, 0.9, -0.19, 0.34, -0.21, 0.34]); c.fill(); poly(c, [0.7, 0.9, 0.63, 0.9, 0.19, 0.34, 0.21, 0.34]); c.fill(); }, SH2);   // edge lines
-      c.save(); c.translate(0.06, -0.38); c.rotate(0.45); c.scale(1.45, 1.45);
-      c.beginPath(); c.moveTo(0, -0.5); c.quadraticCurveTo(0.07, -0.4, 0.07, -0.2); c.lineTo(0.06, 0.32); c.lineTo(-0.06, 0.32); c.lineTo(-0.07, -0.2); c.quadraticCurveTo(-0.07, -0.4, 0, -0.5); c.fill();   // fuselage
-      poly(c, [0.06, -0.12, 0.48, 0.14, 0.48, 0.22, 0.06, 0.1, -0.06, 0.1, -0.48, 0.22, -0.48, 0.14, -0.06, -0.12]); c.fill();   // swept wings
-      poly(c, [0.05, 0.2, 0.22, 0.34, 0.22, 0.39, 0.05, 0.33, -0.05, 0.33, -0.22, 0.39, -0.22, 0.34, -0.05, 0.2]); c.fill();   // tailplanes
-      sh(c, () => { c.beginPath(); c.ellipse(0, -0.3, 0.035, 0.08, 0, 0, P * 2); c.fill(); }, SH2);   // canopy
+      const strip = (ang, len, w, ox, oy) => { c.save(); c.translate(ox, oy); c.rotate(ang); rr(c, -len / 2, -w / 2, len, w, w * 0.2); c.fill();
+        sh(c, () => { for (let x = -len / 2 + 0.14; x < len / 2 - 0.14; x += 0.2) c.fillRect(x, -0.018, 0.1, 0.036); c.fillRect(-len / 2 + 0.04, -w / 2 + 0.04, 0.05, w - 0.08); c.fillRect(len / 2 - 0.09, -w / 2 + 0.04, 0.05, w - 0.08); }, SH2);
+        c.restore(); };
+      strip(-0.45, 2.05, 0.28, -0.05, 0.12);                                                                // main runway
+      strip(0.55, 1.6, 0.22, 0.08, 0.2);                                                                    // crosswind runway
+      // apron and buildings up in the corner: a terminal and two hangars, with a taxiway down to the runway
+      c.save(); c.translate(0.42, -0.62); c.rotate(-0.45);
+      rr(c, -0.42, 0.08, 0.84, 0.1, 0.03); c.fill();                                                       // apron
+      rr(c, -0.4, -0.24, 0.34, 0.26, 0.04); c.fill(); rr(c, -0.02, -0.2, 0.2, 0.22, 0.03); c.fill(); rr(c, 0.22, -0.2, 0.2, 0.22, 0.03); c.fill();
+      sh(c, () => { c.fillRect(-0.36, -0.1, 0.26, 0.04); c.fillRect(0.01, -0.08, 0.14, 0.03); c.fillRect(0.25, -0.08, 0.14, 0.03); }, SH2);
+      rr(c, -0.05, 0.16, 0.09, 0.42, 0.03); c.fill();                                                      // taxiway
       c.restore();
     },
     mine(c) {
