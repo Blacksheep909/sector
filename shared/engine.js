@@ -237,8 +237,8 @@
   function removeStruct(t, st) { t.structs = structsOf(t).filter(x => x !== st); syncStructs(t); }
 
   const FACTIONS = {
-    iron: { name: 'Iron Covenant', perk: 'Steel Wall', desc: '+2 defence Chips per unit when defending.', starter: 'bulwark', glyph: 'shield' },
-    volt: { name: 'Volt Syndicate', perk: 'Overclock', desc: 'Air units get +1 move and +1 defence. Hornets cost $1 less.', starter: 'hornet', glyph: 'bolt' },
+    iron: { name: 'Iron Covenant', perk: 'Steel Wall', desc: '+1 defence Chip per unit when defending, +2 on a fortified hex (HQ, FOB or Bunker).', starter: 'bulwark', glyph: 'shield' },
+    volt: { name: 'Volt Syndicate', perk: 'Overclock', desc: 'Air units get +1 move and +1 defence, and cost $1 less.', starter: 'hornet', glyph: 'bolt' },
     ashen: { name: 'Ashen Nomads', perk: 'Looters', desc: 'Earn $2 for every enemy hex you capture. Skitters cost $1 less.', starter: 'skitter', glyph: 'skull' },
     verdant: { name: 'Verdant Host', perk: 'Deep Roots', desc: 'Structures cost $3 less. Start with a ★★ Bunker by your HQ.', starter: 'thumper', glyph: 'leaf' },
     null: { name: 'Null Order', perk: 'Loaded Dice', desc: 'Your combat rolls of 1 and 2 count as 3.', starter: 'lancer', glyph: 'eye' },
@@ -744,7 +744,7 @@
   function levelOf(s, u) { const p = player(s, u.owner); return (p && p.levels && p.levels[u.type]) || 0; }
   function unitAtk(s, u) { const d = UNITS[u.type]; return d.atk + (d.atk ? levelOf(s, u) : 0); }
   function unitDef(s, u) { const p = player(s, u.owner); return UNITS[u.type].def + levelOf(s, u) + (p && p.faction === 'volt' && UNITS[u.type].cls === 'air' ? 1 : 0); }
-  function unitCost(p, type) { let c = UNITS[type].cost - (p && p.wx === 'armsfair' ? 1 : 0); if (p && p.faction === 'volt' && type === 'hornet') c--; if (p && p.faction === 'ashen' && type === 'skitter') c--; return Math.max(1, c); }
+  function unitCost(p, type) { let c = UNITS[type].cost - (p && p.wx === 'armsfair' ? 1 : 0); if (p && p.faction === 'volt' && UNITS[type].cls === 'air') c--; if (p && p.faction === 'ashen' && type === 'skitter') c--; return Math.max(1, c); }
   const STRUCT_RAMP = 2;   // +$ per earlier purchase of the same structure type
   function structCost(p, type, lvl) {
     const S0 = STRUCTS[type], before = (p.built && p.built[type]) || 0;
@@ -1163,7 +1163,7 @@
     const bombard = ranged && units.every(u => UNITS[u.type].cls === 'art' && !airOnly(u));
     const dlv = defenders.reduce((a, u) => a + levelOf(s, u), 0);
     if (dlv) def.bonuses.push({ label: 'Veteran ★', chips: dlv, note: true });
-    if (dp && dp.faction === 'iron' && defenders.length) { def.chips += 2 * defenders.length; def.bonuses.push({ label: 'Steel Wall', chips: 2 * defenders.length }); }
+    if (dp && dp.faction === 'iron' && defenders.length) { const per = structsOf(t).some(x => ['hq', 'fob', 'bunker'].includes(x.type) && x.owner === defPid) ? 2 : 1; def.chips += per * defenders.length; def.bonuses.push({ label: 'Steel Wall', chips: per * defenders.length }); }
     { const gf = defenders.filter(u => UNITS[u.type].cls === 'inf').length; if (gf && units.some(isHeli)) { def.chips += gf; def.bonuses.push({ label: 'Ground Fire', chips: gf }); } }
     const aaD = defenders.reduce((n, u) => n + (UNITS[u.type].aa || 0), 0);
     if (aaD && has(units, 'air')) { def.chips += aaD; def.bonuses.push({ label: 'Anti-Air', chips: aaD }); }
