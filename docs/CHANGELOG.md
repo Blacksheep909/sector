@@ -2,7 +2,9 @@
 
 Every release, newest first. Each version also has its own post on the [Releases page](https://github.com/Blacksheep909/sector/releases).
 
-## Unreleased
+## v0.10.6
+
+**Mission 20, flying drones and missile trails, fixes for Arks and bridges, fairer rewards.**
 
 - **Arks fixed.** Troops who boarded an Ark could get stuck: the Ark refused to sail with them aboard. It now carries its troops whether you pick the Ark alone or the whole stack.
 - **Mission 20: Endgame** (new tier: Nightmare). Take a ★★★ fortress in three turns behind a guarded bridge and an air-defence screen: clear the bridge before the Ark can sail under it, knock out the Skyguard and Sentinel before the Bunker Buster goes in, then storm the HQ from two sides with your cards. Get the order wrong and it's close to hopeless.
