@@ -28,13 +28,28 @@ function emblem(px) {
   return cv.toDataURL('image/png').split(',')[1];
 }
 window.renderAll = async sizes => { await document.fonts.load('150px "Black Ops One"'); return sizes.map(emblem); };
+// app icons (phones, home screens): the emblem on a full square of the game's dark blue. pad = how much of the square it fills
+// (a maskable icon keeps it inside the middle 80%, since Android may crop it to a circle or a squircle)
+window.appIcon = async (px, fill) => {
+  await document.fonts.load('150px "Black Ops One"');
+  const cv = document.createElement('canvas'); cv.width = cv.height = px; const c = cv.getContext('2d');
+  const g = c.createRadialGradient(px / 2, px * 0.42, px * 0.05, px / 2, px / 2, px * 0.75); g.addColorStop(0, '#1d2b38'); g.addColorStop(1, '#070b0f');
+  c.fillStyle = g; c.fillRect(0, 0, px, px);
+  const e = new Image(); e.src = 'data:image/png;base64,' + emblem(512); await e.decode();
+  const w = px * fill; c.drawImage(e, (px - w) / 2, (px - w) / 2, w, w);
+  return cv.toDataURL('image/png').split(',')[1];
+};
 </script></body></html>`;
 
 (async () => {
-  const b = await launch({ url: 'data:text/html;base64,' + Buffer.from(page).toString('base64'), port: 9350 });
+  const b = await launch({ browser: process.env.SECTOR_BROWSER, url: 'data:text/html;base64,' + Buffer.from(page).toString('base64'), port: 9350 });
   const sizes = [16, 24, 32, 48, 64, 128, 256];
   const pngs = (await b.evalJS(`renderAll(${JSON.stringify(sizes)})`)).map(x => Buffer.from(x, 'base64'));
+  const app = {};
+  for (const [name, px, fill] of [['app-192.png', 192, 0.84], ['app-512.png', 512, 0.84], ['app-maskable-512.png', 512, 0.62], ['apple-touch-icon.png', 180, 0.8]])
+    app[name] = Buffer.from(await b.evalJS(`appIcon(${px}, ${fill})`), 'base64');
   b.close();
+  for (const name in app) fs.writeFileSync(path.join(root, 'public', name), app[name]);
   // ICO: header + directory + PNG payloads (PNG entries are fine on Windows Vista and later)
   const head = Buffer.alloc(6); head.writeUInt16LE(0, 0); head.writeUInt16LE(1, 2); head.writeUInt16LE(sizes.length, 4);
   const dir = Buffer.alloc(16 * sizes.length); let off = 6 + dir.length;
@@ -46,5 +61,5 @@ window.renderAll = async sizes => { await document.fonts.load('150px "Black Ops 
   fs.writeFileSync(path.join(root, 'assets', 'icon.ico'), Buffer.concat([head, dir, ...pngs]));
   fs.writeFileSync(path.join(root, 'public', 'icon.png'), pngs[sizes.indexOf(128)]);
   fs.writeFileSync(path.join(root, 'assets', 'icon-256.png'), pngs[sizes.indexOf(256)]);
-  console.log('wrote assets/icon.ico, assets/icon-256.png, public/icon.png');
+  console.log('wrote assets/icon.ico, assets/icon-256.png, public/icon.png and the app icons (public/app-*.png, apple-touch-icon.png)');
 })().catch(e => { console.error(e); process.exit(1); });

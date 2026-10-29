@@ -31,7 +31,16 @@
   const isTouchDevice = matchMedia('(pointer: coarse)').matches || navigator.maxTouchPoints > 0;
   if (isTouchDevice) document.body.classList.add('touch');
   // phones play in landscape: lock the screen there where the system lets a page do it (installed app, fullscreen)
-  if (isTouchDevice) addEventListener('pointerdown', () => { try { const o = screen.orientation; if (o && o.lock) o.lock('landscape').catch(() => {}); } catch (e) {} }, { once: true, passive: true });
+  // phones: the first tap goes full screen (no browser bars) and locks landscape. Android only locks the orientation in full
+  // screen; an installed app already is. iPhones can't do either from a web page, so there the "turn sideways" screen does the job
+  const standalone = matchMedia('(display-mode: fullscreen), (display-mode: standalone)').matches || navigator.standalone;
+  if (isTouchDevice) addEventListener('pointerdown', () => {
+    const lock = () => { try { const o = screen.orientation; if (o && o.lock) o.lock('landscape').catch(() => {}); } catch (e) {} };
+    const de = document.documentElement;
+    if (!standalone && de.requestFullscreen && !document.fullscreenElement) de.requestFullscreen({ navigationUI: 'hide' }).then(lock, lock); else lock();
+  }, { once: true, passive: true });
+  // installable app: the service worker (only on HTTPS or localhost; a LAN server over plain http just runs as a web page)
+  if ('serviceWorker' in navigator && window.isSecureContext) addEventListener('load', () => navigator.serviceWorker.register('sw.js').catch(() => {}));
   let lastTurnKey = '';
   // your seat in a room survives a reload: the room's code and the seat's token
   let seat = null; try { seat = JSON.parse(localStorage.getItem('sector.seat') || 'null'); localStorage.removeItem('sector.token'); } catch (e) {}

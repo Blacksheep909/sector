@@ -1,0 +1,19 @@
+{
+  "name": "SECTOR",
+  "short_name": "SECTOR",
+  "description": "Hex conquest with friends: capture, deploy, destroy.",
+  "id": "/",
+  "start_url": "/?app=1",
+  "scope": "/",
+  "display": "fullscreen",
+  "display_override": ["fullscreen", "standalone"],
+  "orientation": "landscape",
+  "background_color": "#070b0f",
+  "theme_color": "#0b1117",
+  "categories": ["games", "strategy"],
+  "icons": [
+    { "src": "app-192.png", "sizes": "192x192", "type": "image/png", "purpose": "any" },
+    { "src": "app-512.png", "sizes": "512x512", "type": "image/png", "purpose": "any" },
+    { "src": "app-maskable-512.png", "sizes": "512x512", "type": "image/png", "purpose": "maskable" }
+  ]
+}

@@ -45,7 +45,7 @@ const REPO = 'Blacksheep909/sector';
 const STARTED = Date.now();
 const PUBLIC = path.join(__dirname, 'public');
 const SERVER_ID = crypto.randomBytes(6).toString('hex'); // lets LAN scanners spot one server reachable on several addresses
-const MIME = { '.html': 'text/html; charset=utf-8', '.js': 'text/javascript', '.css': 'text/css', '.png': 'image/png', '.svg': 'image/svg+xml', '.ico': 'image/x-icon', '.json': 'application/json', '.woff2': 'font/woff2' };
+const MIME = { '.html': 'text/html; charset=utf-8', '.js': 'text/javascript', '.css': 'text/css', '.png': 'image/png', '.svg': 'image/svg+xml', '.ico': 'image/x-icon', '.json': 'application/json', '.woff2': 'font/woff2', '.webmanifest': 'application/manifest+json' };
 
 function lanAddresses() {
   if (process.env.SECTOR_PUBLIC) return [];   // an internet-facing server never advertises its private network addresses
