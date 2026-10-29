@@ -202,5 +202,14 @@ function crossing(s) {
   struck = false; for (let i = 0; i < 30 && !struck; i++) { const a = botStep(s, 'A', { n: 0 }); if (a && a.a === 'tactic' && a.target === far) struck = true; }
   ok(struck, 'and then the bot strikes it');
 }
+{ // airbases go out toward the front: none within 3 hexes of your HQ
+  const roster = [0, 1].map(i => ({ id: 'p' + i, name: 'P' + i, color: E.COLORS[i], faction: 'iron' }));
+  const { state: s } = E.createGame({ mode: 'domination', mapSize: 'medium' }, roster);
+  s.phase = 'play'; const p = E.player(s, 'p0'); p.cash = 99;
+  const near = E.buildHexes(s, 'p0', 'airbase').filter(k => E.dist(k, p.hq) <= 3);
+  ok(!near.length, 'no airbase spot within 3 of the HQ');
+  const T = s.map.tiles, k = E.neighbors(p.hq).find(n => T[n] && E.isLandTile(T[n]) && T[n].owner === 'p0');
+  ok(/more than 3 hexes/.test(E.buildError(s, 'p0', 'airbase', k) || ''), 'and it says why');
+}
 console.log(fails ? fails + ' FAILED' : 'all passed');
 process.exit(fails ? 1 : 0);
