@@ -4,6 +4,7 @@ Every release, newest first. Each version also has its own post on the [Releases
 
 ## Unreleased
 
+- **Ending a war during the opening draft** no longer leaves the draft on top of the lobby. Whenever a war ends under you, everything it put on screen goes with it.
 - **No peeking at the map:** the battlefield stays hidden behind the map-roll animation until it lands.
 
 ## v0.10.7

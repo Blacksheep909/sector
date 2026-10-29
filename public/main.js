@@ -156,7 +156,7 @@
     while (msgQ.length) {
       if (window.SECTOR_PAUSE) break; // dev/screenshot hook: freeze incoming events
       const m = msgQ.shift();
-      if (!m.state) { S = null; you = realId || you; Render.setState(null); showMenu(); Missions.onState(null); continue; }
+      if (!m.state) { clearWarScreens(); S = null; you = realId || you; plan = []; sel = null; mode = null; Render.setState(null); showMenu(); continue; }   // the war ended: back to the lobby, with nothing of it left on screen
       if (m.seat && m.seat !== you) seatChange(m.seat, m.state);
       // pass & play: hide the hand while no local player is acting, so the next person can't peek
       document.body.classList.toggle('pp-idle', !!(m.state && localSeats().length && !needsAction(m.state, you)));
@@ -1202,24 +1202,30 @@
   function closeEsc() { $('#escMenu').hidden = true; }
   // tear down every in-game overlay and return to the title screen
   let menuGen = 0;
-  function backToMenu() {
-    // every step is fenced off: one failing cleanup must never strand you on a blank screen with no menu
-    const safe = f => { try { f(); } catch (e) { console.warn('back to menu', e); } };
-    menuGen++; safe(() => { Render.ov.notes = []; Render.extraUnits.length = 0; });
+  // every step is fenced off: one failing cleanup must never strand you on a blank screen with no menu
+  const safeStep = f => { try { f(); } catch (e) { console.warn('leaving the war', e); } };
+  // everything a war put over the screen goes with it (draft, crates, resupply, fights, pop-ups), or it would sit on top of
+  // the menu or lobby and swallow every click. Used when you leave, and when the war ends under you (the host ends it)
+  function clearWarScreens() {
+    const safe = safeStep;
+    safe(() => { Render.ov.notes = []; Render.extraUnits.length = 0; });
     safe(() => Missions.onState(null));   // the mission bar and General Hale go with the mission
-    // anything a war put over the screen goes with it, or it would sit on top of the menu and swallow every click
     document.body.classList.remove('reeling');
     for (const id of ['#battlePop', '#owPop', '#crateOpen', '#mapReel', '#afkCover', '#autoEnd', '#boxSel', '#mrBack']) { const e = $(id); if (e) e.remove(); }
-    for (const id of ['#combat', '#allyPop', '#supply', '#crate', '#draft', '#tooltip']) { const e = $(id); if (e) e.hidden = true; }
+    for (const id of ['#combat', '#allyPop', '#supply', '#crate', '#draft', '#tooltip', '#teamPanel']) { const e = $(id); if (e) e.hidden = true; }
     for (const id of ['#missionsModal', '#missionResult']) { const e = $(id); if (e) e.hidden = true; }
     battleOpen = null;
-    S = null; safe(() => Render.setState(null)); msgQ = []; plan = []; sel = null; mode = null; passTo = null; unlocked = null; lastTurnKey = '';
-    for (const k in plans) delete plans[k];
     safe(() => Cards.hideDraft()); safe(() => Cards.closeSupply()); safe(() => Cards.closeCrate());
     for (const id of ['#escMenu', '#trade', '#market', '#modal', '#offerPop', '#victory', '#passCover', '#index', '#rules']) { const e = $(id); if (e) e.hidden = true; }
     for (const id of ['#siegeWarn', '#spawnBar']) { const e = $(id); if (e) e.remove(); }
     const z = $('#cardZoom'); if (z) z.hidden = true;
     document.body.classList.remove('pp-idle');
+  }
+  function backToMenu() {
+    const safe = safeStep;
+    menuGen++; clearWarScreens();
+    S = null; safe(() => Render.setState(null)); msgQ = []; plan = []; sel = null; mode = null; passTo = null; unlocked = null; lastTurnKey = '';
+    for (const k in plans) delete plans[k];
     safe(showMenu); safe(showHome);
     // belt and braces: the front page must be up, whatever happened above
     $('#menu').hidden = false; $('#hud').hidden = true; if ($('#home').hidden && $('#lobbyBox').hidden) { $('#home').hidden = false; document.body.classList.add('at-home'); }
