@@ -247,9 +247,11 @@ const Cards = (() => {
     return new Promise(res => {
       const hint = el('div', 'cr-hint', 'CLICK A CARD TO REVEAL · SPACE FOR NEXT');
       const all = el('button', 'btn reveal-all', 'REVEAL ALL');
-      const wrap = el('div', 'reveal-bar'); wrap.append(hint, all); box.appendChild(wrap);
+      // the bar goes in a slot kept for it under the cards, so showing and hiding it never shifts the screen
+      const slot = box.querySelector('.reveal-slot');
+      const wrap = el('div', 'reveal-bar'); wrap.append(hint, all); (slot || box).appendChild(wrap);
       let done = false;
-      const check = () => { if (!done && slots.every(s => s.flip.classList.contains('open') && !s.flipping)) { done = true; removeEventListener('keydown', key, true); wrap.remove(); res(); } };
+      const check = () => { if (!done && slots.every(s => s.flip.classList.contains('open') && !s.flipping)) { done = true; removeEventListener('keydown', key, true); if (slot) wrap.style.visibility = 'hidden'; else wrap.remove(); res(); } };
       const busy = () => slots.some(s => s.flipping);
       let lastClick = 0;
       const quick = () => { const q = Date.now() - lastClick < 1500; lastClick = Date.now(); return q; };
@@ -446,7 +448,7 @@ const Cards = (() => {
     burstAt(mx, my, [glowCol, '#ffffff', glowCol], T === 'mythic' ? 70 : 44, 300, 9);
     await wait(200);
     // 5. the cards rise out of the chest one after another and fan into their places
-    const row = el('div', 'cr-cards sd-row'); box.appendChild(row);
+    const row = el('div', 'cr-cards sd-row'); box.appendChild(row); box.appendChild(el('div', 'reveal-slot'));
     const slots = crate.cards.map((id, i) => {
       const d = E.cardDef(id);
       const owned = d.kind === 'unit' && me.arsenal.includes(id);
@@ -571,6 +573,7 @@ const Cards = (() => {
       };
     });
     box.appendChild(row);
+    box.appendChild(el('div', 'reveal-slot'));
     box.appendChild(who);
     const dslots = [...row.children].map((f, i) => ({ flip: f, front: f.querySelector('.cfront'), d: E.cardDef(offer[i]) }));
     const tok = box.dataset.tok = String(Math.random());

@@ -117,8 +117,8 @@ input:focus, select:focus { border-color: var(--blue); }
 #planBox { position: absolute; top: 200px; left: 12px; width: 250px; max-height: 40vh; display: flex; flex-direction: column; border-color: #1b4f6b; background: linear-gradient(180deg, #14283a, #111c26); }
 .plan-head b { font-family: var(--title); font-weight: 400; color: var(--blue); letter-spacing: 1px; display: block; }
 #planList { overflow-y: auto; margin-top: 8px; display: flex; flex-direction: column; gap: 4px; }
-.pitem { display: flex; align-items: center; gap: 8px; padding: 5px 8px; background: #0c1620; border-radius: 8px; font-size: 12px; border-left: 4px solid var(--blue); animation: popIn .2s; }
-.pitem.bad { border-left-color: var(--red); color: #ff9aa3; }
+.pitem { display: flex; align-items: center; gap: 8px; padding: 5px 8px; background: #0c1620; border-radius: 8px; font-size: 12px; animation: popIn .2s; }
+.pitem.bad { border-left: 4px solid var(--red); color: #ff9aa3; }   /* an order that can't go through keeps a red flag */
 .pitem span { flex: 1; }
 .pitem button { background: none; border: 0; color: var(--dim); cursor: pointer; font-size: 14px; }
 .pempty { font-size: 12px; color: var(--dim); font-style: italic; }
@@ -616,6 +616,9 @@ input:focus, select:focus { border-color: var(--blue); }
 @keyframes tellPulse { 50% { filter: brightness(1.25); } }
 @keyframes levitate { 0%, 100% { translate: 0 -6px; rotate: -.6deg; } 50% { translate: 1px -9px; rotate: .6deg; } }
 .reveal-bar { display: flex; gap: 14px; align-items: center; z-index: 2; position: relative; margin-top: 14px; }
+/* the reveal bar's room is kept for it from the start (it appears and goes without moving anything) */
+.reveal-slot { min-height: 54px; display: flex; justify-content: center; align-items: flex-start; position: relative; z-index: 2; }
+.reveal-slot .reveal-bar { margin-top: 14px; }
 .reveal-all { font-family: var(--title); font-weight: 400; letter-spacing: 1px; }
 #crate.dim .cr-cards .flip:not(.lifting), #draft.dim .cr-cards .flip:not(.lifting) { filter: brightness(.35); }
 #draft.dim::after { content: ''; position: absolute; inset: 0; background: rgba(0,0,0,.5); pointer-events: none; z-index: 1; }
@@ -901,8 +904,9 @@ body.host-page { overflow: auto; background: radial-gradient(ellipse at top, #16
 @media (max-width: 900px) { #hud { zoom: .62; } }
 @media (max-width: 760px) { #hud { zoom: .5; } }
 /* phones: scale to fit the short side (a landscape phone is under 520px tall) */
-@media (max-height: 520px) { #hud { zoom: .5; } }
-@media (max-height: 420px) { #hud { zoom: .45; } }
+@media (max-height: 520px) { #hud { zoom: .64; } }
+@media (max-height: 420px) { #hud { zoom: .6; } }
+@media (max-height: 370px) { #hud { zoom: .55; } }
 @media (max-width: 520px) { #hud { zoom: .5; } }
 /* compact screens: the build bar and the chat log fold away behind buttons */
 body.compact #buildBar:not(.open) #hbBuild { display: none; }
@@ -1942,3 +1946,19 @@ body.compact #buildBar, body.compact #leftCol > #buildBar { position: fixed !imp
 #rotateHint .rh-phone { width: 54px; height: 92px; border: 5px solid #e9edf2; border-radius: 12px; position: relative; animation: rhTurn 2.4s ease-in-out infinite; }
 #rotateHint .rh-phone::after { content: ''; position: absolute; left: 50%; bottom: 6px; width: 12px; height: 4px; margin-left: -6px; border-radius: 2px; background: #e9edf2; }
 @keyframes rhTurn { 0%, 25% { transform: rotate(0deg); } 50%, 85% { transform: rotate(-90deg); } 100% { transform: rotate(0deg); } }
+
+/* ══════════ landscape phones: short screens ══════════ */
+@media (max-height: 520px) {
+  /* every pop-up can scroll if it's taller than the screen, and starts at the top rather than overflowing both ways */
+  .modal-bg { overflow-y: auto; place-items: start center; padding: 8px; }
+  #escMenu { overflow-y: auto; place-items: start center; padding: 8px 0; }
+  /* the pause menu: two columns of buttons and a smaller title, so it fits on a phone held sideways */
+  .esc-card { width: min(560px, 94vw); display: grid; grid-template-columns: 1fr 1fr; gap: 6px; padding: 12px 14px; }
+  .esc-card > :not(.btn) { grid-column: 1 / -1; }
+  .esc-card h2 { font-size: 28px; }
+  .esc-card .btn { padding: 8px 10px; font-size: 14px; min-height: 40px; }
+}
+/* the full-screen card screens (resupply, draft, crates, black market, the fight) scale down to fit a phone's height */
+@media (max-height: 520px) { #supply, #draft, #crate, #market, #combat { zoom: .66; } }
+@media (max-height: 420px) { #supply, #draft, #crate, #market, #combat { zoom: .58; } }
+@media (max-height: 370px) { #supply, #draft, #crate, #market, #combat { zoom: .52; } }

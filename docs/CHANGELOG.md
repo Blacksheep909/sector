@@ -2,6 +2,12 @@
 
 Every release, newest first. Each version also has its own post on the [Releases page](https://github.com/Blacksheep909/sector/releases).
 
+## Unreleased
+
+- **Opening draft no longer jumps:** the cards and title stayed still until the REVEAL ALL bar appeared under them and nudged the whole screen up (and back down after each pick). Its space is now kept from the start. Supply Drop crates had the same jump.
+- **Blueprint orders** lose the blue strip down their left side (an order that can't go through still shows red).
+- **Phones held sideways:** the HUD is bigger and easier to read, the pause menu fits (two columns), and the resupply, draft, crate, black market and fight screens scale to fit a phone's height. Pop-ups scroll if they're taller than the screen.
+
 ## v0.10.6
 
 **Mission 20, flying drones and missile trails, fixes for Arks and bridges, fairer rewards.**
