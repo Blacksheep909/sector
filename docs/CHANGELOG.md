@@ -4,6 +4,10 @@ Every release, newest first. Each version also has its own post on the [Releases
 
 ## Unreleased
 
+- **🗺 Map themes.** A new **Map theme** lobby option sets the climate of the land: Mixed climates, Grasslands, Woodland, Desert, Badlands, Arctic, Jungle, Wetlands or Highlands. **Random** (the default) rolls one for each war. Each theme changes what the land is made of (deserts full of sand and red canyons, jungles you hack through, highlands full of ridges, wetlands of swamp and lakes) and its look: snowfields on arctic maps, dry scrub in the desert. The map reel names it as it lands.
+- **💣 Strategic Bombing actually bombs:** besides hitting buildings and stopping the land's income for 2 turns, each enemy unit under the bombs now has a 30% chance to be destroyed, and the strike says what it hit.
+- **No buildings in rivers:** nobody can stand in an unbridged river, and now nothing can be built in one either (only a Bridge).
+- **Text clean-up:** hints, captions and messages across the game start with a capital and use proper punctuation.
 - **Airbases go to the front:** you can't build a new one within 3 hexes of your HQ (upgrading one you already have is fine).
 - **Safari fix (Macs, iPhones, iPads):** on smaller screens the HUD shrinks to fit, and Safari got that wrong, pushing your hand, deck and build bar half off the bottom of the screen. The HUD and the phone card screens now scale a way every browser handles the same.
 - **Bots no longer strike blind:** with fog of war on, bots only use air strikes, missiles and other strike cards, and only fire artillery, at hexes they can actually see, just like you.

@@ -186,7 +186,7 @@
     embargo: { name: 'Embargo', rarity: 'uncommon', cost: 3, target: 'enemyHex', desc: 'Click any enemy territory: that commander earns half income for their next 2 turns and cannot trade.' },
     bounty: { name: 'Bounty', rarity: 'uncommon', cost: 1, target: 'none', desc: 'This turn, every enemy unit you destroy pays a fifth of your income (min $2).' },
     precision: { name: 'Precision Strike', rarity: 'rare', cost: 5, target: 'precision', range: 5, desc: 'Guided bomb within 5 of your land, hard for anti-air to catch. Kills the strongest unit (2 on a 5+), or destroys a building.' },
-    strategic: { name: 'Strategic Bombing', rarity: 'rare', cost: 5, target: 'infra', range: 6, desc: 'Bombers hit an enemy hex within 6 and its neighbours: their economic buildings lose a level, and that land pays nothing for 2 turns.' },
+    strategic: { name: 'Strategic Bombing', rarity: 'rare', cost: 5, target: 'infra', range: 6, desc: 'Bombers hit an enemy hex within 6 and its neighbours: their economic buildings lose a level, that land pays nothing for 2 turns, and each enemy unit under the bombs has a 30% chance to be destroyed.' },
     quarry: { name: 'Quarry Blast', rarity: 'rare', cost: 3, target: 'mountain', range: 3, desc: 'Blast a mountain within 3 of your land, and the mountain behind it, down into Highlands: a 2-hex pass.' },
     spy: { name: 'Spy Ring', rarity: 'epic', cost: 3, target: 'enemyHand', desc: 'Steal a random card a rival has earned (a tactic or a unit, never their starting cards). They will not forgive you easily.' },
     bonds: { name: 'War Bonds', rarity: 'rare', cost: 0, target: 'none', desc: 'Gain $1 for every 2 hexes you own.' },
@@ -308,10 +308,23 @@
   // Every map picks a layout archetype, warps it with noise, then trims the board to the
   // coastline plus a band of sea, so the outline is different every game.
   const ARCHETYPES = ['continent', 'twin', 'archipelago', 'inland', 'crescent', 'pangaea', 'ocean'];
+  // map themes: the climate the land is made of. temp / moist shift the biome noise, hills / peaks / low set how much
+  // of the land is highlands, mountains and wet lowland, tempSquash / moistSquash flatten the climate toward the middle, and lakes scales the inland lakes. (The client recolours some ground per theme.)
+  const THEMES = {
+    mixed: { name: 'Mixed' },
+    grasslands: { name: 'Grasslands', temp: 0.06, tempSquash: 0.55, moistSquash: 0.4, hills: 0.13, peaks: 0.05 },
+    woodland: { name: 'Woodland', temp: -0.08, tempSquash: 0.45, moist: 0.2 },
+    desert: { name: 'Desert', temp: 0.38, moist: -0.24, lakes: 0.3 },
+    badlands: { name: 'Badlands', temp: 0.28, moist: -0.3, canyon: 0.7, lakes: 0.3 },
+    arctic: { name: 'Arctic', temp: -0.2, tempSquash: 0.5 },
+    jungle: { name: 'Jungle', temp: 0.32, moist: 0.2, lakes: 1.5 },
+    wetlands: { name: 'Wetlands', tempSquash: 0.45, moist: 0.14, swamp: 0.6, low: 0.55, lakes: 2.2, hills: 0.14 },
+    highlands: { name: 'Highlands', hills: 0.36, peaks: 0.1 },
+  };
   function generateMap(opts) {
     for (let attempt = 0; attempt < 80; attempt++) {
       const seed = (opts.seed + attempt * 7919) >>> 0;
-      const m = tryMap(seed, opts.nPlayers, opts.size || 'medium', opts.archetype);
+      const m = tryMap(seed, opts.nPlayers, opts.size || 'medium', opts.archetype, THEMES[opts.theme] ? opts.theme : 'mixed');
       if (m) { m.seed = seed; return m; }
     }
     throw new Error('map generation failed');
@@ -345,7 +358,8 @@
       if (comps().length === cs.length) break;
     }
   }
-  function tryMap(seed, nP, size, forceArch) {
+  function tryMap(seed, nP, size, forceArch, theme) {
+    const th = THEMES[theme] || THEMES.mixed;
     const rng = mulberry32(seed);
     const noise = makeNoise(seed % 100000), noise2 = makeNoise((seed * 3 + 17) % 100000), warpN = makeNoise((seed * 7 + 5) % 100000);
     const arch = forceArch || ARCHETYPES[Math.floor(rng() * ARCHETYPES.length)];
@@ -401,22 +415,25 @@
     const thr = sorted[Math.min(sorted.length - 1, landTarget)];
     const landCells = cells.filter(c => c.e > thr);
     const le = landCells.map(c => c.e).sort((a, b) => b - a);
-    const mThr = le[Math.floor(le.length * 0.07)], hThr = le[Math.floor(le.length * 0.2)];
+    const mThr = le[Math.floor(le.length * (th.peaks || 0.07))], hThr = le[Math.floor(le.length * (th.hills || 0.2))];
     const tiles = {};
     // biomes: temperature runs warm at the equator (middle rows) and cold toward the edges
     const maxPy = Math.max(...landCells.map(c => Math.abs(c.py))) || 1;
-    const lowE = le[Math.floor(le.length * 0.85)];
+    const lowE = le[Math.floor(le.length * (th.low || 0.85))];
     const elev = {};
     for (const c of landCells) {
       const ridge = 1 - Math.abs(noise2(c.px * 0.11 + oy, c.py * 0.11 + ox, 2) * 2 - 1);
-      const moist = noise2(c.px * 0.1 + 40, c.py * 0.1 + 40, 2);
-      const temp = 1 - Math.abs(c.py) / maxPy * 0.85 + (tempN(c.px * 0.045, c.py * 0.045, 2) - 0.5) * 0.7;
+      let moist = noise2(c.px * 0.1 + 40, c.py * 0.1 + 40, 2) + (th.moist || 0);
+      if (th.moistSquash) moist = 0.42 + (moist - 0.42) * th.moistSquash;   // grasslands: few forests or swamps
+      let temp = 1 - Math.abs(c.py) / maxPy * 0.85 + (tempN(c.px * 0.045, c.py * 0.045, 2) - 0.5) * 0.7;
+      if (th.tempSquash) temp = 0.5 + (temp - 0.5) * th.tempSquash;   // no frozen poles or steaming equator
+      temp += th.temp || 0;
       let t = 'plains';
       if (c.e > mThr || (ridge > 0.96 && c.e > hThr)) t = 'mountain';
       else if (c.e > hThr) t = 'hills';
       else if (temp < 0.3) t = 'tundra';
-      else if (moist > 0.66 && c.e < lowE) t = 'swamp';
-      else if (temp > 0.62 && moist < 0.36 && c.e > hThr * 0.86) t = 'canyon';
+      else if (moist > (th.swamp || 0.66) && c.e < lowE) t = 'swamp';
+      else if (temp > 0.62 && moist < 0.36 && c.e > hThr * (th.canyon || 0.86)) t = 'canyon';
       else if (temp > 0.7 && moist < 0.44) t = 'desert';
       else if (temp > 0.62 && moist > 0.58) t = 'jungle';
       else if (moist > 0.56) t = 'forest';
@@ -441,7 +458,9 @@
     }
     const land = Object.keys(tiles).filter(isLand);
     const minComp = Math.max(14, Math.floor(land.length / (nP * 2.2)));
-    const cands = land.filter(k => comps[compOf[k]].length >= minComp && !['hills', 'swamp', 'tundra', 'jungle', 'canyon'].includes(tiles[k].t) && neighbors(k).filter(isLand).length >= 4);
+    // spawn spots on easy ground (a theme's own rough ground is allowed when it is most of the map: the HQ hex is cleared to plains below)
+    const rough = ['hills', 'swamp', 'tundra', 'jungle', 'canyon'].filter(x => !(theme === 'arctic' && x === 'tundra') && !(theme === 'jungle' && x === 'jungle') && !(theme === 'wetlands' && x === 'swamp'));
+    const cands = land.filter(k => comps[compOf[k]].length >= minComp && !rough.includes(tiles[k].t) && neighbors(k).filter(isLand).length >= 4);
     if (cands.length < nP * 3) return null;
     // farthest-point sampling for fair spawns
     const spawns = [cands[Math.floor(rng() * cands.length)]];
@@ -475,7 +494,7 @@
     {
       const lowland = Object.keys(tiles).filter(k => isLand(k) && tiles[k].t !== 'mountain' && !nearSpawn(k, 4) && area(k, 2).every(a => !tiles[a] || tiles[a].t !== 'water'))
         .sort((a, b) => (elev[a] || 0) - (elev[b] || 0));
-      const nLakes = Math.min(4, Math.round(Object.keys(tiles).filter(isLand).length / 140 + rng()));
+      const nLakes = Math.min(th.lakes > 1 ? 7 : 4, Math.round((Object.keys(tiles).filter(isLand).length / 140 + rng()) * (th.lakes || 1)));
       const lakes = [];
       for (const c of lowland.slice(0, Math.max(1, Math.floor(lowland.length * 0.35))).sort(() => rng() - 0.5)) {
         if (lakes.length >= nLakes) break;
@@ -571,7 +590,7 @@
     tiles[beacon].t = 'plains'; tiles[beacon].res = false; delete tiles[beacon].poi; tiles[beacon].structs = []; tiles[beacon].struct = null;
     // towns, forts, relics and the beacon sit on dry ground beside the river, not in it
     for (const k in tiles) if (tiles[k].river && (tiles[k].poi || k === beacon)) delete tiles[k].river;
-    return { tiles, spawns, beacon, landCount: landNow.length, arch };
+    return { tiles, spawns, beacon, landCount: landNow.length, arch, theme };
   }
 
   // ───────────────────────── game setup ─────────────────────────
@@ -591,11 +610,13 @@
     }
     const seed = settings.seed ? hashStr(String(settings.seed)) : (Math.random() * 1e9) >>> 0;
     const shuffled = roster.slice().sort(() => Math.random() - 0.5);
-    const map = generateMap({ size: settings.mapSize, seed, nPlayers: roster.length, archetype: ARCHETYPES.includes(settings.mapType) ? settings.mapType : null });
+    // a Random theme is rolled from the seed, so a shared seed gives the same map
+    const theme = THEMES[settings.theme] ? settings.theme : settings.theme !== 'random' ? 'mixed' : Object.keys(THEMES)[mulberry32(seed ^ 0x5eed)() * Object.keys(THEMES).length | 0];
+    const map = generateMap({ size: settings.mapSize, seed, nPlayers: roster.length, archetype: ARCHETYPES.includes(settings.mapType) ? settings.mapType : null, theme });
     const pickSpawns = settings.spawns === 'pick' && roster.length > 1;
     const state = {
       v: 0, phase: pickSpawns ? 'spawn' : 'draft', settings: { ...settings }, seed: map.seed,
-      map: { arch: map.arch, tiles: map.tiles, beacon: settings.mode === 'koth' ? map.beacon : null, landCount: map.landCount },
+      map: { arch: map.arch, theme: map.theme, tiles: map.tiles, beacon: settings.mode === 'koth' ? map.beacon : null, landCount: map.landCount },
       players: [], units: {}, nextId: 1,
       turn: { idx: 0, round: 1, stage: 'choose', offer: [], rerolls: 0, crate: null, income: 0, deadline: 0 },
       draft: { rounds: DRAFT_ROUNDS, offers: {}, step: {}, picked: {} },
@@ -2525,18 +2546,19 @@
         break;
       }
       case 'strategic': {
-        // carpet the area: buildings lose a level, and the enemy land there pays nothing for 2 turns
-        const hexes = [];
-        const shot = [];
+        // carpet the area: buildings lose a level, the enemy land there pays nothing for 2 turns, and troops caught under the bombs can die
+        const hexes = [], shot = [], kills = [];
         for (const k of area(a.target, 1)) {
           const t = tiles[k]; if (!t || !t.owner || t.owner === pid || isAlly(s, pid, t.owner) || !isLandTile(t)) continue;
           { const ch = interceptChance(s, pid, k, id); if (ch > 0 && rng() < ch) { shot.push(k); continue; } }   // that bomber was shot down
           const infra = damageInfra(s, k, 1);
           t.ruin = 2;
           hexes.push({ k, infra, structs: structsOf(t) });
+          for (const u of Object.values(s.units)) if (u.hex === k && u.owner !== pid && !isAlly(s, pid, u.owner) && UNITS[u.type].ability !== 'stealth' && rng() < 0.3) kills.push(u);
         }
-        ev.push({ ...base, hexes, shot });
-        pushLog(s, '💣 ' + p.name + ' sent the bombers over ' + (player(s, tiles[a.target].owner) || {}).name + ': ' + hexes.length + ' hexes bombed out.');
+        kills.forEach(kill);
+        ev.push({ ...base, hexes, shot, kills: kills.map(u => u.id) });
+        pushLog(s, '💣 ' + p.name + ' sent the bombers over ' + (player(s, tiles[a.target].owner) || {}).name + ': ' + hexes.length + ' hexes bombed out' + (kills.length ? ', ' + kills.length + ' destroyed' : '') + '.');
         break;
       }
       case 'buster': {
@@ -2925,7 +2947,7 @@
   // (on an ordinary object those names find JavaScript's built-ins, which once let a crafted buy turn Valor into NaN)
   for (const t of [RARITY, CRATES, DROP_TIERS, TURN_ODDS, TERRAIN, UNITS, TACTICS, STRUCTS, FACTIONS, DIFFICULTY, POI, WEATHER, TEAM_COLORS, TEAM_NAMES, CLASS_NAME]) Object.setPrototypeOf(t, null);
   return {
-    DIRS, key, parse, dist, neighbors, area, line, mulberry32, hashStr,
+    DIRS, key, parse, dist, neighbors, area, line, mulberry32, hashStr, THEMES, ARCHETYPES,
     POI, WEATHER, isAlly, teammate, recordHistory, RARITY, RARITY_ORDER, CRATES, DROP_TIERS, SCRAP_VALUE, DECK_MAX, MAX_LEVEL, TERRAIN, DIFFICULTY, UNITS, TACTICS, STRUCTS, BUILD_ORDER, UPGRADABLE, MAX_SLVL, FACTIONS, ROLL_BASE, COLORS, TEAM_COLORS, TEAM_NAMES, teamColor, MAX_STACK, GRUNT_STACK, stackFits, CLASS_NAME, cardDef,
     BATTLE_MAX, cardFee, turnOdds, marketPrice, MARKET_UNLOCK, AIRBASE_CARDS, cacheCard, scenarioCheck, assaultPlan, openBattle, closeBattle, battleOdds, battleHand, battleCard, INTEL_COST, intelCost, overwatchTriggers, overwatchFire, attackTarget, ECON, infraValue, econOf, AIR_STRIKES, airDefenders, interceptChance, generateMap, createGame, applyAction, spawnChoices, visionOf, startTurn, endTurn, simulateTurnStart, view, drawCards,
     player, current, buildIndex, canAct, moveAllow, ownedTiles, ownedLand, spawnPoints, musterHexes, supplySet, computeIncome, levelOf, unitAtk, unitDef,

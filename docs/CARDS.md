@@ -70,7 +70,7 @@ Single-use cards from your hand.
 | **Reserves** | Rare | $2 | Battle card (attack or defence): every unit on your side gets +2 Chips. |
 | **Steady Nerves** | Rare | $2 | Battle card (attack or defence): your die never rolls below 3. |
 | **Precision Strike** | Rare | $5 | Guided bomb within 5 of your land, hard for anti-air to catch. Kills the strongest unit (2 on a 5+), or destroys a building. |
-| **Strategic Bombing** | Rare | $5 | Bombers hit an enemy hex within 6 and its neighbours: their economic buildings lose a level, and that land pays nothing for 2 turns. |
+| **Strategic Bombing** | Rare | $5 | Bombers hit an enemy hex within 6 and its neighbours: their economic buildings lose a level, that land pays nothing for 2 turns, and each enemy unit under the bombs has a 30% chance to be destroyed. |
 | **Quarry Blast** | Rare | $3 | Blast a mountain within 3 of your land, and the mountain behind it, down into Highlands: a 2-hex pass. |
 | **War Bonds** | Rare | $0 | Gain $1 for every 2 hexes you own. |
 | **Blitz Doctrine** | Rare | $3 | This turn: all units +1 move, fresh units may act. |

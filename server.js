@@ -83,7 +83,7 @@ const FWD = ['x-forwarded-for', 'x-real-ip', 'forwarded', 'cf-connecting-ip', 't
 // a name a player typed: cleaned up, or null (and they're told) when it isn't allowed
 function cleanName(raw, c) { const n = F.name(raw); if (!n && raw && String(raw).trim() && c) send(c, { t: 'err', msg: 'That callsign isn’t allowed. Pick another.' }); return n; }
 // lobby settings: only the values the menus offer
-const SETTING_OK = { mode: ['domination', 'conquest', 'koth', 'worldwar'], mapType: ['random', 'continent', 'pangaea', 'twin', 'archipelago', 'inland', 'crescent', 'ocean'], mapSize: ['small', 'medium', 'large', 'huge'], spawns: ['pick', 'random'], fog: ['on', 'off'], events: ['on', 'off'], timer: ['0', '45', '60', '90', '150'], maxRounds: ['0', '15', '25', '40'], teams: ['off', 'on'], speed: ['normal', 'fast', 'super', 'max'], bank: ['off', '3', '6'], personas: ['on', 'off'] };
+const SETTING_OK = { mode: ['domination', 'conquest', 'koth', 'worldwar'], mapType: ['random', 'continent', 'pangaea', 'twin', 'archipelago', 'inland', 'crescent', 'ocean'], theme: ['random', 'mixed', 'grasslands', 'woodland', 'desert', 'badlands', 'arctic', 'jungle', 'wetlands', 'highlands'], mapSize: ['small', 'medium', 'large', 'huge'], spawns: ['pick', 'random'], fog: ['on', 'off'], events: ['on', 'off'], timer: ['0', '45', '60', '90', '150'], maxRounds: ['0', '15', '25', '40'], teams: ['off', 'on'], speed: ['normal', 'fast', 'super', 'max'], bank: ['off', '3', '6'], personas: ['on', 'off'] };
 function cleanSettings(s) {
   const out = {}; if (!s || typeof s !== 'object') return out;
   for (const k in SETTING_OK) if (k in s && SETTING_OK[k].includes(String(s[k]))) out[k] = ['timer', 'maxRounds'].includes(k) ? +s[k] : String(s[k]);
@@ -211,10 +211,10 @@ setInterval(() => {
 // so online each one can live in its own isolated worker (one Cloudflare Durable Object per room, say).
 const PUBLIC_SEATS = 6, PUBLIC_MIN = 4;
 // quick-play rooms: a standard war with a turn clock, so strangers can't stall it
-const PUBLIC_SETTINGS = { mode: 'domination', mapSize: 'small', mapType: 'random', spawns: 'random', fog: 'on', events: 'on', timer: 60, maxRounds: 0, conquestPct: 60, seed: '', teams: 'off', speed: 'fast', bank: 'off', personas: 'on' };
+const PUBLIC_SETTINGS = { mode: 'domination', mapSize: 'small', mapType: 'random', theme: 'random', spawns: 'random', fog: 'on', events: 'on', timer: 60, maxRounds: 0, conquestPct: 60, seed: '', teams: 'off', speed: 'fast', bank: 'off', personas: 'on' };
 function createRoom(code, kind) {
 const clients = new Set();   // the connections in this room
-const lobby = { players: [], hostId: null, kind, code, settings: kind === 'public' ? { ...PUBLIC_SETTINGS } : { mode: 'domination', mapSize: 'medium', mapType: 'random', spawns: 'pick', fog: 'on', events: 'on', timer: 0, maxRounds: 0, conquestPct: 60, seed: '', teams: 'off', speed: 'fast', bank: 'off', personas: 'on' } };
+const lobby = { players: [], hostId: null, kind, code, settings: kind === 'public' ? { ...PUBLIC_SETTINGS } : { mode: 'domination', mapSize: 'medium', mapType: 'random', theme: 'random', spawns: 'pick', fog: 'on', events: 'on', timer: 0, maxRounds: 0, conquestPct: 60, seed: '', teams: 'off', speed: 'fast', bank: 'off', personas: 'on' } };
 const isPublic = kind === 'public';
 // the factions a connection may play: what its profile has unlocked (no profile, as with tools and tests: all of them)
 const factionsFor = c => { const pr = c && c.profileId && profiles.get(c.profileId); return pr ? C.factionsOf(pr) : Object.keys(E.FACTIONS); };
@@ -740,7 +740,7 @@ function loadSave(c, id) {
   for (const cl of clients) if (cl.pid && remap.has(cl.pid)) cl.pid = remap.get(cl.pid);
   lobby.hostId = remap.get(lobby.hostId) || lobby.hostId;
   lobby.players = players;
-  Object.assign(lobby.settings, pick(g.settings, ['mode', 'mapSize', 'mapType', 'spawns', 'fog', 'events', 'timer', 'maxRounds', 'conquestPct', 'teams', 'speed', 'bank', 'personas']));
+  Object.assign(lobby.settings, pick(g.settings, ['mode', 'mapSize', 'mapType', 'theme', 'spawns', 'fog', 'events', 'timer', 'maxRounds', 'conquestPct', 'teams', 'speed', 'bank', 'personas']));
   // clocks were wall-clock times when saved: restart this turn's
   g.turn.pausedAt = 0; g.paused = false;
   g.turn.deadline = g.settings.timer ? Date.now() + g.settings.timer * 1000 : 0; g.turn.prevDeadline = 0;

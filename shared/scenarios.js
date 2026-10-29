@@ -494,7 +494,7 @@
     const { state: s } = E.createGame({ mode: 'domination', mapSize: 'small', spawns: 'random', fog: 'off', events: 'off' }, roster);
     const { tiles, labels } = parse(sc.map, ids);
     const at = l => { const k = labels[l]; if (!k) throw new Error(id + ': no hex labelled ' + l); return k; };
-    s.map.tiles = tiles; s.map.beacon = null; delete s.map.silos;
+    s.map.tiles = tiles; s.map.beacon = null; s.map.theme = 'mixed'; delete s.map.silos;
     s.map.landCount = Object.values(tiles).filter(t => E.isLandTile(t)).length;
     s.units = {}; s.weather = null; s.log = [];
     for (const [l, list] of Object.entries(sc.structs || {})) for (const [o, type, lvl] of list) {

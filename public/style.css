@@ -982,6 +982,7 @@ body.compact #hud:not([hidden]) ~ #chatToggle, body.compact #chatToggle.show { d
 .mr-mark { position: absolute; top: 0; bottom: 0; left: 50%; width: 4px; transform: translateX(-50%); background: linear-gradient(transparent, var(--gold), transparent); box-shadow: 0 0 14px var(--gold); }
 .mr-name { font-family: var(--title); font-size: 34px; letter-spacing: 4px; color: var(--gold); text-shadow: 0 4px 0 #000, 0 0 30px rgba(255,197,61,.5); min-height: 44px; }
 .mr-name b { font-weight: 400; animation: slam .35s cubic-bezier(.2,1.6,.4,1); display: inline-block; }
+.mr-name .mr-theme { font-size: 24px; color: #cfe3ff; text-shadow: 0 3px 0 #000; }
 
 #turnClock.paused .tc-bar i { opacity: .55; }
 #turnClock.paused span { color: #bfe6ff; }

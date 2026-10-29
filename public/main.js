@@ -354,7 +354,7 @@
       cl.appendChild(d);
     }
     const st = lobby.settings;
-    for (const [id, k] of [['#setMode', 'mode'], ['#setType', 'mapType'], ['#setSize', 'mapSize'], ['#setSpawns', 'spawns'], ['#setFog', 'fog'], ['#setEvents', 'events'], ['#setTimer', 'timer'], ['#setRounds', 'maxRounds'], ['#setSeed', 'seed'], ['#setTeams', 'teams'], ['#setSpeed', 'speed'], ['#setBank', 'bank'], ['#setPersonas', 'personas']]) {
+    for (const [id, k] of [['#setMode', 'mode'], ['#setType', 'mapType'], ['#setTheme', 'theme'], ['#setSize', 'mapSize'], ['#setSpawns', 'spawns'], ['#setFog', 'fog'], ['#setEvents', 'events'], ['#setTimer', 'timer'], ['#setRounds', 'maxRounds'], ['#setSeed', 'seed'], ['#setTeams', 'teams'], ['#setSpeed', 'speed'], ['#setBank', 'bank'], ['#setPersonas', 'personas']]) {
       const e = $(id); if (document.activeElement !== e) e.value = st[k] ?? ''; e.disabled = !host;
     }
     $('#startBtn').hidden = !host; $('#waitHost').hidden = host;
@@ -387,7 +387,7 @@
       SFX.click(); send({ t: 'dropSave', id: b.dataset.drop });
     });
   }
-  for (const [id, k] of [['#setMode', 'mode'], ['#setType', 'mapType'], ['#setSize', 'mapSize'], ['#setSpawns', 'spawns'], ['#setFog', 'fog'], ['#setEvents', 'events'], ['#setTimer', 'timer'], ['#setRounds', 'maxRounds'], ['#setSeed', 'seed'], ['#setTeams', 'teams'], ['#setSpeed', 'speed'], ['#setBank', 'bank'], ['#setPersonas', 'personas']])
+  for (const [id, k] of [['#setMode', 'mode'], ['#setType', 'mapType'], ['#setTheme', 'theme'], ['#setSize', 'mapSize'], ['#setSpawns', 'spawns'], ['#setFog', 'fog'], ['#setEvents', 'events'], ['#setTimer', 'timer'], ['#setRounds', 'maxRounds'], ['#setSeed', 'seed'], ['#setTeams', 'teams'], ['#setSpeed', 'speed'], ['#setBank', 'bank'], ['#setPersonas', 'personas']])
     $(id).addEventListener('change', e => send({ t: 'settings', settings: { [k]: e.target.value } }));
   $('#addBot').onclick = () => { SFX.click(); send({ t: 'addBot' }); };
   $('#addLocal').onclick = () => { SFX.click(); send({ t: 'addLocal' }); };
@@ -427,7 +427,7 @@
     stopBackdrop(); document.body.classList.remove('at-home'); $('#home').hidden = true; document.body.classList.remove('in-room');
     S = state; plan = []; for (const k in plans) delete plans[k]; sel = null; mode = null; lastTurnKey = ''; marches = {}; marchKey = '';
     SFX.music.stop();
-    if (state.settings && state.settings.mapType === 'random' && (state.phase === 'draft' || state.phase === 'spawn')) showMapReel(state);
+    if (state.settings && (state.settings.mapType === 'random' || state.settings.theme === 'random') && (state.phase === 'draft' || state.phase === 'spawn')) showMapReel(state);
     $('#menu').hidden = true; $('#hud').hidden = false; $('#victory').hidden = true;
     Render.setState(state);
     const me = myP();
@@ -2837,7 +2837,9 @@
         for (const h of ev.hexes) { const tt = S.map.tiles[h.k]; if (tt) tt.ruin = 2; if (h.infra.length) infraHit(h.k, h.infra, h.structs); else { Render.burst(h.k, ['#ffb03a', '#5a5a5a'], 14, { up: 90 }); Render.smoke(h.k, 8, 'rgba(70,65,60,'); } }
         Render.recolor(); Render.invalidate();
         for (const k of ev.shot || []) { Render.burst(k, ['#ffb03a', '#fff'], 20, { up: 200 }); Render.float(k, '🛡 SHOT DOWN', '#7ff3ff', 14); }
-        Render.float(ev.target, 'BOMBED OUT · NO INCOME 2 TURNS', '#ff8a5a', 18);
+        { const hit = ev.hexes.reduce((n, h) => n + h.infra.length, 0), kills = (ev.kills || []).length;
+          Render.float(ev.target, [kills ? kills + ' DESTROYED' : '', hit ? hit + ' BUILDING' + (hit > 1 ? 'S' : '') + ' HIT' : '', ev.hexes.length ? ev.hexes.length + ' HEXES PAY NOTHING FOR 2 TURNS' : ''].filter(Boolean).join(' · ') || 'NOTHING HIT', '#ff8a5a', 18);
+          killUnits(ev.kills || []); }
         await sleep(500); break;
       }
       case 'buster': {
@@ -3003,13 +3005,14 @@
   // ── random map type: a slot reel of battlefield thumbnails that lands on the real map ──
   const ARCH_NAME = { continent: 'Continent', pangaea: 'Supercontinent', twin: 'Twin Continents', archipelago: 'Archipelago', inland: 'Inland Sea', crescent: 'Crescent Isles', ocean: 'Open Ocean' };
   const thumbCache = {};
-  function mapThumb(tiles, w = 150, h = 96) {
+  const THUMB_THEME = { arctic: { plains: '#c3ced3', tundra: '#dfe7eb', forest: '#56706a' }, desert: { plains: '#9a8c5c' }, badlands: { plains: '#8f7350', desert: '#b98d5c' }, jungle: { plains: '#55803f' }, wetlands: { plains: '#5a7650' } };
+  function mapThumb(tiles, w = 150, h = 96, theme) {
     const cv = document.createElement('canvas'); cv.width = w * 2; cv.height = h * 2; const c = cv.getContext('2d'); c.scale(2, 2);
     const pts = Object.keys(tiles).map(k => { const [q, r] = E.parse(k); return [q + r / 2, r * 0.866, tiles[k]]; });
     const xs = pts.map(p => p[0]), ys = pts.map(p => p[1]), x0 = Math.min(...xs), x1 = Math.max(...xs), y0 = Math.min(...ys), y1 = Math.max(...ys);
     const sc = Math.min((w - 10) / (x1 - x0 + 1), (h - 10) / (y1 - y0 + 1)), ox = (w - (x1 - x0) * sc) / 2, oy = (h - (y1 - y0) * sc) / 2;
     c.fillStyle = '#0d2233'; c.fillRect(0, 0, w, h);
-    const col = { water: '#16405a', mountain: '#6d6a75', hills: '#7a7a52', forest: '#3f6a3f', jungle: '#2f6a3a', desert: '#b69a5e', tundra: '#a9b6bd', swamp: '#4d6048', canyon: '#b0582e', plains: '#6a8a4c' };
+    const col = { water: '#16405a', mountain: '#6d6a75', hills: '#7a7a52', forest: '#3f6a3f', jungle: '#2f6a3a', desert: '#b69a5e', tundra: '#a9b6bd', swamp: '#4d6048', canyon: '#b0582e', plains: '#6a8a4c', ...(THUMB_THEME[theme] || {}) };
     for (const [x, y, t] of pts) { if (t.t === 'water' && t.deep) continue; c.fillStyle = col[t.t] || '#6a8a4c'; c.beginPath(); c.arc(ox + (x - x0) * sc, oy + (y - y0) * sc, sc * 0.62, 0, Math.PI * 2); c.fill(); }
     return cv.toDataURL();
   }
@@ -3021,7 +3024,7 @@
     const strip = box.querySelector('.mr-strip'), cells = [], land = 22;
     for (let i = 0; i < 28; i++) {
       const a = i === land ? arch : archs[(i * 5 + Math.floor(Math.random() * 6)) % archs.length];
-      const cell = el('div', 'mr-cell', `<img src="${i === land ? mapThumb(state.map.tiles) : archThumb(a, n)}" alt=""><span>${ARCH_NAME[a].toUpperCase()}</span>`);
+      const cell = el('div', 'mr-cell', `<img src="${i === land ? mapThumb(state.map.tiles, 150, 96, state.map.theme) : archThumb(a, n)}" alt=""><span>${ARCH_NAME[a].toUpperCase()}</span>`);
       strip.appendChild(cell); cells.push(cell);
     }
     await sleep(60);
@@ -3029,7 +3032,8 @@
     const t0 = performance.now(), dur = 2600; let last = -1;
     await new Promise(res => { const stepF = () => { const p = Math.min(1, (performance.now() - t0) / dur), e = 1 - Math.pow(1 - p, 4); strip.style.transform = `translateX(${-off * e}px)`; const idx = Math.floor((off * e + win / 2) / cw); if (idx !== last) { last = idx; SFX.chip(idx % 10); } if (p < 1) requestAnimationFrame(stepF); else res(); }; stepF(); });
     cells[land].classList.add('won'); SFX.victoryHit(); Render.shake(6);
-    box.querySelector('.mr-name').innerHTML = `<b>${ARCH_NAME[arch].toUpperCase()}</b>`;
+    const th = E.THEMES[state.map.theme];
+    box.querySelector('.mr-name').innerHTML = `<b>${ARCH_NAME[arch].toUpperCase()}</b>` + (th && state.map.theme !== 'mixed' ? ` <span class="mr-theme">· ${th.name.toUpperCase()}</span>` : '');
     await sleep(1500);
     document.body.classList.remove('reeling');   // the board appears as the reel fades away
     box.classList.add('out'); setTimeout(() => box.remove(), 500);

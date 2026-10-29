@@ -221,5 +221,33 @@ function crossing(s) {
   ok(!E.buildError(s, 'p0', 'bridge', k), 'but a bridge is fine');
   ok(!['refinery', 'warehouse', 'bunker', 'fob', 'airbase', 'port'].some(b => E.buildHexes(s, 'p0', b).includes(k)), 'and it never shows as a build spot');
 }
+{ // map themes: each one shapes the land, and Random rolls one from the seed
+  const share = (theme, ts) => { let n = 0, land = 0; for (let i = 0; i < 6; i++) { const m = E.generateMap({ seed: 500 + i * 31, nPlayers: 3, size: 'medium', theme }); for (const k in m.tiles) { const t = m.tiles[k]; if (!E.isLandTile(t)) continue; land++; if (ts.includes(t.t)) n++; } } return n / land; };
+  ok(share('desert', ['desert', 'canyon']) > 0.4 && share('mixed', ['desert', 'canyon']) < 0.15, 'desert maps are mostly sand and canyons');
+  ok(share('arctic', ['jungle', 'desert']) < 0.03 && share('arctic', ['tundra']) > 0.25, 'arctic maps are cold');
+  ok(share('woodland', ['forest']) > 0.3 && share('grasslands', ['plains']) > 0.6 && share('jungle', ['jungle']) > 0.35, 'woodland, grasslands and jungle look the part');
+  const roster = [0, 1, 2].map(i => ({ id: 'p' + i, name: 'P' + i, color: E.COLORS[i], faction: 'iron' }));
+  const a = E.createGame({ mode: 'domination', mapSize: 'small', theme: 'random', seed: 'same' }, roster).state, b = E.createGame({ mode: 'domination', mapSize: 'small', theme: 'random', seed: 'same' }, roster).state;
+  ok(E.THEMES[a.map.theme] && a.map.theme === b.map.theme, 'a Random theme comes from the seed (' + a.map.theme + ')');
+  const seen = new Set(); for (let i = 0; i < 40; i++) seen.add(E.createGame({ mode: 'domination', mapSize: 'small', theme: 'random', seed: 'r' + i }, roster).state.map.theme);
+  ok(seen.size >= 6, 'and rolls plenty of different ones (' + seen.size + ')');
+  ok(E.createGame({ mode: 'domination', mapSize: 'small', theme: 'jungle' }, roster).state.map.theme === 'jungle', 'a chosen theme sticks');
+}
+{ // Strategic Bombing hits troops as well as the economy
+  let killed = 0, runs = 0;
+  for (let i = 0; i < 20; i++) {
+    const s = board({ seed: 'sb' + i }), T = s.map.tiles, p = E.player(s, 'A');
+    const k = Object.keys(T).find(x => E.isLandTile(T[x]) && T[x].t !== 'mountain' && !T[x].river && !T[x].owner && E.dist(x, p.hq) <= 5 && E.dist(x, p.hq) >= 3);
+    if (!k) continue;
+    for (const n of E.area(k, 1)) if (T[n] && E.isLandTile(T[n])) T[n].owner = 'B';
+    for (let j = 0; j < 4; j++) put(s, 'e' + j, 'grunt', k, 'B');
+    p.tactics.push({ uid: 900, id: 'strategic' }); p.cash = 50;
+    const r = E.applyAction(s, 'A', { a: 'tactic', uid: 900, target: k });
+    if (!r.ok) continue; runs++;
+    const ev = r.events.find(e => e.kills); killed += [0, 1, 2, 3].filter(j => !s.units['e' + j]).length;
+    if (ev && ev.kills.length && T[k].ruin !== 2) killed = -999;
+  }
+  ok(runs >= 10 && killed / (runs * 4) > 0.15 && killed / (runs * 4) < 0.45, 'Strategic Bombing kills about 30% of the troops under it (' + killed + ' of ' + runs * 4 + ' in ' + runs + ' runs)');
+}
 console.log(fails ? fails + ' FAILED' : 'all passed');
 process.exit(fails ? 1 : 0);

@@ -8,6 +8,18 @@ const Render = (() => {
   const HEIGHT = { water: 2, plains: 8, forest: 8, hills: 10, mountain: 10, desert: 7, jungle: 8, tundra: 9, swamp: 5, canyon: 12 };
   // neutral land is deliberately muted so player territory pops
   const COL = { river: '#2d7aa6', shallow: '#2a6688', water: '#173d58', plains: '#55644a', forest: '#3f5640', hills: '#6b6150', mountain: '#4a4752', fallout: '#6f7a25', desert: '#9c8a5c', jungle: '#2f5a37', tundra: '#9aa7ae', swamp: '#4b5a46', canyon: '#a8532c' };
+  // map themes recolour some of the ground: snow on arctic plains, dry scrub in the desert, lush grass on the grasslands
+  const THEME_COL = {
+    arctic: { plains: '#b4c0c6', forest: '#4a625c', hills: '#7d848c', tundra: '#d2dbe0', mountain: '#5d5f6b', swamp: '#5c6c6a' },
+    desert: { plains: '#7f7650', hills: '#7a6a50', forest: '#4d5a3c' },
+    badlands: { plains: '#7a634a', hills: '#7c5c46', desert: '#a07a52' },
+    grasslands: { plains: '#5d7046', forest: '#44603f' },
+    woodland: { plains: '#4f6046', forest: '#365236' },
+    jungle: { plains: '#476a3e', forest: '#2f5734', swamp: '#3f5a42' },
+    wetlands: { plains: '#4f6248', forest: '#3b5440', swamp: '#465e4c' },
+    highlands: { plains: '#5d6450', hills: '#71684f' },
+  };
+  let themeCol = COL;
   const POI_COL = { ruins: '#d9b77a', cache: '#ffcf4a', village: '#f1efe6', fort: '#c9cfd6', relic: '#c27bff', silo: '#ffffff' };
 
   let cv, ctx, W = 0, H = 0, DPR = 1;
@@ -75,6 +87,7 @@ const Render = (() => {
   function recolor() {
     if (!S_) return;
     const pc = {}; for (const p of S_.players) pc[p.id] = hx(p.color);
+    themeCol = { ...COL, ...(THEME_COL[S_.map.theme] || {}) };
     for (const k in cosOf) delete cosOf[k]; for (const k in hqOf) delete hqOf[k];
     for (const k in terrBox) delete terrBox[k];
     for (const p of S_.players) { if (p.cos) cosOf[p.id] = p.cos; if (p.hq) hqOf[p.id] = p.hq; }
@@ -85,14 +98,14 @@ const Render = (() => {
       const river = t.river && t.t !== 'water' && t.fog !== 2 && !t.contam;
       c.h = t.fog === 2 ? 4 : river ? 3.5 : HEIGHT[t.t];
       c.river = river;
-      let base = hx(t.fog === 2 ? '#141c24' : t.contam ? COL.fallout : river ? COL.river : t.t === 'water' ? (t.deep ? COL.water : COL.shallow) : COL[t.t]);
+      let base = hx(t.fog === 2 ? '#141c24' : t.contam ? COL.fallout : river ? COL.river : t.t === 'water' ? (t.deep ? COL.water : COL.shallow) : themeCol[t.t]);
       base = shade(base, (c.v - 0.5) * 0.06);
       const owned = t.owner && pc[t.owner] && t.t !== 'water' && !river;
       if (t.owner && pc[t.owner] && (t.t === 'water' || river)) base = mix(base, pc[t.owner], t.bridge ? 0.5 : river ? 0.38 : 0.32);
       if (owned) {
         // flat, saturated team colour; terrain only nudges the brightness
         const tb = { plains: 0, forest: -0.12, hills: 0.08, desert: 0.1, jungle: -0.16, tundra: 0.14, swamp: -0.1, canyon: -0.04 }[t.t] || 0;
-        base = mix(shade(pc[t.owner], -0.18), hx(COL[t.t]), 0.18);
+        base = mix(shade(pc[t.owner], -0.18), hx(themeCol[t.t]), 0.18);
         base = shade(base, tb);
       }
       // sea hexes changing hands cross-fade to their new colour instead of snapping
