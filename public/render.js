@@ -212,7 +212,7 @@ const Render = (() => {
   // ── aircraft: jets cross the map in world space, drop bombs on targets, then fly off ──
   const planes = [], bombs = [];
   function flyover(targets, opts = {}) {
-    const pts = targets.map(k => topOf(k)); if (!pts.length) return;
+    const pts = targets.map(k => ptOf(k)); if (!pts.length) return;   // hex keys or world points
     const cx = pts.reduce((a, p) => a + p[0], 0) / pts.length, cy = pts.reduce((a, p) => a + p[1], 0) / pts.length;
     const ang = opts.angle ?? (Math.random() * 0.6 - 0.3), dx = Math.cos(ang), dy = Math.sin(ang) * 0.5, L = 900, alt = 150;
     const n = opts.count || 1, dur = opts.dur || 1.7, t0 = t;

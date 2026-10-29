@@ -2797,6 +2797,23 @@
     Render.burst(k, ['#8a7a66', '#5d5144', '#9fe8ff', '#ffffff'], 40, { up: 180, speed: 1.6 }); SFX.boom(0.9); Render.shake(8);
     Render.recolor(); Render.invalidate();
   }
+  // where a missile launch comes from: the striker's nearest airbase or land you can see, a few hexes back from the target
+  function launchSite(pid, target) {
+    let best = null, bd = 1e9;
+    for (const k in S.map.tiles) {
+      const t = S.map.tiles[k]; if (t.owner !== pid || t.fog || !E.isLandTile(t)) continue;
+      const d = E.dist(k, target); if (d < 2) continue;
+      const score = d - ((t.structs || []).some(x => x.type === 'airbase') ? 3 : 0);
+      if (score < bd) { bd = score; best = k; }
+    }
+    if (best) return best;
+    const [x, y] = Render.topOf(target), a = Math.random() * Math.PI * 2; return [x + Math.cos(a) * 420, y + Math.sin(a) * 210];   // from out of the fog
+  }
+  // a cruise missile's flight: low and level, a pop-up near the end, slower over longer distances
+  function cruiseOpts(from, target, sp) {
+    const [ax, ay] = Array.isArray(from) ? from : Render.topOf(from), [bx, by] = Render.topOf(target), far = Math.hypot(bx - ax, (by - ay) * 2);
+    return { alt0: 10, alt1: 0, loft: 26, accel: 1.15, size: 1.8, color: '#e9edf2', dur: Math.min(2.4, 0.9 + far / 500) * sp };
+  }
   async function animTactic(ev) {
     const d = E.TACTICS[ev.id];
     const who = pName(ev.pid);
@@ -2806,6 +2823,7 @@
       SFX.whoosh();
       const sp = speed();   // effects run on the render clock: scale them like sleep() is scaled
       if (ev.id === 'kamikaze') { const dr = Render.drone(ev.target, { color: pColor(ev.pid), dur: 1.5 * sp, stopAt: 0.8 }); samFire(ev.by || [], Render.droneAt(dr, 0.8), 1.2 * sp); await sleep(1200); }
+      else if (ev.id === 'cruise') { const from = launchSite(ev.pid, ev.target), o = cruiseOpts(from, ev.target, sp); Render.missile(from, ev.target, { ...o, stopAt: 0.82 }); samFire(ev.by || [], Render.missileAt(from, ev.target, o, 0.82), o.dur * 0.82); await sleep(o.dur * 820 / sp); }
       else { const [x, y] = Render.topOf(ev.target); Render.flyover([ev.target, ev.target], { color: pColor(ev.pid), dur: 1.4 * sp, noBombs: true, downAt: 0.5 }); samFire(ev.by || [], [x, y - 150], 0.7 * sp); await sleep(700); }
       SFX.boom(0.7); Render.shake(6); await sleep(150);
       Render.float(ev.target, '🛡 SHOT DOWN', '#7ff3ff', 20);
@@ -2862,11 +2880,34 @@
         killUnits(ev.kills); await sleep(300); break;
       }
       case 'gunrun': case 'precision': case 'airstrike': case 'cruise': {
-        // a jet in the striker's colour makes a bombing run over the target (the Warthog announces itself)
-        if (ev.id === 'gunrun') SFX.brrrt(); else SFX.whoosh();
-        { const [x, y] = Render.topOf(ev.target); const k1 = ev.target, sp = n => { const [q, r] = E.parse(k1); return E.key(q + n, r); };
-          Render.flyover([k1, sp(-1), sp(1)].filter(k2 => S.map.tiles[k2]).slice(0, 1).concat([k1, k1]), { color: pColor(ev.pid), dur: 1.6, onBomb: () => { SFX.boom(0.7); Render.shake(9); } }); }
-        await sleep(1500);
+        const sp = speed(), col = pColor(ev.pid), [x, y] = Render.topOf(ev.target);
+        if (ev.id === 'cruise') {
+          // a cruise missile: launched from the striker's nearest land, it skims in low with a smoke trail, pops up and dives in
+          const from = launchSite(ev.pid, ev.target), o = cruiseOpts(from, ev.target, sp);
+          Render.burst(from, ['#fff', '#ffd27a', '#ff8a3a'], 18, { up: 80, speed: 1 }); Render.smoke(from, 10, 'rgba(225,225,225,'); SFX.whoosh();
+          for (let i = 0; i < 3; i++) setTimeout(() => Render.ring(ev.target, '#ff4f5e', 46 - i * 10, 0.5, 3), (o.dur * 0.4 + i * 0.2) * 1000);
+          Render.missile(from, ev.target, { ...o, boom: false, onHit: () => { Render.flash(0.45, '#ffd27a'); SFX.boom(1.5); Render.shake(20); Render.ring(ev.target, '#fff', 90, 0.5, 6); Render.ring(ev.target, '#ffb03a', 130, 0.8, 5); Render.burst(ev.target, ['#fff', '#fff2a8', '#ffb03a', '#ff5a2a', '#444'], 70, { speed: 2.2, size: 4, up: 170 }); Render.smoke(ev.target, 18, 'rgba(80,75,70,'); } });
+          await sleep(o.dur * 1000 / sp + 250);
+        } else if (ev.id === 'precision') {
+          // a laser lock on the target, then a guided bomb falls straight down out of a high jet's pass
+          Render.float(ev.target, '◎ LASER LOCK', '#ff4f5e', 15, 1);
+          for (let i = 0; i < 4; i++) setTimeout(() => { Render.ring(ev.target, '#ff4f5e', 34 - i * 6, 0.35, 2); SFX.click(); }, i * 160);
+          Render.flyover([ev.target], { color: col, dur: 1.5 * sp, noBombs: true }); SFX.jet();
+          await sleep(650);
+          Render.missile([x + 70, y], ev.target, { alt0: 230, alt1: 0, loft: 0, accel: 2.2, dur: 0.6 * sp, color: '#d9e1e8', size: 1.2, boom: false, onHit: () => { SFX.boom(1); Render.shake(13); Render.flash(0.2, '#fff'); Render.ring(ev.target, '#fff', 60, 0.4, 5); Render.burst(ev.target, ['#fff', '#ffd27a', '#ff8a3a', '#555'], 40, { speed: 1.6, size: 3.4, up: 150 }); } });
+          await sleep(750);
+        } else if (ev.id === 'gunrun') {
+          // a strafing run: the cannon walks a line of hits through the hex as the jet passes low
+          const ang = Math.random() * 0.6 - 0.3, dx = Math.cos(ang), dy = Math.sin(ang) * 0.5, dur = 1.4 * sp;
+          SFX.brrrt(); Render.flyover([ev.target], { color: col, dur, noBombs: true, angle: ang });
+          for (let i = 0; i < 9; i++) setTimeout(() => { const o = (i - 4) * 9; Render.burst([x + dx * o, y + dy * o], ['#fff2a8', '#ffb03a', '#8a7a66'], 5, { up: 50, speed: 0.6, size: 2 }); if (i % 3 === 0) Render.shake(3); }, (dur * 0.5 - 0.3 + i * 0.05) * 1000);
+          await sleep(1300);
+        } else {
+          // an airstrike: a stick of three bombs walks across the target
+          const ang = Math.random() * 0.6 - 0.3, dx = Math.cos(ang), dy = Math.sin(ang) * 0.5;
+          SFX.whoosh(); Render.flyover([[x - dx * 22, y - dy * 22], [x, y], [x + dx * 22, y + dy * 22]], { color: col, dur: 1.6, angle: ang, onBomb: () => { SFX.boom(0.7); Render.shake(8); } });
+          await sleep(1600);
+        }
         if (ev.bridge !== undefined) { if (ev.bridge) { dropBridge(ev.target); Render.float(ev.target, 'BRIDGE DESTROYED', '#ff8a5a', 20); } else Render.float(ev.target, 'MISSED THE BRIDGE', '#cfd8df', 18); }
         else if (ev.infra) infraHit(ev.target, ev.infra, ev.structs);
         else Render.float(ev.target, ev.kills.length ? ev.kills.length + ' DESTROYED' : 'MISSED', ev.kills.length ? '#ff4f5e' : '#cfd8df', 20);
@@ -2881,7 +2922,10 @@
         if (ev.captured) flipTile(ev.target, ev.pid, 4);
         SFX.deploy(); Render.burst(ev.target, ['#c9b78f'], 16, { up: 20 }); break;
       }
-      case 'sabotage': Render.burst(ev.target, ['#ffb03a', '#ff5a2a', '#666'], 30, { speed: 1.5 }); SFX.boom(1); Render.shake(10); if (ev.struct === 'bridge') dropBridge(ev.target); else S.map.tiles[ev.target].struct = null; await sleep(300); break;
+      case 'sabotage':
+        // a commando's charge: a red light blinks faster and faster, then the blast
+        for (let i = 0; i < 4; i++) { Render.ring(ev.target, '#ff4f5e', 18, 0.22, 3); SFX.click(); await sleep(260 - i * 50); }
+        Render.flash(0.25, '#ffb03a'); Render.burst(ev.target, ['#fff', '#ffb03a', '#ff5a2a', '#666'], 44, { speed: 1.8, size: 3.6, up: 160 }); Render.smoke(ev.target, 12, 'rgba(70,65,60,'); SFX.boom(1.2); Render.shake(12); if (ev.struct === 'bridge') dropBridge(ev.target); else S.map.tiles[ev.target].struct = null; await sleep(300); break;
       case 'emp': {
         SFX.zap(); Render.emp(ev.target, 1.3); Render.shake(6); await sleep(250);
         for (const id of ev.units || []) if (S.units[id]) S.units[id].stun = 1;
