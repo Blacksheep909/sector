@@ -140,5 +140,19 @@ function crossing(s) {
   p.cash = 50; const r = E.applyAction(s, 'A', { a: 'tactic', uid: c.uid, target: k });
   ok(r.ok && s.log.some(l => /Orbital Strike came from a resupply pick \(round \d+\)/.test(l)), 'playing it logs where it came from');
 }
+{ // a helicopter that lands on an oil rig claims it; a jet flying over doesn't
+  const s = board({ seed: 'rig1' }), T = s.map.tiles;
+  const land = Object.keys(T).find(k => T[k].t === 'plains' && !T[k].river && E.neighbors(k).some(n => T[n] && E.isWater(T[n]) && !T[n].river));
+  const rig = E.neighbors(land).find(n => T[n] && E.isWater(T[n]) && !T[n].river);
+  T[land].owner = 'A'; T[rig].res = true; T[rig].owner = 'B';
+  put(s, 'h', 'wren', land);
+  const r = E.reachable(s, 'A', ['h'], land);
+  ok(r[rig] && r[rig].kind === 'capture', 'the rig shows as a capture for a helicopter');
+  ok(E.applyAction(s, 'A', { a: 'move', units: ['h'], from: land, to: rig }).ok && T[rig].owner === 'A', 'landing on it claims the rig');
+  const s2 = board({ seed: 'rig1' }), T2 = s2.map.tiles; T2[land].owner = 'A'; T2[rig].res = true; T2[rig].owner = 'B';
+  put(s2, 'j', 'seraph', land);
+  E.applyAction(s2, 'A', { a: 'move', units: ['j'], from: land, to: rig });
+  ok(T2[rig].owner === 'B', 'a gunship plane does not');
+}
 console.log(fails ? fails + ' FAILED' : 'all passed');
 process.exit(fails ? 1 : 0);

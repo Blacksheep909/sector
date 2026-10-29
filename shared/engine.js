@@ -972,6 +972,9 @@
   // carriers hold aircraft (4 each); aircraft are not counted against transport space
   function airCap(units) { return units.filter(u => UNITS[u.type].ability === 'carrier').length * 4; }
   const isAirU = u => UNITS[u.type].cls === 'air';
+  // rotorcraft can set down on an oil rig's helipad and claim it (jets and drones can't)
+  const HELIS = ['wren', 'ravager', 'banshee', 'stormcrow', 'mule', 'valkyrie'];
+  const isHeli = u => HELIS.includes(u.type);
   function ridersOf(units, fleet) {
     const own = units.filter(u => !isSea(u.type));
     return own.filter(u => !isAirU(u)).slice(0, cargoCap(fleet)).concat(own.filter(isAirU).slice(0, airCap(fleet)));
@@ -1066,6 +1069,7 @@
         else if (enemy) { if (!canFight) continue; kind = 'attack'; }
         else if (land && !t.owner && GARRISONED.includes(t.poi)) { if (!canFight) continue; kind = 'attack'; }
         else if (land && t.owner && t.owner !== pid && !allyLand) { const h = getS(t, 'hq'), bk = getS(t, 'bunker'); kind = (h && h.owner === t.owner) || (bk && bk.owner === t.owner) ? (canFight ? 'attack' : null) : 'capture'; }
+        else if (!land && t.res && units.every(isHeli) && t.owner !== pid && !allyLand && stackFits(occ, group)) kind = 'capture';   // a helicopter lands on an oil rig and takes it
         else kind = (land || allAir) && !t.contam && stackFits(occ, group) ? 'move' : 'pass';   // aircraft may loiter over water (troops aboard stay aboard)
         if (!kind || (kind === 'capture' && t.contam)) continue;
         if (carrying && kind === 'attack' && isWater(s.map.tiles[cur])) continue;   // troops can't jump out over the sea
@@ -2280,7 +2284,8 @@
         cargo.forEach(u => { u.hex = a.to; });
         const t = tiles[a.to];
         const navy = fleet.every(u => isSea(u.type));
-        if (c.dest.kind !== 'board' && (navy ? isWater(t) : isLandTile(t)) && captureTile(s, a.to, pid)) caps.push(a.to);
+        const rig = !navy && isWater(t) && t.res && fleet.every(isHeli);   // a helicopter landing on an oil rig claims it
+        if (c.dest.kind !== 'board' && (navy || rig ? isWater(t) : isLandTile(t)) && captureTile(s, a.to, pid)) caps.push(a.to);
         ev.push({ e: 'move', pid, units: fleet.concat(cargo).map(u => u.id), path: c.path, captures: caps });
         lootPath(s, pid, c.path, ev, rng);
       }
