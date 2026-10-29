@@ -265,6 +265,8 @@ function botStep(s, pid, mem) {
     const best = p.market.cards.map((c, i) => ({ c, i, v: cardScore(s, p, c.id) })).filter(x => !x.c.sold && p.cash - x.c.price >= reserve && x.v >= 1.5).sort((a, b) => b.v - a.v)[0];
     if (best) { mem.bought = (mem.bought || 0) + 1; return { a: 'marketBuy', idx: best.i }; }
   }
+  // fog of war: a bot only strikes and shells what it can actually see, like a player would
+  const seen = s.settings.fog === 'on' ? E.visionOf(s, pid) : null, sees = k => !seen || seen.has(k);
   // 1. instant / opportunistic tactics
   for (const c of p.tactics) {
     const d = E.TACTICS[c.id];
@@ -278,7 +280,7 @@ function botStep(s, pid, mem) {
     else if (c.id === 'spy') { const ts = E.tacticTargets(s, pid, 'spy'); const k = ts.sort((a, b) => E.player(s, tiles[b].owner).tactics.length - E.player(s, tiles[a].owner).tactics.length)[0]; if (k) act = { a: 'tactic', uid: c.uid, target: k }; }
     else if (c.id === 'quarry') { const ts = E.tacticTargets(s, pid, 'quarry'); const k = ts.find(k => E.neighbors(k).some(n => tiles[n] && tiles[n].owner && tiles[n].owner !== pid) && E.neighbors(k).some(n => tiles[n] && tiles[n].owner === pid)); if (k) act = { a: 'tactic', uid: c.uid, target: k }; }
     else if (['airstrike', 'kamikaze', 'gunrun', 'precision', 'buster', 'strategic', 'mutiny', 'nuke', 'sabotage', 'emp', 'carpet', 'orbital', 'tsar', 'regime', 'cruise'].includes(c.id)) {
-      const ts = E.tacticTargets(s, pid, c.id);
+      const ts = E.tacticTargets(s, pid, c.id).filter(sees);
       let best = null, bv = 0;
       for (const k of ts) {
         let v = 0;
@@ -338,7 +340,7 @@ function botStep(s, pid, mem) {
     const art = idx[k].filter(u => u.owner === pid && E.UNITS[u.type].range && E.canAct(s, u) && isAA(u) === aa);
     if (!art.length) continue;
     const ids = art.map(u => u.id);
-    const targets = E.rangedTargets(s, pid, ids, k, idx);
+    const targets = E.rangedTargets(s, pid, ids, k, idx).filter(sees);
     let best = null, bv = 0;
     const walk = E.reachable(s, pid, ids, k, idx);
     for (const t of targets) {

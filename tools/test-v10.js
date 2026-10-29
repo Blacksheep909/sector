@@ -181,5 +181,26 @@ function crossing(s) {
   ok(!E.applyAction(s, 'p0', { a: 'gift', to: 'p1', amount: 1 }).ok, 'no gifts to the enemy');
   ok(!E.applyAction(s, 'p0', { a: 'gift', to: 'p2', amount: 999 }).ok, 'no more than you have');
 }
+{ // fog of war: bots don't bomb what they can't see
+  const { botStep } = require('../shared/bot');
+  const s = board({ seed: 'fogbomb' }), T = s.map.tiles, A = E.player(s, 'A'); s.settings.fog = 'on'; s.weather = null;
+  for (const k in T) T[k].owner = null;
+  const home = Object.keys(T).find(k => E.area(k, 4).every(x => T[x]));
+  for (const x of E.area(home, 4)) Object.assign(T[x], { t: 'plains', river: false, bridge: false, structs: [], struct: null, res: false });
+  for (const id in s.units) delete s.units[id];
+  T[home].owner = 'A';
+  const far = E.area(home, 3).find(k => E.dist(k, home) === 3);
+  for (let i = 0; i < 5; i++) put(s, 'e' + i, 'mauler', far, 'B');
+  A.cash = 50; A.tactics = [{ uid: 7001, id: 'airstrike' }]; A.diff = 'hard';
+  ok(!E.visionOf(s, 'A').has(far), 'the enemy stack is out of sight');
+  ok(E.tacticTargets(s, 'A', 'airstrike').includes(far), '...though in Airstrike range');
+  let tries = 0, struck = false;
+  for (let i = 0; i < 30; i++) { const a = botStep(s, 'A', { n: 0 }); tries++; if (a && a.a === 'tactic' && a.target === far) struck = true; }
+  ok(!struck, 'the bot never bombs it blind');
+  put(s, 'scout', 'grunt', E.area(far, 1).find(k => E.dist(k, far) === 1 && E.dist(k, home) === 2), 'A');
+  ok(E.visionOf(s, 'A').has(far), 'a scout brings it into sight');
+  struck = false; for (let i = 0; i < 30 && !struck; i++) { const a = botStep(s, 'A', { n: 0 }); if (a && a.a === 'tactic' && a.target === far) struck = true; }
+  ok(struck, 'and then the bot strikes it');
+}
 console.log(fails ? fails + ' FAILED' : 'all passed');
 process.exit(fails ? 1 : 0);
