@@ -136,7 +136,7 @@ const Crates = (() => {
     const R = m.rarity || it.rarity, col = RCOL[R] || '#fff', tier = ORDER.indexOf(R);
     v.style.setProperty('--rc', col);
     v.innerHTML = `<div class="co-vignette"></div><div class="co-stage"><div class="co-beam"></div><div class="co-crate">${svg(m.box)}</div><div class="co-flipper"><div class="co-back"><div class="cb-logo">SECTOR</div></div><div class="co-front"></div></div></div>
-      <div class="co-label"></div><div class="co-btns"></div><div class="co-skip">click to skip</div>`;
+      <div class="co-label"></div><div class="co-btns"></div><div class="co-skip">Click to skip</div>`;
     const fx = fxCanvas(v), crate = v.querySelector('.co-crate'), csvg = crate.querySelector('svg'), flip = v.querySelector('.co-flipper');
     v.querySelector('.co-front').appendChild(card);
     let skip = false; v.onclick = () => { skip = true; };

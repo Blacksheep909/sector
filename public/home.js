@@ -108,7 +108,7 @@ const Home = (() => {
       <div class="pt-list">${party.members.map(m => `<div class="pt-m pchip demo${bannerCls(m.banner)}" data-h="${esc(m.handle || '')}" title="${m.handle ? 'View profile' : ''}">
         <div class="pn">${m.cid === party.leader ? '<i class="pt-crown" title="Party leader">♛</i>' : ''}${esc(m.name)}${m.cid === me ? ' <span class="pt-you">YOU</span>' : ''}</div>
         <div class="ps">${where(m)}${lead && m.cid !== me ? `<button class="pt-x" data-lead="${m.cid}" title="Make leader">♛</button><button class="pt-x" data-kick="${m.cid}" title="Remove">✕</button>` : ''}</div></div>`).join('')}
-        ${party.members.length < party.max ? '<div class="pt-slot">waiting for friends…</div>' : ''}</div>
+        ${party.members.length < party.max ? '<div class="pt-slot">Waiting for friends…</div>' : ''}</div>
       <div class="sub pt-note">${lead ? 'You lead: <b>PLAY</b> or <b>PRIVATE ROOM</b> takes everyone on this screen with you.' : 'The leader picks the war. You can still play on your own.'}</div>
       <div class="pt-act"><button class="btn tiny" id="ptLeave">LEAVE PARTY</button></div>`;
     box.querySelector('#ptCopy').onclick = () => { copyText(link).then(ok => ok && toast('Invite link copied: send it to your friends')); sfx('click'); };

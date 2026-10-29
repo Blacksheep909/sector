@@ -114,7 +114,7 @@ const Locker = (() => {
   }
   function recruitBox() {
     const link = location.origin + '/?ref=' + profile.refCode;
-    const b = el('div', 'lk-recruit', `<span>🎖 <b>Recruit:</b> friends who join with your link and make an account earn you <b><i class="vm"></i>250</b> each (and them <b><i class="vm"></i>100</b>) (3 earn the Recruiter banner) · recruited <b>${profile.recruits}</b></span><code>${esc(link)}</code><button class="btn tiny">COPY</button>`);
+    const b = el('div', 'lk-recruit', `<span>🎖 <b>Recruit:</b> friends who join with your link and make an account earn you <b><i class="vm"></i>250</b> each, and them <b><i class="vm"></i>100</b> (3 earn the Recruiter banner) · Recruited <b>${profile.recruits}</b></span><code>${esc(link)}</code><button class="btn tiny">COPY</button>`);
     b.querySelector('button').onclick = () => { copyText(link).then(ok => ok && toastish('Link copied')); };
     return b;
   }

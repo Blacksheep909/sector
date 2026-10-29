@@ -12,7 +12,7 @@
     $('#hpStatus').innerHTML = `<i class="dot"></i> Online · v${esc(h.version)} · ${phase} · up ${fmtUp(h.uptime)}`;
     $('#hpAddrs').innerHTML = h.lan.length
       ? h.lan.map(a => `<div class="hp-addr"><code>${esc(a)}</code><button class="btn" data-copy="${esc(a)}">COPY</button></div>`).join('')
-      : '<div class="sub">No network found. Connect to Wi-Fi to play with others — you can still play here against bots.</div>';
+      : '<div class="sub">No network found. Connect to Wi-Fi to play with others. You can still play here against bots.</div>';
     const players = h.players || [];
     $('#hpCount').textContent = players.length ? '(' + players.length + ')' : '';
     $('#hpPlayers').innerHTML = players.length ? players.map(p => `<div class="hp-row" style="--pc:${esc(p.color)}"><span><i class="sw"></i>${esc(p.name)}</span><span class="tags">${p.host ? '<i class="gold">HOST</i>' : ''}${p.bot ? `<i>BOT · ${esc(p.diff || '')}</i>` : p.local ? '<i>LOCAL</i>' : p.connected ? `<i>${esc(p.addr || 'online')}</i>` : '<i class="off">DISCONNECTED</i>'}</span></div>`).join('')

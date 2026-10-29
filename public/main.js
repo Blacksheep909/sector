@@ -252,7 +252,7 @@
     const pub = lobby.kind === 'public', main = lobby.code === 'MAIN', link = location.origin + '/?room=' + lobby.code;
     const key = [lobby.code, lobby.kind, lobby.inGame, lobby.solo].join(); if (rb.dataset.key === key) return; rb.dataset.key = key;
     // public: anyone pressing PLAY can land here until it deploys · private: only people with the code or link
-    rb.innerHTML = `<div class="rb-kind${pub ? ' pub' : lobby.solo ? ' solo' : ''}">${pub ? 'PUBLIC WAR' : main ? 'LAN LOBBY' : lobby.solo ? 'SINGLEPLAYER' : 'PRIVATE ROOM'}</div>` + (main ? '<div class="rb-code"><span class="sub">everyone who opens this server’s address lands here</span></div>'
+    rb.innerHTML = `<div class="rb-kind${pub ? ' pub' : lobby.solo ? ' solo' : ''}">${pub ? 'PUBLIC WAR' : main ? 'LAN LOBBY' : lobby.solo ? 'SINGLEPLAYER' : 'PRIVATE ROOM'}</div>` + (main ? '<div class="rb-code"><span class="sub">Everyone who opens this server’s address lands here</span></div>'
       : `<div class="rb-code"><span>CODE</span><b>${esc(lobby.code)}</b><button class="btn tiny" id="rbCopy">${lobby.solo ? '🔗 INVITE A FRIEND' : '🔗 COPY INVITE LINK'}</button><span class="sub">${pub ? 'open: anyone who presses PLAY can join until it deploys' : lobby.solo ? 'you against bots · a friend can join any time and take over a bot' : 'invite only'}</span></div>`) + `<button class="btn" id="rbLeave">◂ LEAVE</button>`;
     const cp = $('#rbCopy'); if (cp) cp.onclick = () => { copyText(link).then(ok => ok && toast('Invite link copied')); SFX.click(); };
     $('#rbLeave').onclick = () => { SFX.click(); send({ t: 'leave' }); };
@@ -334,7 +334,7 @@
       (teamsOn && !p.spectator ? cols[p.team || 1] || pl : pl).appendChild(r);
     }
     $('#addBot').hidden = !host;
-    $('#lanBox').innerHTML = lobby.lan.length ? 'Friends on your network join at:<br>' + lobby.lan.map(u => `<b>${u}</b>`).join('<br>') : 'No network address found — local play only.';
+    $('#lanBox').innerHTML = lobby.lan.length ? 'Friends on your network join at:<br>' + lobby.lan.map(u => `<b>${u}</b>`).join('<br>') : 'No network address found: local play only.';
     const fl = $('#factionList'); fl.innerHTML = '';
     // only the factions you've unlocked; the rest wait in the Store
     const owned = Locker.profile && Locker.profile.factions ? Locker.profile.factions : Object.keys(E.FACTIONS);
@@ -676,7 +676,7 @@
       // who's still choosing
       const who = S2.querySelector('.bp-who');
       if (!pid) who.innerHTML = '';
-      else if (!(m.humans || []).includes(pid)) who.innerHTML = isHumanSeat(pid) ? '<span class="ok">no cards to play</span>' : '<span class="ok">🤖 decided</span>';
+      else if (!(m.humans || []).includes(pid)) who.innerHTML = isHumanSeat(pid) ? '<span class="ok">No cards to play</span>' : '<span class="ok">🤖 decided</span>';
       else who.innerHTML = (m.readyPids || []).includes(pid) ? '<span class="ok">✔ READY</span>' : '<span class="wait">choosing cards…</span>';
     }
     const pa = m.winProb == null ? 50 : Math.round(m.winProb * 100);
@@ -808,7 +808,7 @@
     document.body.classList.toggle('planning', !box.hidden);
     if (box.hidden) return;
     const list = $('#planList'); list.innerHTML = '';
-    if (!plan.length) list.innerHTML = '<div class="pempty">Nothing queued. Click units, cards and hexes like normal — orders are saved here.</div>';
+    if (!plan.length) list.innerHTML = '<div class="pempty">Nothing queued. Click units, cards and hexes like normal. Orders are saved here.</div>';
     plan.forEach((it, i) => {
       const d = el('div', 'pitem' + (it.ok === false ? ' bad' : ''), `<span>${i + 1}. ${esc(describe(it.a))}${it.ok === false ? ' — ' + esc(it.err) : ''}</span>`);
       const x = el('button', '', '✕'); x.onclick = () => { plan.splice(i, 1); recomputePlan(); refreshAll(); SFX.click(); };
@@ -821,8 +821,8 @@
   // central action entry
   async function doAction(a) {
     if (planning()) {
-      if (a.a === 'fire' || a.a === 'tactic' || a.a === 'end' || a.a === 'assault') { toast('Attacks & tactics go live on your turn — the blueprint queues moves, deploys and builds.', 'err'); SFX.error(); return false; }
-      if (a.a === 'move') { const r = E.reachable(planState, you, a.units, a.from)[a.to]; if (r && r.kind === 'attack') { toast('Attacks resolve live on your turn — queue the approach instead.', 'err'); SFX.error(); return false; } }
+      if (a.a === 'fire' || a.a === 'tactic' || a.a === 'end' || a.a === 'assault') { toast('Attacks and tactics go live on your turn. The Blueprint queues moves, deploys and builds.', 'err'); SFX.error(); return false; }
+      if (a.a === 'move') { const r = E.reachable(planState, you, a.units, a.from)[a.to]; if (r && r.kind === 'attack') { toast('Attacks resolve live on your turn. Queue the approach instead.', 'err'); SFX.error(); return false; } }
       const trial = JSON.parse(JSON.stringify(planState));
       const r = E.applyAction(trial, you, a, () => 0.5);
       if (!r.ok) { toast(r.err, 'err'); SFX.error(); return false; }
@@ -1168,7 +1168,7 @@
       e.preventDefault();
       if (!e.repeat && (animating || curFight) && $('#supply').hidden && $('#crate').hidden && $('#draft').hidden) skipAnim();
     }
-    if (e.key === 'Alt' && !e.repeat) { e.preventDefault(); Render.ov.troops = !Render.ov.troops; Render.invalidate(); if (Render.ov.troops) toast('🗺 War room on (Alt to close): drag hex→hex for an arrow, click to circle, right-click to erase — only allies see it'); }
+    if (e.key === 'Alt' && !e.repeat) { e.preventDefault(); Render.ov.troops = !Render.ov.troops; Render.invalidate(); if (Render.ov.troops) toast('🗺 War room on (Alt to close): drag hex→hex for an arrow, click to circle, right-click to erase. Only allies see it.'); }
     if (S && S.phase === 'play') {
       const kk = e.key.toLowerCase(), items = hotbarItems();
       const ui = UNIT_KEYS.indexOf(kk); if (ui >= 0 && items.units[ui]) { armSlot('unit', items.units[ui]); keys.delete(kk); }
@@ -1254,7 +1254,7 @@
     card.innerHTML = `<h2>SERVER <span class="ver">v${esc(h.version)}</span></h2>
       <div class="sub">Running for ${fmtUp(h.uptime)} · ${h.inGame ? (h.phase === 'play' ? 'war in progress, round ' + h.round : h.phase === 'over' ? 'game over' : 'starting up') : 'in the lobby'}</div>
       <h3>INVITE FRIENDS ON YOUR WI-FI</h3>
-      ${h.lan.length ? h.lan.map(a => `<div class="hp-addr"><code>${esc(a)}</code><button class="btn" data-copy="${esc(a)}">COPY</button></div>`).join('') : '<div class="sub">No network found — connect to Wi-Fi to play with others.</div>'}
+      ${h.lan.length ? h.lan.map(a => `<div class="hp-addr"><code>${esc(a)}</code><button class="btn" data-copy="${esc(a)}">COPY</button></div>`).join('') : '<div class="sub">No network found. Connect to Wi-Fi to play with others.</div>'}
       <div class="hint">They open that address in a browser, or use JOIN A GAME → Scan network.</div>
       <h3>CONNECTED (${h.clients.length})${h.bots ? ' · ' + h.bots + ' bot' + (h.bots > 1 ? 's' : '') : ''}</h3>
       <div class="hp-list">${h.clients.map(c => `<div class="hp-row"><span>${esc(c.name)}${c.seats > 1 ? ` <small>+${c.seats - 1} local</small>` : ''}</span><span class="tags">${c.host ? '<i class="gold">HOST</i>' : ''}${c.here ? '<i>THIS PC</i>' : `<i>${esc(c.addr)}</i>`}</span></div>`).join('') || '<div class="sub">Nobody yet.</div>'}</div>
@@ -1286,7 +1286,7 @@
       : `<h2>SERVER STOPPED</h2><div class="sub">${esc(m.reason)}</div><div class="hint">You can close this window.</div>`;
     if (m.restart) {
       const t0 = Date.now();
-      const tick = async () => { const i = await fetch('/info', { cache: 'no-store' }).then(r => r.json()).catch(() => null); if (i && Date.now() - t0 > 2500) location.reload(); else if (Date.now() - t0 < 120000) setTimeout(tick, 1000); else $('#closedCard .hint').textContent = 'The update is taking a while — start Sector.exe again.'; };
+      const tick = async () => { const i = await fetch('/info', { cache: 'no-store' }).then(r => r.json()).catch(() => null); if (i && Date.now() - t0 > 2500) location.reload(); else if (Date.now() - t0 < 120000) setTimeout(tick, 1000); else $('#closedCard .hint').textContent = 'The update is taking a while. Start Sector.exe again.'; };
       setTimeout(tick, 2000);
     }
   }
@@ -1360,7 +1360,7 @@
     const show = () => { list.innerHTML = found.map(rows).join(''); list.querySelectorAll('[data-u]').forEach(b => b.onclick = () => goTo(b.dataset.u)); };
     await scanLan(sv => { found.push(sv); show(); }, f => { btn.textContent = 'SCANNING… ' + Math.round(f * 100) + '%'; });
     btn.disabled = false; btn.textContent = 'SCAN AGAIN';
-    if (!found.length) list.innerHTML = '<div class="hint">No games found. Make sure the host has SECTOR running and you are on the same Wi-Fi — or type their address below.</div>';
+    if (!found.length) list.innerHTML = '<div class="hint">No games found. Make sure the host has SECTOR running and you are on the same Wi-Fi, or type their address below.</div>';
   };
 
   async function onHexClick(k) {
@@ -1507,7 +1507,7 @@
       if (allied) {
         const left = pact && pact.until ? pact.until - S.turn.round : 0;
         const badge = el('span', 'allybadge' + (pact && pact.ending ? ' ending' : left && left <= 2 ? ' expiring' : ''), pact && pact.ending ? '💔' : '🤝' + (left ? `<small>${left}</small>` : ''));
-        badge.title = pact && pact.team ? 'Teammate' : pact && pact.ending ? 'Breaking up' : left ? `Alliance: ${left} round${left > 1 ? 's' : ''} left` + (left <= 2 ? ' — both of you press RENEW to extend it 5 rounds' : '') : 'Allied';
+        badge.title = pact && pact.team ? 'Teammate' : pact && pact.ending ? 'Breaking up' : left ? `Alliance: ${left} round${left > 1 ? 's' : ''} left` + (left <= 2 ? '. Both of you press RENEW to extend it 5 rounds.' : '') : 'Allied';
         c.classList.add('allied'); c.appendChild(badge);
       }
       const lp = lobby && lobby.players.find(x => x.id === p.id);
@@ -1536,7 +1536,7 @@
         if (allied && pact && !pact.ending && !pact.team && pact.until && pact.until - S.turn.round <= 2) {
           const mine = pact.renew && pact.renew[you], theirs = pact.renew && pact.renew[p.id];
           const rb = el('button', 'tradebtn ally', mine ? 'RENEWED ✔' : theirs ? 'RENEW ⚡' : 'RENEW');
-          rb.title = mine ? 'Waiting for your ally to renew' : theirs ? 'Your ally wants to renew — press to extend 5 rounds' : 'Offer to extend the alliance 5 rounds (both sides must renew)';
+          rb.title = mine ? 'Waiting for your ally to renew' : theirs ? 'Your ally wants to renew. Press to extend 5 rounds.' : 'Offer to extend the alliance 5 rounds (both sides must renew).';
           rb.disabled = !!mine; rb.onclick = e => { e.stopPropagation(); SFX.select(); act({ a: 'allyRenew', with: p.id }); };
           box.appendChild(rb);
         }
@@ -1627,7 +1627,7 @@
   function cycleReady(dir) {
     const ds = dispState(); if (!ds || (!isMyTurn() && !planning())) return;
     const hexes = [...new Set(Object.values(ds.units).filter(u => u.owner === you && E.canAct(ds, u) && (E.moveAllow(ds, u) > 0 || E.UNITS[u.type].range)).map(u => u.hex))].sort();
-    if (!hexes.length) { toast('Every stack has acted — nothing left to move'); SFX.error(); return; }
+    if (!hexes.length) { toast('Every stack has acted. Nothing left to move.'); SFX.error(); return; }
     const cur = sel ? hexes.indexOf(sel.hex) : -1;
     cycleIdx = ((cur >= 0 ? cur : cycleIdx) + dir + hexes.length) % hexes.length;
     const k = hexes[cycleIdx]; mode = null; selectHex(k); Render.focus(k);
@@ -1711,14 +1711,14 @@
     if (t.contam) tags.push(`<span class="hp-tag cut">☢ Fallout ${t.contam} rounds</span>`);
     if (t.smoke) tags.push('<span class="hp-tag">Smoke</span>');
     if (ds.map.beacon === k) tags.push('<span class="hp-tag" style="color:var(--gold)">◆ BEACON</span>');
-    if (t.owner === you && !E.supplySet(ds, you).has(k)) tags.push('<span class="hp-tag cut">Cut off — no income</span>');
+    if (t.owner === you && !E.supplySet(ds, you).has(k)) tags.push('<span class="hp-tag cut">Cut off: no income</span>');
     if (t.ruin) tags.push(`<span class="hp-tag cut">💣 Bombed out — no income for ${t.ruin} turn${t.ruin > 1 ? 's' : ''}</span>`);
     if (t.fog === 2) { box.innerHTML = '<div class="hp-title">Unexplored</div><div class="hp-own"><span class="sub">Send units or extend your borders to see what is here.</span></div>'; return; }
     let h = `<div class="hp-title">${t.contam ? 'Fallout Zone' : E.TERRAIN[t.t].name}</div><div class="hp-own">${owner ? `<span style="color:${owner.color}">■ ${esc(owner.name)}</span>` : '<span class="sub">Unclaimed</span>'}</div><div class="hp-tags">${tags.join('')}</div>`;
     if (t.poi && E.POI[t.poi] && !(t.poi === 'fort' && t.owner)) h += `<div class="urow" style="cursor:default"><img src="${Art.iconURL('poi', t.poi)}"><div class="un">${E.POI[t.poi].name}${t.gar && !t.owner ? ` <span class="hp-tag cut">garrison ${t.gar} chips${t.poi === 'village' ? ' · +' + (t.gar >= 7 ? 2 : 1) + ' mult' : ''}</span>` : ''}<div class="st">${E.POI[t.poi].desc}</div></div></div>`;
     for (const st of E.structsOf(t)) {
       const sd = E.STRUCTS[st.type], L = st.lvl || 1;
-      const flags = (st.siege ? ' <span class="hp-tag cut">UNDER SIEGE</span>' : '') + (st.lock ? ' <span class="hp-tag">online next turn</span>' : '');
+      const flags = (st.siege ? ' <span class="hp-tag cut">UNDER SIEGE</span>' : '') + (st.lock ? ' <span class="hp-tag">Online next turn</span>' : '');
       h += `<div class="urow" style="cursor:default"><img src="${Art.iconURL('struct', st.type)}"><div class="un">${sd.name} <span class="gold">${'★'.repeat(L)}</span>${flags}<div class="st">${sd.desc}${E.UPGRADABLE.includes(st.type) && L < E.MAX_SLVL && t.owner === you && st.owner === you ? '<br><b class="gold">Upgrade: $' + E.buildCost(ds, ds.players.find(p => p.id === you), st.type, k) + '</b> (build it again here)' : ''}</div></div></div>`;
     }
     if (t.bridge && t.owner === you && canCommand() && (isMyTurn() || planning())) h += `<button class="btn tiny blue hp-rot" id="hpRotate" title="Turn the bridge to face another way (free)">↻ ROTATE BRIDGE · R</button>`;
@@ -1966,8 +1966,8 @@
     const next = order[(i + 1) % order.length];
     const meNext = !mine && myP() && myP().alive && next && next.id === you;
     if (S.paused) { pill.className = ''; pill.innerHTML = `<b>⏸ PAUSED</b><span>${esc(c.name)}'s turn · press ▶ to resume</span>`; return; }
-    if (mine) pill.innerHTML = `<b>▶ YOUR TURN</b><span>${S.turn.stage === 'choose' ? 'pick your resupply' : 'move, deploy, build — then END TURN'}</span>`;
-    else pill.innerHTML = `<b>⏳ ${esc(c.name.toUpperCase())}'S TURN</b><span>${meNext ? '⚡ you\'re up next — plan with the Blueprint' : myP() && myP().alive ? 'plan your next turn with the Blueprint' : 'spectating'}${c.bot ? ' · bot' : ''}</span>`;
+    if (mine) pill.innerHTML = `<b>▶ YOUR TURN</b><span>${S.turn.stage === 'choose' ? 'Pick your resupply' : 'Move, deploy, build, then END TURN'}</span>`;
+    else pill.innerHTML = `<b>⏳ ${esc(c.name.toUpperCase())}'S TURN</b><span>${meNext ? '⚡ You\'re up next: plan with the Blueprint' : myP() && myP().alive ? 'Plan your next turn with the Blueprint' : 'Spectating'}${c.bot ? ' · Bot' : ''}</span>`;
     // tab title: blink while it's your turn and the tab is in the background
     clearInterval(titleBlink); document.title = mine ? '▶ YOUR TURN · SECTOR' : 'SECTOR';
     if (mine && document.hidden) { let on = false; titleBlink = setInterval(() => { document.title = (on = !on) ? '▶ YOUR TURN · SECTOR' : '⚔ SECTOR'; if (!document.hidden) { clearInterval(titleBlink); document.title = '▶ YOUR TURN · SECTOR'; } }, 900); }
@@ -1989,11 +1989,11 @@
     if (autoEndKey === key) return; autoEndKey = key;
     clearTimeout(autoEndT); autoEndT = null; const old = $('#autoEnd'); if (old) old.remove();
     if (autoEndOff || !isMyTurn() || animating || executing || mode || !nothingLeft()) return;
-    const box = el('div', '', 'Nothing left to do — ending your turn in <b>3</b>… <button class="btn tiny">STAY</button>'); box.id = 'autoEnd'; $('#actions').insertBefore(box, $('#actions').firstChild);
+    const box = el('div', '', 'Nothing left to do. Ending your turn in <b>3</b>… <button class="btn tiny">STAY</button>'); box.id = 'autoEnd'; $('#actions').insertBefore(box, $('#actions').firstChild);
     let n = 3;
     const tick = () => { n--; if (n <= 0) { box.remove(); autoEndT = null; if (isMyTurn() && !animating && !executing && nothingLeft()) $('#endBtn').click(); return; } box.querySelector('b').textContent = n; autoEndT = setTimeout(tick, 1000); };
     autoEndT = setTimeout(tick, 1000);
-    box.querySelector('button').onclick = () => { clearTimeout(autoEndT); autoEndT = null; box.remove(); toast('Staying — press END TURN when you\'re done'); };
+    box.querySelector('button').onclick = () => { clearTimeout(autoEndT); autoEndT = null; box.remove(); toast('Staying. Press END TURN when you\'re done.'); };
   }
   function renderModeHint() {
     const h = $('#modeHint'); let txt = '';
@@ -2022,8 +2022,8 @@
     } else if (ov.fire && ov.fire.has(k) && sel) {
       const c = E.combatCalc(ds, you, (ov.guns || [...sel.units]).map(id => ds.units[id]), sel.hex, k, true);
       html = combatTip('BOMBARD', c) + '<div class="sub">Win: destroy 1 unit (2 on double score). Lose: nothing happens.</div>';
-    } else if (ov.reach && ov.reach[k] && ov.reach[k].kind === 'capture') html = '<b>SEIZE</b> — empty ' + (E.isWater(ds.map.tiles[k]) ? 'sea lane' : 'enemy hex');
-    else if (ov.reach && ov.reach[k] && ov.reach[k].kind === 'board') html = '<b>BOARD</b> — climb aboard the transport';
+    } else if (ov.reach && ov.reach[k] && ov.reach[k].kind === 'capture') html = '<b>SEIZE</b>: empty ' + (E.isWater(ds.map.tiles[k]) ? 'sea lane' : 'enemy hex');
+    else if (ov.reach && ov.reach[k] && ov.reach[k].kind === 'board') html = '<b>BOARD</b>: climb aboard the transport';
     else if (mode && mode.type === 'build' && ov.spawn && ov.spawn.has(k)) {
       // build mode: show what this hex costs, upgrade or fresh build, and mirror it on the build-bar tile
       const me = ds.players.find(p => p.id === you), t = ds.map.tiles[k], ex = E.structsOf(t).find(x => x.type === mode.struct);
@@ -2068,7 +2068,7 @@
       `You: <span style="color:var(--chips)">${c.att.chips}</span> × (d6<span style="color:var(--mult)">${c.att.mult ? '+' + c.att.mult : ''}</span>)` + (c.att.bonuses.length ? `<div class="sub">${bon(c.att.bonuses)}</div>` : '') +
       `${c.def.pid ? `<b style="color:${pColor(c.def.pid)}">${esc(pName(c.def.pid))}</b>` : 'Them'}: <span style="color:var(--chips)">${c.def.chips}</span> × (d6<span style="color:var(--mult)">${c.def.mult ? '+' + c.def.mult : ''}</span>)` + (c.def.bonuses.length ? `<div class="sub">${bon(c.def.bonuses)}</div>` : '') +
       // say plainly who this hits, and that it means war with them
-      (c.def.pid && c.def.pid !== you ? `<div class="sub" style="color:#ff9aa3">⚔ An attack on ${esc(pName(c.def.pid))} — you are not allied</div>` : '');
+      (c.def.pid && c.def.pid !== you ? `<div class="sub" style="color:#ff9aa3">⚔ An attack on ${esc(pName(c.def.pid))}: you are not allied</div>` : '');
   }
   function hideTip() { document.querySelectorAll('.slot.k-build .sc[data-base]').forEach(e => { e.textContent = e.dataset.base; delete e.dataset.base; e.classList.remove('upg'); }); $('#tooltip').hidden = true; }
 
@@ -2133,7 +2133,7 @@
   function skipStatus(pids) {
     const box = $('#combat'); if (!box || box.hidden || !curFight) return;
     let st = box.querySelector('.cb-skip'); if (!st) { st = el('div', 'cb-skip', ''); box.appendChild(st); }
-    st.innerHTML = [curFight.att, curFight.def].map(pid => `<span style="--pc:${pColor(pid)}" class="${pids.includes(pid) ? 'on' : ''}">${pids.includes(pid) ? '⏩' : '⏸'} ${esc(pName(pid))}${pids.includes(pid) ? ' skipped' : pid === you ? ' — Space to skip' : ' watching'}</span>`).join('');
+    st.innerHTML = [curFight.att, curFight.def].map(pid => `<span style="--pc:${pColor(pid)}" class="${pids.includes(pid) ? 'on' : ''}">${pids.includes(pid) ? '⏩' : '⏸'} ${esc(pName(pid))}${pids.includes(pid) ? ' skipped' : pid === you ? ' · Space to skip' : ' watching'}</span>`).join('');
   }
   let lastBattle = null;
   function combatSeq(ev) {
@@ -2226,7 +2226,7 @@
       let txt;
       if (ev.ranged) txt = attWin ? (ev.killed.length > 1 ? 'DOUBLE HIT!' : 'DIRECT HIT!') : 'MISSED!';
       else txt = attWin ? 'BREAKTHROUGH!' : 'REPELLED!';
-      const res = el('div', 'cb-result', txt + (ev.pyrrhic.length ? '<small>pyrrhic — winner lost a unit</small>' : ''));
+      const res = el('div', 'cb-result', txt + (ev.pyrrhic.length ? '<small>Pyrrhic: the winner lost a unit</small>' : ''));
       wrap.classList.add('resolved'); wrap.appendChild(res);
       SFX.victoryHit(); Render.shake(12);
       if ((attWin && ev.att.pid === you) || (!attWin && ev.def.pid === you)) SFX.win();
@@ -2495,7 +2495,7 @@
         case 'card': {
           const d = ev.id ? E.cardDef(ev.id) : null;
           if (ev.pid === you && d && ev.level) { toast(`★ ${d.name} upgraded to level ${ev.level}!`, 'leg'); break; }
-          if (ev.pid === you && d && ev.refund) { toast(`${d.name} is maxed — +$${ev.refund}`); break; }
+          if (ev.pid === you && d && ev.refund) { toast(`${d.name} is maxed: +$${ev.refund}`); break; }
           if (ev.pid !== you) {
             if (ev.rarity === 'legendary') { toast(`★ ${pName(ev.pid)} drafted LEGENDARY ${d ? d.name : ''}!`, 'leg'); SFX.legendary(); Render.flash(0.25, '#ffb52e'); }
             else toast(`${pName(ev.pid)} drafted ${d && ev.kind === 'unit' ? d.name : 'a ' + E.RARITY[ev.rarity].name + ' card'}`);
@@ -2534,7 +2534,7 @@
         }
         case 'combat': {
           follow(ev.to);
-          if (ev.def && ev.def.pid === you && ev.att.pid !== you) pushAlert(`⚔ ${pName(ev.att.pid)} ${ev.overwatch ? 'fired on' : 'attacked'} you${ev.attWin ? ' — you lost the fight' : ' — you held'}`, ev.to);
+          if (ev.def && ev.def.pid === you && ev.att.pid !== you) pushAlert(`⚔ ${pName(ev.att.pid)} ${ev.overwatch ? 'fired on' : 'attacked'} you${ev.attWin ? '. You lost the fight' : '. You held'}`, ev.to);
           if (ev.overwatch) { Render.float(ev.from, '🎯 OVERWATCH', '#ffc53d', 15); }
           if (ev.ranged) {
             if (ev.att.units && ev.att.units.includes('trident')) {
@@ -2668,10 +2668,10 @@
           if (ev.status === 'formed') { banner('🤝 ALLIANCE FORMED', a + ' & ' + b, '#2f6b4a'); SFX.rare(); await sleep(900); }
           else if (ev.status === 'declined' && meIn) toast(ev.cap ? `🤝 That alliance would be too big for the commanders left` : `${b} declined the alliance`);
           else if (ev.status === 'offer' && !meIn) toast(`🤝 ${a} offered ${b} an alliance`);
-          else if (ev.status === 'breaking') { if (ev.to === you || ev.from === you) { banner('🗡 BETRAYAL INCOMING', (ev.to === you ? a + ' is breaking your alliance next turn' : 'Your pact with ' + b + ' ends next turn') + ' — pull your troops out of their land', '#7a1f2b', true); SFX.alarm(); } else toast(`🗡 ${a} is breaking the alliance with ${b}`); }
+          else if (ev.status === 'breaking') { if (ev.to === you || ev.from === you) { banner('🗡 BETRAYAL INCOMING', (ev.to === you ? a + ' is breaking your alliance next turn' : 'Your pact with ' + b + ' ends next turn') + '. Pull your troops out of their land.', '#7a1f2b', true); SFX.alarm(); } else toast(`🗡 ${a} is breaking the alliance with ${b}`); }
           else if (ev.status === 'broken') { toast(`💔 ${a} broke the alliance with ${b}`, 'err'); }
           else if (ev.status === 'renewed') { banner('🤝 ALLIANCE RENEWED', a + ' & ' + b + ' · 5 more rounds', '#2f6b4a'); SFX.rare(); await sleep(700); }
-          else if (ev.status === 'renewing' && ev.to === you) { toast(`🤝 ${a} wants to renew your alliance — press RENEW on their name`); SFX.select(); }
+          else if (ev.status === 'renewing' && ev.to === you) { toast(`🤝 ${a} wants to renew your alliance. Press RENEW on their name.`); SFX.select(); }
           else if (ev.status === 'expired') { toast(meIn ? `🕊 Your alliance with ${ev.from === you ? b : a} ran out` : `🕊 ${a} & ${b}'s alliance ran out`); }
           break;
         }
@@ -2680,7 +2680,7 @@
           Render.ring(ev.hex, pColor(ev.pid), 90, 0.8, 6); Render.burst(ev.hex, [pColor(ev.pid), '#fff'], 30, { up: 140, square: true });
           SFX.deploy(); Render.shake(6); follow(ev.hex); await sleep(500); break;
         }
-        case 'spawnTurn': if (ev.pid === you) { toast('Your pick — choose an HQ hex'); SFX.yourTurn(); } break;
+        case 'spawnTurn': if (ev.pid === you) { toast('Your pick: choose an HQ hex'); SFX.yourTurn(); } break;
         case 'loot': {
           Render.ring(ev.hex, '#ffcf4a', 60, 0.6, 4);
           Render.burst(ev.hex, ['#ffcf4a', '#fff3a8', '#d9b77a'], 22, { up: 120, square: true });
@@ -3169,11 +3169,11 @@
     <p>Grab land, build an economy, crush your rivals. <b>Every hex you hold pays you</b>, so sitting still is losing.</p>
     <div class="grid2"><div>
     <h4>YOUR TURN</h4>
-    <b>1. Resupply</b> — flip 3 cards: take one <i>plus most of your income</i> (a card costs about half your income early on, much less once your economy is big, and big economies flip rarer cards), or skip them for the full income. Reroll for cash.<br>
-    <b>2. Act</b> — deploy (hotbar <kbd>1</kbd>–<kbd>0</kbd>), build (<kbd>Z</kbd>–<kbd>M</kbd>), move, attack, play tactics, trade — any order.<br>
+    <b>1. Resupply:</b> flip 3 cards: take one <i>plus most of your income</i> (a card costs about half your income early on, much less once your economy is big, and big economies flip rarer cards), or skip them for the full income. Reroll for cash.<br>
+    <b>2. Act:</b> deploy (hotbar <kbd>1</kbd>–<kbd>0</kbd>), build (<kbd>Z</kbd>–<kbd>M</kbd>), move, attack, play tactics and trade, in any order.<br>
     <b>3. End turn.</b>
     <h4>INCOME</h4>
-    $3 base + $1 per 3 hexes + $2 per resource node ◆ + refineries & warehouses (building income tapers past $8, total income past $50). Hexes <b>cut off</b> from your HQ / FOB / Port network (hatched) pay nothing — protect your supply lines.
+    $3 base + $1 per 3 hexes + $2 per resource node ◆ + refineries and warehouses (building income tapers past $8, total income past $50). Hexes <b>cut off</b> from your HQ / FOB / Port network (hatched) pay nothing, so protect your supply lines.
     <h4>ENCIRCLEMENT</h4>
     Completely surround a pocket of land (≤10 hexes, no enemy troops or bases inside) and it's <b>annexed</b> automatically.
     <h4>MOVING</h4>
@@ -3186,8 +3186,8 @@
     <h4>COMBAT — CHIPS × MULT</h4>
     Attacker: total <span style="color:var(--chips)">ATK chips</span> × (<span style="color:var(--mult)">d6 + 2 + mult bonuses</span>).<br>Defender: total <span style="color:var(--chips)">DEF chips</span> × (<span style="color:var(--mult)">d6 + 2 + terrain/structure mult</span>). Ties go to the defender.<br>
     The loser's stack is wiped out. A close fight (loser ≥ 60%) costs the winner its weakest unit.<br>
-    <b>Bonuses:</b> Flanking (+1 mult per other friendly stack touching the target), Combined Arms (3+ unit types), Forest +1, Highlands +2, Bunker +2, FOB +1, HQ +2 & garrison.
-    <b>You throw your own die</b> — drag & fling it in the tray.
+    <b>Bonuses:</b> Flanking (+1 mult per other friendly stack touching the target), Combined Arms (3+ unit types), Forest +1, Highlands +2, Bunker +2, FOB +1, HQ +2 and garrison.
+    <b>You throw your own die</b>: drag and fling it in the tray.
     <h4>ARTILLERY & GUNSHIPS</h4> Ranged units fire instead of moving. Win = destroy 1 unit (2 if you double their score). Lose = nothing. Can't shoot through mountains.
     <h4>CARDS</h4> <b>Units</b> form your deck (max 10): deploy as many as you can afford. Pull a unit you already own and it levels up (★ +1 ATK/DEF, max ★★★). Deck full? Replace a card. <b>Tactics</b> are single-use. <b style="color:var(--gold)">Legendaries are unique</b>: only one exists until it's spent or its owner falls.
     <h4>TRADING</h4> On your turn click <b>TRADE</b> under a rival's name: offer cash/cards for cash. They accept or decline.

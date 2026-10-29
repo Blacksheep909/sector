@@ -556,7 +556,7 @@ const Cards = (() => {
       box.appendChild(deck);
       return;
     }
-    box.appendChild(el('div', 'sub', 'Choose 1 of 3. Go at your own pace — the war starts when everyone has made all 3 picks.'));
+    box.appendChild(el('div', 'sub', 'Choose 1 of 3. Go at your own pace: the war starts when everyone has made all 3 picks.'));
     const row = el('div', 'cr-cards');
     const offer = d.offers[you] || [];
     offer.forEach((id, i) => {
