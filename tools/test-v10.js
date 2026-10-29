@@ -154,5 +154,32 @@ function crossing(s) {
   E.applyAction(s2, 'A', { a: 'move', units: ['j'], from: land, to: rig });
   ok(T2[rig].owner === 'B', 'a gunship plane does not');
 }
+{ // team games: deploy at a teammate's FOB, launch from their Port, see their hand, pass cash and cards
+  const roster = [0, 1, 2, 3].map(i => ({ id: 'p' + i, name: 'P' + i, color: E.COLORS[i], faction: 'iron', team: 1 + (i % 2) }));
+  const { state: s } = E.createGame({ mode: 'domination', mapSize: 'medium', teams: 'on' }, roster);
+  s.phase = 'play'; s.turn.stage = 'act'; s.weather = null;
+  const a = E.player(s, 'p0'), mate = E.player(s, 'p2'), foe = E.player(s, 'p1'); s.turn.idx = s.players.indexOf(a);
+  ok(E.teammate(s, 'p0', 'p2') && !E.teammate(s, 'p0', 'p1'), 'p0 and p2 are teammates');
+  const T = s.map.tiles, fk = E.neighbors(mate.hq).find(k => T[k] && E.isLandTile(T[k]) && T[k].t !== 'mountain' && !T[k].river);
+  T[fk].owner = 'p2'; T[fk].structs = [{ type: 'fob', owner: 'p2', lvl: 1 }]; T[fk].struct = T[fk].structs[0];
+  for (const id in s.units) if (s.units[id].hex === fk) delete s.units[id];
+  ok(E.deployHexes(s, 'p0', 'grunt').includes(fk), "a teammate's FOB is a deploy point");
+  a.cash = 20; const r = E.applyAction(s, 'p0', { a: 'deploy', unit: 'grunt', hex: fk });
+  ok(r.ok && Object.values(s.units).some(u => u.hex === fk && u.owner === 'p0'), 'deploying there works');
+  ok(!E.deployHexes(s, 'p1', 'grunt').includes(fk), 'the enemy cannot use it');
+  const fk2 = E.neighbors(fk).find(k => T[k] && E.isLandTile(T[k]) && !T[k].river && T[k].t !== 'mountain' && k !== mate.hq);
+  if (fk2) { T[fk2].owner = 'p2'; T[fk2].structs = [{ type: 'fob', owner: 'p2', lvl: 1 }]; T[fk2].struct = T[fk2].structs[0]; for (const id in s.units) if (s.units[id].hex === fk2) delete s.units[id];
+    s.units.zz = { id: 'zz', owner: 'p2', type: 'grunt', hex: fk2, moved: false, fresh: false };
+    ok(!E.deployHexes(s, 'p0', 'grunt').includes(fk2), "not while the teammate's own troops stand on it"); }
+  mate.tactics = [{ uid: 9001, id: 'rally' }]; foe.tactics = [{ uid: 9002, id: 'nuke' }];
+  const v = E.view(s, 'p0');
+  ok(v.players.find(p => p.id === 'p2').tactics.length === 1 && v.players.find(p => p.id === 'p1').tactics.length === 0, "you see your teammate's hand, not the enemy's");
+  a.cash = 20; const g = E.applyAction(s, 'p0', { a: 'gift', to: 'p2', amount: 7 });
+  ok(g.ok && a.cash === 13 && mate.cash >= 7, 'cash passes to a teammate straight away');
+  a.tactics = [{ uid: 9003, id: 'smoke' }];
+  ok(E.applyAction(s, 'p0', { a: 'gift', to: 'p2', uid: 9003 }).ok && mate.tactics.some(c => c.uid === 9003) && !a.tactics.length, 'so does a card');
+  ok(!E.applyAction(s, 'p0', { a: 'gift', to: 'p1', amount: 1 }).ok, 'no gifts to the enemy');
+  ok(!E.applyAction(s, 'p0', { a: 'gift', to: 'p2', amount: 999 }).ok, 'no more than you have');
+}
 console.log(fails ? fails + ' FAILED' : 'all passed');
 process.exit(fails ? 1 : 0);

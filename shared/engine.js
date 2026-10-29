@@ -794,8 +794,9 @@
   function spawnPoints(s, pid) {
     const out = []; let sup = null;
     for (const k in s.map.tiles) {
-      const t = s.map.tiles[k]; if (t.owner !== pid) continue;
-      const h = getS(t, 'hq'), f = getS(t, 'fob');
+      const t = s.map.tiles[k], h = getS(t, 'hq'), f = getS(t, 'fob');
+      // team games: a teammate's finished FOB takes your reinforcements too
+      if (t.owner !== pid) { if (f && !f.lock && f.owner === t.owner && teammate(s, pid, t.owner)) out.push(k); continue; }
       if ((h && h.owner === pid && !h.siege) || (f && f.owner === pid && !f.lock)) out.push(k);   // a cut-off FOB still takes reinforcements
     }
     for (const k of musterHexes(s, pid)) if (!out.includes(k)) out.push(k);
@@ -867,7 +868,7 @@
   function deployHexes(s, pid, type, idx) {
     idx = idx || buildIndex(s);
     if (!isSea(type)) {
-      const pts = spawnPoints(s, pid).filter(k => stackFits(idx[k] || [], [type]));
+      const pts = spawnPoints(s, pid).filter(k => stackFits(idx[k] || [], [type]) && !(idx[k] || []).some(u => u.owner !== pid));   // (a teammate's FOB only while their troops aren't standing on it)
       // aircraft can also be deployed straight onto a carrier with room
       if (UNITS[type].cls === 'air') for (const k in idx) { const occ = idx[k]; if (occ[0].owner === pid && isWater(s.map.tiles[k]) && airCap(occ) > occ.filter(isAirU).length && stackFits(occ, [type])) pts.push(k); }
       return pts;
@@ -878,7 +879,8 @@
       // ships launch from a Port; transports can also launch from a coastal HQ or FOB
       let pt = getS(t, 'port');
       if (!pt && UNITS[type].ability === 'transport') pt = getS(t, 'hq') || getS(t, 'fob');
-      if (t.owner !== pid || !pt || pt.owner !== pid || pt.lock || pt.siege) continue;
+      const mine = t.owner === pid || (t.owner && teammate(s, pid, t.owner));   // teammates share their Ports
+      if (!mine || !pt || pt.owner !== t.owner || pt.lock || pt.siege) continue;
 
       for (const n of neighbors(k)) {
         const w = s.map.tiles[n]; if (!isWater(w)) continue;
@@ -2130,6 +2132,7 @@
     if (a.a === 'allyReply') return allyReply(s, p, a, ev);
     // diplomacy, trades, intel and resupply prep don't wait for your turn
     if (a.a === 'trade') return tradeOffer(s, p, a, ev);
+    if (a.a === 'gift') return teamGift(s, p, a, ev);
     if (a.a === 'allyOffer') return allyOffer(s, p, a, ev);
     if (a.a === 'allyBreak') return allyBreak(s, p, a, ev);
     if (a.a === 'allyRenew') return allyRenew(s, p, a, ev);
@@ -2658,6 +2661,28 @@
     return null;
   }
 
+  // ───────────────────────── team play ─────────────────────────
+  // teammates hand each other cash or a tactic card straight away: no offer, no reply
+  function teamGift(s, p, a, ev) {
+    const fail = err => ({ ok: false, err, events: [] });
+    const to = player(s, a.to);
+    if (!to || !to.alive || !teammate(s, p.id, to.id)) return fail('You can only send gifts to a teammate');
+    if (a.uid != null) {
+      const i = p.tactics.findIndex(c => c.uid === a.uid); if (i < 0) return fail('Card not in hand');
+      const c = p.tactics.splice(i, 1)[0]; c.src = 'a gift from ' + p.name + ' (round ' + s.turn.round + ')'; to.tactics.push(c);
+      ev.push({ e: 'gift', pid: p.id, to: to.id, card: c.id });
+      pushLog(s, '🎁 ' + p.name + ' passed ' + to.name + ' a card.');
+      return { ok: true, events: ev };
+    }
+    const n = Math.floor(+a.amount || 0);
+    if (!(n > 0)) return fail('Send at least $1');
+    if (n > p.cash) return fail('You only have $' + p.cash);
+    p.cash -= n; to.cash += n;
+    ev.push({ e: 'gift', pid: p.id, to: to.id, amount: n });
+    pushLog(s, '💸 ' + p.name + ' sent ' + to.name + ' $' + n + '.');
+    return { ok: true, events: ev };
+  }
+
   // ───────────────────────── trading ─────────────────────────
   function tradeOffer(s, p, a, ev) {
     const fail = err => ({ ok: false, err, events: [] });
@@ -2881,7 +2906,8 @@
       for (const id in c.units) if (hide(c.units[id].owner)) delete c.units[id];
       c.fogSpawn = true;
     }
-    for (const p of c.players) { p.tacticCount = p.tactics.length; if (p.id !== pid) { p.tactics = []; delete p.nextOffer; delete p.prePick; delete p.intel; delete p.market; } }
+    // teammates see each other's hands (to plan together); nobody else's
+    for (const p of c.players) { p.tacticCount = p.tactics.length; if (p.id !== pid) { if (!teammate(s, pid, p.id)) p.tactics = []; delete p.nextOffer; delete p.prePick; delete p.intel; delete p.market; } }
     if (c.trade && c.trade.to !== pid && c.trade.from !== pid) c.trade = { from: c.trade.from, to: c.trade.to, hidden: true };
     const cur = c.players[c.turn.idx];
     if (c.turn.crate && (!cur || cur.id !== pid)) c.turn.crate = { tier: c.turn.crate.tier, hidden: true, cards: [] };

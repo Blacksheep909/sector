@@ -4,6 +4,7 @@ Every release, newest first. Each version also has its own post on the [Releases
 
 ## Unreleased
 
+- **Teams play as a team:** deploy at a teammate's FOB and launch ships from their Ports; see your teammates' cards and cash; send them cash or pass them a card instantly from the new team panel (🃏 TEAM under their name); team chat (on by default, TEAM / ALL or Tab to switch); map pings only reach your own side; each team's land in the top bar; bot teammates help out a broke teammate.
 - **Upgrades show what they do:** an UPGRADE card on offer (resupply, Supply Drops, the opening draft) shows the change, e.g. ⚔5→6 🛡4→5, and the stats that go up glow.
 - **Helicopters claim oil rigs:** land a Wren, Ravager, Banshee, Stormcrow, Mule or Valkyrie on an oil rig and it's yours.
 - **Opening draft no longer jumps:** the cards and title stayed still until the REVEAL ALL bar appeared under them and nudged the whole screen up (and back down after each pick). Its space is now kept from the start. Supply Drop crates had the same jump.

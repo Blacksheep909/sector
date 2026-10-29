@@ -1970,3 +1970,18 @@ body.compact #buildBar, body.compact #leftCol > #buildBar { position: fixed !imp
 .card.mini .c-up { display: none; }
 .c-stats span.up { box-shadow: 0 0 0 2px #59f08a, 0 0 10px rgba(89,240,138,.8); animation: upPulse 1.4s ease-in-out infinite; }
 @keyframes upPulse { 50% { box-shadow: 0 0 0 2px #59f08a, 0 0 16px rgba(89,240,138,1); } }
+
+/* ══════════ team games ══════════ */
+.team-card { width: min(640px, 94vw); max-height: 88vh; overflow-y: auto; display: flex; flex-direction: column; gap: 12px; }
+.tm-sub { color: var(--dim); font-size: 13px; }
+.tm-mate { border: 2px solid var(--pc); border-radius: 10px; padding: 10px; background: #0c141b; }
+.tm-head { display: flex; align-items: center; gap: 8px; flex-wrap: wrap; }
+.tm-head b { color: var(--pc); font-size: 16px; margin-right: auto; }
+.tm-cash { font-weight: 800; color: var(--gold); }
+.tm-hand { display: flex; flex-wrap: wrap; gap: 6px; margin-top: 8px; }
+.tm-none { color: var(--dim); font-size: 12px; }
+.tm-mine h3 { margin: 0 0 4px; font-size: 13px; letter-spacing: 2px; color: var(--dim); }
+.tm-give { display: flex; flex-direction: column; gap: 4px; align-items: center; }
+#chatMode { align-self: flex-start; width: auto; pointer-events: auto; font-size: 10px; font-weight: 800; letter-spacing: 1px; padding: 4px 8px; border-radius: 6px; border: 0; background: #2a3947; color: #cfe3ff; cursor: pointer; margin-bottom: 4px; }
+#chatMode.team { background: #2f6b4a; color: #c8ffd9; }
+.tmtag { font-size: 9px; font-weight: 800; letter-spacing: 1px; padding: 1px 5px; border-radius: 4px; background: #2f6b4a; color: #c8ffd9; }

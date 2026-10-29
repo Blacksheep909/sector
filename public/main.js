@@ -126,7 +126,7 @@
       case 'skipVote': if (curFight && curFight.att === m.att && curFight.to === m.to) skipStatus(m.pids); break;
       case 'ping': showPing(m); break;
       case 'emote': showEmote(m); break;
-      case 'chat': addLog(`<b style="--c:${m.color}">${esc(m.from)}:</b> ${esc(m.text)}`, m.bot ? 'chat botline' : 'chat'); if (!m.bot || Home.opts.botchat) SFX.click(); if (m.bot) botBubble(m); break;
+      case 'chat': addLog(`${m.team ? '<span class="tmtag">TEAM</span> ' : ''}<b style="--c:${m.color}">${esc(m.from)}:</b> ${esc(m.text)}`, m.bot ? 'chat botline' : 'chat'); if (!m.bot || Home.opts.botchat) SFX.click(); if (m.bot) botBubble(m); break;
       case 'left': { const inGame = !!S; leftGame = true; token = null; keepSeat(null); you = null; realId = null; joinedOnce = false; lobby = null; backToMenu(); if (inGame) toast('You left the game'); break; }
       case 'kicked': token = null; keepSeat(null); lobby = null;
         if (S) { leftGame = true; you = null; realId = null; joinedOnce = false; backToMenu(); toast('The host removed you from the game', 'err'); }
@@ -452,6 +452,7 @@
     const log = state.log || [];
     if (!initial) { const i = log.lastIndexOf(applyState.lastLog); for (const l of log.slice(i >= 0 ? i + 1 : -3)) if (logWorthy(l)) addLog(esc(l)); }
     applyState.lastLog = log[log.length - 1];
+    chatMode(); if (!$('#teamPanel').hidden) renderTeam();
     recomputePlan();
     // validate selection
     if (sel && !dispState().map.tiles[sel.hex]) sel = null;
@@ -1439,6 +1440,32 @@
     const [face, word] = m >= 40 ? ['😊', 'Friendly'] : m >= 10 ? ['🙂', 'Warm'] : m > -10 ? ['😐', 'Neutral'] : m > -40 ? ['😠', 'Wary'] : ['😡', 'Hostile'];
     return ` <span class="mood" title="${word} towards you (${m > 0 ? '+' : ''}${m}). Bots ally with commanders they like, against whoever is most dangerous.">${face}</span>`;
   }
+  // ───────────── team games: your teammates' hands and cash, money and cards passed across ─────────────
+  function openTeam() { $('#teamPanel').hidden = false; renderTeam(); }
+  function renderTeam() {
+    const box = $('#teamPanel'), me = myP(); if (!S || !me) { box.hidden = true; return; }
+    const mates = S.players.filter(p => p.alive && E.teammate(S, you, p.id));
+    const send$ = (to, n) => `<button class="btn tiny gold" data-to="${to}" data-n="${n}" ${me.cash < n ? 'disabled' : ''}>💸 $${n}</button>`;
+    box.innerHTML = `<div class="panel team-card"><div class="ix-head"><h2>YOUR TEAM</h2><button class="icon-btn" id="tmClose">✕</button></div>
+      <div class="tm-sub">Plan together: you can see each other's cards, deploy at each other's FOBs and launch ships from each other's Ports. Money and cards pass instantly.</div>
+      ${mates.map(p => `<div class="tm-mate" style="--pc:${p.color}"><div class="tm-head"><b>${esc(p.name)}</b><span class="tm-cash">$${p.cash}</span>${send$(p.id, 2)}${send$(p.id, 5)}${send$(p.id, 10)}</div>
+        <div class="tm-hand" data-pid="${p.id}"></div></div>`).join('') || '<div class="tm-sub">No teammates left standing.</div>'}
+      ${mates.length && me.tactics.length ? `<div class="tm-mine"><h3>PASS A CARD</h3><div class="tm-hand mine"></div></div>` : ''}</div>`;
+    box.querySelector('#tmClose').onclick = () => { box.hidden = true; SFX.click(); };
+    box.onclick = e => { if (e.target === box) box.hidden = true; };
+    for (const b of box.querySelectorAll('[data-n]')) b.onclick = () => { SFX.coin(2); act({ a: 'gift', to: b.dataset.to, amount: +b.dataset.n }); };
+    for (const h of box.querySelectorAll('.tm-hand[data-pid]')) {
+      const p = S.players.find(x => x.id === h.dataset.pid), cards = p.tactics || [];
+      if (!cards.length) h.innerHTML = '<span class="tm-none">No tactic cards</span>';
+      for (const c of cards) h.appendChild(Cards.make(c.id, { mini: true }));
+    }
+    const mine = box.querySelector('.tm-hand.mine');
+    if (mine) for (const c of me.tactics) {
+      const w = el('div', 'tm-give'); w.appendChild(Cards.make(c.id, { mini: true }));
+      for (const p of mates) { const b = el('button', 'btn tiny', '→ ' + esc(p.name)); b.onclick = () => { SFX.select(); act({ a: 'gift', to: p.id, uid: c.uid }); }; w.appendChild(b); }
+      mine.appendChild(w);
+    }
+  }
   function renderTop() {
     const box = $('#players'); box.innerHTML = '';
     // land is what scores (Conquest target, time-up winner), so that's the headline number; sea is in the tooltip
@@ -1480,6 +1507,7 @@
           tb.onclick = e => { e.stopPropagation(); const a = { a: 'tactic', uid: mode.uid, targetPid: p.id }; burnCard(mode.el); mode = null; refreshAll(); doAction(a); };
           box.appendChild(tb);
         }
+        if (E.teammate(S, you, p.id)) { const tb = el('button', 'tradebtn ally', '🃏 ' + (p.tactics || []).length + ' · TEAM'); tb.title = p.name + "'s hand and cash: send them money or pass them a card"; tb.onclick = e => { e.stopPropagation(); SFX.select(); openTeam(); }; box.appendChild(tb); }
         if (!S.trade) { const tb = el('button', 'tradebtn', 'TRADE'); tb.onclick = e => { e.stopPropagation(); SFX.select(); openTrade(p.id); }; box.appendChild(tb); }
         if (!allied && !S.allyOffer && myP() && myP().alive && S.settings.teams !== 'on') { const ab = el('button', 'tradebtn ally', 'ALLY'); ab.title = 'Propose an alliance'; ab.onclick = e => { e.stopPropagation(); SFX.select(); act({ a: 'allyOffer', to: p.id }); }; box.appendChild(ab); }
         if (allied && pact && !pact.ending && !pact.team && pact.until && pact.until - S.turn.round <= 2) {
@@ -1504,6 +1532,10 @@
       box.appendChild(c);
     }
     let modeTxt = S.settings.mode === 'conquest' ? `Conquest · first to <b style="display:inline;font-size:12px;color:var(--gold)">${E.conquestTarget(S)}</b> hexes` : S.settings.mode === 'koth' ? 'Beacon · hold the centre for 3 turns' : S.settings.mode === 'worldwar' ? `World War · first to <b style="display:inline;font-size:12px;color:var(--gold)">${E.conquestTarget(S)}</b> hexes` : 'Domination · capture every HQ';
+    // team games: each team's land, side by side
+    // (in the fog you only know your own team's)
+    if (S.settings.teams === 'on') { const by = {}, mine = myP() && myP().team; for (const p of S.players) if (p.alive && p.team && (S.settings.fog !== 'on' || !mine || p.team === mine)) by[p.team] = (by[p.team] || 0) + E.ownedLand(S, p.id).length;
+      modeTxt += ' · ' + Object.keys(by).sort().map(t => `<span class="teamchip t${t}">${'ABCD'[t - 1]}</span> ${by[t]}`).join(' '); }
     if (S.settings.mode === 'conquest' || S.settings.mode === 'worldwar') {
       // how close everyone is: your land, what's left to win, and the leader
       const need = E.conquestTarget(S), land = id => E.ownedLand(S, id).length;
@@ -2557,6 +2589,13 @@
         case 'bridgeRot': { const tt = S.map.tiles[ev.hex]; if (tt) tt.bridgeRot = ev.rot; Render.invalidate(); SFX.click(); break; }
         case 'overwatch': { for (const id of ev.units) if (S.units[id]) { S.units[id].ow = true; S.units[id].moved = true; } Render.ring(ev.hex, pColor(ev.pid), 45, 0.6, 3); if (ev.pid === you) toast('🎯 On overwatch: they will fire on enemies that stop next to them'); break; }
         case 'radar': { Render.ring(ev.hex, '#59f08a', 60, 1.2, 3); Render.float(ev.hex, '📡 CONTACT', '#59f08a', 14); pushAlert('📡 Enemy contact near your land', ev.hex); break; }
+        case 'gift': {
+          const what = ev.amount ? '$' + ev.amount : (E.TACTICS[ev.card] || {}).name || 'a card';
+          if (ev.to === you) { toast(`🎁 ${pName(ev.pid)} sent you ${what}`, 'good'); SFX.coin(ev.amount ? 4 : 1); }
+          else if (ev.pid === you) toast(`Sent ${pName(ev.to)} ${what}`);
+          if (!$('#teamPanel').hidden) renderTeam();
+          break;
+        }
         case 'donate': {
           for (const id of ev.units) if (S.units[id]) S.units[id].owner = ev.to;
           Render.ring(ev.hex, pColor(ev.to), 60, 0.6, 4); Render.float(ev.hex, '🎁 ' + pName(ev.to).toUpperCase(), pColor(ev.to), 15); SFX.select();
@@ -3086,7 +3125,15 @@
     while (box.children.length > 80) box.firstChild.remove();
     if (atEnd) box.scrollTop = box.scrollHeight;   // follow the newest line, unless you've scrolled up to read
   }
-  $('#chatIn').addEventListener('keydown', e => { if (e.key === 'Enter') { const v = e.target.value.trim(); if (v) send({ t: 'chat', text: v }); e.target.value = ''; e.target.blur(); } });
+  // team games: chat goes to your team by default (the TEAM/ALL switch, or Tab, flips it)
+  let teamChat = true;
+  const teamGame = () => !!(S && S.settings && S.settings.teams === 'on' && myP());
+  const chatMode = () => { const b = $('#chatMode'); if (!b) return; b.hidden = !teamGame(); b.textContent = teamChat ? 'TEAM' : 'ALL'; b.classList.toggle('team', teamChat); };
+  { const b = el('button', '', 'TEAM'); b.id = 'chatMode'; b.hidden = true; b.title = 'Who hears you: your team, or everyone (Tab)'; b.onclick = () => { teamChat = !teamChat; chatMode(); SFX.click(); }; $('#chatIn').before(b); }
+  $('#chatIn').addEventListener('keydown', e => {
+    if (e.key === 'Tab' && teamGame()) { e.preventDefault(); teamChat = !teamChat; chatMode(); return; }
+    if (e.key === 'Enter') { const v = e.target.value.trim(); if (v) send({ t: 'chat', text: v, team: teamGame() && teamChat }); e.target.value = ''; e.target.blur(); }
+  });
   $('#muteBtn').onclick = () => { const m = SFX.toggle(); setTimeout(menuMusic, 50); $('#muteBtn').textContent = m ? '✕' : '♪'; };
   $('#muteBtn').textContent = SFX.muted ? '✕' : '♪';
 

@@ -220,6 +220,12 @@ function botStep(s, pid, mem) {
     if (c && !c.scrap && c.value >= threshold) return { a: 'choose', pick: 'card', idx: c.idx, replace: c.replace };
     return { a: 'choose', pick: 'income' };
   }
+  // team games: a bot with money to spare tides over a broke teammate (once a turn)
+  if (s.turn.stage === 'act' && !mem.gifted && s.settings.teams === 'on' && p.cash >= 24) {
+    mem.gifted = true;
+    const poor = s.players.filter(q => q.alive && E.teammate(s, pid, q.id) && q.cash < 6).sort((x, y) => x.cash - y.cash)[0];
+    if (poor) return { a: 'gift', to: poor.id, amount: Math.min(10, Math.floor(p.cash / 4)) };
+  }
   if (s.turn.stage === 'crate') {
     const c = choosePick(s, p, s.turn.crate.cards);
     if (!c || c.scrap) return { a: 'scrap' };

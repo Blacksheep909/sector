@@ -46,6 +46,10 @@ Grab land, build an economy, crush your rivals. **Every hex you hold pays you**,
 An optional round limit gives the win to whoever holds the most land when time runs out.
 
 **Teams** (lobby option). The lobby splits into team columns: drag a name onto another team to move it (the host can move anyone, and players can move themselves; the ⇄ chip does the same on a touch screen). Teams play in team colours: Team A in reds, Team B in blues, Team C in golds, Team D in greens, a different shade for each teammate. Teammates are locked into a permanent alliance: shared vision, no friendly fire, and they win together. Teammates start near each other, and in Conquest or World War the team's land counts together. Other diplomacy is switched off.
+- **Fight as one army.** You can **deploy at a teammate's FOB** (while their own troops aren't standing on it) and **launch ships from their Ports**.
+- **Open hands.** You see your teammates' tactic cards and cash. Press **🃏 TEAM** under a teammate's name for the team panel: **send them cash** ($2, $5 or $10) or **pass them a card**, instantly, any time.
+- **Team chat.** In a team game the chat goes to your team by default; the **TEAM / ALL** switch (or Tab) flips it. **Map pings** only ever reach your own side.
+- The top bar shows each team's land (just your own team's in the fog), and bot teammates send cash to a teammate who's run dry.
 
 **World War** is the big one:
 - A **colossal map**, always with world events.

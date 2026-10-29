@@ -243,6 +243,11 @@ const isConnected = pid => {
 const seatsOf = c => c.pid ? [c.pid, ...lobby.players.filter(p => p.local && p.controller === c.pid).map(p => p.id)] : [];
 const controls = (c, pid) => seatsOf(c).includes(pid);
 // which seat a client is looking through right now
+// whether a client is on pid's side (they hold pid's seat, a teammate's or an ally's); spectators watch everything
+function onSide(cl, pid, strict) {
+  const seats = seatsOf(cl); if (!seats.length) return !strict;
+  return seats.some(x => x === pid || (game && E.isAlly(game, x, pid)));
+}
 function seatFor(c) {
   const seats = seatsOf(c);
   if (!game || seats.length < 2) return c.pid;
@@ -533,7 +538,8 @@ function onMessage(c, m) {
       if (!game || !c.pid || Date.now() - (c.lastPing || 0) < 700) return; c.lastPing = Date.now();
       const p = lobby.players.find(x => x.id === (m.as && controls(c, m.as) ? m.as : c.pid)); if (!p) return;
       const EMOTES = ['👊', '😂', '😱', '🏳️', '💀', '🔥', '🤝', '😈'], PINGS = ['attack', 'help', 'look'];
-      if (m.t === 'ping') { if (!game.map.tiles[m.hex] || !PINGS.includes(m.kind)) return; for (const cl of clients) send(cl, { t: 'ping', pid: p.id, hex: m.hex, kind: m.kind }); }
+      // map pings are for your own side (teammates and allies): the enemy doesn't get to read your plans
+      if (m.t === 'ping') { if (!game.map.tiles[m.hex] || !PINGS.includes(m.kind)) return; for (const cl of clients) if (onSide(cl, p.id)) send(cl, { t: 'ping', pid: p.id, hex: m.hex, kind: m.kind }); }
       else { if (!EMOTES.includes(m.emote)) return; for (const cl of clients) send(cl, { t: 'emote', pid: p.id, emote: m.emote }); }
       return;
     }
@@ -574,8 +580,10 @@ function onMessage(c, m) {
       const p = lobby.players.find(x => x.id === c.pid);
       if (!c.chatOk()) return send(c, { t: 'err', msg: 'Slow down: one message at a time' });
       const text = F.chat(m.text); if (!text) return;
-      for (const cl of clients) send(cl, { t: 'chat', from: p ? p.name : 'Spectator', color: p ? p.color : '#888', text });
-      if (p && !p.bot) banterReply(text);
+      // team chat: only your teammates (and allies) hear it
+      const team = !!(m.team && p && game && game.phase === 'play');
+      for (const cl of clients) if (!team || onSide(cl, p.id, true)) send(cl, { t: 'chat', from: p ? p.name : 'Spectator', color: p ? p.color : '#888', text, team });
+      if (p && !p.bot && !team) banterReply(text);
       return;
     }
     case 'leave': {
