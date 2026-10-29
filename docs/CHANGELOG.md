@@ -4,6 +4,8 @@ Every release, newest first. Each version also has its own post on the [Releases
 
 ## Unreleased
 
+- **Black market button redrawn** in the game's own style: a smuggler's fedora and dark glasses on a flat purple tile with a hard shadow, like the rest of the HUD.
+- **Pause menu** goes two-column on laptop-height screens too, so it never runs off the bottom.
 - **SECTOR for Android (and iOS to come):** a phone app in `mobile/` with its own start screen (type your server's address once, it remembers it), landscape only, full screen, screen kept awake. GitHub builds the Android APK (Actions → android). In the app, **⇄ SERVER** on the front page and **⇄ CHANGE SERVER** in the pause menu switch servers. See [docs/MOBILE.md](MOBILE.md).
 - **Seraph redrawn** as an AC-130 seen from above: the long straight wing with four turboprops out in front, the fat body and blunt nose, a broad tailplane and the side guns.
 - **One colour per team:** teammates no longer get different shades. A team's land and troops read as one front.

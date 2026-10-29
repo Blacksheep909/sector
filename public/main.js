@@ -1599,6 +1599,7 @@
     });
     $('#mkClose').onclick = () => { box.hidden = true; SFX.click(); };
   }
+  $('#marketIcon').src = Art.iconURL('glyph', 'market', '#f3eaff', 96);   // drawn like the game's other icons
   $('#marketBtn').onclick = () => { if (!marketStock()) return; $('#market').hidden = false; drawMarket(); SFX.select(); };
   $('#market').onclick = e => { if (e.target.id === 'market') { $('#market').hidden = true; } };
   function renderUndo() {

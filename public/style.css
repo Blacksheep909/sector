@@ -352,13 +352,14 @@ input:focus, select:focus { border-color: var(--blue); }
 .mk-slot .card .c-name { font-size: 16px; } .mk-slot .card .c-desc { font-size: 11px; }
 .mk-slot.sold .card { filter: grayscale(1) brightness(.45); }
 /* the market's door: a round purple badge on the cash panel, glowing while there's stock */
-.market-btn { position: absolute; top: 10px; right: 10px; width: 46px; height: 46px; border-radius: 50%; padding: 9px; border: 2px solid #b48cff; background: radial-gradient(circle at 35% 30%, #9b6bff, #4b1f9e 70%); color: #f3eaff; cursor: pointer; box-shadow: 0 3px 0 #22104a, 0 0 0 0 rgba(155,107,255,.6); transition: transform .15s; }
-.market-btn svg { width: 100%; height: 100%; display: block; }
-.market-btn:hover { transform: scale(1.1) rotate(-6deg); }
+.market-btn { position: absolute; top: 10px; right: 10px; width: 46px; height: 44px; border-radius: 12px; padding: 2px; border: 2px solid #0b0f13; background: #7a4ae0; box-shadow: 0 4px 0 #3b1688, 0 6px 12px rgba(0,0,0,.4), inset 0 2px 0 rgba(255,255,255,.18); color: #f3eaff; cursor: pointer; transition: transform .12s; }
+.market-btn img { width: 100%; height: 100%; display: block; filter: drop-shadow(0 2px 0 #2a0f66); pointer-events: none; }
+.market-btn:active { transform: translateY(3px); box-shadow: 0 1px 0 #3b1688, inset 0 2px 0 rgba(255,255,255,.18); }
+.market-btn:hover { transform: translateY(-2px) rotate(-4deg); }
 .market-btn.stocked { animation: mkPulse 2s ease-in-out infinite; }
 .market-btn b { position: absolute; right: -6px; top: -6px; min-width: 20px; height: 20px; border-radius: 10px; background: #f3eaff; color: #3b1688; font-size: 12px; line-height: 20px; text-align: center; border: 2px solid #4b1f9e; }
 .market-btn b:empty { display: none; }
-@keyframes mkPulse { 50% { box-shadow: 0 3px 0 #22104a, 0 0 0 7px rgba(155,107,255,0); } 0%, 100% { box-shadow: 0 3px 0 #22104a, 0 0 0 0 rgba(155,107,255,.55); } }
+@keyframes mkPulse { 50% { box-shadow: 0 4px 0 #3b1688, 0 0 0 7px rgba(155,107,255,0), inset 0 2px 0 rgba(255,255,255,.18); } 0%, 100% { box-shadow: 0 4px 0 #3b1688, 0 0 0 0 rgba(155,107,255,.55), inset 0 2px 0 rgba(255,255,255,.18); } }
 .mk-buy { background: linear-gradient(#9b6bff, #6a35d8); border-color: #c4a6ff; color: #fff; box-shadow: 0 4px 0 #2e1270; }
 .mk-buy:hover:not(:disabled) { background: linear-gradient(#ab80ff, #7a45e8); }
 .mk-buy:disabled { background: linear-gradient(#5a3d96, #432a78); border-color: #7a5cc0; color: #cbb8f0; box-shadow: 0 4px 0 #1e0d48; opacity: .7; filter: none; }
@@ -1952,9 +1953,14 @@ body.compact #buildBar, body.compact #leftCol > #buildBar { position: fixed !imp
   /* every pop-up can scroll if it's taller than the screen, and starts at the top rather than overflowing both ways */
   .modal-bg { overflow-y: auto; place-items: start center; padding: 8px; }
   #escMenu { overflow-y: auto; place-items: start center; padding: 8px 0; }
-  /* the pause menu: two columns of buttons and a smaller title, so it fits on a phone held sideways */
-  .esc-card { width: min(560px, 94vw); display: grid; grid-template-columns: 1fr 1fr; gap: 6px; padding: 12px 14px; }
+}
+/* the pause menu: two columns of buttons on shorter screens (laptops, phones held sideways), so it never runs off the bottom */
+@media (max-height: 820px) {
+  .esc-card { width: min(600px, 94vw); display: grid; grid-template-columns: 1fr 1fr; gap: 8px; }
   .esc-card > :not(.btn) { grid-column: 1 / -1; }
+}
+@media (max-height: 520px) {
+  .esc-card { gap: 6px; padding: 12px 14px; }
   .esc-card h2 { font-size: 28px; }
   .esc-card .btn { padding: 8px 10px; font-size: 14px; min-height: 40px; }
 }

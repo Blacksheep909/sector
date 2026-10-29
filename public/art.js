@@ -1284,6 +1284,23 @@ const Art = (() => {
   };
 
   const GLYPH = {
+    // the black market: a smuggler's fedora pulled low over dark glasses
+    market(c) {
+      c.save(); c.translate(0, 0.14); c.scale(1.08, 1.08);   // centred in its tile (the shape sits high)
+      // the hat: a wide brim, and a pinched crown with a band
+      c.beginPath(); c.moveTo(-0.95, -0.02); c.quadraticCurveTo(-0.9, -0.16, -0.62, -0.16); c.lineTo(0.62, -0.16); c.quadraticCurveTo(0.9, -0.16, 0.95, -0.02); c.quadraticCurveTo(0.5, 0.06, 0, 0.06); c.quadraticCurveTo(-0.5, 0.06, -0.95, -0.02); c.closePath(); c.fill();
+      c.beginPath(); c.moveTo(-0.52, -0.14); c.lineTo(-0.46, -0.66); c.quadraticCurveTo(-0.42, -0.84, -0.18, -0.8); c.quadraticCurveTo(0, -0.66, 0.18, -0.8); c.quadraticCurveTo(0.42, -0.84, 0.46, -0.66); c.lineTo(0.52, -0.14); c.closePath(); c.fill();
+      // the glasses: two lenses on a bridge
+      for (const x of [-0.34, 0.34]) { c.beginPath(); c.moveTo(x - 0.3, 0.2); c.lineTo(x + 0.3, 0.2); c.quadraticCurveTo(x + 0.3, 0.58, x, 0.58); c.quadraticCurveTo(x - 0.3, 0.58, x - 0.3, 0.2); c.closePath(); c.fill(); }
+      rr(c, -0.1, 0.22, 0.2, 0.08, 0.04); c.fill();
+      shade(c, () => {
+        rrp(c, -0.5, -0.3, 1.0, 0.12, 0.03);                                                        // hat band
+        c.moveTo(0, -0.66); c.quadraticCurveTo(0.12, -0.56, 0.16, -0.18); c.lineTo(-0.16, -0.18); c.quadraticCurveTo(-0.12, -0.56, 0, -0.66);   // the crown's pinch
+        for (const x of [-0.34, 0.34]) { c.moveTo(x - 0.24, 0.25); c.lineTo(x + 0.24, 0.25); c.quadraticCurveTo(x + 0.24, 0.52, x, 0.52); c.quadraticCurveTo(x - 0.24, 0.52, x - 0.24, 0.25); }   // dark lenses
+      }, SH2);
+      c.save(); c.fillStyle = 'rgba(255,255,255,.75)'; for (const x of [-0.42, 0.26]) { rr(c, x, 0.29, 0.1, 0.05, 0.025); c.fill(); } c.restore();   // a glint on each lens
+      c.restore();
+    },
     shield(c) { c.beginPath(); c.moveTo(0, -0.9); c.lineTo(0.75, -0.6); c.quadraticCurveTo(0.75, 0.45, 0, 0.92); c.quadraticCurveTo(-0.75, 0.45, -0.75, -0.6); c.closePath(); c.fill(); },
     bolt(c) { TACTIC.blitz(c); },
     skull(c) { circ(c, 0, -0.15, 0.68); c.fill(); rr(c, -0.38, 0.3, 0.76, 0.55, 0.1); c.fill(); c.save(); c.globalCompositeOperation = 'destination-out'; circ(c, -0.27, -0.12, 0.18); c.fill(); circ(c, 0.27, -0.12, 0.18); c.fill(); poly(c, [0, 0.1, 0.1, 0.3, -0.1, 0.3]); c.fill(); c.restore(); },
