@@ -272,7 +272,7 @@
     clear: { name: 'Clear Skies', icon: '☀', desc: 'Everyone sees 2 hexes further this round (fog of war).' },
   };
   const COLORS = ['#ff4f5e', '#36c9ff', '#ffc53d', '#59f08a', '#c27dff', '#ff8ad0', '#ff9a3c', '#e9edf2'];
-  // teams play in team colours: A red, B blue, C gold, D green, a different shade for each teammate
+  // teams play in team colours: A red, B blue, C gold, D green (the other shades are spare)
   const TEAM_COLORS = {
     1: ['#ff4f5e', '#ff8f6b', '#c42a4a', '#ff6fa8'],
     2: ['#36a3ff', '#7fd8ff', '#2f5fe0', '#4fe3d8'],
@@ -280,7 +280,8 @@
     4: ['#59f08a', '#b0f060', '#22b86a', '#8ff5d0'],
   };
   const TEAM_NAMES = { 1: 'Red', 2: 'Blue', 3: 'Gold', 4: 'Green' };
-  function teamColor(team, nth) { const l = TEAM_COLORS[team] || TEAM_COLORS[1]; return l[nth % l.length]; }
+  // a team plays in one colour: its land reads as one front (which teammate holds a hex is in its tooltip)
+  function teamColor(team) { return (TEAM_COLORS[team] || TEAM_COLORS[1])[0]; }
   const MAX_STACK = 5, GRUNT_STACK = 10, ROLL_BASE = 2;
   // a hex holds 5 units, or up to 10 when every unit on it is a Grunt
   const typeOf = u => typeof u === 'string' ? u : u.type;

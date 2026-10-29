@@ -78,7 +78,7 @@ function crossing(s) {
   const roster = [1, 2, 1, 2].map((t, i) => ({ id: 'p' + i, name: 'P' + i, color: E.COLORS[i], faction: 'iron', team: t }));
   const { state: s } = E.createGame({ mode: 'domination', mapSize: 'medium', teams: 'on' }, roster);
   const col = id => s.players.find(p => p.id === id).color;
-  ok(E.TEAM_COLORS[1].includes(col('p0')) && E.TEAM_COLORS[1].includes(col('p2')) && col('p0') !== col('p2'), 'team A plays in two shades of red');
+  ok(col('p0') === E.TEAM_COLORS[1][0] && col('p2') === col('p0'), 'team A plays in one red');
   ok(E.TEAM_COLORS[2].includes(col('p1')) && E.TEAM_COLORS[2].includes(col('p3')), 'team B plays in blue');
 }
 { // fog of war: a fallen commander's remembered land shows as neutral
