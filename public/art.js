@@ -946,29 +946,32 @@ const Art = (() => {
       }, SH2);
       for (const x of [-0.24, 0.0, 0.22]) { circ(c, x, -0.18, 0.08); c.fill(); rr(c, x - 0.08, -0.1, 0.16, 0.2, 0.04); c.fill(); }   // troops aboard
     },
-    // AC-130 Spectre, side-on: the Hercules' fat tube of a body, blunt radome nose with the flight deck on top, a high wing
-    // with turboprops hung in front of it, landing-gear blisters on the belly, an upswept tail under a tall rounded fin,
-    // and the side-firing guns poking out of the port side
+    // AC-130 Spectre from above, nose to the right: the Hercules' long straight high wing with four turboprops thrust out ahead
+    // of it (props spinning), a fat tube of a body with a blunt nose, a broad tailplane, and the gunship's side guns poking
+    // out of the port side
     seraph(c) {
-      c.beginPath(); c.moveTo(-0.5, -0.28); c.lineTo(0.7, -0.28); c.quadraticCurveTo(0.82, -0.28, 0.9, -0.18);
-      c.lineTo(0.96, -0.08); c.quadraticCurveTo(1.08, 0.0, 1.04, 0.1); c.quadraticCurveTo(0.98, 0.18, 0.84, 0.18);
-      c.lineTo(-0.32, 0.18); c.lineTo(-0.9, -0.1); c.lineTo(-1.0, -0.16); c.lineTo(-0.98, -0.24); c.closePath(); c.fill();   // fuselage
-      c.beginPath(); c.moveTo(-0.56, -0.26); c.lineTo(-0.8, -0.8); c.quadraticCurveTo(-0.86, -0.9, -0.96, -0.86); c.lineTo(-1.0, -0.24); c.closePath(); c.fill();   // tall fin
-      rr(c, -1.12, -0.26, 0.42, 0.06, 0.03); c.fill();                                          // tailplane
-      rr(c, -0.26, -0.36, 0.62, 0.09, 0.04); c.fill();                                          // high wing
-      for (const [x, y] of [[0.36, -0.3], [0.16, -0.33]]) {                                     // turboprops slung in front of the wing
-        rr(c, x - 0.3, y - 0.06, 0.34, 0.12, 0.06); c.fill();
-        blur(c, () => { c.beginPath(); c.ellipse(x + 0.07, y, 0.035, 0.24, 0, 0, P * 2); c.fill(); });
+      c.save(); c.scale(0.8, 1);   // a Hercules is wider (40 m span) than it is long (30 m)
+      // wing: straight and long, tapering a little toward the tips
+      poly(c, [0.26, -0.98, 0.3, -0.98, 0.3, 0.98, 0.26, 0.98, 0.02, 0.92, -0.04, 0.2, -0.04, -0.2, 0.02, -0.92]); c.fill();
+      // tailplane
+      poly(c, [-0.66, -0.46, -0.6, -0.46, -0.6, 0.46, -0.66, 0.46, -0.84, 0.4, -0.86, 0.1, -0.86, -0.1, -0.84, -0.4]); c.fill();
+      // fuselage: the long fat tube, blunt rounded nose, tapering up to the tail
+      c.beginPath(); c.moveTo(-0.98, -0.05); c.lineTo(-0.6, -0.15); c.lineTo(0.72, -0.15); c.quadraticCurveTo(1.0, -0.15, 1.0, 0); c.quadraticCurveTo(1.0, 0.15, 0.72, 0.15); c.lineTo(-0.6, 0.15); c.lineTo(-0.98, 0.05); c.closePath(); c.fill();
+      // four turboprop nacelles out in front of the wing, each with a blurred prop disc
+      for (const y of [-0.66, -0.36, 0.36, 0.66]) {
+        rr(c, 0.18, y - 0.055, 0.34, 0.11, 0.05); c.fill();
+        blur(c, () => { c.beginPath(); c.ellipse(0.55, y, 0.035, 0.17, 0, 0, P * 2); c.fill(); });
       }
-      rr(c, -0.26, 0.08, 0.56, 0.16, 0.07); c.fill();                                           // gear blister
-      hub(c, -0.12, 0.27, 0.07); hub(c, 0.14, 0.27, 0.07); hub(c, 0.86, 0.25, 0.06);
-      c.lineWidth = 0.07; c.strokeStyle = c.fillStyle; c.lineCap = 'round';
-      c.beginPath(); c.moveTo(-0.5, 0.02); c.lineTo(-0.6, 0.26); c.moveTo(0.44, 0.08); c.lineTo(0.38, 0.28); c.stroke();   // 105mm howitzer and 40mm
+      // the gunship's armament: 105mm howitzer and 40mm Bofors out of the port (left) side
+      c.lineWidth = 0.06; c.strokeStyle = c.fillStyle; c.lineCap = 'round';
+      c.beginPath(); c.moveTo(-0.28, -0.14); c.lineTo(-0.28, -0.3); c.moveTo(0.48, -0.14); c.lineTo(0.48, -0.26); c.stroke();
       shade(c, () => {
-        c.moveTo(0.72, -0.24); c.lineTo(0.86, -0.2); c.lineTo(0.92, -0.1); c.lineTo(0.72, -0.1); c.closePath();   // flight deck glass
-        rrp(c, -0.84, -0.06, 1.68, 0.035, 0.015);                                                   // fuselage stripe
-        for (const x of [0.5, 0.2, -0.1, -0.4]) { c.moveTo(x + 0.035, -0.16); c.arc(x, -0.16, 0.035, 0, P * 2); }   // portholes
+        c.moveTo(0.86, -0.1); c.quadraticCurveTo(0.97, -0.08, 0.97, 0); c.quadraticCurveTo(0.97, 0.08, 0.86, 0.1); c.lineTo(0.8, 0.07); c.lineTo(0.8, -0.07); c.closePath();   // flight deck glass
+        rrp(c, -0.6, -0.03, 1.3, 0.06, 0.03);                                                 // spine
+        for (const y of [-0.66, -0.36, 0.36, 0.66]) rrp(c, 0.2, y - 0.02, 0.28, 0.04, 0.02);   // nacelle panel lines
+        rrp(c, -0.92, -0.025, 0.36, 0.05, 0.02);                                              // the fin, seen edge-on from above
       }, SH2);
+      c.restore();
     },
     // M1 Abrams: long low hull with side skirts, an angular slab-sided turret with a bustle rack, a long 120mm gun, an M2 on the cupola
     mauler(c) {

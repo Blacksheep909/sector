@@ -4,6 +4,7 @@ Every release, newest first. Each version also has its own post on the [Releases
 
 ## Unreleased
 
+- **Seraph redrawn** as an AC-130 seen from above: the long straight wing with four turboprops out in front, the fat body and blunt nose, a broad tailplane and the side guns.
 - **One colour per team:** teammates no longer get different shades. A team's land and troops read as one front.
 - **Install SECTOR as an app** on a phone, tablet or computer: on a server reached over HTTPS, the browser offers **Install app** / **Add to Home Screen**, and it opens full screen in landscape with its own icon. On iPhone, Safari's Share → Add to Home Screen does the same. On a phone in the browser, the first tap goes full screen and locks landscape (Android).
 - **Teams play as a team:** deploy at a teammate's FOB and launch ships from their Ports; see your teammates' cards and cash; send them cash or pass them a card instantly from the new team panel (🃏 TEAM under their name); team chat (on by default, TEAM / ALL or Tab to switch); map pings only reach your own side; each team's land in the top bar; bot teammates help out a broke teammate.
