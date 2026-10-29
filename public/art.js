@@ -508,6 +508,22 @@ const Art = (() => {
       for (const x of [-0.74, -0.46, 0.22, 0.56]) hub(c, x, 0.4, 0.15);
       sh(c, () => { rr(c, 0.6, -0.22, 0.22, 0.12, 0.02); c.fill(); c.fillRect(-0.92, 0.22, 1.8, 0.05); });
     },
+    // Iskander-M TEL: a big 8x8 transporter-erector-launcher, one satellite-guided ballistic missile raised on its rail, a satcom dome on the cab
+    oracle(c) {
+      rr(c, -0.98, 0.12, 1.94, 0.24, 0.06); c.fill();
+      poly(c, [0.5, 0.12, 0.54, -0.3, 0.88, -0.3, 0.98, -0.04, 0.98, 0.12]); c.fill();                // cab
+      c.beginPath(); c.arc(0.7, -0.3, 0.11, P, 0); c.fill();                                          // satcom dome
+      c.save(); c.translate(-0.78, 0.06); c.rotate(-0.72);
+      rr(c, -0.02, -0.02, 1.25, 0.1, 0.03); c.fill();                                                 // launch rail
+      rr(c, 0.05, -0.27, 1.12, 0.22, 0.1); c.fill();                                                  // missile body
+      poly(c, [1.15, -0.27, 1.5, -0.16, 1.15, -0.05]); c.fill();                                      // nose cone
+      poly(c, [0.05, -0.27, -0.12, -0.4, 0.2, -0.27]); c.fill(); poly(c, [0.05, -0.05, -0.12, 0.06, 0.2, -0.05]); c.fill();   // tail fins
+      sh(c, () => { c.fillRect(0.4, -0.27, 0.03, 0.22); c.fillRect(0.85, -0.27, 0.03, 0.22); c.fillRect(0.08, -0.12, 1.06, 0.04); });
+      c.restore();
+      c.save(); c.translate(0.08, 0.1); c.rotate(-2.4); rr(c, 0, -0.04, 0.42, 0.08, 0.02); c.fill(); c.restore();   // erector ram
+      for (const x of [-0.74, -0.46, 0.22, 0.56]) hub(c, x, 0.4, 0.15);
+      sh(c, () => { rr(c, 0.6, -0.22, 0.22, 0.12, 0.02); c.fill(); c.fillRect(-0.92, 0.22, 1.8, 0.05); });
+    },
     // HIMARS: 6x6 truck with a rocket pod
     basilisk(c) {
       rr(c, -0.95, 0.1, 1.86, 0.26, 0.06); c.fill();

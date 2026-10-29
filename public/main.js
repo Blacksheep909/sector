@@ -2543,10 +2543,11 @@
               Render.missile(ev.from, ev.to, { loft: 220, dur: 0.9 * speed(), size: 1.5, color: '#ffd27a' }); await sleep(900);
               Render.flash(0.3, '#ffd9a0'); Render.shake(14); Render.burst(ev.to, ['#fff', '#ffb03a', '#ff5a2a'], 50, { speed: 2 }); SFX.boom(1.2); await sleep(300);
             } else if (ev.att.units && ev.att.units.includes('oracle')) {
-              // the Oracle calls its strike down from orbit, not out of its dish
-              SFX.zap(); Render.ring(ev.from, '#7ff3ff', 40, 0.5, 3); await sleep(250);
-              Render.lance(ev.to, '#7ff3ff', 0.9 * speed()); await sleep(260 * speed());
-              Render.flash(0.25, '#bff6ff'); Render.shake(10); Render.burst(ev.to, ['#fff', '#bff6ff', '#36c9ff'], 30, { speed: 1.8 }); SFX.boom(1); await sleep(300);
+              // the Oracle's launcher stands its missile up and fires: a high ballistic arc over anything in the way, guided onto the target
+              SFX.whoosh(); Render.smoke(ev.from, 12, 'rgba(225,225,225,'); Render.burst(ev.from, ['#ffd27a', '#fff', '#ff8a3a'], 20, { up: 160 });
+              Render.ring(ev.to, '#7ff3ff', 36, 0.5, 3);
+              Render.missile(ev.from, ev.to, { loft: 260, accel: 1.1, dur: 1.0 * speed(), size: 1.6, color: '#e9edf2' }); await sleep(1000);
+              Render.flash(0.3, '#ffd9a0'); Render.shake(14); Render.burst(ev.to, ['#fff', '#ffd27a', '#ffb03a', '#ff5a2a'], 50, { speed: 2, up: 140 }); SFX.boom(1.2); await sleep(300);
             } else if (ev.att.units && ev.att.units.length && ev.att.units.every(ut => ['aa', 'sam'].includes((E.UNITS[ut] || {}).ability))) {
               // anti-air: a salvo of missiles, straight in on white trails (aircraft fly, so they're hit up in the air)
               const n = Math.min(4, ev.att.units.length), [x, y] = Render.topOf(ev.to);
