@@ -4,6 +4,7 @@ Every release, newest first. Each version also has its own post on the [Releases
 
 ## Unreleased
 
+- **Safari fix (Macs, iPhones, iPads):** on smaller screens the HUD shrinks to fit, and Safari got that wrong, pushing your hand, deck and build bar half off the bottom of the screen. The HUD and the phone card screens now scale a way every browser handles the same.
 - **Bots no longer strike blind:** with fog of war on, bots only use air strikes, missiles and other strike cards, and only fire artillery, at hexes they can actually see, just like you.
 - **Ending a war during the opening draft** no longer leaves the draft on top of the lobby. Whenever a war ends under you, everything it put on screen goes with it.
 - **No peeking at the map:** the battlefield stays hidden behind the map-roll animation until it lands.

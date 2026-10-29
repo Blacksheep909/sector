@@ -86,6 +86,11 @@ input:focus, select:focus { border-color: var(--blue); }
 
 /* ───── HUD ───── */
 #hud { position: fixed; inset: 0; pointer-events: none; z-index: 5; }
+/* the HUD scales down on smaller screens by --hz. Not with CSS zoom: Safari (Macs, iPhones) places zoomed fixed elements
+   wrongly, pushing the hand and the dock off the bottom. Instead the HUD's box is made 1/--hz the size of the screen and
+   then scaled down by --hz from the top-left corner, so it fills the screen exactly and everything in it shrinks evenly,
+   the same in every browser */
+#hud { --hz: 1; inset: auto; top: 0; left: 0; width: calc(100vw / var(--hz)); height: calc(100vh / var(--hz)); height: calc(100dvh / var(--hz)); transform: scale(var(--hz)); transform-origin: 0 0; }
 #hud > * { pointer-events: auto; }
 #topbar { position: absolute; top: 10px; left: 12px; right: 12px; display: flex; align-items: center; gap: 12px; pointer-events: none; }
 #topbar > * { pointer-events: auto; }
@@ -900,15 +905,15 @@ body.host-page { overflow: auto; background: radial-gradient(ellipse at top, #16
 #leftCol > #logBox #log { max-height: none; flex: 0 1 auto; min-height: 0; }
 #leftCol > #buildBar { align-self: flex-start; }
 /* smaller windows: scale the whole HUD so bars never collide */
-@media (max-width: 1400px), (max-height: 820px) { #hud { zoom: .88; } }
-@media (max-width: 1180px), (max-height: 720px) { #hud { zoom: .76; } }
-@media (max-width: 900px) { #hud { zoom: .62; } }
-@media (max-width: 760px) { #hud { zoom: .5; } }
+@media (max-width: 1400px), (max-height: 820px) { #hud { --hz: .88; } }
+@media (max-width: 1180px), (max-height: 720px) { #hud { --hz: .76; } }
+@media (max-width: 900px) { #hud { --hz: .62; } }
+@media (max-width: 760px) { #hud { --hz: .5; } }
 /* phones: scale to fit the short side (a landscape phone is under 520px tall) */
-@media (max-height: 520px) { #hud { zoom: .64; } }
-@media (max-height: 420px) { #hud { zoom: .6; } }
-@media (max-height: 370px) { #hud { zoom: .55; } }
-@media (max-width: 520px) { #hud { zoom: .5; } }
+@media (max-height: 520px) { #hud { --hz: .64; } }
+@media (max-height: 420px) { #hud { --hz: .6; } }
+@media (max-height: 370px) { #hud { --hz: .55; } }
+@media (max-width: 520px) { #hud { --hz: .5; } }
 /* compact screens: the build bar and the chat log fold away behind buttons */
 body.compact #buildBar:not(.open) #hbBuild { display: none; }
 body.compact #buildBar .bar-label { cursor: pointer; padding: 6px 14px; font-size: 15px; }
@@ -1965,9 +1970,10 @@ body.compact #buildBar, body.compact #leftCol > #buildBar { position: fixed !imp
   .esc-card .btn { padding: 8px 10px; font-size: 14px; min-height: 40px; }
 }
 /* the full-screen card screens (resupply, draft, crates, black market, the fight) scale down to fit a phone's height */
-@media (max-height: 520px) { #supply, #draft, #crate, #market, #combat { zoom: .66; } }
-@media (max-height: 420px) { #supply, #draft, #crate, #market, #combat { zoom: .58; } }
-@media (max-height: 370px) { #supply, #draft, #crate, #market, #combat { zoom: .52; } }
+/* (scaled the same way as the HUD, by --oz, rather than with CSS zoom) */
+@media (max-height: 520px) { #supply, #draft, #crate, #market, #combat { --oz: .66; inset: auto; top: 0; left: 0; width: calc(100vw / var(--oz)); height: calc(100vh / var(--oz)); height: calc(100dvh / var(--oz)); transform: scale(var(--oz)); transform-origin: 0 0; } }
+@media (max-height: 420px) { #supply, #draft, #crate, #market, #combat { --oz: .58; } }
+@media (max-height: 370px) { #supply, #draft, #crate, #market, #combat { --oz: .52; } }
 
 /* an upgrade on offer: what it does to the card (the ribbon over the art, and the stats that go up glow) */
 .c-up { margin: 4px 6px 0; padding: 2px 6px; border-radius: 6px; background: rgba(8,40,22,.88); border: 1.5px solid #59f08a; color: #ffd75e; font: 800 10px/1.3 var(--ui, sans-serif); text-align: center; letter-spacing: .5px; box-shadow: 0 0 10px rgba(89,240,138,.45); white-space: nowrap; }

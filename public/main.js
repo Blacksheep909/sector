@@ -581,8 +581,8 @@
     dock.style.zoom = ''; fitHand();
     const need = dock.scrollWidth, have = dock.clientWidth;
     if (need > have + 2) { dock.style.zoom = Math.max(0.6, have / need).toFixed(3); fitHand(); }
-    // measurements are in screen pixels; the HUD may be scaled down (zoom) on smaller screens, so convert back
-    const z = parseFloat(getComputedStyle($('#hud')).zoom) || 1;
+    // measurements are in screen pixels; the HUD may be scaled down (--hz) on smaller screens, so convert back
+    const z = parseFloat(getComputedStyle($('#hud')).getPropertyValue('--hz')) || 1;
     const t = tb.getBoundingClientRect(), d = dock.getBoundingClientRect();
     root.setProperty('--topH', Math.ceil(t.bottom / z) + 'px');
     root.setProperty('--dockH', Math.ceil((innerHeight - d.top) / z) + 'px');
@@ -1818,7 +1818,8 @@
     const up = E.UPGRADABLE.includes(id) ? `<span class="tip-up">Build on one you already own to upgrade it: ★★ $${me ? E.structCost(me, id, 2) : '?'} · ★★★ $${me ? E.structCost(me, id, 3) : '?'}</span>` : '';
     tip.innerHTML = `<div class="btip"><img src="${Art.iconURL('struct', id, '#fff', 96)}"><b>${id === 'hq' ? 'Fortify HQ' : d.name} <span class="gold">$${me ? (id === 'hq' ? E.buildCost(S, me, 'hq', me.hq) : E.structCost(me, id)) : d.cost}</span></b><span>${d.desc}</span>${up}</div>`;
     const r = slot.getBoundingClientRect();
-    tip.style.left = (r.left + r.width / 2) + 'px'; tip.style.top = (r.top - 12) + 'px';
+    const hz = parseFloat(getComputedStyle($('#hud')).getPropertyValue('--hz')) || 1;   // it lives in the HUD, which is scaled by --hz
+    tip.style.left = (r.left + r.width / 2) / hz + 'px'; tip.style.top = (r.top - 12) / hz + 'px';
     tip.hidden = false; slotTipFor = slot;
   }
   function hideSlotTip() { $('#slotTip').hidden = true; slotTipFor = null; }
