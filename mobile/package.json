@@ -1,0 +1,20 @@
+{
+  "name": "sector-mobile",
+  "private": true,
+  "version": "0.10.6",
+  "description": "SECTOR for Android and iOS: a native shell that connects to a SECTOR server (your PC's, a friend's or a hosted one).",
+  "scripts": {
+    "prepare-www": "node prepare.js",
+    "android": "node prepare.js && npx cap add android && npx capacitor-assets generate --android && node native/patch-android.js && npx cap sync android",
+    "ios": "node prepare.js && npx cap add ios && npx capacitor-assets generate --ios && node native/patch-ios.js && npx cap sync ios"
+  },
+  "dependencies": {
+    "@capacitor/android": "^8.6.0",
+    "@capacitor/core": "^8.6.0",
+    "@capacitor/ios": "^8.6.0"
+  },
+  "devDependencies": {
+    "@capacitor/assets": "^3.0.5",
+    "@capacitor/cli": "^8.6.0"
+  }
+}

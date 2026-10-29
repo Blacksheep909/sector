@@ -1,0 +1,102 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, user-scalable=no">
+<title>SECTOR</title>
+<!-- The app's own start screen: pick the SECTOR server to play on (your PC running Sector.exe, a friend's, or a hosted one).
+     The game itself comes from that server, so it's always the server's version. -->
+<style>
+  :root { --bg: #070b0f; --panel: #101820; --line: #22303d; --ink: #f6f3e8; --dim: #8ea0b2; --red: #ff4f5e; --red-d: #b52b38; --gold: #ffc53d; --green: #59f08a; }
+  * { box-sizing: border-box; }
+  html, body { margin: 0; height: 100%; background: radial-gradient(ellipse at 50% 35%, #1d2b38, var(--bg) 70%); color: var(--ink); font: 500 15px/1.4 system-ui, -apple-system, "Segoe UI", Roboto, sans-serif; -webkit-tap-highlight-color: transparent; user-select: none; }
+  body { display: flex; align-items: center; justify-content: center; padding: max(12px, env(safe-area-inset-top)) max(16px, env(safe-area-inset-right)) max(12px, env(safe-area-inset-bottom)) max(16px, env(safe-area-inset-left)); }
+  main { width: min(760px, 100%); display: grid; grid-template-columns: 200px 1fr; gap: 22px; align-items: center; }
+  .brand { text-align: center; }
+  .brand img { width: 150px; height: 150px; border-radius: 28px; box-shadow: 0 10px 30px rgba(0,0,0,.5); }
+  .brand h1 { margin: 10px 0 0; font: 900 40px/1 Impact, "Arial Black", sans-serif; letter-spacing: 6px; text-shadow: 0 4px 0 var(--red-d), 0 7px 0 #000; }
+  .brand small { display: block; margin-top: 8px; white-space: nowrap; color: var(--gold); letter-spacing: 2px; font-weight: 800; font-size: 9.5px; }
+  .card { background: var(--panel); border: 2px solid var(--line); border-radius: 16px; padding: 16px; display: flex; flex-direction: column; gap: 10px; }
+  label { font-size: 12px; font-weight: 800; letter-spacing: 2px; color: var(--gold); }
+  .row { display: flex; gap: 8px; }
+  input { flex: 1; min-width: 0; font: 600 17px/1 inherit; padding: 12px 14px; border-radius: 10px; border: 2px solid var(--line); background: #0b1117; color: var(--ink); outline: none; user-select: text; }
+  input:focus { border-color: var(--gold); }
+  button { font: 900 16px/1 Impact, "Arial Black", sans-serif; letter-spacing: 2px; padding: 12px 18px; border-radius: 10px; border: 0; cursor: pointer; color: #fff; background: var(--red); box-shadow: 0 4px 0 var(--red-d); }
+  button:active { transform: translateY(2px); box-shadow: 0 2px 0 var(--red-d); }
+  button.ghost { background: #1c2833; box-shadow: 0 4px 0 #0b1117; font: 700 13px/1 inherit; letter-spacing: 0; padding: 9px 12px; color: var(--ink); }
+  .recent { display: flex; flex-wrap: wrap; gap: 6px; }
+  .recent button { display: flex; gap: 8px; align-items: center; }
+  .recent button i { font-style: normal; color: var(--dim); }
+  .hint { color: var(--dim); font-size: 12.5px; }
+  .msg { min-height: 18px; font-size: 13px; color: var(--dim); }
+  .msg.err { color: #ff9aa3; } .msg.ok { color: var(--green); }
+  #auto { display: none; align-items: center; justify-content: space-between; gap: 10px; background: #0f2418; border: 2px solid #2f6b4a; border-radius: 10px; padding: 8px 10px; font-size: 13px; }
+  #auto.on { display: flex; }
+  @media (max-height: 420px) { main { grid-template-columns: 150px 1fr; } .brand img { width: 110px; height: 110px; } .brand h1 { font-size: 30px; } .card { padding: 12px; gap: 8px; } }
+  @media (orientation: portrait) { main { grid-template-columns: 1fr; } }
+</style>
+</head>
+<body>
+<main>
+  <div class="brand"><img src="icon.png" alt=""><h1>SECTOR</h1><small>CAPTURE · DEPLOY · DESTROY</small></div>
+  <div class="card">
+    <div id="auto"><span>Joining <b id="autoName"></b>…</span><button class="ghost" id="autoStop">CHANGE</button></div>
+    <label for="addr">SERVER</label>
+    <div class="row"><input id="addr" placeholder="192.168.1.20:3000" autocomplete="off" autocapitalize="off" spellcheck="false" inputmode="url"><button id="go">PLAY</button></div>
+    <div class="msg" id="msg"></div>
+    <div class="recent" id="recent"></div>
+    <div class="hint">Run <b>Sector.exe</b> on a PC on the same Wi-Fi and type the <b>INVITE</b> address its server window shows (press C there to copy it). Or enter the address of a hosted SECTOR server.</div>
+  </div>
+</main>
+<script>
+  // a hosted server everyone can reach (fill in to make it the default), e.g. 'https://play.example.com'
+  const DEFAULT_SERVER = '';
+  const $ = s => document.querySelector(s), KEY = 'sector.servers';
+  const load = () => { try { return JSON.parse(localStorage.getItem(KEY) || '[]'); } catch (e) { return []; } };
+  const save = list => { try { localStorage.setItem(KEY, JSON.stringify(list.slice(0, 6))); } catch (e) {} };
+  // "192.168.1.20:3000" → http://192.168.1.20:3000 · "play.example.com" → https://play.example.com
+  function norm(v) {
+    v = String(v || '').trim().replace(/\/+$/, ''); if (!v) return '';
+    if (/^https?:\/\//i.test(v)) return v;
+    const host = v.split('/')[0], ip = /^(\d+\.){3}\d+(:\d+)?$/.test(host) || /^localhost(:\d+)?$/i.test(host);
+    return (ip || /:\d+$/.test(host) ? 'http://' : 'https://') + (ip && !/:\d+$/.test(host) ? host + ':3000' + v.slice(host.length) : v);
+  }
+  const label = u => u.replace(/^https?:\/\//, '');
+  function msg(t, cls) { const m = $('#msg'); m.textContent = t; m.className = 'msg' + (cls ? ' ' + cls : ''); }
+  // is a SECTOR server answering there? (its /info answers quickly; a dead address times out)
+  function probe(url) {
+    return new Promise(res => {
+      const ctl = new AbortController(), t = setTimeout(() => { ctl.abort(); res(false); }, 4000);
+      fetch(url + '/info', { cache: 'no-store', signal: ctl.signal, mode: 'no-cors' }).then(() => { clearTimeout(t); res(true); }, () => { clearTimeout(t); res(false); });
+    });
+  }
+  let busy = false;
+  async function connect(raw) {
+    const url = norm(raw); if (!url || busy) return;
+    busy = true; msg('Connecting to ' + label(url) + '…');
+    const ok = await probe(url);
+    busy = false;
+    if (!ok) { msg("Can't reach " + label(url) + '. Is Sector.exe running, and is this phone on the same Wi-Fi?', 'err'); return; }
+    save([url, ...load().filter(x => x !== url)]);
+    msg('Connected. Loading the game…', 'ok');
+    location.href = url + '/?app=native';
+  }
+  function renderRecent() {
+    const box = $('#recent'); box.innerHTML = '';
+    const list = load(); if (DEFAULT_SERVER && !list.includes(DEFAULT_SERVER)) list.push(DEFAULT_SERVER);
+    for (const u of list) { const b = document.createElement('button'); b.className = 'ghost'; b.innerHTML = '▶ <span></span>'; b.querySelector('span').textContent = label(u); b.onclick = () => { $('#addr').value = label(u); connect(u); }; box.appendChild(b); }
+  }
+  $('#go').onclick = () => connect($('#addr').value);
+  $('#addr').addEventListener('keydown', e => { if (e.key === 'Enter') connect($('#addr').value); });
+  renderRecent();
+  // opening the app goes straight back to the last server, unless you came here on purpose (CHANGE SERVER in the game)
+  const last = load()[0] || DEFAULT_SERVER, picking = /[?&]pick=1/.test(location.search);
+  if (last) $('#addr').value = label(last);
+  if (last && !picking) {
+    $('#autoName').textContent = label(last); $('#auto').classList.add('on');
+    const t = setTimeout(() => { $('#auto').classList.remove('on'); connect(last); }, 1400);
+    $('#autoStop').onclick = () => { clearTimeout(t); $('#auto').classList.remove('on'); $('#addr').focus(); };
+  }
+</script>
+</body>
+</html>

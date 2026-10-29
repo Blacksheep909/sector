@@ -39,6 +39,13 @@
     const de = document.documentElement;
     if (!standalone && de.requestFullscreen && !document.fullscreenElement) de.requestFullscreen({ navigationUI: 'hide' }).then(lock, lock); else lock();
   }, { once: true, passive: true });
+  // the SECTOR phone app (it tags its user agent): a way back to its own start screen to pick another server
+  const inApp = /SECTORApp/.test(navigator.userAgent);
+  const toPicker = () => { location.href = (/iPhone|iPad|iPod/.test(navigator.userAgent) ? 'capacitor://localhost' : 'https://localhost') + '/?pick=1'; };
+  if (inApp) {
+    $('#escPick').hidden = false; $('#escPick').onclick = toPicker;
+    const b = el('button', 'btn tiny', '⇄ SERVER'); b.title = 'Play on another server'; b.onclick = toPicker; $('#mmRight').prepend(b);
+  }
   // installable app: the service worker (only on HTTPS or localhost; a LAN server over plain http just runs as a web page)
   if ('serviceWorker' in navigator && window.isSecureContext) addEventListener('load', () => navigator.serviceWorker.register('sw.js').catch(() => {}));
   let lastTurnKey = '';

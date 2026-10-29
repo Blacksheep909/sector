@@ -4,6 +4,7 @@ Every release, newest first. Each version also has its own post on the [Releases
 
 ## Unreleased
 
+- **SECTOR for Android (and iOS to come):** a phone app in `mobile/` with its own start screen (type your server's address once, it remembers it), landscape only, full screen, screen kept awake. GitHub builds the Android APK (Actions → android). In the app, **⇄ SERVER** on the front page and **⇄ CHANGE SERVER** in the pause menu switch servers. See [docs/MOBILE.md](MOBILE.md).
 - **Seraph redrawn** as an AC-130 seen from above: the long straight wing with four turboprops out in front, the fat body and blunt nose, a broad tailplane and the side guns.
 - **One colour per team:** teammates no longer get different shades. A team's land and troops read as one front.
 - **Install SECTOR as an app** on a phone, tablet or computer: on a server reached over HTTPS, the browser offers **Install app** / **Add to Home Screen**, and it opens full screen in landscape with its own icon. On iPhone, Safari's Share → Add to Home Screen does the same. On a phone in the browser, the first tap goes full screen and locks landscape (Android).

@@ -1,0 +1,28 @@
+{
+  "appId": "com.sectorgame.app",
+  "appName": "SECTOR",
+  "webDir": "www",
+  "server": {
+    "androidScheme": "https",
+    "cleartext": true,
+    "allowNavigation": [
+      "*"
+    ]
+  },
+  "android": {
+    "allowMixedContent": true,
+    "backgroundColor": "#070b0f"
+  },
+  "ios": {
+    "backgroundColor": "#070b0f",
+    "contentInset": "never"
+  },
+  "appendUserAgent": "SECTORApp",
+  "plugins": {
+    "SplashScreen": {
+      "launchShowDuration": 600,
+      "backgroundColor": "#070b0f",
+      "showSpinner": false
+    }
+  }
+}

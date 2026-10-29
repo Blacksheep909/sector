@@ -1,0 +1,74 @@
+# Builds the SECTOR Android app (an APK you can install on a phone) from mobile/.
+# Run it by hand: Actions → android → Run workflow. Give it a release tag (like v0.10.7) to attach the APK to that release;
+# leave it empty and the APK is just a download on the run's page (Artifacts).
+# Signing: with no keystore configured it builds a debug-signed APK (fine for sideloading and testing). For the Play Store,
+# add ANDROID_KEYSTORE (base64 of a .jks), ANDROID_KEYSTORE_PASSWORD, ANDROID_KEY_ALIAS and ANDROID_KEY_PASSWORD under
+# Settings → Secrets → Actions, and it builds a signed release bundle (.aab) too.
+name: android
+
+on:
+  workflow_dispatch:
+    inputs:
+      tag:
+        description: 'Attach the APK to this release (like v0.10.7); empty: just build'
+        required: false
+        default: ''
+
+permissions:
+  contents: write
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    env:
+      HAS_KEYSTORE: ${{ secrets.ANDROID_KEYSTORE != '' }}
+    defaults:
+      run:
+        working-directory: mobile
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 24
+      - uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: 21
+      - name: Install Capacitor
+        run: npm ci
+      - name: Make the Android project (landscape, full screen, icons)
+        run: npm run android
+      - name: Build a debug APK
+        working-directory: mobile/android
+        run: ./gradlew assembleDebug --no-daemon
+      - name: Build a signed release bundle
+        if: env.HAS_KEYSTORE == 'true'
+        working-directory: mobile/android
+        env:
+          KS_B64: ${{ secrets.ANDROID_KEYSTORE }}
+          KS_PASS: ${{ secrets.ANDROID_KEYSTORE_PASSWORD }}
+          KEY_ALIAS: ${{ secrets.ANDROID_KEY_ALIAS }}
+          KEY_PASS: ${{ secrets.ANDROID_KEY_PASSWORD }}
+        run: |
+          echo "$KS_B64" | base64 -d > "$RUNNER_TEMP/sector.jks"
+          ./gradlew bundleRelease --no-daemon \
+            -Pandroid.injected.signing.store.file="$RUNNER_TEMP/sector.jks" \
+            -Pandroid.injected.signing.store.password="$KS_PASS" \
+            -Pandroid.injected.signing.key.alias="$KEY_ALIAS" \
+            -Pandroid.injected.signing.key.password="$KEY_PASS"
+      - name: Name the files
+        run: |
+          mkdir -p ../dist
+          cp android/app/build/outputs/apk/debug/app-debug.apk ../dist/SECTOR-android.apk
+          if [ -f android/app/build/outputs/bundle/release/app-release.aab ]; then cp android/app/build/outputs/bundle/release/app-release.aab ../dist/SECTOR-android.aab; fi
+          ls -la ../dist
+      - uses: actions/upload-artifact@v4
+        with:
+          name: SECTOR-android
+          path: dist/*
+      - name: Attach to the release
+        if: inputs.tag != ''
+        working-directory: .
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: gh release upload "${{ inputs.tag }}" dist/SECTOR-android.apk --clobber

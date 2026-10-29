@@ -48,8 +48,19 @@ window.appIcon = async (px, fill) => {
   const app = {};
   for (const [name, px, fill] of [['app-192.png', 192, 0.84], ['app-512.png', 512, 0.84], ['app-maskable-512.png', 512, 0.62], ['apple-touch-icon.png', 180, 0.8]])
     app[name] = Buffer.from(await b.evalJS(`appIcon(${px}, ${fill})`), 'base64');
+  // the phone app's launcher icon and splash sources (mobile/assets: @capacitor/assets turns them into every size Android
+  // and iOS want). Adaptive icons: a plain background and the emblem on its own, inside the safe middle
+  const native = {
+    'icon-only.png': await b.evalJS(`appIcon(1024, 0.84)`),
+    'icon-foreground.png': await b.evalJS(`(async () => { const cv = document.createElement('canvas'); cv.width = cv.height = 1024; const c = cv.getContext('2d'); const e = new Image(); e.src = 'data:image/png;base64,' + emblem(512); await e.decode(); c.drawImage(e, 512 - 300, 512 - 300, 600, 600); return cv.toDataURL('image/png').split(',')[1]; })()`),
+    'icon-background.png': await b.evalJS(`(() => { const cv = document.createElement('canvas'); cv.width = cv.height = 1024; const c = cv.getContext('2d'); const g = c.createRadialGradient(512, 430, 50, 512, 512, 760); g.addColorStop(0, '#1d2b38'); g.addColorStop(1, '#070b0f'); c.fillStyle = g; c.fillRect(0, 0, 1024, 1024); return cv.toDataURL('image/png').split(',')[1]; })()`),
+    'splash.png': await b.evalJS(`(async () => { const cv = document.createElement('canvas'); cv.width = cv.height = 2732; const c = cv.getContext('2d'); c.fillStyle = '#070b0f'; c.fillRect(0, 0, 2732, 2732); const e = new Image(); e.src = 'data:image/png;base64,' + emblem(512); await e.decode(); c.drawImage(e, 1366 - 300, 1366 - 300, 600, 600); return cv.toDataURL('image/png').split(',')[1]; })()`),
+  };
+  native['splash-dark.png'] = native['splash.png'];
   b.close();
   for (const name in app) fs.writeFileSync(path.join(root, 'public', name), app[name]);
+  fs.mkdirSync(path.join(root, 'mobile', 'assets'), { recursive: true });
+  for (const name in native) fs.writeFileSync(path.join(root, 'mobile', 'assets', name), Buffer.from(native[name], 'base64'));
   // ICO: header + directory + PNG payloads (PNG entries are fine on Windows Vista and later)
   const head = Buffer.alloc(6); head.writeUInt16LE(0, 0); head.writeUInt16LE(1, 2); head.writeUInt16LE(sizes.length, 4);
   const dir = Buffer.alloc(16 * sizes.length); let off = 6 + dir.length;
@@ -61,5 +72,5 @@ window.appIcon = async (px, fill) => {
   fs.writeFileSync(path.join(root, 'assets', 'icon.ico'), Buffer.concat([head, dir, ...pngs]));
   fs.writeFileSync(path.join(root, 'public', 'icon.png'), pngs[sizes.indexOf(128)]);
   fs.writeFileSync(path.join(root, 'assets', 'icon-256.png'), pngs[sizes.indexOf(256)]);
-  console.log('wrote assets/icon.ico, assets/icon-256.png, public/icon.png and the app icons (public/app-*.png, apple-touch-icon.png)');
+  console.log('wrote assets/icon.ico, assets/icon-256.png, public/icon.png and the app icons (public/app-*.png, apple-touch-icon.png, mobile/assets/*)');
 })().catch(e => { console.error(e); process.exit(1); });
