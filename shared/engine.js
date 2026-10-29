@@ -843,6 +843,8 @@
     if (t.owner !== pid) return 'Build on your own territory';
     if (struct === 'hq') { const h = getS(t, 'hq'); return h && h.owner === pid && !h.siege ? (slvlOf(h) >= MAX_SLVL ? 'HQ is fully fortified' : null) : 'Fortify your HQ hex'; }
     if (getS(t, 'hq')) return 'The HQ hex holds only the HQ (fortify it instead)';
+    // nobody stands in an unbridged river, and nothing is built in one either: bridge it first
+    if (t.river && isLandTile(t) && !t.bridge) return 'Nothing can be built in a river (bridge it first)';
     const ex = getS(t, struct);
     if (ex) {
       if (!UPGRADABLE.includes(struct)) return 'Already built here';

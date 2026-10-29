@@ -211,5 +211,15 @@ function crossing(s) {
   const T = s.map.tiles, k = E.neighbors(p.hq).find(n => T[n] && E.isLandTile(T[n]) && T[n].owner === 'p0');
   ok(/more than 3 hexes/.test(E.buildError(s, 'p0', 'airbase', k) || ''), 'and it says why');
 }
+{ // nothing but a bridge goes in a river
+  const roster = [0, 1].map(i => ({ id: 'p' + i, name: 'P' + i, color: E.COLORS[i], faction: 'iron' }));
+  const { state: s } = E.createGame({ mode: 'domination', mapSize: 'medium' }, roster);
+  s.phase = 'play'; const p = E.player(s, 'p0'); p.cash = 999; const T = s.map.tiles;
+  const k = E.neighbors(p.hq).find(n => T[n] && E.isLandTile(T[n]) && T[n].owner === 'p0' && !(T[n].structs || []).length);
+  T[k].river = true; T[k].flow = null;
+  ok(/river/.test(E.buildError(s, 'p0', 'refinery', k) || '') && /river/.test(E.buildError(s, 'p0', 'bunker', k) || ''), 'no buildings on a river hex you own');
+  ok(!E.buildError(s, 'p0', 'bridge', k), 'but a bridge is fine');
+  ok(!['refinery', 'warehouse', 'bunker', 'fob', 'airbase', 'port'].some(b => E.buildHexes(s, 'p0', b).includes(k)), 'and it never shows as a build spot');
+}
 console.log(fails ? fails + ' FAILED' : 'all passed');
 process.exit(fails ? 1 : 0);
