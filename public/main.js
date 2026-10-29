@@ -1967,7 +1967,7 @@
     const meNext = !mine && myP() && myP().alive && next && next.id === you;
     if (S.paused) { pill.className = ''; pill.innerHTML = `<b>⏸ PAUSED</b><span>${esc(c.name)}'s turn · press ▶ to resume</span>`; return; }
     if (mine) pill.innerHTML = `<b>▶ YOUR TURN</b><span>${S.turn.stage === 'choose' ? 'Pick your resupply' : 'Move, deploy, build, then END TURN'}</span>`;
-    else pill.innerHTML = `<b>⏳ ${esc(c.name.toUpperCase())}'S TURN</b><span>${meNext ? '⚡ You\'re up next: plan with the Blueprint' : myP() && myP().alive ? 'Plan your next turn with the Blueprint' : 'Spectating'}${c.bot ? ' · Bot' : ''}</span>`;
+    else pill.innerHTML = `<b>⏳ ${esc(c.name.toUpperCase())}'S TURN${c.bot ? ' 🤖' : ''}</b><span>${meNext ? '⚡ You\'re up next: plan with the Blueprint' : myP() && myP().alive ? 'Plan your next turn with the Blueprint' : 'Spectating'}</span>`;
     // tab title: blink while it's your turn and the tab is in the background
     clearInterval(titleBlink); document.title = mine ? '▶ YOUR TURN · SECTOR' : 'SECTOR';
     if (mine && document.hidden) { let on = false; titleBlink = setInterval(() => { document.title = (on = !on) ? '▶ YOUR TURN · SECTOR' : '⚔ SECTOR'; if (!document.hidden) { clearInterval(titleBlink); document.title = '▶ YOUR TURN · SECTOR'; } }, 900); }
