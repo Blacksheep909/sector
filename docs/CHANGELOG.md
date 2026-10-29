@@ -2,7 +2,9 @@
 
 Every release, newest first. Each version also has its own post on the [Releases page](https://github.com/Blacksheep909/sector/releases).
 
-## Unreleased
+## v0.10.7
+
+**SECTOR on your phone, teams that play as a team, and a pile of fixes.**
 
 - **Black market button redrawn** in the game's own style: a smuggler's fedora and dark glasses on a flat purple tile with a hard shadow, like the rest of the HUD.
 - **Pause menu** goes two-column on laptop-height screens too, so it never runs off the bottom.
