@@ -2098,16 +2098,16 @@
     if (!ev.ranged) for (const st of ev.stages || [ev.from]) if (st) Render.beam(st, ev.to, col, 0.25 * speed(), 30);
     await sleep(180 * k);
     Render.burst(ev.to, ['#ffcf5a', '#ff5a2a', '#fff'], ev.attWin ? 26 : 14, { speed: 1.4 }); SFX.boom(ev.attWin ? 0.7 : 0.45); Render.shake(ev.attWin ? 5 : 3);
-    Render.float(ev.to, ev.attWin ? '⚔ ' + pName(ev.att.pid).toUpperCase() + ' WINS' : '🛡 HELD', ev.attWin ? col : (ev.def.pid ? pColor(ev.def.pid) : '#cfd8df'), 14);
+    if (ev.ranged) Render.float(ev.to, ev.attWin ? (ev.killed.length ? 'HIT · ' + ev.killed.length + ' DESTROYED' : 'HIT') : 'MISS', ev.attWin ? '#ff4f5e' : '#cfd8df', ev.attWin ? 20 : 16);   // a shot reads like a strike
+    else Render.float(ev.to, ev.attWin ? '⚔ ' + pName(ev.att.pid).toUpperCase() + ' WINS' : '🛡 HELD', ev.attWin ? col : (ev.def.pid ? pColor(ev.def.pid) : '#cfd8df'), 16);
     await sleep(320 * k);
   }
   async function obliterate(ev) {
     const all = ev.killed.length >= ev.def.units.length;
     const word = ev.ranged && !all ? 'DIRECT HIT!' : 'OBLITERATED!';
     const [x, y] = Render.screenOf(ev.to);
-    const ff = fastForward ? 0.4 : 1;
     // wind-up: attacker stacks lunge in (unless they already drove onto the hex)
-    if (!ev.landed) { if (!ev.ranged) for (const st of ev.stages || [ev.from]) Render.beam(st, ev.to, pColor(ev.att.pid), 0.25 * speed(), 40); SFX.whoosh(); await sleep(180 * ff); }
+    if (!ev.landed) { if (!ev.ranged) for (const st of ev.stages || [ev.from]) Render.beam(st, ev.to, pColor(ev.att.pid), 0.25 * speed(), 40); SFX.whoosh(); await sleep(180); }
     else for (const id of ev.killed.concat(ev.pyrrhic || [])) if (S.units[id] && S.units[id].owner !== ev.att.pid) delete S.units[id];   // the defenders vanish in the blast
     // impact
     Render.flash(0.35, '#ffffff'); Render.shake(20);
@@ -2119,8 +2119,8 @@
     t.style.left = x + 'px'; t.style.top = y + 'px'; t.style.setProperty('--pc', pColor(ev.att.pid));
     $('#flyLayer').appendChild(t);
     if (ev.att.pid === you) SFX.win();
-    setTimeout(() => t.remove(), 1900);
-    await sleep(1100 * ff);
+    later(1.9, () => t.remove());
+    await sleep(1100);
   }
   async function showCombat(ev) {
     try { await combatSeq(ev); } catch (e) { console.error(e); }
@@ -2164,7 +2164,7 @@
       const D = side('DEFENDER', ev.def, ev.def.pid ? pName(ev.def.pid) : 'Garrison', ev.def.pid ? pColor(ev.def.pid) : '#aaa');
       const vs = el('div', 'cb-vs', 'VS');
       wrap.append(A, vs, D);
-      wrap.appendChild(el('div', 'cb-odds', `pre-battle odds ${Math.round(ev.winProb * 100)}% · click to skip`));
+      wrap.appendChild(el('div', 'cb-odds', `Pre-battle odds ${Math.round(ev.winProb * 100)}% · Click to skip`));
       box.appendChild(wrap);
       if (!cont) SFX.whoosh();
       await nap(250);
@@ -2338,7 +2338,7 @@
         if (dice.some(d => d.human && !d.thrown)) {
           const pulse = 0.55 + 0.45 * Math.sin(now / 160);
           c.font = '22px "Black Ops One", sans-serif'; c.textAlign = 'center'; c.fillStyle = `rgba(255,214,90,${pulse})`;
-          c.fillText('DRAG & FLING — OR PRESS SPACE!', W / 2, H / 2 + 8);
+          c.fillText('DRAG AND FLING, OR PRESS SPACE!', W / 2, H / 2 + 8);
           const left = Math.max(0, Math.ceil((5000 - (now - waitStart)) / 1000)); c.font = '13px "Chakra Petch", sans-serif'; c.fillStyle = 'rgba(255,255,255,.4)'; c.fillText('auto-throw in ' + left + 's', W / 2, H / 2 + 30);
         }
         for (let i = parts.length - 1; i >= 0; i--) { const pt = parts[i]; pt.life += dt * sub; if (pt.life > pt.max) { parts.splice(i, 1); continue; } pt.x += pt.vx * dt * sub; pt.y += pt.vy * dt * sub; pt.vx *= 0.95; pt.vy *= 0.95; c.globalAlpha = 1 - pt.life / pt.max; c.fillStyle = pt.col; c.fillRect(pt.x - 2, pt.y - 2, 4, 4); c.globalAlpha = 1; }
@@ -2488,7 +2488,7 @@
           await sleep(ev.pid === you ? 900 : 500);
           break;
         }
-        case 'income': Render.float(ev.hq, '+$' + ev.amount, '#ffc53d', 26); if (ev.pid === you) SFX.coin(Math.min(8, ev.amount / 2 | 0)); await sleep(250); break;
+        case 'income': Render.float(ev.hq, '+$' + ev.amount, '#ffc53d', 22); if (ev.pid === you) SFX.coin(Math.min(8, ev.amount / 2 | 0)); await sleep(250); break;
         case 'crate': {
           if (ev.pid !== you) {
             const n = pName(ev.pid), tn = E.CRATES[ev.tier].name;
@@ -2521,7 +2521,7 @@
           delete Render.unitPos[u.id]; Render.extraUnits.splice(Render.extraUnits.indexOf(u), 1);
           S.units[u.id] = u;
           if (ev.claimed) flipTile(ev.hex, ev.pid, 3);
-          if (ev.muster) { Render.ring(ev.hex, '#ff4a2a', 60, 0.5, 5); Render.float(ev.hex, 'MUSTER! READY TO FIGHT', '#ffb03a', 15); if (ev.pid === you) SFX.rare(); }
+          if (ev.muster) { Render.ring(ev.hex, '#ff4a2a', 60, 0.5, 5); Render.float(ev.hex, 'MUSTER! READY TO FIGHT', '#ffb03a', 16); if (ev.pid === you) SFX.rare(); }
           SFX.deploy(); Render.shake(3); Render.burst(ev.hex, ['#c9b78f', '#8f8068'], 14, { up: 30, g: 120, size: 3 }); Render.ring(ev.hex, pColor(ev.pid), 40, 0.4, 3);
           if (ev.pid === you) continue; await sleep(120); break;
         }
@@ -2544,7 +2544,7 @@
         case 'combat': {
           follow(ev.to);
           if (ev.def && ev.def.pid === you && ev.att.pid !== you) pushAlert(`⚔ ${pName(ev.att.pid)} ${ev.overwatch ? 'fired on' : 'attacked'} you${ev.attWin ? '. You lost the fight' : '. You held'}`, ev.to);
-          if (ev.overwatch) { Render.float(ev.from, '🎯 OVERWATCH', '#ffc53d', 15); }
+          if (ev.overwatch) { Render.float(ev.from, '🎯 OVERWATCH', '#ffc53d', 18); }
           if (ev.ranged) await fireFx(ev.att.units, ev.from, ev.to);
           // the dice tray is for fights a human is in: bot-vs-bot (or bot-vs-garrison) plays a quick clash on the map.
           // A 95%+ fight that went the expected way skips the dice and the long animation too
@@ -2554,7 +2554,7 @@
           if (ev.landed) { for (const id of ev.killed.concat(ev.pyrrhic || [])) delete S.units[id]; ev.killed = []; ev.pyrrhic = []; }   // already blown up on landing
           if (ev.splash && ev.splash.length) {
             // MLRS salvo: rockets rain on the stacks around the target
-            for (const id of ev.splash) { const u = S.units[id]; if (u) { Render.burst(u.hex, ['#ffcf5a', '#ff5a2a', '#fff'], 18, { speed: 1.3 }); Render.float(u.hex, 'SALVO', '#ffb03a', 14); } }
+            for (const id of ev.splash) { const u = S.units[id]; if (u) { Render.burst(u.hex, ['#ffcf5a', '#ff5a2a', '#fff'], 18, { speed: 1.3 }); Render.float(u.hex, 'SALVO', '#ffb03a', 16); } }
             SFX.boom(0.8); Render.shake(8);
           }
           killUnits(ev.killed.concat(ev.pyrrhic, ev.splash || []), ev.killed.length > 2);
@@ -2601,7 +2601,7 @@
         case 'crash': { const at = ev.units.map(id => S.units[id]).find(Boolean); if (at) Render.float(at.hex, '🚁 WENT DOWN', '#ffb03a', 16); killUnits(ev.units, true); await sleep(300); break; }
         case 'bridgeRot': { const tt = S.map.tiles[ev.hex]; if (tt) tt.bridgeRot = ev.rot; Render.invalidate(); SFX.click(); break; }
         case 'overwatch': { for (const id of ev.units) if (S.units[id]) { S.units[id].ow = true; S.units[id].moved = true; } Render.ring(ev.hex, pColor(ev.pid), 45, 0.6, 3); if (ev.pid === you) toast('🎯 On overwatch: they will fire on enemies that stop next to them'); break; }
-        case 'radar': { Render.ring(ev.hex, '#59f08a', 60, 1.2, 3); Render.float(ev.hex, '📡 CONTACT', '#59f08a', 14); pushAlert('📡 Enemy contact near your land', ev.hex); break; }
+        case 'radar': { Render.ring(ev.hex, '#59f08a', 60, 1.2, 3); Render.float(ev.hex, '📡 CONTACT', '#59f08a', 16); pushAlert('📡 Enemy contact near your land', ev.hex); break; }
         case 'gift': {
           const what = ev.amount ? '$' + ev.amount : (E.TACTICS[ev.card] || {}).name || 'a card';
           if (ev.to === you) { toast(`🎁 ${pName(ev.pid)} sent you ${what}`, 'good'); SFX.coin(ev.amount ? 4 : 1); }
@@ -2617,7 +2617,7 @@
         }
         case 'evicted': {
           // the pact ended with troops still across the border
-          for (const id of ev.units) { const u = S.units[id]; if (u) { Render.burst(u.hex, ['#ff4f5e', '#fff'], 18, { up: 120 }); Render.float(u.hex, 'CUT OFF', '#ff8a5a', 14); } }
+          for (const id of ev.units) { const u = S.units[id]; if (u) { Render.burst(u.hex, ['#ff4f5e', '#fff'], 18, { up: 120 }); Render.float(u.hex, 'CUT OFF', '#ff8a5a', 18); } }
           killUnits(ev.units.filter(id => S.units[id]));
           if (ev.a === you || ev.b === you) toast('🚫 Troops left in the other side\'s land when the pact ended were lost', 'err');
           await sleep(400); break;
@@ -2639,12 +2639,24 @@
           if (S.units) for (const id in S.units) { const u = S.units[id]; if (u.owner === ev.pid && u.hex === ev.from) u.moved = true; }
           await sleep(250); break;
         }
+        case 'digin': {
+          // the stack digs in: spades of earth and a sandbag ring
+          Render.burst(ev.hex, ['#8a7a66', '#5d5144', '#c9b78f'], 18, { up: 70, speed: 0.9, size: 2.6 }); Render.ring(ev.hex, '#c9b78f', 44, 0.5, 4);
+          Render.float(ev.hex, '⛏ DUG IN', '#cfe3ff', 16); SFX.clank(); SFX.deploy();
+          for (const id of ev.units || []) if (S.units[id]) S.units[id].dug = true;
+          await sleep(300); break;
+        }
+        case 'intel': {
+          // only the commander who paid for it sees the satellite pass
+          if (ev.pid === you) { Render.ring(ev.hex, '#7ff3ff', 70, 0.8, 3); later(0.25, () => Render.ring(ev.hex, '#7ff3ff', 110, 0.9, 2)); Render.float(ev.hex, '🛰 SCOUTED', '#7ff3ff', 18); SFX.zap(); }
+          break;
+        }
         case 'battleCard': { const d = E.TACTICS[ev.id]; Render.float(ev.hex, '🃏 ' + d.name.toUpperCase(), pColor(ev.pid), 16); Render.ring(ev.hex, pColor(ev.pid), 50, 0.5, 4); SFX.rare(); break; }
         case 'fogstop': if (ev.pid === you) { toast(ev.ambush ? '🌫 Ambush! Hidden enemies in the fog' : '🌫 The fog hid an obstacle: your troops stopped short', 'err'); Render.float(ev.hex, ev.ambush ? 'AMBUSH!' : 'STOPPED', '#cfe3ff', 16); } break;
         case 'razed': {
           Render.burst(ev.hex, ['#ffb03a', '#ff5a2a', '#8a8a8a', '#3a3a3a'], 40, { speed: 1.8, size: 4, up: 160 });
           Render.ring(ev.hex, '#ff6a2a', 70, 0.5, 5); Render.smoke(ev.hex, 14, 'rgba(90,85,80,');
-          Render.float(ev.hex, 'BUNKER DESTROYED', '#ff8a5a', 17); SFX.boom(1); Render.shake(10);
+          Render.float(ev.hex, 'BUNKER DESTROYED', '#ff8a5a', 18); SFX.boom(1); Render.shake(10);
           await sleep(500); break;
         }
         case 'weather': {
@@ -2755,7 +2767,7 @@
     }
     const last = ev.path[ev.path.length - 1];
     for (const id of ids) { delete Render.unitPos[id]; if (S.units[id]) { S.units[id].hex = last; S.units[id].moved = true; } }
-    if (ci >= 3) Render.float(last, ci + ' HEXES!', '#ffc53d', 20);
+    if (ci >= 3) Render.float(last, ci + ' HEXES!', '#ffc53d', 18);
   }
 
   // economic warfare: show what a strike or shell did to the buildings on a hex
@@ -2875,13 +2887,13 @@
       else if (ev.id === 'cruise') { const from = launchSite(ev.pid, ev.target), o = cruiseOpts(from, ev.target, sp); Render.missile(from, ev.target, { ...o, stopAt: 0.82 }); samFire(ev.by || [], Render.missileAt(from, ev.target, o, 0.82), o.dur * 0.82); await sleep(o.dur * 820 / sp); }
       else { const [x, y] = Render.topOf(ev.target); Render.flyover([ev.target, ev.target], { color: pColor(ev.pid), dur: 1.4 * sp, noBombs: true, downAt: 0.5 }); samFire(ev.by || [], [x, y - 150], 0.7 * sp); await sleep(700); }
       SFX.boom(0.7); Render.shake(6); await sleep(150);
-      Render.float(ev.target, '🛡 SHOT DOWN', '#7ff3ff', 20);
+      Render.float(ev.target, '🛡 SHOT DOWN', '#7ff3ff', 18);
       if (ev.pid === you) toast(`🛡 Your ${d.name} was shot down by air defences`, 'err');
       await sleep(500); return;
     }
     const me = S.players.find(p => p.id === ev.pid);
     switch (ev.id) {
-      case 'cache': case 'bonds': Render.float(me.hq, '+$' + ev.amount, '#ffc53d', 28); SFX.coin(6); break;
+      case 'cache': case 'bonds': Render.float(me.hq, '+$' + ev.amount, '#ffc53d', 22); SFX.coin(6); break;
       case 'blitz': banner('BLITZ!', who + ' — all units +1 move', pColor(ev.pid)); SFX.zap(); Render.flash(0.2, pColor(ev.pid)); await sleep(600); break;
       case 'smoke': Render.smoke(ev.target, 22); SFX.whoosh(); break;
       case 'march': Render.ring(ev.target, pColor(ev.pid), 60, 0.6, 4); Render.float(ev.target, 'FORCED MARCH', '#fff', 16); SFX.select(); break;
@@ -2892,7 +2904,7 @@
         Render.flyover(ev.area.filter(k2 => S.map.tiles[k2]), { count: 3, color: pColor(ev.pid), dur: 2.1 * speed(), fall: 0.42 * speed(), onBomb: () => { SFX.boom(0.5); Render.shake(6); } });
         await sleep(2000);
         Render.float(ev.target, ev.kills.length + ' DESTROYED', '#ff4f5e', 20); killUnits(ev.kills);
-        for (const k of ev.shot || []) { Render.burst(k, ['#ffb03a', '#fff'], 20, { up: 200 }); Render.float(k, '🛡 SHOT DOWN', '#7ff3ff', 14); }
+        for (const k of ev.shot || []) { Render.burst(k, ['#ffb03a', '#fff'], 20, { up: 200 }); Render.float(k, '🛡 SHOT DOWN', '#7ff3ff', 18); }
         await sleep(300); break;
       }
       case 'jackpot': SFX.coin(8); Render.flash(0.2, '#ffc53d'); break;
@@ -2903,9 +2915,9 @@
         await sleep(1900);
         for (const h of ev.hexes) { const tt = S.map.tiles[h.k]; if (tt) tt.ruin = 2; if (h.infra.length) infraHit(h.k, h.infra, h.structs); else { Render.burst(h.k, ['#ffb03a', '#5a5a5a'], 14, { up: 90 }); Render.smoke(h.k, 8, 'rgba(70,65,60,'); } }
         Render.recolor(); Render.invalidate();
-        for (const k of ev.shot || []) { Render.burst(k, ['#ffb03a', '#fff'], 20, { up: 200 }); Render.float(k, '🛡 SHOT DOWN', '#7ff3ff', 14); }
+        for (const k of ev.shot || []) { Render.burst(k, ['#ffb03a', '#fff'], 20, { up: 200 }); Render.float(k, '🛡 SHOT DOWN', '#7ff3ff', 18); }
         { const hit = ev.hexes.reduce((n, h) => n + h.infra.length, 0), kills = (ev.kills || []).length;
-          Render.float(ev.target, [kills ? kills + ' DESTROYED' : '', hit ? hit + ' BUILDING' + (hit > 1 ? 'S' : '') + ' HIT' : '', ev.hexes.length ? ev.hexes.length + ' HEXES PAY NOTHING FOR 2 TURNS' : ''].filter(Boolean).join(' · ') || 'NOTHING HIT', '#ff8a5a', 18);
+          Render.float(ev.target, [kills ? kills + ' DESTROYED' : '', hit ? hit + ' BUILDING' + (hit > 1 ? 'S' : '') + ' HIT' : '', ev.hexes.length ? ev.hexes.length + ' HEXES PAY NOTHING FOR 2 TURNS' : ''].filter(Boolean).join(' · ') || 'NOTHING HIT', kills ? '#ff4f5e' : '#ff8a5a', kills ? 20 : 18);
           killUnits(ev.kills || []); }
         await sleep(500); break;
       }
@@ -2923,7 +2935,7 @@
         SFX.whoosh();
         Render.drone(ev.target, { color: pColor(ev.pid), dur: 1.5 * speed(), onHit: () => { SFX.boom(0.9); Render.shake(10); } });
         await sleep(1550);
-        if (ev.bridge !== undefined) { if (ev.bridge) { dropBridge(ev.target); Render.float(ev.target, 'BRIDGE DESTROYED', '#ff8a5a', 20); } else Render.float(ev.target, 'MISSED THE BRIDGE', '#cfd8df', 18); }
+        if (ev.bridge !== undefined) { if (ev.bridge) { dropBridge(ev.target); Render.float(ev.target, 'BRIDGE DESTROYED', '#ff8a5a', 18); } else Render.float(ev.target, 'MISSED THE BRIDGE', '#cfd8df', 16); }
         else if (ev.infra) infraHit(ev.target, ev.infra, ev.structs);
         else Render.float(ev.target, ev.kills.length ? ev.kills.length + ' DESTROYED' : 'MISSED', ev.kills.length ? '#ff4f5e' : '#cfd8df', 20);
         killUnits(ev.kills); await sleep(300); break;
@@ -2939,7 +2951,7 @@
           await sleep(o.dur * 1000 / sp + 250);
         } else if (ev.id === 'precision') {
           // a laser lock on the target, then a guided bomb falls straight down out of a high jet's pass
-          Render.float(ev.target, '◎ LASER LOCK', '#ff4f5e', 15, 1);
+          Render.float(ev.target, '◎ LASER LOCK', '#ff4f5e', 20, 1);
           for (let i = 0; i < 4; i++) later(i * 0.16, () => { Render.ring(ev.target, '#ff4f5e', 34 - i * 6, 0.35, 2); SFX.click(); });
           Render.flyover([ev.target], { color: col, dur: 1.5 * sp, noBombs: true }); SFX.jet();
           await sleep(650);
@@ -2957,7 +2969,7 @@
           SFX.whoosh(); Render.flyover([[x - dx * 22, y - dy * 22], [x, y], [x + dx * 22, y + dy * 22]], { color: col, dur: 1.6 * sp, fall: 0.42 * sp, angle: ang, onBomb: () => { SFX.boom(0.7); Render.shake(8); } });
           await sleep(1600);
         }
-        if (ev.bridge !== undefined) { if (ev.bridge) { dropBridge(ev.target); Render.float(ev.target, 'BRIDGE DESTROYED', '#ff8a5a', 20); } else Render.float(ev.target, 'MISSED THE BRIDGE', '#cfd8df', 18); }
+        if (ev.bridge !== undefined) { if (ev.bridge) { dropBridge(ev.target); Render.float(ev.target, 'BRIDGE DESTROYED', '#ff8a5a', 18); } else Render.float(ev.target, 'MISSED THE BRIDGE', '#cfd8df', 16); }
         else if (ev.infra) infraHit(ev.target, ev.infra, ev.structs);
         else Render.float(ev.target, ev.kills.length ? ev.kills.length + ' DESTROYED' : 'MISSED', ev.kills.length ? '#ff4f5e' : '#cfd8df', 20);
         killUnits(ev.kills); await sleep(300); break;
@@ -2996,7 +3008,7 @@
         Render.smoke(ev.target, 24, 'rgba(150,135,115,');
         S.map.tiles[ev.target].t = 'hills'; Render.recolor(); Render.invalidate();
         if (ev.also && S.map.tiles[ev.also]) { await sleep(250); Render.lance(ev.also, '#ffb03a', 0.4 * speed()); SFX.boom(1.1); Render.shake(12); Render.burst(ev.also, ['#8a7a66', '#5d5144', '#c9b78f', '#ffb03a'], 50, { speed: 2, size: 4, up: 140 }); Render.smoke(ev.also, 18, 'rgba(150,135,115,'); S.map.tiles[ev.also].t = 'hills'; Render.recolor(); Render.invalidate(); }
-        Render.float(ev.target, 'PASS OPENED', '#ffb03a', 18); await sleep(500); break;
+        Render.float(ev.target, 'PASS OPENED', '#ffb03a', 16); await sleep(500); break;
       }
       case 'spy': {
         const thief = ev.pid === you, victim = ev.from === you, d = E.cardDef(ev.card);
@@ -3027,7 +3039,7 @@
         for (const u of ev.ups || []) {
           const tt = S.map.tiles[u.k]; const st = tt && (tt.structs || []).find(x => x.type === u.type && x.owner === ev.pid);
           if (st) { st.lvl = u.lvl; delete st.lock; }
-          if (!unseen({ hex: u.k })) { Render.ring(u.k, '#ffc53d', 46, 0.5, 4); Render.float(u.k, '★'.repeat(u.lvl), '#ffc53d', 16); }
+          if (!unseen({ hex: u.k })) { Render.ring(u.k, '#ffc53d', 46, 0.5, 4); Render.float(u.k, '★'.repeat(u.lvl), '#ffc53d', 18); }
           await sleep(60);
         }
         Render.invalidate(); await sleep(500); break;

@@ -32,11 +32,17 @@ for (let g = 0; g < 3; g++) {
         }
       }
       let a = botStep(s, p.id, mem); if (++n > 90) a = { a: 'end' };
-      E.applyAction(s, p.id, a); actions++;
+      const res = E.applyAction(s, p.id, a); actions++;
+      // the fight panel counts up unit stats plus every Chips row: that must land on the real total
+      if (res.ok) for (const ev of res.events) if (ev.e === 'combat') for (const [side, isAtt] of [[ev.att, true], [ev.def, false]]) {
+        samples.panel = (samples.panel || 0) + 1;
+        const base = side.units.reduce((n, u) => n + (isAtt ? E.UNITS[u].atk : E.UNITS[u].def), 0) + side.bonuses.reduce((n, b) => n + (b.chips || 0), 0);
+        if (base !== side.chips) note('panel', 'chips rows do not add up', { units: side.units, bonuses: side.bonuses.map(b => b.label), chips: side.chips, counted: base });
+      }
     }
   }
 }
 for (const [k, v] of Object.entries(diffs).sort((a, b) => b[1].n - a[1].n)) console.log('FAIL', v.n, k, JSON.stringify(v.ex).slice(0, 400));
 const bad = Object.keys(diffs).length;
-console.log(bad ? bad + ' kinds of mismatch FAILED' : `ok   odds match in ${samples.melee} attacks and ${samples.fire} shots\nall passed`);
+console.log(bad ? bad + ' kinds of mismatch FAILED' : `ok   odds match in ${samples.melee} attacks and ${samples.fire} shots\nok   the fight panel adds up in ${samples.panel || 0} fight sides\nall passed`);
 process.exit(bad ? 1 : 0);

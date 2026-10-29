@@ -1154,6 +1154,9 @@
     if (aaShot) { const own = units.reduce((n, u) => n + unitAtk(s, u), 0); att.chips -= own; att.bonuses.push({ label: 'Missiles Only', chips: -own }); }
     const lv = units.reduce((a, u) => a + (UNITS[u.type].atk ? levelOf(s, u) : 0), 0);
     if (lv) att.bonuses.push({ label: 'Veteran ★', chips: lv, note: true });
+    // Volt's Overclock is in each aircraft's own numbers (like Veteran ★); listed so the fight panel adds up
+    const ocA = ap && ap.faction === 'volt' ? units.filter(u => UNITS[u.type].cls === 'air' && UNITS[u.type].atk).length : 0;
+    if (ocA) att.bonuses.push({ label: 'Overclock', chips: ocA, note: true });
     const hunters = units.filter(u => UNITS[u.type].ability === 'hunter').length;
     if (hunters && has(defenders, 'veh')) { att.chips += 3 * hunters; att.bonuses.push({ label: 'Tank Hunter', chips: 3 * hunters }); }
     const hellfire = units.filter(u => UNITS[u.type].ability === 'hellfire').length;
@@ -1203,6 +1206,8 @@
     const bombard = ranged && units.every(u => UNITS[u.type].cls === 'art' && !airOnly(u));
     const dlv = defenders.reduce((a, u) => a + levelOf(s, u), 0);
     if (dlv) def.bonuses.push({ label: 'Veteran ★', chips: dlv, note: true });
+    const ocD = dp && dp.faction === 'volt' ? defenders.filter(u => UNITS[u.type].cls === 'air').length : 0;
+    if (ocD) def.bonuses.push({ label: 'Overclock', chips: ocD, note: true });
     if (dp && dp.faction === 'iron' && defenders.length) { def.chips += defenders.length; def.bonuses.push({ label: 'Steel Wall', chips: defenders.length }); }
     { const gf = defenders.filter(u => UNITS[u.type].cls === 'inf').length; if (gf && units.some(isHeli)) { def.chips += gf; def.bonuses.push({ label: 'Ground Fire', chips: gf }); } }
     const aaD = defenders.reduce((n, u) => n + (UNITS[u.type].aa || 0), 0);

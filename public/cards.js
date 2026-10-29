@@ -297,7 +297,7 @@ const Cards = (() => {
     const { me, offer, income } = ctx;
     box.appendChild(el('div', 'sd-rays'));
     box.appendChild(el('h2', '', 'RESUPPLY'));
-    box.appendChild(el('div', 'sub', `Round ${ctx.round} — take a card and keep <b>the cash under it</b>, or skip the cards and collect the full <b>$${income}</b>.`));
+    box.appendChild(el('div', 'sub', `Round ${ctx.round}: take a card and keep <b>the cash under it</b>, or skip the cards and collect the full <b>$${income}</b>.`));
     const row = el('div', 'cr-cards');
     const slots = offer.map((id, i) => {
       const d = E.cardDef(id);
