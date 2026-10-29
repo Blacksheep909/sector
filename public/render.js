@@ -223,10 +223,10 @@ const Render = (() => {
     // bombs leave the lead plane as it passes over each target, in flight order (a plane that gets shot down drops none)
     if (!opts.noBombs) pts.slice().sort((a, b) => (a[0] - cx) * dx + (a[1] - cy) * dy - ((b[0] - cx) * dx + (b[1] - cy) * dy)).forEach((p, i) => {
       const along = ((p[0] - cx) * dx + (p[1] - cy) * dy + L) / (2 * L);   // 0..1 along the path
-      const tDrop = t0 + along * dur - 0.32 + i * 0.03;
-      bombs.push({ tx: p[0], ty: p[1], tDrop, fall: 0.42, alt, colors: opts.colors });
+      const fall = opts.fall || 0.42, tDrop = t0 + along * dur - fall * 0.76 + i * 0.03;
+      bombs.push({ tx: p[0], ty: p[1], tDrop, fall, alt, colors: opts.colors });
       // the bang (sound, shake) runs on the clock, not the render loop: the loop pauses under full-screen panels and in background tabs
-      if (opts.onBomb) setTimeout(opts.onBomb, Math.max(0, (tDrop + 0.42 - t) * 1000));
+      if (opts.onBomb) setTimeout(opts.onBomb, Math.max(0, (tDrop + fall - t) * 1000));
     });
   }
   // a swept-wing strike jet seen from above, facing +x, s = half its length
@@ -254,7 +254,7 @@ const Render = (() => {
     return [ax + (bx - ax) * e, ay + (by - ay) * e - (m.alt0 + (m.alt1 - m.alt0) * e + Math.sin(Math.PI * e) * m.loft)];
   }
   function missile(a, b, opts = {}) {
-    const m = { a: ptOf(a), b: ptOf(b), alt0: opts.alt0 ?? 12, alt1: opts.alt1 ?? 0, loft: opts.loft ?? 18, accel: opts.accel ?? 1.5, t0: t + (opts.delay || 0), dur: opts.dur || 0.55, stop: opts.stopAt || 1, color: opts.color || '#ffffff', size: opts.size || 1, trail: [], boom: opts.boom !== false, gone: null };
+    const m = { a: ptOf(a), b: ptOf(b), alt0: opts.alt0 ?? 12, alt1: opts.alt1 ?? 0, loft: opts.loft ?? 18, accel: opts.accel ?? 1.5, t0: t + (opts.delay || 0), dur: opts.dur || 0.55, stop: opts.stopAt || 1, color: opts.color || '#ffffff', size: opts.size || 1, trail: [], boom: opts.boom !== false, shell: !!opts.shell, gone: null };   // shell: a gun or mortar round, no rocket trail
     missiles.push(m);
     if (opts.onHit) setTimeout(opts.onHit, Math.max(0, (m.t0 + m.dur * m.stop - t) * 1000));
     return m;
@@ -273,11 +273,14 @@ const Render = (() => {
       if (p < 0) continue;
       if (!m.gone) {
         const q = Math.min(p, m.stop), [x, y] = missilePos(m, q);
-        m.trail.push([x, y, t]);
-        if (Math.random() < 0.7) fx.parts.push({ x: x + (Math.random() - 0.5) * 3, y: y + (Math.random() - 0.5) * 3, vx: (Math.random() - 0.5) * 8, vy: -4 - Math.random() * 6, life: 0, max: 0.9 + Math.random() * 0.5, col: null, smoke: 'rgba(235,240,245,', sa: 0.5, sz: 2.2 + Math.random() * 1.6, g: -6 });
+        if (!m.shell) m.trail.push([x, y, t]);
+        if (!m.shell && Math.random() < 0.7) fx.parts.push({ x: x + (Math.random() - 0.5) * 3, y: y + (Math.random() - 0.5) * 3, vx: (Math.random() - 0.5) * 8, vy: -4 - Math.random() * 6, life: 0, max: 0.9 + Math.random() * 0.5, col: null, smoke: 'rgba(235,240,245,', sa: 0.5, sz: 2.2 + Math.random() * 1.6, g: -6 });
         if (p >= m.stop) {
           m.gone = t;
           if (m.boom) { burst([x, y], ['#fff', '#ffd27a', '#ff8a3a', '#9aa4ad'], 16, { speed: 1.1, size: 2.6, up: 40, g: 120 }); ring([x, y], '#fff', 34, 0.35, 3); }
+        } else if (m.shell) {
+          const [sx, sy] = toScreen(x, y); ctx.fillStyle = 'rgba(255,220,150,.35)'; ctx.beginPath(); ctx.arc(sx, sy, 3.6 * z * m.size, 0, Math.PI * 2); ctx.fill();
+          ctx.fillStyle = m.color; ctx.beginPath(); ctx.arc(sx, sy, 2.2 * z * m.size, 0, Math.PI * 2); ctx.fill();
         } else {
           // the dart, nose along its flight on screen, with a hot exhaust
           const [px, py] = missilePos(m, Math.max(0, q - 0.03)), [sx, sy] = toScreen(x, y), [ox, oy] = toScreen(px, py), head = Math.atan2(sy - oy, sx - ox);
