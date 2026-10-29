@@ -2,6 +2,10 @@
 
 Every release, newest first. Each version also has its own post on the [Releases page](https://github.com/Blacksheep909/sector/releases).
 
+## Unreleased
+
+- **No peeking at the map:** the battlefield stays hidden behind the map-roll animation until it lands.
+
 ## v0.10.7
 
 **SECTOR on your phone, teams that play as a team, and a pile of fixes.**

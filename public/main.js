@@ -1208,6 +1208,7 @@
     menuGen++; safe(() => { Render.ov.notes = []; Render.extraUnits.length = 0; });
     safe(() => Missions.onState(null));   // the mission bar and General Hale go with the mission
     // anything a war put over the screen goes with it, or it would sit on top of the menu and swallow every click
+    document.body.classList.remove('reeling');
     for (const id of ['#battlePop', '#owPop', '#crateOpen', '#mapReel', '#afkCover', '#autoEnd', '#boxSel', '#mrBack']) { const e = $(id); if (e) e.remove(); }
     for (const id of ['#combat', '#allyPop', '#supply', '#crate', '#draft', '#tooltip']) { const e = $(id); if (e) e.hidden = true; }
     for (const id of ['#missionsModal', '#missionResult']) { const e = $(id); if (e) e.hidden = true; }
@@ -3008,7 +3009,7 @@
   function archThumb(a, n) { const k = a + n; if (!thumbCache[k]) thumbCache[k] = mapThumb(E.generateMap({ seed: 9100 + Object.keys(ARCH_NAME).indexOf(a), nPlayers: n, size: 'small', archetype: a }).tiles); return thumbCache[k]; }
   async function showMapReel(state) {
     const arch = state.map.arch, n = state.players.length, archs = Object.keys(ARCH_NAME);
-    const box = el('div', '', ''); box.id = 'mapReel'; document.body.appendChild(box);
+    const box = el('div', '', ''); box.id = 'mapReel'; document.body.appendChild(box); document.body.classList.add('reeling'); setTimeout(() => document.body.classList.remove('reeling'), 8000);   // never leave the board hidden
     box.innerHTML = `<h2>ROLLING THE BATTLEFIELD</h2><div class="mr-window"><div class="mr-strip"></div><div class="mr-mark"></div></div><div class="mr-name">&nbsp;</div>`;
     const strip = box.querySelector('.mr-strip'), cells = [], land = 22;
     for (let i = 0; i < 28; i++) {
@@ -3023,6 +3024,7 @@
     cells[land].classList.add('won'); SFX.victoryHit(); Render.shake(6);
     box.querySelector('.mr-name').innerHTML = `<b>${ARCH_NAME[arch].toUpperCase()}</b>`;
     await sleep(1500);
+    document.body.classList.remove('reeling');   // the board appears as the reel fades away
     box.classList.add('out'); setTimeout(() => box.remove(), 500);
   }
 
