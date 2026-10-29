@@ -4,6 +4,7 @@ Every release, newest first. Each version also has its own post on the [Releases
 
 ## Unreleased
 
+- **Upgrades show what they do:** an UPGRADE card on offer (resupply, Supply Drops, the opening draft) shows the change, e.g. ⚔5→6 🛡4→5, and the stats that go up glow.
 - **Helicopters claim oil rigs:** land a Wren, Ravager, Banshee, Stormcrow, Mule or Valkyrie on an oil rig and it's yours.
 - **Opening draft no longer jumps:** the cards and title stayed still until the REVEAL ALL bar appeared under them and nudged the whole screen up (and back down after each pick). Its space is now kept from the start. Supply Drop crates had the same jump.
 - **Blueprint orders** lose the blue strip down their left side (an order that can't go through still shows red).

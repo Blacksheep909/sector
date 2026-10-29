@@ -1962,3 +1962,11 @@ body.compact #buildBar, body.compact #leftCol > #buildBar { position: fixed !imp
 @media (max-height: 520px) { #supply, #draft, #crate, #market, #combat { zoom: .66; } }
 @media (max-height: 420px) { #supply, #draft, #crate, #market, #combat { zoom: .58; } }
 @media (max-height: 370px) { #supply, #draft, #crate, #market, #combat { zoom: .52; } }
+
+/* an upgrade on offer: what it does to the card (the ribbon over the art, and the stats that go up glow) */
+.c-up { margin: 4px 6px 0; padding: 2px 6px; border-radius: 6px; background: rgba(8,40,22,.88); border: 1.5px solid #59f08a; color: #ffd75e; font: 800 10px/1.3 var(--ui, sans-serif); text-align: center; letter-spacing: .5px; box-shadow: 0 0 10px rgba(89,240,138,.45); white-space: nowrap; }
+.c-up { display: flex; justify-content: center; gap: 10px; }
+.c-up span { color: #b9ffcf; }
+.card.mini .c-up { display: none; }
+.c-stats span.up { box-shadow: 0 0 0 2px #59f08a, 0 0 10px rgba(89,240,138,.8); animation: upPulse 1.4s ease-in-out infinite; }
+@keyframes upPulse { 50% { box-shadow: 0 0 0 2px #59f08a, 0 0 16px rgba(89,240,138,1); } }

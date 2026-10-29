@@ -23,7 +23,10 @@ const Cards = (() => {
     const lv = opts.level || 0;
     const stars = lv ? `<div class="c-stars">${'★'.repeat(lv)}</div>` : '';
     let stats = '';
-    if (d.kind === 'unit') stats = `<div class="c-stats"><span class="a" title="Attack">${d.atk + (d.atk ? lv : 0)}</span><span class="d" title="Defence">${d.def + lv}</span><span class="m" title="Move">${d.mv}</span>${d.range ? `<span class="r" title="Range">${d.range}</span>` : ''}</div>`;
+    // upFrom: the level you hold now, when this card would upgrade it. The stats that go up glow, and a ribbon spells it out
+    const up = d.kind === 'unit' && opts.upFrom != null && lv > opts.upFrom, upA = up && d.atk ? ' up' : '', upD = up ? ' up' : '';
+    const ribbon = up ? `<div class="c-up">${d.atk ? `<span>⚔${d.atk + opts.upFrom}→${d.atk + lv}</span>` : ''}<span>🛡${d.def + opts.upFrom}→${d.def + lv}</span></div>` : '';
+    if (d.kind === 'unit') stats = `<div class="c-stats"><span class="a${upA}" title="Attack">${d.atk + (d.atk ? lv : 0)}</span><span class="d${upD}" title="Defence">${d.def + lv}</span><span class="m" title="Move">${d.mv}</span>${d.range ? `<span class="r" title="Range">${d.range}</span>` : ''}</div>`;
     const type = d.kind === 'unit' ? E.CLASS_NAME[d.cls] : 'Tactic';
     c.innerHTML = `<div class="ci">
       <div class="c-top"><div class="c-cost">$${cost}</div><div class="c-gem" title="${E.RARITY[d.rarity].name}"></div></div>
@@ -31,7 +34,7 @@ const Cards = (() => {
       ${stars}
       <div class="c-name${d.name.length > 12 ? ' long' : ''}">${d.name}</div>
       <div class="c-type">${type} · ${E.RARITY[d.rarity].name}</div>
-      ${stats}
+      ${stats}${ribbon}
       <div class="c-desc">${d.desc}</div>
       <div class="c-foil"></div><div class="c-shine"></div>
     </div>` + (opts.key ? `<span class="c-key">${opts.key}</span>` : '') + (opts.count ? `<span class="count">${opts.count}</span>` : '') + (opts.tag ? `<span class="c-tag">${opts.tag}</span>` : '');
@@ -303,7 +306,7 @@ const Cards = (() => {
       const tag = owned ? (lv >= E.MAX_LEVEL ? 'MAXED · +$' + (ctx.refund || 4) : 'UPGRADE ★' + (lv + 1)) : (d.kind === 'unit' && me.arsenal.length >= E.DECK_MAX ? 'DECK FULL · REPLACE' : d.kind === 'unit' ? 'NEW UNIT' : 'TACTIC');
       const flip = el('div', 'flip r-' + d.rarity); flip.style.setProperty('--i', i);
       const back = el('div', 'cback', '<div class="cb-logo">⬢</div>');
-      const front = make(id, { level: owned ? Math.min(E.MAX_LEVEL, lv + 1) : 0, tag }); front.classList.add('cfront');
+      const front = make(id, { level: owned ? Math.min(E.MAX_LEVEL, lv + 1) : 0, upFrom: owned && lv < E.MAX_LEVEL ? lv : null, tag }); front.classList.add('cfront');
       // what you keep of this turn's income if you take this card
       flip.append(back, front, el('div', 'sp-keep', '+$' + (income - E.cardFee(income, id)))); row.appendChild(flip);
       return { flip, front, d, id };
@@ -457,7 +460,7 @@ const Cards = (() => {
       const flip = el('div', 'flip dealt r-' + d.rarity);
       flip.style.setProperty('--i', i);
       const back = el('div', 'cback tb-' + T, '<div class="cb-logo">⬢</div>');
-      const front = make(id, { level: owned ? Math.min(E.MAX_LEVEL, lv + 1) : 0, tag }); front.classList.add('cfront');
+      const front = make(id, { level: owned ? Math.min(E.MAX_LEVEL, lv + 1) : 0, upFrom: owned && lv < E.MAX_LEVEL ? lv : null, tag }); front.classList.add('cfront');
       flip.append(back, front);
       row.appendChild(flip);
       return { flip, front, d, id };
@@ -561,7 +564,8 @@ const Cards = (() => {
       const owned = dd.kind === 'unit' && me.arsenal.includes(id);
       const flip = el('div', 'flip r-' + dd.rarity); flip.style.setProperty('--i', i);
       const back = el('div', 'cback tb-gilded', '<div class="cb-logo">⬢</div>');
-      const front = make(id, { tag: owned ? 'UPGRADE ★' + ((me.levels[id] || 0) + 1) : dd.kind === 'unit' ? 'NEW UNIT' : 'TACTIC' }); front.classList.add('cfront');
+      const hl = me.levels[id] || 0, upNow = owned && hl < E.MAX_LEVEL;
+      const front = make(id, { level: upNow ? hl + 1 : 0, upFrom: upNow ? hl : null, tag: owned ? (upNow ? 'UPGRADE ★' + (hl + 1) : 'MAXED') : dd.kind === 'unit' ? 'NEW UNIT' : 'TACTIC' }); front.classList.add('cfront');
       flip.append(back, front); row.appendChild(flip);
       flip.onclick = async () => {
         if (!flip.classList.contains('open')) return;
