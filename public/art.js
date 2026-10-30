@@ -1807,128 +1807,112 @@ const Art = (() => {
       for (const [x, y] of [[-0.66, 0.5], [-0.22, 0.5], [0.22, 0.5], [0.66, 0.5], [-0.44, 0.34], [0.0, 0.34], [0.44, 0.34]]) { rr(c, x - 0.22, y - 0.09, 0.44, 0.18, 0.08); c.fill(); c.save(); c.strokeStyle = 'rgba(0,0,0,.55)'; c.lineWidth = 0.05; c.stroke(); c.restore(); sh(c, () => { rr(c, x - 0.16, y + 0.03, 0.32, 0.035, 0.02); c.fill(); }); }
     },
   });
-  // ── v6 armour: traced side profiles. Ground at y=0.42; nose to the right ──
-  // running gear: a track loop round the sprocket (rear, raised), the road wheels and the idler (front, raised)
+  // ── v6 armour: traced side profiles, two-tone shaded. Ground at y=0.42; nose to the right ──
+  const SH1 = 'rgba(0,0,0,.18)';
+  // the running gear as one clean track loop (sprocket at the back, idler at the front) with the road wheels along it
   function runGear(c, o) {
-    const { x0, x1, n, r, y = 0.3, top = 0.12, spr = r * 0.8, idl = r * 0.75, rollers = 0 } = o;
-    const sx = x0 - r * 0.9, ix = x1 + r * 0.9, sy = top + spr, iy = top + idl;
-    c.beginPath(); c.moveTo(x0, 0.42); c.lineTo(x1, 0.42); c.quadraticCurveTo(ix + idl * 0.9, 0.42, ix + idl, iy); c.quadraticCurveTo(ix + idl, top - 0.02, ix, top - 0.02);
-    c.lineTo(sx, top - 0.02); c.quadraticCurveTo(sx - spr * 1.05, top - 0.02, sx - spr * 1.05, sy); c.quadraticCurveTo(sx - spr, 0.42, x0, 0.42); c.closePath(); c.fill();
-    sh(c, () => { c.beginPath(); c.moveTo(x0, 0.37); c.lineTo(x1, 0.37); c.lineTo(ix, iy + 0.02); c.lineTo(ix, top + 0.03); c.lineTo(sx, top + 0.03); c.lineTo(sx, sy); c.closePath(); c.fill(); });
-    const wheel = (x, yy, rr0) => { circ(c, x, yy, rr0); c.fill(); sh(c, () => { circ(c, x, yy, rr0 * 0.72); c.fill(); }, SH2); circ(c, x, yy, rr0 * 0.5); c.fill(); sh(c, () => { circ(c, x, yy, rr0 * 0.16); c.fill(); }, SH2); };
-    for (let i = 0; i < n; i++) wheel(x0 + (x1 - x0) * (n === 1 ? 0.5 : i / (n - 1)), y, r);
-    for (let i = 0; i < rollers; i++) { circ(c, x0 + 0.08 + (x1 - x0 - 0.16) * (i / Math.max(1, rollers - 1)), top + 0.035, 0.035); c.fill(); }
-    wheel(sx, sy, spr * 0.85); wheel(ix, iy, idl * 0.85);
+    const { x0, x1, n, r, top = 0.08, rollers = 0 } = o, h = 0.42 - top, rad = h / 2, cy = 0.42 - r - 0.035;
+    rr(c, x0 - rad * 0.9, top, x1 - x0 + rad * 1.8, h, rad); c.fill();
+    sh(c, () => { rr(c, x0 - rad * 0.9 + 0.035, top + 0.035, x1 - x0 + rad * 1.8 - 0.07, h - 0.07, rad - 0.035); c.fill(); }, SH2);
+    const wheel = (x, y, w) => { circ(c, x, y, w); c.fill(); sh(c, () => { circ(c, x, y, w * 0.62); c.fill(); }, SH1); sh(c, () => { circ(c, x, y, w * 0.2); c.fill(); }, SH2); };
+    for (let i = 0; i < n; i++) wheel(x0 + (x1 - x0) * i / (n - 1), cy, r);
+    wheel(x0 - rad * 0.9 + rad * 0.95, top + rad * 0.9, rad * 0.55); wheel(x1 + rad * 0.9 - rad * 0.95, top + rad * 0.9, rad * 0.5);   // sprocket, idler
+    for (let i = 0; i < rollers; i++) { circ(c, x0 + 0.12 + (x1 - x0 - 0.24) * i / Math.max(1, rollers - 1), top + 0.05, 0.03); c.fill(); }
   }
-  // a gun tube from (x0,y) to x1, thickness t, with a thermal sleeve band or two and a muzzle
   function gun(c, x0, x1, y, t, o = {}) {
     rr(c, x0, y - t / 2, x1 - x0, t, t / 2); c.fill();
-    for (const b of o.bands || []) { rr(c, b - 0.025, y - t * 0.75, 0.05, t * 1.5, 0.015); c.fill(); }
-    if (o.evac) { rr(c, o.evac - 0.06, y - t * 0.85, 0.12, t * 1.7, t * 0.6); c.fill(); }
-    if (o.brake) { rr(c, x1 - 0.08, y - t * 0.95, 0.09, t * 1.9, 0.02); c.fill(); }
-    sh(c, () => { rr(c, x0 + 0.02, y - t / 2 + t * 0.55, x1 - x0 - 0.04, t * 0.25, t * 0.12); c.fill(); });
+    for (const b of o.bands || []) { rr(c, b - 0.03, y - t * 0.7, 0.06, t * 1.4, 0.015); c.fill(); }
+    if (o.evac) { rr(c, o.evac - 0.07, y - t * 0.8, 0.14, t * 1.6, t * 0.6); c.fill(); }
+    if (o.brake) { rr(c, x1 - 0.09, y - t * 0.95, 0.1, t * 1.9, 0.02); c.fill(); }
+    sh(c, () => { rr(c, x0 + 0.03, y + t * 0.1, x1 - x0 - 0.06, t * 0.35, t * 0.15); c.fill(); }, SH1);
   }
+  // the lower half of a hull side in shadow, below its top edge
+  const sideShade = (c, pts) => shade(c, () => { c.moveTo(pts[0], pts[1]); for (let i = 2; i < pts.length; i += 2) c.lineTo(pts[i], pts[i + 1]); c.closePath(); }, SH1);
   Object.assign(UNIT, {
-    // Leopard 2A7V: seven road wheels behind heavy skirts, a long flat hull, the turret's arrowhead wedge armour raking
-    // forward and down from the roof, the 120mm with its thermal sleeve, the PERI sight on its post and the stowage
-    // basket on the bustle
+    // Leopard 2A7V: seven road wheels behind heavy skirts, a long flat hull, the turret's arrowhead wedge raking forward and
+    // down from the roof, the 120mm with its thermal sleeve, the PERI sight on the roof and the stowage basket on the bustle
     leviathan(c) {
-      runGear(c, { x0: -0.7, x1: 0.34, n: 7, r: 0.105 });
-      poly(c, [-0.96, 0.16, -0.96, -0.08, 0.08, -0.08, 0.6, 0.09, 0.5, 0.2]); c.fill();                                  // hull
-      poly(c, [-0.94, -0.02, 0.5, -0.02, 0.6, 0.1, 0.56, 0.2, -0.94, 0.2]); c.fill();                                     // skirts
-      poly(c, [-0.9, -0.08, -0.92, -0.3, -0.6, -0.34, 0.0, -0.34, 0.48, -0.16, 0.44, -0.1, 0.26, -0.08]); c.fill();       // turret + wedge
-      gun(c, 0.2, 1.02, -0.17, 0.055, { bands: [0.5, 0.74] }); rr(c, 0.16, -0.24, 0.14, 0.14, 0.03); c.fill();          // gun and mantlet
-      rr(c, -0.33, -0.46, 0.03, 0.12, 0.01); c.fill(); rr(c, -0.42, -0.5, 0.2, 0.08, 0.02); c.fill();                   // PERI
-      rr(c, -0.1, -0.4, 0.14, 0.07, 0.02); c.fill();                                                                       // gunner's sight
-      rr(c, -0.66, -0.4, 0.16, 0.06, 0.02); c.fill();                                                                      // loader's hatch
-      shade(c, () => {
-        c.moveTo(0.0, -0.32); c.lineTo(0.46, -0.16); c.lineTo(0.42, -0.12); c.lineTo(-0.02, -0.26); c.closePath();      // wedge facet
-        rrp(c, -0.92, 0.02, 1.44, 0.03, 0.01); for (const x of [-0.6, -0.26, 0.08]) rrp(c, x, -0.01, 0.02, 0.2, 0.01);   // skirt joints
-        rrp(c, -0.88, -0.27, 0.22, 0.02, 0.01); rrp(c, -0.88, -0.2, 0.22, 0.02, 0.01); rrp(c, -0.88, -0.27, 0.02, 0.17, 0.01);   // basket
-        rrp(c, -0.6, -0.22, 0.5, 0.02, 0.01);
-      }, SH2);
+      runGear(c, { x0: -0.68, x1: 0.36, n: 7, r: 0.09 });
+      poly(c, [-0.96, -0.06, 0.1, -0.06, 0.62, 0.08, 0.58, 0.15, -0.96, 0.15]); c.fill();
+      sideShade(c, [-0.96, 0.02, 0.36, 0.02, 0.6, 0.11, 0.58, 0.15, -0.96, 0.15]);
+      poly(c, [-0.94, -0.06, -0.94, -0.28, -0.86, -0.33, -0.02, -0.33, 0.5, -0.15, 0.46, -0.1, 0.24, -0.06]); c.fill();
+      sideShade(c, [-0.94, -0.18, 0.02, -0.18, 0.24, -0.06, -0.94, -0.06]);
+      shade(c, () => { c.moveTo(-0.02, -0.33); c.lineTo(0.5, -0.15); c.lineTo(0.46, -0.1); c.lineTo(0.0, -0.26); c.closePath(); }, SH2);   // the wedge's side face
+      gun(c, 0.2, 1.04, -0.17, 0.055, { bands: [0.52, 0.76] }); rr(c, 0.14, -0.235, 0.14, 0.13, 0.03); c.fill();
+      rr(c, -0.42, -0.47, 0.2, 0.12, 0.03); c.fill(); rr(c, -0.36, -0.37, 0.08, 0.05, 0.01); c.fill();                 // PERI
+      rr(c, -0.1, -0.4, 0.15, 0.08, 0.02); c.fill();                                                                     // gunner's sight
+      shade(c, () => { rrp(c, -0.92, -0.27, 0.22, 0.16, 0.02); rrp(c, -0.39, -0.44, 0.08, 0.05, 0.01); }, SH2);        // basket, PERI glass
     },
-    // M1A1 Abrams: seven road wheels, the long shallow glacis, a low slab-sided turret whose front is cut back under the
-    // gun, the big bustle rack, the 120mm, the commander's cupola with an M2 and the loader's M240
+    // M1A1 Abrams: seven road wheels, the long shallow glacis, the low slab-sided turret cut back under the gun, the big
+    // bustle rack, the 120mm, the commander's cupola with its M2 and the gunner's sight
     goliath(c) {
-      runGear(c, { x0: -0.72, x1: 0.36, n: 7, r: 0.1 });
-      poly(c, [-0.98, 0.16, -0.98, -0.06, -0.1, -0.08, 0.66, 0.08, 0.52, 0.2]); c.fill();
-      poly(c, [-0.96, 0.0, 0.48, 0.0, 0.62, 0.09, 0.58, 0.2, -0.96, 0.2]); c.fill();
-      poly(c, [-0.74, -0.08, -0.74, -0.3, 0.3, -0.31, 0.46, -0.22, 0.44, -0.16, 0.28, -0.08]); c.fill();
-      c.save(); c.globalAlpha *= 1; rr(c, -1.02, -0.3, 0.3, 0.2, 0.02); c.fill(); c.restore();                          // bustle rack
-      gun(c, 0.26, 1.04, -0.2, 0.055, { bands: [0.54, 0.78] }); rr(c, 0.22, -0.26, 0.12, 0.13, 0.03); c.fill();
-      rr(c, -0.42, -0.42, 0.18, 0.11, 0.03); c.fill(); rr(c, -0.26, -0.4, 0.3, 0.03, 0.01); c.fill(); rr(c, -0.32, -0.46, 0.04, 0.06, 0.01); c.fill();   // cupola + M2
-      rr(c, -0.04, -0.4, 0.14, 0.1, 0.02); c.fill();                                                                       // gunner's primary sight
-      shade(c, () => {
-        rrp(c, -0.94, 0.03, 1.48, 0.03, 0.01); for (const x of [-0.56, -0.2, 0.16]) rrp(c, x, 0.0, 0.02, 0.2, 0.01);
-        for (const y of [-0.26, -0.2, -0.14]) rrp(c, -1.0, y, 0.26, 0.02, 0.01);
-        c.moveTo(0.3, -0.29); c.lineTo(0.44, -0.21); c.lineTo(0.42, -0.18); c.lineTo(0.28, -0.25); c.closePath();
-        rrp(c, -0.7, -0.2, 0.9, 0.02, 0.01);
-      }, SH2);
+      runGear(c, { x0: -0.7, x1: 0.38, n: 7, r: 0.09 });
+      poly(c, [-0.98, -0.06, -0.08, -0.08, 0.66, 0.08, 0.6, 0.15, -0.98, 0.15]); c.fill();
+      sideShade(c, [-0.98, 0.02, 0.4, 0.02, 0.62, 0.12, 0.6, 0.15, -0.98, 0.15]);
+      poly(c, [-0.76, -0.08, -0.76, -0.3, 0.3, -0.31, 0.47, -0.21, 0.44, -0.15, 0.27, -0.08]); c.fill();
+      sideShade(c, [-0.76, -0.19, 0.42, -0.19, 0.27, -0.08, -0.76, -0.08]);
+      rr(c, -1.02, -0.29, 0.28, 0.19, 0.02); c.fill(); shade(c, () => { rrp(c, -0.99, -0.26, 0.22, 0.13, 0.01); }, SH2);   // bustle rack
+      gun(c, 0.26, 1.04, -0.2, 0.055, { bands: [0.56, 0.8] }); rr(c, 0.22, -0.26, 0.12, 0.12, 0.03); c.fill();
+      rr(c, -0.44, -0.41, 0.2, 0.11, 0.03); c.fill(); rr(c, -0.26, -0.4, 0.32, 0.03, 0.01); c.fill();                  // cupola + M2
+      rr(c, -0.02, -0.39, 0.15, 0.09, 0.02); c.fill();
+      shade(c, () => { c.moveTo(0.3, -0.31); c.lineTo(0.47, -0.21); c.lineTo(0.44, -0.17); c.lineTo(0.28, -0.25); c.closePath(); }, SH2);
     },
-    // T-72B3: six big road wheels and three return rollers, a short rubber skirt, a low cast dome of a turret with its brow
-    // of Kontakt-5 bricks, the long 125mm, the snorkel on the turret's back and the two fuel drums on the engine deck
+    // T-72B3: six big road wheels and the return rollers above them, a short rubber skirt, a low cast dome of a turret with
+    // its brow of Kontakt-5 bricks, the long 125mm, the snorkel on the turret's back and the two fuel drums on the deck
     mauler(c) {
-      runGear(c, { x0: -0.66, x1: 0.34, n: 6, r: 0.125, rollers: 3 });
-      poly(c, [-0.96, 0.14, -0.96, -0.04, 0.06, -0.06, 0.62, 0.08, 0.52, 0.18]); c.fill();
-      rr(c, -0.94, 0.02, 1.48, 0.08, 0.02); c.fill();                                                                    // rubber skirt
-      for (const x of [-0.94, -0.78]) { rr(c, x, -0.2, 0.14, 0.16, 0.05); c.fill(); }                                     // fuel drums
-      c.beginPath(); c.moveTo(-0.62, -0.06); c.quadraticCurveTo(-0.62, -0.34, -0.26, -0.36); c.lineTo(0.02, -0.36); c.quadraticCurveTo(0.28, -0.34, 0.36, -0.2); c.lineTo(0.4, -0.06); c.closePath(); c.fill();
-      poly(c, [0.02, -0.37, 0.24, -0.33, 0.44, -0.14, 0.38, -0.1, 0.2, -0.24, 0.0, -0.3]); c.fill();                     // ERA brow
-      rr(c, -0.7, -0.28, 0.32, 0.06, 0.03); c.fill();                                                                     // snorkel
-      gun(c, 0.32, 1.06, -0.17, 0.05, { bands: [0.52, 0.7, 0.88] });
-      rr(c, -0.24, -0.46, 0.16, 0.1, 0.04); c.fill(); rr(c, -0.1, -0.43, 0.24, 0.025, 0.01); c.fill();                  // cupola + Kord
-      shade(c, () => {
-        for (const x of [-0.84, -0.68]) rrp(c, x + 0.03, -0.18, 0.02, 0.12, 0.01);
-        for (let i = 0; i < 4; i++) rrp(c, 0.06 + i * 0.08, -0.33 + i * 0.045, 0.06, 0.035, 0.01);                    // brick seams
-        rrp(c, -0.5, -0.14, 0.8, 0.02, 0.01);
-      }, SH2);
+      runGear(c, { x0: -0.64, x1: 0.36, n: 6, r: 0.11, rollers: 3 });
+      poly(c, [-0.96, -0.04, 0.08, -0.06, 0.62, 0.07, 0.58, 0.12, -0.96, 0.12]); c.fill();
+      sideShade(c, [-0.96, 0.04, 0.4, 0.04, 0.6, 0.1, 0.58, 0.12, -0.96, 0.12]);
+      for (const x of [-0.96, -0.79]) { rr(c, x, -0.2, 0.15, 0.16, 0.04); c.fill(); shade(c, () => { rrp(c, x + 0.02, -0.13, 0.11, 0.025, 0.01); }, SH1); }   // fuel drums
+      c.beginPath(); c.moveTo(-0.62, -0.06); c.quadraticCurveTo(-0.62, -0.34, -0.28, -0.36); c.lineTo(0.0, -0.36); c.quadraticCurveTo(0.28, -0.34, 0.38, -0.18); c.lineTo(0.4, -0.06); c.closePath(); c.fill();
+      sideShade(c, [-0.62, -0.17, 0.36, -0.17, 0.4, -0.06, -0.62, -0.06]);
+      poly(c, [0.0, -0.37, 0.24, -0.34, 0.46, -0.14, 0.4, -0.1, 0.2, -0.25, -0.02, -0.3]); c.fill();                   // ERA brow
+      shade(c, () => { c.moveTo(0.0, -0.31); c.lineTo(0.2, -0.26); c.lineTo(0.4, -0.1); c.lineTo(0.46, -0.14); c.lineTo(0.43, -0.16); c.lineTo(0.22, -0.3); c.closePath(); }, SH2);
+      rr(c, -0.72, -0.29, 0.34, 0.06, 0.03); c.fill();                                                                   // snorkel
+      gun(c, 0.34, 1.06, -0.17, 0.05, { bands: [0.56, 0.74, 0.9] });
+      rr(c, -0.26, -0.46, 0.18, 0.1, 0.04); c.fill(); rr(c, -0.1, -0.44, 0.26, 0.025, 0.01); c.fill();
     },
     // T-14 Armata: seven road wheels behind tall skirts, a long high hull with the crew capsule up front, a small faceted
-    // unmanned turret set back, its sensor nose jutting over the long 125mm, and the Afganit launch tubes on its sides
+    // unmanned turret set back with its sensor nose jutting over the long 125mm, and the Afganit tubes on its sides
     titan(c) {
-      runGear(c, { x0: -0.76, x1: 0.42, n: 7, r: 0.1 });
-      poly(c, [-1.0, 0.16, -1.0, -0.1, 0.18, -0.1, 0.66, 0.08, 0.56, 0.2]); c.fill();
-      poly(c, [-0.98, -0.02, 0.5, -0.02, 0.64, 0.09, 0.6, 0.2, -0.98, 0.2]); c.fill();
-      poly(c, [-0.84, -0.1, -0.84, -0.26, -0.64, -0.32, 0.02, -0.32, 0.34, -0.24, 0.38, -0.16, 0.2, -0.1]); c.fill();   // turret
-      poly(c, [-0.06, -0.33, 0.3, -0.33, 0.44, -0.24, 0.3, -0.22]); c.fill();                                            // sensor nose
-      gun(c, 0.26, 1.06, -0.17, 0.05, { bands: [0.56, 0.8] });
-      rr(c, -0.46, -0.42, 0.16, 0.1, 0.03); c.fill(); rr(c, -0.32, -0.39, 0.22, 0.025, 0.01); c.fill();                // RWS
-      for (const x of [-0.78, -0.66]) { c.save(); c.translate(x, -0.2); c.rotate(-0.5); rr(c, -0.03, -0.1, 0.06, 0.14, 0.02); c.fill(); c.restore(); }   // Afganit tubes
-      rr(c, 0.28, -0.16, 0.18, 0.06, 0.02); c.fill();                                                                     // crew capsule periscopes
-      shade(c, () => {
-        rrp(c, -0.96, 0.03, 1.52, 0.03, 0.01); for (const x of [-0.6, -0.26, 0.1]) rrp(c, x, -0.01, 0.02, 0.2, 0.01);
-        rrp(c, -0.6, -0.22, 0.7, 0.02, 0.01); rrp(c, -0.36, -0.29, 0.1, 0.05, 0.01); rrp(c, 0.0, -0.29, 0.1, 0.05, 0.01);
-      }, SH2);
+      runGear(c, { x0: -0.74, x1: 0.44, n: 7, r: 0.09 });
+      poly(c, [-1.0, -0.1, 0.18, -0.1, 0.66, 0.08, 0.62, 0.15, -1.0, 0.15]); c.fill();
+      sideShade(c, [-1.0, 0.0, 0.42, 0.0, 0.64, 0.12, 0.62, 0.15, -1.0, 0.15]);
+      poly(c, [-0.84, -0.1, -0.84, -0.26, -0.66, -0.32, 0.04, -0.32, 0.46, -0.24, 0.44, -0.18, 0.22, -0.1]); c.fill();
+      sideShade(c, [-0.84, -0.19, 0.4, -0.19, 0.22, -0.1, -0.84, -0.1]);
+      shade(c, () => { c.moveTo(0.04, -0.32); c.lineTo(0.46, -0.24); c.lineTo(0.44, -0.2); c.lineTo(0.06, -0.26); c.closePath(); }, SH2);
+      gun(c, 0.26, 1.06, -0.15, 0.05, { bands: [0.58, 0.82] });
+      rr(c, -0.48, -0.42, 0.18, 0.1, 0.03); c.fill(); rr(c, -0.32, -0.4, 0.24, 0.025, 0.01); c.fill();                // RWS
+      for (const x of [-0.8, -0.7, -0.6]) { rr(c, x, -0.36, 0.07, 0.07, 0.02); c.fill(); }                               // Afganit tubes
+      rr(c, 0.3, -0.14, 0.16, 0.05, 0.02); c.fill();                                                                     // crew capsule periscopes
     },
-    // M10 Booker: six road wheels, a tall angular ASCOD hull, an Abrams-style turret with a big bustle and the 105mm with its
-    // fume extractor, and a remote weapon station on the roof. Fast: speed lines behind it
+    // M10 Booker: six road wheels, a tall angular ASCOD hull, an Abrams-style turret with a big bustle, the 105mm with its
+    // fume extractor, and a remote weapon station. Fast: speed lines behind it
     hellcat(c) {
-      c.strokeStyle = c.fillStyle; c.save(); c.globalAlpha *= 0.55; for (const [y, l] of [[-0.3, 0.4], [-0.08, 0.6], [0.16, 0.35]]) line(c, 0.06, [-1.12, y, -1.12 + l * 0.5, y]); c.restore();
-      runGear(c, { x0: -0.6, x1: 0.34, n: 6, r: 0.11 });
-      poly(c, [-0.84, 0.18, -0.84, -0.12, 0.12, -0.12, 0.62, 0.06, 0.52, 0.2]); c.fill();
-      poly(c, [-0.82, 0.0, 0.5, 0.0, 0.6, 0.08, 0.56, 0.2, -0.82, 0.2]); c.fill();
-      poly(c, [-0.66, -0.12, -0.66, -0.34, 0.2, -0.36, 0.36, -0.26, 0.34, -0.12]); c.fill(); rr(c, -0.86, -0.32, 0.22, 0.18, 0.02); c.fill();
-      gun(c, 0.26, 0.96, -0.23, 0.05, { evac: 0.58, bands: [0.4] });
-      rr(c, -0.26, -0.48, 0.16, 0.12, 0.03); c.fill(); rr(c, -0.12, -0.45, 0.24, 0.025, 0.01); c.fill();
-      shade(c, () => { rrp(c, -0.8, 0.03, 1.34, 0.03, 0.01); rrp(c, -0.6, -0.22, 0.86, 0.02, 0.01); for (const y of [-0.27, -0.21]) rrp(c, -0.84, y, 0.18, 0.02, 0.01); }, SH2);
+      c.strokeStyle = c.fillStyle; c.save(); c.globalAlpha *= 0.5; for (const [y, l] of [[-0.3, 0.4], [-0.08, 0.6], [0.16, 0.35]]) line(c, 0.06, [-1.12, y, -1.12 + l * 0.5, y]); c.restore();
+      runGear(c, { x0: -0.58, x1: 0.36, n: 6, r: 0.1 });
+      poly(c, [-0.84, -0.12, 0.14, -0.12, 0.62, 0.06, 0.58, 0.15, -0.84, 0.15]); c.fill();
+      sideShade(c, [-0.84, 0.0, 0.4, 0.0, 0.6, 0.1, 0.58, 0.15, -0.84, 0.15]);
+      poly(c, [-0.66, -0.12, -0.66, -0.34, 0.2, -0.36, 0.37, -0.26, 0.34, -0.12]); c.fill(); rr(c, -0.88, -0.32, 0.24, 0.18, 0.02); c.fill();
+      sideShade(c, [-0.66, -0.22, 0.35, -0.22, 0.34, -0.12, -0.66, -0.12]);
+      shade(c, () => { rrp(c, -0.85, -0.29, 0.18, 0.12, 0.01); }, SH2);
+      gun(c, 0.28, 0.98, -0.24, 0.05, { evac: 0.6 });
+      rr(c, -0.28, -0.48, 0.18, 0.12, 0.03); c.fill(); rr(c, -0.12, -0.45, 0.24, 0.025, 0.01); c.fill();
     },
-    // Gepard: a Leopard 1 hull with no skirts (seven road wheels and the return rollers show), a big box turret with the
-    // two 35mm Oerlikons hung on its cheeks, the search radar dish up on the back and the round tracking radar on the front
+    // Gepard: a Leopard 1 hull with no skirts (seven road wheels and the return rollers show), a big box turret with the two
+    // 35mm Oerlikons on its cheeks, the search radar dish on its mast at the back and the tracking radar on the front face
     scorpion(c) {
-      runGear(c, { x0: -0.66, x1: 0.36, n: 7, r: 0.1, rollers: 4 });
-      poly(c, [-0.94, 0.14, -0.94, -0.08, 0.12, -0.08, 0.62, 0.06, 0.5, 0.16]); c.fill();
-      poly(c, [-0.6, -0.08, -0.62, -0.38, 0.22, -0.4, 0.3, -0.3, 0.28, -0.08]); c.fill();                               // turret
-      rr(c, -0.06, -0.3, 0.4, 0.13, 0.03); c.fill();                                                                       // gun cradle on the cheek
-      gun(c, 0.3, 1.06, -0.24, 0.04, { brake: true });
-      c.beginPath(); c.ellipse(0.32, -0.4, 0.05, 0.11, 0, 0, P * 2); c.fill(); rr(c, 0.24, -0.42, 0.08, 0.04, 0.01); c.fill();   // tracking radar
-      rr(c, -0.5, -0.56, 0.04, 0.18, 0.01); c.fill();                                                                      // radar mast
-      c.beginPath(); c.moveTo(-0.84, -0.66); c.quadraticCurveTo(-0.48, -0.74, -0.12, -0.66); c.lineTo(-0.14, -0.56); c.quadraticCurveTo(-0.48, -0.64, -0.82, -0.56); c.closePath(); c.fill();   // search dish
-      shade(c, () => {
-        rrp(c, -0.56, -0.2, 0.8, 0.02, 0.01); rrp(c, -0.02, -0.26, 0.32, 0.03, 0.01);
-        c.moveTo(0.34, -0.4); c.ellipse(0.32, -0.4, 0.025, 0.07, 0, 0, P * 2);
-        rrp(c, -0.8, -0.62, 0.64, 0.02, 0.01);
-      }, SH2);
+      runGear(c, { x0: -0.64, x1: 0.38, n: 7, r: 0.09, rollers: 4 });
+      poly(c, [-0.94, -0.08, 0.14, -0.08, 0.64, 0.06, 0.58, 0.12, -0.94, 0.12]); c.fill();
+      sideShade(c, [-0.94, 0.02, 0.42, 0.02, 0.62, 0.09, 0.58, 0.12, -0.94, 0.12]);
+      poly(c, [-0.62, -0.08, -0.62, -0.36, 0.2, -0.38, 0.3, -0.28, 0.3, -0.08]); c.fill();                            // turret
+      sideShade(c, [-0.62, -0.2, 0.3, -0.2, 0.3, -0.08, -0.62, -0.08]);
+      rr(c, 0.18, -0.3, 0.16, 0.2, 0.04); c.fill(); shade(c, () => { c.moveTo(0.31, -0.2); c.ellipse(0.26, -0.2, 0.05, 0.08, 0, 0, P * 2); }, SH2);   // tracking radar
+      rr(c, -0.16, -0.36, 0.42, 0.13, 0.04); c.fill(); shade(c, () => { rrp(c, -0.14, -0.27, 0.38, 0.03, 0.01); }, SH1);   // gun cradle
+      gun(c, 0.24, 1.06, -0.3, 0.04, { brake: true });
+      rr(c, -0.5, -0.52, 0.06, 0.16, 0.02); c.fill();                                                                     // radar mast
+      c.beginPath(); c.moveTo(-0.8, -0.6); c.quadraticCurveTo(-0.47, -0.68, -0.14, -0.6); c.lineTo(-0.16, -0.5); c.quadraticCurveTo(-0.47, -0.58, -0.78, -0.5); c.closePath(); c.fill();
+      shade(c, () => { c.moveTo(-0.76, -0.54); c.quadraticCurveTo(-0.47, -0.61, -0.18, -0.54); c.lineTo(-0.18, -0.52); c.quadraticCurveTo(-0.47, -0.59, -0.76, -0.52); c.closePath(); }, SH2);
     },
   });
   function cardArt(id) {
