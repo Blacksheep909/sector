@@ -4,6 +4,11 @@ Every release, newest first. Each version also has its own post on the [Releases
 
 ## Unreleased
 
+- **🤖 Bots put troops first.** They were spending more on black-market cards than on their armies, so by the late game everyone had a handful of units and wars ran out the clock. Now the market is a luxury: one good card a turn at most, and only while their army stands up to their strongest rival's. Spending on troops roughly doubled.
+- **Bots go for the kill**, harder the higher the difficulty: they pick on a rival who's fallen behind with an HQ in reach, march on that HQ instead of any of their land, and mass more stacks (on slightly closer odds) to take it.
+- **Bots use the sea.** When the war target is overseas (or their landmass is full) they build a Port, buy Arks (more of them the bigger their stranded army), march troops and vehicles to them and sail them across: about 5× as many Arks and sea landings in test games.
+- **Bots build behind the lines:** Warehouses go well back from the front, Refineries aren't built on the border, Depots sit a couple of hexes back as staging posts, and FOBs go forward but never on the front line. Economic buildings on the front line fell from about 40% to about 12%.
+- **Bots play to their faction:** Volt fields more aircraft, Ashen more Skitters and grabs enemy land for its bounty, Iron favours sturdy units, Verdant builds more. Conscription goes where a base is threatened, and bots now use Heli Drop to seize prizes.
 - **No false "💀 Lost" alerts:** taking back a deploy with undo, scrapping a unit, giving troops to an ally or switching seats no longer reports units as destroyed.
 - **Tactic cards with nothing to aim at are greyed out** in your hand with a NO TARGET tag, instead of giving an error when you click them.
 - **"Space to skip"** on the fight panel (Tap on phones), in a pill of its own so it no longer looks like it belongs to your deck; Space also skips a Store pack opening now.
