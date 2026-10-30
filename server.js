@@ -502,7 +502,7 @@ function onMessage(c, m) {
       const cur = game.players[game.turn.idx];
       if (!cur || !controls(c, cur.id)) return;
       if (!undoStack.length || undoStack.owner !== cur.id) return send(c, { t: 'err', msg: 'Nothing to undo: fights, loot, cards and newly scouted fog can\'t be taken back', seq: m.seq });
-      game = JSON.parse(undoStack.pop()); game.v++;
+      game = E.relink(JSON.parse(undoStack.pop())); game.v++;
       broadcastState([{ e: 'undo', pid: cur.id }], cur.id, m.seq);
       return afterChange();
     }
@@ -713,7 +713,7 @@ function loadSave(c, id) {
   if (!pr || !profiles.savesOf(pr).some(s => s.id === id)) return send(c, { t: 'err', msg: 'That save isn’t yours' });
   const d = readSave(id); if (!d) return send(c, { t: 'err', msg: 'That save could not be read' });
   if (!d || !d.game || !d.game.players) return send(c, { t: 'err', msg: 'That save is damaged' });
-  const g = d.game, seats = d.seats || [];
+  const g = E.relink(d.game), seats = d.seats || [];
   const num = id => +(String(id).match(/\d+/) || [0])[0];
   nextPid = Math.max(nextPid, ...g.players.map(p => num(p.id) + 1), ...lobby.players.map(p => num(p.id) + 1));
   // people in the lobby take back the seat with their name; everyone else watches and can take over a bot

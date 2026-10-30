@@ -260,5 +260,16 @@ function crossing(s) {
   for (const k of far.slice(0, 3)) { T[k].structs = [{ type: 'airbase', owner: 'p0', lvl: 1 }]; T[k].struct = T[k].structs[0]; }
   ok(/3 airbases/.test(E.buildError(s, 'p0', 'airbase', far[3], new Set(far)) || ''), 'but no more than 3: ' + E.buildError(s, 'p0', 'airbase', far[3], new Set(far)));
 }
+{ // a state restored from JSON (undo, a save) keeps each hex's main building tied to its building list
+  const roster = [0, 1].map(i => ({ id: 'p' + i, name: 'P' + i, color: E.COLORS[i], faction: 'iron' }));
+  let { state: s } = E.createGame({ mode: 'domination', mapSize: 'small' }, roster);
+  s.phase = 'play'; const T = s.map.tiles, p = E.player(s, 'p0');
+  const k = Object.keys(T).find(x => T[x].owner === 'p0' && E.dist(x, p.hq) === 1 && !(T[x].structs || []).length);
+  T[k].structs = [{ type: 'fob', owner: 'p0', lvl: 1, lock: 1 }]; T[k].struct = T[k].structs[0];
+  s = E.relink(JSON.parse(JSON.stringify(s)));   // what undo does
+  ok(s.map.tiles[k].struct === s.map.tiles[k].structs[0], 'after a JSON restore the main building is the same object as the one in the list');
+  s.turn.idx = s.players.findIndex(q => q.id === 'p0'); E.startTurn(s, [], Math.random);   // the owner's next turn brings the FOB online
+  ok(!s.map.tiles[k].struct.lock && !s.map.tiles[k].structs[0].lock, 'and a FOB under construction finishes, as drawn too');
+}
 console.log(fails ? fails + ' FAILED' : 'all passed');
 process.exit(fails ? 1 : 0);

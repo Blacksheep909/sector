@@ -234,6 +234,9 @@
     t.structs = l;
     t.struct = l.slice().sort((a, b) => STRUCT_PRIORITY.indexOf(a.type) - STRUCT_PRIORITY.indexOf(b.type))[0] || null;
   }
+  // a state rebuilt from JSON (an undo, a save) has each hex's main building as a separate copy of the one in its list:
+  // tie them back together, or changes made through the list (a FOB coming online, an upgrade) never show
+  function relink(s) { for (const k in s.map.tiles) { const t = s.map.tiles[k]; if (t.structs || t.struct) syncStructs(t); } return s; }
   function addStruct(t, st) { t.structs = structsOf(t).concat([st]); syncStructs(t); }
   function removeStruct(t, st) { t.structs = structsOf(t).filter(x => x !== st); syncStructs(t); }
 
@@ -2952,7 +2955,7 @@
   // (on an ordinary object those names find JavaScript's built-ins, which once let a crafted buy turn Valor into NaN)
   for (const t of [RARITY, CRATES, DROP_TIERS, TURN_ODDS, TERRAIN, UNITS, TACTICS, STRUCTS, FACTIONS, DIFFICULTY, POI, WEATHER, TEAM_COLORS, TEAM_NAMES, CLASS_NAME]) Object.setPrototypeOf(t, null);
   return {
-    DIRS, key, parse, dist, neighbors, area, line, mulberry32, hashStr, THEMES, ARCHETYPES,
+    DIRS, key, parse, dist, neighbors, area, line, mulberry32, hashStr, THEMES, ARCHETYPES, relink,
     POI, WEATHER, isAlly, teammate, recordHistory, RARITY, RARITY_ORDER, CRATES, DROP_TIERS, SCRAP_VALUE, DECK_MAX, MAX_LEVEL, TERRAIN, DIFFICULTY, UNITS, TACTICS, STRUCTS, BUILD_ORDER, UPGRADABLE, MAX_SLVL, FACTIONS, ROLL_BASE, COLORS, TEAM_COLORS, TEAM_NAMES, teamColor, MAX_STACK, GRUNT_STACK, stackFits, CLASS_NAME, cardDef,
     BATTLE_MAX, cardFee, turnOdds, marketPrice, MARKET_UNLOCK, AIRBASE_CARDS, cacheCard, scenarioCheck, assaultPlan, openBattle, closeBattle, battleOdds, battleHand, battleCard, INTEL_COST, intelCost, overwatchTriggers, overwatchFire, attackTarget, ECON, infraValue, econOf, AIR_STRIKES, airDefenders, interceptChance, generateMap, createGame, applyAction, spawnChoices, visionOf, startTurn, endTurn, simulateTurnStart, view, drawCards,
     player, current, buildIndex, canAct, moveAllow, ownedTiles, ownedLand, spawnPoints, musterHexes, supplySet, computeIncome, levelOf, unitAtk, unitDef,
