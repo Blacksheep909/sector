@@ -104,7 +104,10 @@ let fails = 0, shots = 0; const ok = (c, m) => { console.log((c ? 'ok   ' : 'FAI
         await click('#crate .reveal-all', 300);
         for (let i = 0; i < 100 && (await js(`document.querySelectorAll('#crate .flip.open').length`)) < 3; i++) await sleep(150);
         await sleep(800); const n0 = await js(`${me}.arsenal.length + ${me}.tactics.length`);
-        await click('#crate .flip.open', 2500); await settle(800);
+        await click('#crate .flip.open', 1500);
+        // a rare card's showcase may still be playing (the pick waits for it): give it time, and click again if it's still up
+        for (let i = 0; i < 60 && !(await js(`document.querySelector('#crate').hidden`)); i++) { if (i % 15 === 14 && (await js(`!!document.querySelector('#crate .flip.open')`))) await click('#crate .flip.open', 300); await sleep(250); }
+        await settle(800);
         ok(r === 'ok' && !!pr && (await js(`document.querySelector('#crate').hidden`)) && !(await js(`${me}.tactics.some(c => c.uid === ${drop})`)), `turn ${turn + 1}: a supply drop: tear the pack with the mouse, reveal, keep a card`);
       } }
     // a tactic card from the hand: click it, then click one of the lit targets

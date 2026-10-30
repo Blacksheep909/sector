@@ -96,6 +96,9 @@ async function main() {
   await evalJS(`Cards.demoReveal(['mauler','bastion','seraph']); document.querySelector('#supply h2').textContent='SUPPLY DROP'; true`); await sleep(1700);
   await evalJS(`document.querySelectorAll('#supply .flip')[2].click(); true`); await sleep(2250);
   await shot('legendary');
-  ws.close(); require('child_process').spawnSync('taskkill', ['/PID', String(proc.pid), '/T', '/F'], { stdio: 'ignore' });
+  ws.close();
+  // close the browser (taskkill on Windows, a kill signal elsewhere) and exit, so the script never hangs once it's done
+  if (process.platform === 'win32') require('child_process').spawnSync('taskkill', ['/PID', String(proc.pid), '/T', '/F'], { stdio: 'ignore' }); else { try { proc.kill('SIGKILL'); } catch (e) {} }
+  console.log('done'); process.exit(0);
 }
 main().catch(e => { console.error(e); process.exit(1); });

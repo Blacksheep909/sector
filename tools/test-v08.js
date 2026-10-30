@@ -146,7 +146,8 @@ const land = (s, from, d) => Object.keys(s.map.tiles).find(k => E.dist(k, from) 
     ok(r.ok && t.ruin === 2 && after.ruined >= 1 && after.total < before, 'strategic bombing bombs land out and cuts income (' + before + ' -> ' + after.total + ')');
     for (let i = 0; i < 8 && t.ruin; i++) { const id = E.current(s).id; if (s.turn.stage === 'choose') E.applyAction(s, id, { a: 'choose', pick: 'income' }); E.applyAction(s, id, { a: 'end' }); }
     ok(!t.ruin, 'bombed-out land recovers after 2 of its owner turns'); }
-  { const { s, p, k, t } = setup(); const from = Object.keys(s.map.tiles).find(x => s.map.tiles[x].owner === p.id && E.dist(x, k) === 2) || p.hq;
+  { const { s, p, k, t } = setup(); const sees = x => { s.units.art = { id: 'art', type: 'thumper', owner: p.id, hex: x, moved: false, fresh: false }; const r = E.rangedTargets(s, p.id, ['art'], x).includes(k); delete s.units.art; return r; };   // a spot with a clear line (no mountain in between)
+    const from = Object.keys(s.map.tiles).find(x => s.map.tiles[x].owner === p.id && E.dist(x, k) === 2 && !Object.values(s.units).some(u => u.hex === x) && sees(x)) || p.hq;
     for (const id in s.units) if (s.units[id].hex === from) delete s.units[id];
     s.units.art = { id: 'art', type: 'thumper', owner: p.id, hex: from, moved: false, fresh: false };
     const tg = E.rangedTargets(s, p.id, ['art'], from); ok(tg.includes(k) || E.dist(from, k) > 2, 'artillery can target undefended buildings in range');
@@ -217,7 +218,9 @@ const land = (s, from, d) => Object.keys(s.map.tiles).find(k => E.dist(k, from) 
   s.map.tiles[k].owner = o.id;
   s.units.t1 = { id: 't1', type: 'grunt', owner: o.id, hex: k, moved: false, fresh: false };
   ring.forEach((n, i) => { s.units['r' + i] = { id: 'r' + i, type: 'grunt', owner: o.id, hex: n, moved: false, fresh: false }; });
-  const from = Object.keys(s.map.tiles).find(x => s.map.tiles[x].owner === p.id && E.dist(x, k) <= 4 && E.dist(x, k) >= 2) || p.hq;
+  // a firing position with a clear line to the target (mountains in between block the shot)
+  const clear = x => { const keep = s.units.hs; s.units.hs = { id: 'hs', type: 'hailstorm', owner: p.id, hex: x, moved: false, fresh: false }; const ok2 = E.rangedTargets(s, p.id, ['hs'], x).includes(k); if (keep) s.units.hs = keep; else delete s.units.hs; return ok2; };
+  const from = Object.keys(s.map.tiles).find(x => s.map.tiles[x].owner === p.id && E.dist(x, k) <= 4 && E.dist(x, k) >= 2 && !Object.values(s.units).some(u => u.hex === x) && clear(x)) || p.hq;
   for (const id in s.units) if (s.units[id].hex === from) delete s.units[id];
   s.units.hs = { id: 'hs', type: 'hailstorm', owner: p.id, hex: from, moved: false, fresh: false };
   const r = E.applyAction(s, p.id, { a: 'fire', from, units: ['hs'], to: k }, () => 0.99);

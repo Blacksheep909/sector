@@ -79,7 +79,7 @@ const play = (s, a) => E.applyAction(s, me(s).id, a);
     const ae = give(s, 'aegis'), r = play(s, { a: 'tactic', uid: ae.uid });
     ok(r.ok && (hqS.lvl || 1) === Math.min(3, before + 1) && p.cash === cash - E.TACTICS.aegis.cost, 'industrial revolution upgrades your buildings ' + (r.err || ''));
   }
-  const ts = give(s, 'tsar'); const tt = E.tacticTargets(s, p.id, 'tsar').find(k => s.map.tiles[k].owner === o.id);
+  const ts = give(s, 'tsar'); const tt = E.tacticTargets(s, p.id, 'tsar').find(k => s.map.tiles[k].owner === o.id && E.area(k, 1).every(n => s.map.tiles[n]));   // room all round (land can run off the board's edge)
   const r3 = play(s, { a: 'tactic', uid: ts.uid, target: tt }); ok(r3.ok && r3.events[0].area.length >= 7, 'tsar bomba hits ' + (r3.events[0] && r3.events[0].area.length) + ' hexes ' + (r3.err || '') + ' target=' + tt);
   const rg = give(s, 'regime'); const rt = E.tacticTargets(s, p.id, 'regime').find(k => s.map.tiles[k].owner === o.id) || E.tacticTargets(s, p.id, 'regime')[0];
   const r4 = rt && play(s, { a: 'tactic', uid: rg.uid, target: rt }); ok(r4 && r4.ok && r4.events[0].hexes.length >= 1, 'regime change flips hexes ' + (r4 && r4.err) + ' target=' + rt + ' ' + JSON.stringify(r4 && r4.events[0]));
