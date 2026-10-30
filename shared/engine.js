@@ -122,45 +122,45 @@
     skitter: { name: 'Skitter', cls: 'veh', cost: 3, atk: 2, def: 1, mv: 4, rarity: 'common', desc: 'Raider buggy. Grabs land fast.' },
     thumper: { name: 'Thumper', cls: 'art', cost: 4, atk: 5, def: 1, mv: 1, range: 2, rarity: 'common', desc: 'Mortar crew. Fires 2 hexes instead of moving.' },
     barracuda: { name: 'Barracuda', cls: 'sea', cost: 4, atk: 3, def: 2, mv: 4, rarity: 'common', desc: 'Fast gunboat. Claims sea lanes, raids coasts.' },
-    stinger: { name: 'Stinger', cls: 'inf', cost: 3, atk: 1, def: 1, mv: 2, range: 1, rarity: 'common', ability: 'aa', aa: 3, desc: 'MANPADS team. Fires at aircraft 1 hex away (+3 Chips vs aircraft), and a 25% chance to shoot down air strikes on its hex. Weak against ground troops.' },
-    corpsman: { name: 'Corpsman', cls: 'inf', cost: 3, atk: 1, def: 3, mv: 2, rarity: 'common', ability: 'medic', desc: 'Medic squad. Its stack never suffers pyrrhic losses.' },
-    jackal: { name: 'Jackal', cls: 'veh', cost: 3, atk: 3, def: 2, mv: 4, rarity: 'uncommon', desc: 'Light patrol truck with a heavy machine gun. Cheap, quick, hits above its weight.' },
-    coyote: { name: 'Coyote', cls: 'veh', cost: 4, atk: 2, def: 2, mv: 4, rarity: 'uncommon', ability: 'recon', desc: 'Scout truck with a sensor mast. Sees 2 hexes further in the fog of war.' },
+    stinger: { name: 'Stinger', cls: 'inf', cost: 3, atk: 1, def: 1, mv: 2, range: 1, rarity: 'common', ability: 'aa', aa: 3, short: '+3 Chips vs air. Downs 25% of air strikes on its hex.', desc: 'MANPADS team. Fires at aircraft 1 hex away (+3 Chips vs aircraft), and a 25% chance to shoot down air strikes on its hex. Weak against ground troops.' },
+    corpsman: { name: 'Corpsman', cls: 'inf', cost: 3, atk: 1, def: 3, mv: 2, rarity: 'common', ability: 'medic', short: 'Medic squad. Its stack never takes pyrrhic losses.', desc: 'Medic squad. Its stack never suffers pyrrhic losses.' },
+    jackal: { name: 'Jackal', cls: 'veh', cost: 3, atk: 3, def: 2, mv: 4, rarity: 'uncommon', short: 'Patrol truck with a heavy MG. Cheap and quick.', desc: 'Light patrol truck with a heavy machine gun. Cheap, quick, hits above its weight.' },
+    coyote: { name: 'Coyote', cls: 'veh', cost: 4, atk: 2, def: 2, mv: 4, rarity: 'uncommon', ability: 'recon', short: 'Scout truck. Sees 2 hexes further in fog of war.', desc: 'Scout truck with a sensor mast. Sees 2 hexes further in the fog of war.' },
     lancer: { name: 'Lancer', cls: 'inf', cost: 5, atk: 3, def: 2, mv: 2, rarity: 'uncommon', ability: 'hunter', desc: 'Tank Hunter: +3 Chips when fighting vehicles.' },
-    warden: { name: 'Warden', cls: 'air', cost: 4, atk: 1, def: 3, mv: 3, rarity: 'uncommon', ability: 'aegis', desc: 'Airborne radar plane. Aegis: +1 Mult when its hex defends.' },
-    sapper: { name: 'Sapper', cls: 'inf', cost: 4, atk: 2, def: 2, mv: 2, rarity: 'uncommon', ability: 'sapper', desc: 'Demolitions: +3 Chips attacking a hex with buildings.' },
-    scorpion: { name: 'Scorpion', cls: 'veh', cost: 5, atk: 2, def: 1, mv: 3, range: 2, rarity: 'uncommon', ability: 'aa', aa: 4, desc: 'Self-propelled anti-air gun. Fires at aircraft 2 hexes away (+4 Chips vs aircraft); 35% to shoot down air strikes within 1. Weak against ground troops.' },
-    bulwark: { name: 'Bulwark', cls: 'veh', cost: 6, atk: 3, def: 5, mv: 3, rarity: 'uncommon', lift: 4, desc: 'Armoured personnel carrier. Holds the line, and carries up to 4 Grunts with it at its own speed.' },
-    hornet: { name: 'Hornet', cls: 'air', cost: 4, atk: 2, def: 1, mv: 4, rarity: 'common', desc: 'Scout drone. Flies over mountains and water and sees 3 hexes around it.' },
+    warden: { name: 'Warden', cls: 'air', cost: 4, atk: 1, def: 3, mv: 3, rarity: 'uncommon', ability: 'aegis', short: 'Radar plane. +1 Mult when its hex defends.', desc: 'Airborne radar plane. Aegis: +1 Mult when its hex defends.' },
+    sapper: { name: 'Sapper', cls: 'inf', cost: 4, atk: 2, def: 2, mv: 2, rarity: 'uncommon', ability: 'sapper', short: 'Demolitions: +3 Chips attacking buildings.', desc: 'Demolitions: +3 Chips attacking a hex with buildings.' },
+    scorpion: { name: 'Scorpion', cls: 'veh', cost: 5, atk: 2, def: 1, mv: 3, range: 2, rarity: 'uncommon', ability: 'aa', aa: 4, short: '+4 Chips vs air. Downs 35% of air strikes within 1.', desc: 'Self-propelled anti-air gun. Fires at aircraft 2 hexes away (+4 Chips vs aircraft); 35% to shoot down air strikes within 1. Weak against ground troops.' },
+    bulwark: { name: 'Bulwark', cls: 'veh', cost: 6, atk: 3, def: 5, mv: 3, rarity: 'uncommon', lift: 4, short: 'APC. Holds the line; carries 4 Grunts at its speed.', desc: 'Armoured personnel carrier. Holds the line, and carries up to 4 Grunts with it at its own speed.' },
+    hornet: { name: 'Hornet', cls: 'air', cost: 4, atk: 2, def: 1, mv: 4, rarity: 'common', short: 'Scout drone. Flies over anything; sees 3 hexes.', desc: 'Scout drone. Flies over mountains and water and sees 3 hexes around it.' },
     mauler: { name: 'Mauler', cls: 'veh', cost: 6, atk: 5, def: 4, mv: 2, rarity: 'uncommon', desc: 'Main battle tank.' },
     ark: { name: 'Ark', cls: 'sea', cost: 4, atk: 0, def: 3, mv: 4, rarity: 'uncommon', ability: 'transport', desc: 'Transport. Carries up to 3 land units across the sea.' },
     marlin: { name: 'Marlin', cls: 'sea', cost: 7, atk: 5, def: 4, mv: 4, range: 2, rarity: 'rare', desc: 'Destroyer. Shells coasts and ships 2 hexes away.' },
     basilisk: { name: 'Basilisk', cls: 'art', cost: 7, atk: 7, def: 2, mv: 1, range: 3, rarity: 'rare', desc: 'Rocket artillery truck. Fires 3 hexes.' },
     ranger: { name: 'Ranger', cls: 'inf', cost: 6, atk: 4, def: 3, mv: 3, rarity: 'rare', ability: 'pathfinder', desc: 'Pathfinders: rough terrain costs only 1 move.' },
-    skyguard: { name: 'Skyguard', cls: 'veh', cost: 7, atk: 3, def: 1, mv: 3, range: 2, rarity: 'rare', ability: 'aa', aa: 6, desc: 'Air defence truck. Fires at aircraft 2 hexes away (+6 Chips vs aircraft); 50% to shoot down air strikes within 2. Weak against ground troops.' },
+    skyguard: { name: 'Skyguard', cls: 'veh', cost: 7, atk: 3, def: 1, mv: 3, range: 2, rarity: 'rare', ability: 'aa', aa: 6, short: '+6 Chips vs air. Downs 50% of air strikes within 2.', desc: 'Air defence truck. Fires at aircraft 2 hexes away (+6 Chips vs aircraft); 50% to shoot down air strikes within 2. Weak against ground troops.' },
     hellcat: { name: 'Hellcat', cls: 'veh', cost: 7, atk: 6, def: 2, mv: 3, rarity: 'rare', ability: 'blitzer', desc: 'Strike tank. Can act on the turn it is deployed.' },
-    wraith: { name: 'Outrider', cls: 'veh', cost: 7, atk: 5, def: 3, mv: 5, rarity: 'rare', lift: 4, desc: 'Eight-wheeled fighting vehicle. 5 move: the fastest thing on the ground. Carries up to 4 Grunts.' },
+    wraith: { name: 'Outrider', cls: 'veh', cost: 7, atk: 5, def: 3, mv: 5, rarity: 'rare', lift: 4, short: '8-wheeled IFV. Fastest on the ground; carries 4 Grunts.', desc: 'Eight-wheeled fighting vehicle. 5 move: the fastest thing on the ground. Carries up to 4 Grunts.' },
     kraken: { name: 'Kraken', cls: 'sea', cost: 8, atk: 7, def: 2, mv: 4, rarity: 'rare', ability: 'torpedo', desc: 'Submarine. Torpedoes: +4 Chips vs ships.' },
     goliath: { name: 'Goliath', cls: 'veh', cost: 10, atk: 7, def: 6, mv: 1, rarity: 'epic', ability: 'siege', desc: 'Siege mortar tank. +2 Mult vs fortified hexes.' },
-    valkyrie: { name: 'Valkyrie', cls: 'air', cost: 10, atk: 6, def: 3, mv: 4, rarity: 'epic', ability: 'strafe', lift: 8, desc: 'Tiltrotor assault transport. Carries up to 8 Grunts over mountains and water (it sets them down on land). Strafing Run: +2 Mult attacking ground targets.' },
+    valkyrie: { name: 'Valkyrie', cls: 'air', cost: 10, atk: 6, def: 3, mv: 4, rarity: 'epic', ability: 'strafe', lift: 8, short: 'Tiltrotor. Carries 8 Grunts; +2 Mult vs ground.', desc: 'Tiltrotor assault transport. Carries up to 8 Grunts over mountains and water (it sets them down on land). Strafing Run: +2 Mult attacking ground targets.' },
     // helicopters
-    wren: { name: 'Wren', cls: 'air', cost: 5, atk: 2, def: 0, mv: 5, rarity: 'rare', ability: 'strafe', lift: 2, heli: true, desc: 'Light assault helicopter. Fast, with 2 Grunts riding on its benches. Strafing Run: +2 Mult attacking ground targets.' },
-    ravager: { name: 'Ravager', cls: 'air', cost: 7, atk: 4, def: 1, mv: 4, rarity: 'rare', ability: 'strafe', heli: true, desc: 'Armoured attack helicopter with a chin cannon. Strafing Run: +2 Mult attacking ground targets.' },
-    mule: { name: 'Mule', cls: 'air', cost: 6, atk: 1, def: 1, mv: 4, rarity: 'rare', lift: 8, heli: true, desc: 'Tandem-rotor heavy-lift helicopter. Barely armed, but carries up to 8 Grunts over mountains and water (it sets them down on land).' },
-    stormcrow: { name: 'Stormcrow', cls: 'air', cost: 9, atk: 3, def: 2, mv: 4, rarity: 'epic', lift: 6, heli: true, desc: 'Utility helicopter with door guns. Carries up to 6 Grunts over mountains and water (it sets them down on land).' },
-    phantom: { name: 'Phantom', cls: 'air', cost: 10, atk: 7, def: 3, mv: 5, rarity: 'epic', ability: 'stealth', desc: 'Stealth bomber. Immune to artillery, airstrikes and bombardment.' },
-    hailstorm: { name: 'Hailstorm', cls: 'art', cost: 11, atk: 9, def: 3, mv: 2, range: 4, rarity: 'epic', ability: 'salvo', desc: 'Tracked rocket launcher (MLRS). Range 4. A hit also rains rockets on every enemy stack next to the target: 1 unit each.' },
-    sentinel: { name: 'Sentinel', cls: 'art', cost: 9, atk: 6, def: 1, mv: 1, range: 3, rarity: 'epic', ability: 'sam', aa: 7, desc: 'Patriot SAM battery. Fires at aircraft 3 hexes away (+7 Chips vs aircraft); 60% to shoot down air strikes within 3, and can intercept a Trident missile. Weak against ground troops.' },
-    grumble: { name: 'Grumble', cls: 'veh', cost: 10, atk: 5, def: 1, mv: 1, range: 3, rarity: 'epic', ability: 'sam', aa: 7, desc: 'S-300 long-range SAM launcher. Fires at aircraft 3 hexes away (+7 Chips vs aircraft); 55% to shoot down air strikes within 3, and can intercept a Trident missile. Weak against ground troops.' },
+    wren: { name: 'Wren', cls: 'air', cost: 5, atk: 2, def: 0, mv: 5, rarity: 'rare', ability: 'strafe', lift: 2, heli: true, short: 'Light heli. Carries 2 Grunts; +2 Mult vs ground.', desc: 'Light assault helicopter. Fast, with 2 Grunts riding on its benches. Strafing Run: +2 Mult attacking ground targets.' },
+    ravager: { name: 'Ravager', cls: 'air', cost: 7, atk: 4, def: 1, mv: 4, rarity: 'rare', ability: 'strafe', heli: true, short: 'Armoured attack heli. +2 Mult vs ground.', desc: 'Armoured attack helicopter with a chin cannon. Strafing Run: +2 Mult attacking ground targets.' },
+    mule: { name: 'Mule', cls: 'air', cost: 6, atk: 1, def: 1, mv: 4, rarity: 'rare', lift: 8, heli: true, short: 'Heavy-lift heli. Carries 8 Grunts over anything.', desc: 'Tandem-rotor heavy-lift helicopter. Barely armed, but carries up to 8 Grunts over mountains and water (it sets them down on land).' },
+    stormcrow: { name: 'Stormcrow', cls: 'air', cost: 9, atk: 3, def: 2, mv: 4, rarity: 'epic', lift: 6, heli: true, short: 'Utility heli. Carries 6 Grunts over anything.', desc: 'Utility helicopter with door guns. Carries up to 6 Grunts over mountains and water (it sets them down on land).' },
+    phantom: { name: 'Phantom', cls: 'air', cost: 10, atk: 7, def: 3, mv: 5, rarity: 'epic', ability: 'stealth', short: 'Stealth bomber. Immune to artillery and air strikes.', desc: 'Stealth bomber. Immune to artillery, airstrikes and bombardment.' },
+    hailstorm: { name: 'Hailstorm', cls: 'art', cost: 11, atk: 9, def: 3, mv: 2, range: 4, rarity: 'epic', ability: 'salvo', short: 'MLRS. A hit also kills 1 in each enemy stack beside it.', desc: 'Tracked rocket launcher (MLRS). Range 4. A hit also rains rockets on every enemy stack next to the target: 1 unit each.' },
+    sentinel: { name: 'Sentinel', cls: 'art', cost: 9, atk: 6, def: 1, mv: 1, range: 3, rarity: 'epic', ability: 'sam', aa: 7, short: '+7 Chips vs air. Downs 60% of strikes. Stops Tridents.', desc: 'Patriot SAM. Fires at aircraft 3 hexes away (+7 Chips vs air), downs 60% of air strikes within 3 and stops Tridents. Weak vs ground troops.' },
+    grumble: { name: 'Grumble', cls: 'veh', cost: 10, atk: 5, def: 1, mv: 1, range: 3, rarity: 'epic', ability: 'sam', aa: 7, short: '+7 Chips vs air. Downs 55% of strikes. Stops Tridents.', desc: 'S-300 SAM launcher. Fires at aircraft 3 hexes away (+7 Chips vs aircraft), downs 55% of air strikes within 3 and intercepts Tridents. Weak vs ground troops.' },
     bastion: { name: 'Bastion', cls: 'sea', cost: 11, atk: 8, def: 8, mv: 3, range: 3, rarity: 'epic', desc: 'Battleship. Long guns, range 3.' },
     leviathan: { name: 'Leviathan', cls: 'veh', cost: 14, atk: 12, def: 10, mv: 1, rarity: 'legendary', ability: 'juggernaut', desc: 'Land dreadnought. Never suffers pyrrhic losses.' },
-    titan: { name: 'Titan', cls: 'veh', cost: 16, atk: 13, def: 12, mv: 1, rarity: 'legendary', ability: 'titan', desc: 'Landship with naval guns. Siege Breaker and never suffers pyrrhic losses.' },
-    seraph: { name: 'Seraph', cls: 'air', cost: 12, atk: 9, def: 4, mv: 5, rarity: 'legendary', ability: 'strafe', desc: 'Heavy gunship. Strafing Run: +2 Mult attacking ground targets.' },
-    banshee: { name: 'Banshee', cls: 'air', cost: 14, atk: 8, def: 2, mv: 4, rarity: 'legendary', ability: 'hellfire', heli: true, desc: 'Attack helicopter with anti-tank missiles. Hellfire: +3 Chips against vehicles, and Strafing Run: +2 Mult attacking ground targets.' },
-    carrier: { name: 'Carrier', cls: 'sea', cost: 13, atk: 2, def: 2, mv: 1, rarity: 'legendary', ability: 'carrier', desc: 'Floating airbase: deploy aircraft onto it and fly them off it. Holds 4.' },
-    oracle: { name: 'Oracle', cls: 'art', cost: 11, atk: 8, def: 3, mv: 2, range: 4, rarity: 'legendary', ability: 'orbital', desc: 'Satellite-guided missile launcher. Range 4, fires over mountains.' },
-    trident: { name: 'Trident', cls: 'sea', cost: 16, atk: 10, def: 4, mv: 3, range: 4, rarity: 'legendary', ability: 'ballistic', desc: 'Missile submarine. Fires at any troops or buildings within 4, over mountains; a hit kills one extra unit. Only Sentinel and Grumble batteries can intercept it.' },
-    abyssal: { name: 'Abyssal', cls: 'sea', cost: 15, atk: 12, def: 10, mv: 3, range: 4, rarity: 'legendary', ability: 'juggernaut', desc: 'Sea dreadnought. Range 4. Never suffers pyrrhic losses.' },
+    titan: { name: 'Titan', cls: 'veh', cost: 16, atk: 13, def: 12, mv: 1, rarity: 'legendary', ability: 'titan', short: 'Landship. Siege Breaker; never takes pyrrhic losses.', desc: 'Landship with naval guns. Siege Breaker and never suffers pyrrhic losses.' },
+    seraph: { name: 'Seraph', cls: 'air', cost: 12, atk: 9, def: 4, mv: 5, rarity: 'legendary', ability: 'strafe', short: 'Heavy gunship. +2 Mult vs ground.', desc: 'Heavy gunship. Strafing Run: +2 Mult attacking ground targets.' },
+    banshee: { name: 'Banshee', cls: 'air', cost: 14, atk: 8, def: 2, mv: 4, rarity: 'legendary', ability: 'hellfire', heli: true, short: 'Attack heli. +3 Chips vs vehicles, +2 Mult vs ground.', desc: 'Attack helicopter with anti-tank missiles. Hellfire: +3 Chips against vehicles, and Strafing Run: +2 Mult attacking ground targets.' },
+    carrier: { name: 'Carrier', cls: 'sea', cost: 13, atk: 2, def: 2, mv: 1, rarity: 'legendary', ability: 'carrier', short: 'Floating airbase. Holds 4 aircraft.', desc: 'Floating airbase: deploy aircraft onto it and fly them off it. Holds 4.' },
+    oracle: { name: 'Oracle', cls: 'art', cost: 11, atk: 8, def: 3, mv: 2, range: 4, rarity: 'legendary', ability: 'orbital', short: 'Satellite-guided missiles. Fires over mountains.', desc: 'Satellite-guided missile launcher. Range 4, fires over mountains.' },
+    trident: { name: 'Trident', cls: 'sea', cost: 16, atk: 10, def: 4, mv: 3, range: 4, rarity: 'legendary', ability: 'ballistic', short: 'Missile sub. Fires over mountains; a hit kills 1 extra.', desc: 'Missile submarine. Fires at any troops or buildings within 4, over mountains; a hit kills one extra unit. Only Sentinel and Grumble batteries can intercept it.' },
+    abyssal: { name: 'Abyssal', cls: 'sea', cost: 15, atk: 12, def: 10, mv: 3, range: 4, rarity: 'legendary', ability: 'juggernaut', short: 'Sea dreadnought. Never takes pyrrhic losses.', desc: 'Sea dreadnought. Range 4. Never suffers pyrrhic losses.' },
   };
 
   // target: none | ownHex | ownStack | spawn | enemyUnits | heli | enemyStruct | area | nuke | mutiny
@@ -168,33 +168,33 @@
     // battle cards: thrown into a fight before the dice roll (attacker and defender both get the chance), or readied on your turn for your next attack
     ambush: { name: 'Ambush', rarity: 'common', cost: 1, target: 'battle', battle: 'def', fx: { per: 2 }, desc: 'Battle card (defence): your defenders get +2 Chips each in this fight.' },
     holdfast: { name: 'Hold Fast', rarity: 'common', cost: 1, target: 'battle', battle: 'def', fx: { mult: 2 }, desc: 'Battle card (defence): +2 Mult to your side in this fight.' },
-    bayonets: { name: 'Fix Bayonets', rarity: 'common', cost: 1, target: 'battle', battle: 'att', fx: { per: 1 }, desc: 'Battle card (attack): your attackers get +1 Chip each. Ready it on your turn, or throw it in before the dice.' },
+    bayonets: { name: 'Fix Bayonets', rarity: 'common', cost: 1, target: 'battle', battle: 'att', fx: { per: 1 }, short: 'Battle card (attack): your attackers get +1 Chip each.', desc: 'Battle card (attack): your attackers get +1 Chip each. Ready it on your turn, or throw it in before the dice.' },
     barrage: { name: 'Covering Barrage', rarity: 'rare', cost: 2, target: 'battle', battle: 'any', fx: { mult: 3 }, desc: 'Battle card (attack or defence): +3 Mult to your side.' },
     reserves: { name: 'Reserves', rarity: 'rare', cost: 2, target: 'battle', battle: 'any', fx: { per: 2 }, desc: 'Battle card (attack or defence): every unit on your side gets +2 Chips.' },
     steady: { name: 'Steady Nerves', rarity: 'rare', cost: 2, target: 'battle', battle: 'any', fx: { steady: true }, desc: 'Battle card (attack or defence): your die never rolls below 3.' },
     smoke: { name: 'Smoke Screen', rarity: 'common', cost: 1, target: 'ownHex', desc: 'A hex you own gets +2 Mult on defence until your next turn.' },
     march: { name: 'Forced March', rarity: 'common', cost: 1, target: 'ownStack', desc: 'Units on one hex may act again, with +2 move.' },
-    rally: { name: 'Rally', rarity: 'common', cost: 1, target: 'battle', battle: 'att', fx: { mult: 2 }, desc: 'Battle card (attack): +2 Mult. Ready it on your turn for your next attack, or throw it in before the dice.' },
+    rally: { name: 'Rally', rarity: 'common', cost: 1, target: 'battle', battle: 'att', fx: { mult: 2 }, short: 'Battle card (attack): +2 Mult.', desc: 'Battle card (attack): +2 Mult. Ready it on your turn for your next attack, or throw it in before the dice.' },
     fortify: { name: 'Fortify', rarity: 'common', cost: 2, target: 'ownHex', desc: 'Build or upgrade a Bunker on one of your hexes for free (on your HQ hex it fortifies the HQ instead).' },
     conscript: { name: 'Conscription', rarity: 'common', cost: 1, target: 'spawn', desc: 'Deploy 5 free Grunts at a deploy point (as many as fit).' },
-    kamikaze: { name: 'Kamikaze Drone', rarity: 'common', cost: 2, target: 'enemyUnits', range: 5, desc: 'A loitering munition dives on a target within 5 of your land. Troops: roll 4+ kills 1. Undefended buildings: knocks a level off one.' },
-    cruise: { name: 'Cruise Missile', rarity: 'epic', cost: 5, target: 'precision', range: 8, desc: 'A missile at any hex within 8 of your land, over mountains: kills the strongest unit on a 2+ (and the next strongest too on a 5+), or destroys a building outright.' },
-    gunrun: { name: 'Gun Run', rarity: 'common', cost: 2, target: 'enemyUnits', range: 3, desc: 'Attack jet, within 3 of your land. Troops: roll 3+ kills 1. Undefended buildings: knocks a level off one.' },
-    airstrike: { name: 'Airstrike', rarity: 'uncommon', cost: 4, target: 'enemyUnits', range: 4, desc: 'Bomb a hex within 4 of your land. Troops: roll to kill 1–3. Undefended buildings: knocks 1–2 levels off them.' },
+    kamikaze: { name: 'Kamikaze Drone', rarity: 'common', cost: 2, target: 'enemyUnits', range: 5, short: 'Drone within 5: kills 1 on a 4+, or a level off an undefended building.', desc: 'A loitering munition dives on a target within 5 of your land. Troops: roll 4+ kills 1. Undefended buildings: knocks a level off one.' },
+    cruise: { name: 'Cruise Missile', rarity: 'epic', cost: 5, target: 'precision', range: 8, short: 'Any hex within 8, over mountains: kills its strongest unit on a 2+, or a building.', desc: 'A missile at any hex within 8 of your land, over mountains: kills the strongest unit on a 2+ (and the next strongest too on a 5+), or destroys a building outright.' },
+    gunrun: { name: 'Gun Run', rarity: 'common', cost: 2, target: 'enemyUnits', range: 3, short: 'Jet strike within 3: kills 1 on a 3+, or a level off an undefended building.', desc: 'Attack jet, within 3 of your land. Troops: roll 3+ kills 1. Undefended buildings: knocks a level off one.' },
+    airstrike: { name: 'Airstrike', rarity: 'uncommon', cost: 4, target: 'enemyUnits', range: 4, short: 'Bomb a hex within 4: kills 1–3 troops, or 1–2 levels off an undefended building.', desc: 'Bomb a hex within 4 of your land. Troops: roll to kill 1–3. Undefended buildings: knocks 1–2 levels off them.' },
     heli: { name: 'Heli Drop', rarity: 'uncommon', cost: 3, target: 'heli', range: 5, desc: 'Fly a stack up to 5 hexes onto any empty land and seize it.' },
     sabotage: { name: 'Sabotage', rarity: 'uncommon', cost: 3, target: 'enemyStruct', range: 3, desc: 'Destroy an enemy structure (or bridge) within 3 of your land.' },
     embargo: { name: 'Embargo', rarity: 'uncommon', cost: 3, target: 'enemyHex', desc: 'Click any enemy territory: that commander earns half income for their next 2 turns and cannot trade.' },
     bounty: { name: 'Bounty', rarity: 'uncommon', cost: 1, target: 'none', desc: 'This turn, every enemy unit you destroy pays a fifth of your income (min $2).' },
-    precision: { name: 'Precision Strike', rarity: 'rare', cost: 5, target: 'precision', range: 5, desc: 'Guided bomb within 5 of your land, hard for anti-air to catch. Kills the strongest unit (2 on a 5+), or destroys a building.' },
-    strategic: { name: 'Strategic Bombing', rarity: 'rare', cost: 5, target: 'infra', range: 6, desc: 'Bombers hit an enemy hex within 6 and its neighbours: their economic buildings lose a level, that land pays nothing for 2 turns, and each enemy unit under the bombs has a 30% chance to be destroyed.' },
-    quarry: { name: 'Quarry Blast', rarity: 'rare', cost: 3, target: 'mountain', range: 3, desc: 'Blast a mountain within 3 of your land, and the mountain behind it, down into Highlands: a 2-hex pass.' },
-    spy: { name: 'Spy Ring', rarity: 'epic', cost: 3, target: 'enemyHand', desc: 'Steal a random card a rival has earned (a tactic or a unit, never their starting cards). They will not forgive you easily.' },
+    precision: { name: 'Precision Strike', rarity: 'rare', cost: 5, target: 'precision', range: 5, short: 'Guided bomb within 5, hard to shoot down: kills the strongest unit, or a building.', desc: 'Guided bomb within 5 of your land, hard for anti-air to catch. Kills the strongest unit (2 on a 5+), or destroys a building.' },
+    strategic: { name: 'Strategic Bombing', rarity: 'rare', cost: 5, target: 'infra', range: 6, short: 'Bomb a hex within 6 and around it: a level off buildings, no income 2 turns, 30% kills.', desc: 'Bombers hit an enemy hex within 6 and its neighbours: their economic buildings lose a level, that land pays nothing for 2 turns, and each enemy unit under the bombs has a 30% chance to be destroyed.' },
+    quarry: { name: 'Quarry Blast', rarity: 'rare', cost: 3, target: 'mountain', range: 3, short: 'Blast a mountain within 3 (and the one behind) into a 2-hex pass.', desc: 'Blast a mountain within 3 of your land, and the mountain behind it, down into Highlands: a 2-hex pass.' },
+    spy: { name: 'Spy Ring', rarity: 'epic', cost: 3, target: 'enemyHand', short: 'Steal a random card a rival has earned. They won\'t forgive you.', desc: 'Steal a random card a rival has earned (a tactic or a unit, never their starting cards). They will not forgive you easily.' },
     bonds: { name: 'War Bonds', rarity: 'rare', cost: 0, target: 'none', desc: 'Gain $1 for every 2 hexes you own.' },
     blitz: { name: 'Blitz Doctrine', rarity: 'rare', cost: 3, target: 'none', desc: 'This turn: all units +1 move, fresh units may act.' },
     drop_rare: { name: 'Supply Drop', rarity: 'rare', cost: 0, target: 'none', desc: 'Spin the reel for a card pack (60% Standard · 32% Gilded · 8% Mythic), then keep 1 of 3 cards.' },
     emp: { name: 'EMP Burst', rarity: 'epic', cost: 4, target: 'area', range: 5, desc: 'Enemy units in a 1-hex radius are frozen for their next turn.' },
     drop_epic: { name: 'Supply Drop', rarity: 'epic', cost: 0, target: 'none', desc: 'Spin the reel for a card pack (15% Standard · 55% Gilded · 30% Mythic), then keep 1 of 3 cards.' },
-    buster: { name: 'Bunker Buster', rarity: 'epic', cost: 6, target: 'buster', range: 5, desc: 'Enemy hex within 5 of your land: knocks 2 levels off its Bunker, FOB or Mines (HQ to ★ at most) and kills up to 2 units.' },
+    buster: { name: 'Bunker Buster', rarity: 'epic', cost: 6, target: 'buster', range: 5, short: 'Hex within 5: 2 levels off its Bunker, FOB or Mines, and kills up to 2.', desc: 'Enemy hex within 5 of your land: knocks 2 levels off its Bunker, FOB or Mines (HQ to ★ at most) and kills up to 2 units.' },
     carpet: { name: 'Carpet Bombing', rarity: 'epic', cost: 7, target: 'area', range: 4, desc: 'Bomb a hex and its neighbours: each enemy unit there has a 50% chance to be destroyed.' },
     orbital: { name: 'Orbital Strike', rarity: 'epic', cost: 8, target: 'orbital', range: 6, desc: 'Erase every enemy unit on one hex within 6 of your land. Air defence can\'t stop it.' },
     nuke: { name: 'Tactical Nuke', rarity: 'legendary', cost: 10, target: 'nuke', range: 6, desc: 'Erase everything in a 1-hex radius. Leaves a fallout zone for 4 rounds.' },
@@ -203,7 +203,7 @@
     tsar: { name: 'Tsar Bomba', rarity: 'mythic', cost: 14, target: 'tsar', range: 7, desc: 'Erase everything in a 9-hex blast. Fallout for 5 rounds. HQs survive; their troops do not.' },
     regime: { name: 'Regime Change', rarity: 'mythic', cost: 10, target: 'regime', range: 4, desc: 'An enemy hex within 4 and their land around it flip to you (not HQs). Their troops there join you.' },
     // (the id is still 'aegis': this card replaced Aegis Protocol, and old saves and owned card skins carry over)
-    aegis: { name: 'Industrial Revolution', rarity: 'mythic', cost: 8, target: 'none', desc: 'Every building you own goes up a level at once, free and ready straight away: HQ, FOBs, Warehouses, Refineries, Depots, Bunkers, Sea Mines and Airbases (up to ★★★).' },
+    aegis: { name: 'Industrial Revolution', rarity: 'mythic', cost: 8, target: 'none', short: 'Every building you own goes up a level, free (up to ★★★).', desc: 'Every building you own goes up a level at once, free and ready straight away: HQ, FOBs, Warehouses, Refineries, Depots, Bunkers, Sea Mines and Airbases (up to ★★★).' },
   };
 
   // structures are the economy/base layer, separate from the unit deck
@@ -718,7 +718,7 @@
   }
   function startDraft(state) {
     state.phase = 'draft';
-    pushLog(state, 'Sector ' + (state.seed % 9000 + 1000) + ' (' + state.map.arch + ') deployed. ' + state.players.length + ' commanders — opening draft!');
+    pushLog(state, 'Sector ' + (state.seed % 9000 + 1000) + ' (' + state.map.arch + ') deployed. ' + state.players.length + ' commanders. Opening draft!');
     for (const p of state.players) { state.draft.offers[p.id] = drawCards(state, p, 3, DRAFT_ODDS, Math.random); state.draft.step[p.id] = 0; }
     return [{ e: 'draft', round: 1 }];
   }
@@ -735,7 +735,7 @@
     let hex = a.hex;
     const ok = spawnChoices(s);
     if (a.auto || !ok.includes(hex)) {
-      if (!a.auto) return { ok: false, err: 'Pick a highlighted hex — too close to another HQ or bad ground', events: [] };
+      if (!a.auto) return { ok: false, err: 'Pick a highlighted hex: that one is too close to another HQ, or bad ground', events: [] };
       hex = ok[0] || sp.fallback.find(k => s.players.every(o => o.hq !== k && (!o.hq || dist(o.hq, k) >= 3)));
     }
     placeHQ(s, p, hex);
@@ -1342,7 +1342,7 @@
     }
     // everyone who didn't advance goes back to where they started
     for (const g of groups) for (const u of g.units) if (s.units[u.id] && u.hex !== target) u.hex = g.from;
-    pushLog(s, '⚔ ' + (ap ? ap.name : '?') + (groups.length > 1 ? ' launched a ' + groups.length + '-way assault on ' : ' attacked ') + (dp ? dp.name : 'a garrison') + ' — ' + aScore + ' vs ' + dScore + (crush ? ' · OBLITERATED' : attWin ? ' · WIN' : ' · REPELLED'));
+    pushLog(s, '⚔ ' + (ap ? ap.name : '?') + (groups.length > 1 ? ' launched a ' + groups.length + '-way assault on ' : ' attacked ') + (dp ? dp.name : 'a garrison') + ': ' + aScore + ' vs ' + dScore + (crush ? ' · OBLITERATED' : attWin ? ' · WIN' : ' · REPELLED'));
     return attWin;
   }
   function resolveFire(s, pid, units, from, target, rng, ev) {
@@ -1379,7 +1379,7 @@
       attWin, crush, killed: killed.map(u => u.id), pyrrhic: [], winProb: calc.winProb,
     });
     const ap = player(s, pid), dp = player(s, defPid);
-    pushLog(s, '💥 ' + (ap ? ap.name : '?') + ' shelled ' + (dp ? dp.name : '?') + ' — ' + aScore + ' vs ' + dScore + (attWin ? ' · HIT' : ' · MISS'));
+    pushLog(s, '💥 ' + (ap ? ap.name : '?') + ' shelled ' + (dp ? dp.name : '?') + ': ' + aScore + ' vs ' + dScore + (attWin ? ' · HIT' : ' · MISS'));
   }
   // ── moods: how every commander feels about every other (-100..100). Bots use them for pacts and grudges ──
   function moodOf(s, a, b) { return (s.moods && s.moods[a] && s.moods[a][b]) || 0; }
@@ -1821,7 +1821,7 @@
     if (x.ending) return { ok: false, err: 'This alliance is breaking up', events: [] };
     if (x.until - s.turn.round > 2) return { ok: false, err: 'You can renew in the last 2 rounds of the pact', events: [] };
     if (blocOf(s, p.id).size > blocCap(s)) return { ok: false, err: 'Your alliance is too big for the commanders left (at most ' + blocCap(s) + '): it will lapse', events: [] };
-    x.renew = x.renew || {}; if (x.renew[p.id]) return { ok: false, err: 'Already renewed — waiting for your ally', events: [] };
+    x.renew = x.renew || {}; if (x.renew[p.id]) return { ok: false, err: 'Already renewed: waiting for your ally', events: [] };
     x.renew[p.id] = s.turn.round;
     const o = player(s, a.with);
     if (x.renew[a.with]) {
@@ -2650,7 +2650,7 @@
         }
         // being robbed makes enemies: a big grudge from the victim, and a little distrust from everyone else
         addMood(s, o.id, p.id, -30); for (const q of s.players) if (q.id !== o.id && q.id !== p.id) addMood(s, q.id, p.id, -5);
-        ev.push({ ...base, from: o.id, card, unit: !pick.c }); pushLog(s, '🕵 ' + p.name + ' stole a card from ' + o.name + ' — ' + o.name + ' is furious.'); break;
+        ev.push({ ...base, from: o.id, card, unit: !pick.c }); pushLog(s, '🕵 ' + p.name + ' stole a card from ' + o.name + '. ' + o.name + ' is furious.'); break;
       }
       case 'tsar': {
         const ar = tsarArea(s, a.target), dead = [];

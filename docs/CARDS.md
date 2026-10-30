@@ -14,7 +14,7 @@ Unit cards are permanent unlocks: deploy as many as you can afford.
 | **Skitter** | Vehicle | Common | $3 | 2 | 1 | 4 | – | Raider buggy. Grabs land fast. |
 | **Thumper** | Artillery | Common | $4 | 5 | 1 | 1 | 2 | Mortar crew. Fires 2 hexes instead of moving. |
 | **Barracuda** | Naval | Common | $4 | 3 | 2 | 4 | – | Fast gunboat. Claims sea lanes, raids coasts. |
-| **Stinger** | Infantry | Common | $3 | 1 | 1 | 2 | 1 | MANPADS team. Fires at aircraft 1 hex away (+3 Chips vs aircraft), and a 25% chance to shoot down air strikes on its hex. Weak against ground troops. |
+| **Stinger** | Anti-air | Common | $3 | 1 | 1 | 2 | 1 | MANPADS team. Fires at aircraft 1 hex away (+3 Chips vs aircraft), and a 25% chance to shoot down air strikes on its hex. Weak against ground troops. |
 | **Corpsman** | Infantry | Common | $3 | 1 | 3 | 2 | – | Medic squad. Its stack never suffers pyrrhic losses. |
 | **Hornet** | Air | Common | $4 | 2 | 1 | 4 | – | Scout drone. Flies over mountains and water and sees 3 hexes around it. |
 | **Jackal** | Vehicle | Uncommon | $3 | 3 | 2 | 4 | – | Light patrol truck with a heavy machine gun. Cheap, quick, hits above its weight. |
@@ -22,20 +22,28 @@ Unit cards are permanent unlocks: deploy as many as you can afford.
 | **Lancer** | Infantry | Uncommon | $5 | 3 | 2 | 2 | – | Tank Hunter: +3 Chips when fighting vehicles. |
 | **Warden** | Air | Uncommon | $4 | 1 | 3 | 3 | – | Airborne radar plane. Aegis: +1 Mult when its hex defends. |
 | **Sapper** | Infantry | Uncommon | $4 | 2 | 2 | 2 | – | Demolitions: +3 Chips attacking a hex with buildings. |
-| **Scorpion** | Vehicle | Uncommon | $5 | 2 | 1 | 3 | 2 | Self-propelled anti-air gun. Fires at aircraft 2 hexes away (+4 Chips vs aircraft); 35% to shoot down air strikes within 1. Weak against ground troops. |
+| **Scorpion** | Anti-air | Uncommon | $5 | 2 | 1 | 3 | 2 | Self-propelled anti-air gun. Fires at aircraft 2 hexes away (+4 Chips vs aircraft); 35% to shoot down air strikes within 1. Weak against ground troops. |
 | **Bulwark** | Vehicle | Uncommon | $6 | 3 | 5 | 3 | – | Armoured personnel carrier. Holds the line, and carries up to 4 Grunts with it at its own speed. |
 | **Mauler** | Vehicle | Uncommon | $6 | 5 | 4 | 2 | – | Main battle tank. |
 | **Ark** | Naval | Uncommon | $4 | 0 | 3 | 4 | – | Transport. Carries up to 3 land units across the sea. |
 | **Marlin** | Naval | Rare | $7 | 5 | 4 | 4 | 2 | Destroyer. Shells coasts and ships 2 hexes away. |
 | **Basilisk** | Artillery | Rare | $7 | 7 | 2 | 1 | 3 | Rocket artillery truck. Fires 3 hexes. |
 | **Ranger** | Infantry | Rare | $6 | 4 | 3 | 3 | – | Pathfinders: rough terrain costs only 1 move. |
-| **Skyguard** | Vehicle | Rare | $7 | 3 | 1 | 3 | 2 | Air defence truck. Fires at aircraft 2 hexes away (+6 Chips vs aircraft); 50% to shoot down air strikes within 2. Weak against ground troops. |
+| **Skyguard** | Anti-air | Rare | $7 | 3 | 1 | 3 | 2 | Air defence truck. Fires at aircraft 2 hexes away (+6 Chips vs aircraft); 50% to shoot down air strikes within 2. Weak against ground troops. |
 | **Hellcat** | Vehicle | Rare | $7 | 6 | 2 | 3 | – | Strike tank. Can act on the turn it is deployed. |
 | **Outrider** | Vehicle | Rare | $7 | 5 | 3 | 5 | – | Eight-wheeled fighting vehicle. 5 move: the fastest thing on the ground. Carries up to 4 Grunts. |
 | **Kraken** | Naval | Rare | $8 | 7 | 2 | 4 | – | Submarine. Torpedoes: +4 Chips vs ships. |
 | **Wren** | Air | Rare | $5 | 2 | 0 | 5 | – | Light assault helicopter. Fast, with 2 Grunts riding on its benches. Strafing Run: +2 Mult attacking ground targets. |
 | **Ravager** | Air | Rare | $7 | 4 | 1 | 4 | – | Armoured attack helicopter with a chin cannon. Strafing Run: +2 Mult attacking ground targets. |
 | **Mule** | Air | Rare | $6 | 1 | 1 | 4 | – | Tandem-rotor heavy-lift helicopter. Barely armed, but carries up to 8 Grunts over mountains and water (it sets them down on land). |
+| **Goliath** | Vehicle | Epic | $10 | 7 | 6 | 1 | – | Siege mortar tank. +2 Mult vs fortified hexes. |
+| **Valkyrie** | Air | Epic | $10 | 6 | 3 | 4 | – | Tiltrotor assault transport. Carries up to 8 Grunts over mountains and water (it sets them down on land). Strafing Run: +2 Mult attacking ground targets. |
+| **Stormcrow** | Air | Epic | $9 | 3 | 2 | 4 | – | Utility helicopter with door guns. Carries up to 6 Grunts over mountains and water (it sets them down on land). |
+| **Phantom** | Air | Epic | $10 | 7 | 3 | 5 | – | Stealth bomber. Immune to artillery, airstrikes and bombardment. |
+| **Hailstorm** | Artillery | Epic | $11 | 9 | 3 | 2 | 4 | Tracked rocket launcher (MLRS). Range 4. A hit also rains rockets on every enemy stack next to the target: 1 unit each. |
+| **Sentinel** | Anti-air | Epic | $9 | 6 | 1 | 1 | 3 | Patriot SAM. Fires at aircraft 3 hexes away (+7 Chips vs air), downs 60% of air strikes within 3 and stops Tridents. Weak vs ground troops. |
+| **Grumble** | Anti-air | Epic | $10 | 5 | 1 | 1 | 3 | S-300 SAM launcher. Fires at aircraft 3 hexes away (+7 Chips vs aircraft), downs 55% of air strikes within 3 and intercepts Tridents. Weak vs ground troops. |
+| **Bastion** | Naval | Epic | $11 | 8 | 8 | 3 | 3 | Battleship. Long guns, range 3. |
 | **Leviathan** | Vehicle | Legendary | $14 | 12 | 10 | 1 | – | Land dreadnought. Never suffers pyrrhic losses. |
 | **Titan** | Vehicle | Legendary | $16 | 13 | 12 | 1 | – | Landship with naval guns. Siege Breaker and never suffers pyrrhic losses. |
 | **Seraph** | Air | Legendary | $12 | 9 | 4 | 5 | – | Heavy gunship. Strafing Run: +2 Mult attacking ground targets. |
@@ -75,9 +83,19 @@ Single-use cards from your hand.
 | **War Bonds** | Rare | $0 | Gain $1 for every 2 hexes you own. |
 | **Blitz Doctrine** | Rare | $3 | This turn: all units +1 move, fresh units may act. |
 | **Supply Drop** | Rare | $0 | Spin the reel for a card pack (60% Standard · 32% Gilded · 8% Mythic), then keep 1 of 3 cards. |
+| **Cruise Missile** | Epic | $5 | A missile at any hex within 8 of your land, over mountains: kills the strongest unit on a 2+ (and the next strongest too on a 5+), or destroys a building outright. |
+| **Spy Ring** | Epic | $3 | Steal a random card a rival has earned (a tactic or a unit, never their starting cards). They will not forgive you easily. |
+| **EMP Burst** | Epic | $4 | Enemy units in a 1-hex radius are frozen for their next turn. |
+| **Supply Drop** | Epic | $0 | Spin the reel for a card pack (15% Standard · 55% Gilded · 30% Mythic), then keep 1 of 3 cards. |
+| **Bunker Buster** | Epic | $6 | Enemy hex within 5 of your land: knocks 2 levels off its Bunker, FOB or Mines (HQ to ★ at most) and kills up to 2 units. |
+| **Carpet Bombing** | Epic | $7 | Bomb a hex and its neighbours: each enemy unit there has a 50% chance to be destroyed. |
+| **Orbital Strike** | Epic | $8 | Erase every enemy unit on one hex within 6 of your land. Air defence can't stop it. |
 | **Tactical Nuke** | Legendary | $10 | Erase everything in a 1-hex radius. Leaves a fallout zone for 4 rounds. |
 | **Supply Drop** | Legendary | $0 | Spin the reel for a card pack (35% Gilded · 65% Mythic), then keep 1 of 3 cards. |
 | **Mutiny** | Legendary | $6 | An enemy stack (≤3) bordering your land defects to you. |
+| **Tsar Bomba** | Mythic | $14 | Erase everything in a 9-hex blast. Fallout for 5 rounds. HQs survive; their troops do not. |
+| **Regime Change** | Mythic | $10 | An enemy hex within 4 and their land around it flip to you (not HQs). Their troops there join you. |
+| **Industrial Revolution** | Mythic | $8 | Every building you own goes up a level at once, free and ready straight away: HQ, FOBs, Warehouses, Refineries, Depots, Bunkers, Sea Mines and Airbases (up to ★★★). |
 
 ## Structures
 

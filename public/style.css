@@ -944,7 +944,9 @@ body.compact #hud:not([hidden]) ~ #chatToggle, body.compact #chatToggle.show { d
 @keyframes snow { to { background-position: 46px 460px, 13px 330px, 0 0; } }
 #allyPop { position: fixed; top: 82px; right: 300px; z-index: 72; width: 310px; background: var(--panel); border: 3px solid #3fbf6a; border-radius: 14px; padding: 12px 14px; box-shadow: 0 5px 0 #000, 0 0 30px rgba(63,191,106,.35); animation: offerIn .45s cubic-bezier(.2,1.6,.4,1); font-size: 13px; line-height: 1.5; }
 #allyPop .op-h { font-family: var(--title); letter-spacing: 1.5px; color: #9cf0b4; margin-bottom: 4px; }
-#allyPop .row { margin-top: 8px; gap: 8px; }
+#allyPop .row { margin-top: 12px; gap: 10px; flex-wrap: nowrap; } #allyPop .row .btn { flex: 1 1 0; min-width: 0; }
+#allyPop, #offerPop { padding-bottom: 16px; }
+#allyPop .sub { margin-top: 4px; }
 .chipbtns { position: absolute; bottom: -14px; left: 50%; transform: translateX(-50%); display: flex; gap: 4px; }
 .chipbtns .tradebtn { position: static; transform: none; }
 .chipbtns .tradebtn:hover { transform: scale(1.12); }
@@ -1082,6 +1084,10 @@ body.planning #hexPanel { max-height: calc(100vh - 34vh - 200px); }
   background: linear-gradient(160deg, #ffffff, #eef6ff 40%, #f7efff 70%, #effff8) padding-box, linear-gradient(120deg, #ff4fd8, #ffe14f, #4fffb0, #4fd2ff, #b04fff, #ff4fd8) border-box !important;
   box-shadow: 0 6px 0 #000, 0 0 18px rgba(255,255,255,.9), 0 0 34px rgba(160,210,255,.55) !important; }
 .card.r-mythic .ci::before, .slot.r-mythic::before, .flip.open.r-mythic .cfront .ci::before { display: none; }
+/* mythic: the rainbow foil sweeps the pearl frame only, under the picture and the words (it was washing them out), and the type line is readable */
+.card.r-mythic .c-art, .card.r-mythic .c-name, .card.r-mythic .c-type, .card.r-mythic .c-stats, .card.r-mythic .c-desc, .card.r-mythic .c-up { position: relative; z-index: 1; }
+.card.r-mythic .c-type { color: #6b3fb8; }
+.card.r-mythic .c-art img { filter: none; }
 
 /* perf: sunburst sized to the screen (no 2x scale), so weak GPUs aren't compositing a ~10-megapixel layer every frame */
 .sd-rays { width: 110vmax !important; height: 110vmax !important; animation: sdSpin2 90s linear infinite !important; }
@@ -1109,6 +1115,10 @@ body.planning #hexPanel { max-height: calc(100vh - 34vh - 200px); }
 /* long card names shrink to fit instead of being cut off */
 .card .c-name.long, .c-name.long { font-size: 0.82em !important; letter-spacing: 0; }
 .card.zoomed .c-name.long, .offer .card .c-name.long { font-size: 16px !important; }
+/* card faces: a shorter picture leaves three lines for the text; the type line never wraps; very long names step down */
+.card .c-art { height: 44%; } .card.zoomed .c-art { height: 40%; } .card.mini .c-art { height: 56%; }
+.card .c-type { white-space: nowrap; letter-spacing: .6px; }
+.card .c-name.xlong { font-size: 0.7em !important; } .card.zoomed .c-name.xlong, .offer .card .c-name.xlong { font-size: 14px !important; }
 
 /* host kick button on in-game player chips */
 .pchip { position: relative; }
@@ -1648,7 +1658,7 @@ body.my-turn #hud::before { content: ''; position: fixed; inset: 0; pointer-even
 .title-wrap .logo { font-size: clamp(56px, 8.5vw, 120px); }
 body.in-room .title-wrap .logo { font-size: clamp(40px, 5vw, 70px); }
 body.in-room .title-wrap .tagline { display: none; }
-.host-btn { top: auto; bottom: 16px; right: 16px; }
+.host-btn { position: relative; top: auto; right: auto; bottom: auto; font-size: 12px; padding: 5px 10px; box-shadow: 0 3px 0 var(--d); }   /* in the top bar, so it never sits over the menu panels */
 .mm-bar { position: absolute; top: 12px; left: 16px; right: 16px; display: flex; justify-content: space-between; align-items: center; gap: 12px; z-index: 6; }
 .mm-stats { display: flex; align-items: center; gap: 6px; padding: 7px 14px; border-radius: 99px; background: rgba(12,19,26,.85); border: 2px solid var(--line); font-size: 13px; color: var(--dim); box-shadow: 0 3px 0 #000; }
 .mm-stats b { color: var(--ink); font-family: var(--title); font-weight: 400; letter-spacing: 1px; font-size: 15px; }
@@ -1711,8 +1721,8 @@ body.in-room .title-wrap .tagline { display: none; }
 .pt-code span { font-size: 10px; letter-spacing: 2px; color: var(--dim); font-weight: 800; }
 .pt-code b { font-family: var(--title); font-weight: 400; letter-spacing: 4px; color: var(--gold); font-size: 18px; flex: 1; }
 .pt-list { display: flex; flex-direction: column; gap: 6px; }
-.pt-m { width: 100%; box-sizing: border-box; cursor: pointer; padding: 6px 10px; }
-.pt-m .pn { display: flex; align-items: center; gap: 6px; }
+.pt-m { width: 100%; box-sizing: border-box; cursor: pointer; padding: 6px 10px; flex-wrap: nowrap; }
+.pt-m .pn { display: flex; align-items: center; gap: 6px; } .pt-m .pn { min-width: 0; flex: 1 1 auto; max-width: none; } .pt-nm { min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; } .pt-m .pn > :not(.pt-nm), .pt-m .ps { flex: none; }
 .pt-m .ps { display: flex; align-items: center; gap: 6px; }
 .pt-crown { color: var(--gold); font-style: normal; text-shadow: 0 0 6px rgba(255,197,61,.6); }
 .pt-you { font-size: 9px; padding: 1px 5px; border-radius: 4px; background: #36a3ff; color: #031018; letter-spacing: 1px; font-weight: 800; }
@@ -2083,3 +2093,8 @@ body.reeling #map { visibility: hidden; }
 /* the lobby's main button never hides below the fold: it stays pinned to the bottom of the screen while the settings scroll */
 #lobbyBox #startBtn, #lobbyBox #readyBtn { position: sticky; bottom: 12px; z-index: 3; box-shadow: 0 6px 0 var(--red-d, #8a1f2b), 0 10px 28px rgba(0,0,0,.6); }
 #log > * { pointer-events: auto; }   /* the log box is wider than its lines: only the lines catch clicks, the map shows through around them */
+/* a panel taller than the window scrolls instead of being cut off at the top (centring overflows both ways) */
+#victory, #rules { align-items: flex-start; overflow-y: auto; }
+#victory > *, #rules > * { margin-top: auto; margin-bottom: auto; }
+/* after the war: nothing left to build or deploy */
+body.war-over #dock, body.war-over #endBtn, body.war-over #marketBtn { display: none !important; }

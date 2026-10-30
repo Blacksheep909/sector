@@ -186,12 +186,22 @@ const Render = (() => {
     // the board's centre lands in the middle of the free area, not of the whole screen
     cam.tx = cam.x = (x0 + x1) / 2 - (p.l - p.r) / 2 / cam.z; cam.ty = cam.y = (y0 + y1) / 2 - 10 - (p.t - p.b) / 2 / cam.z;
   }
-  function pan(dx, dy) { cam.tx -= dx / cam.z; cam.ty -= dy / cam.z; cam.x = cam.tx; cam.y = cam.ty; }
+  // the camera's centre stays over the board (plus a small margin), so dragging can never lose the map off the screen
+  function clampCam() {
+    if (!S_ || !order.length) return;
+    let x0 = 1e9, x1 = -1e9, y0 = 1e9, y1 = -1e9;
+    for (const k of order) { const c = tc[k]; if (!c) continue; if (c.wx < x0) x0 = c.wx; if (c.wx > x1) x1 = c.wx; if (c.wy < y0) y0 = c.wy; if (c.wy > y1) y1 = c.wy; }
+    if (x0 > x1) return;
+    const m = 0, cx = v => Math.max(x0 - m, Math.min(x1 + m, v)), cy = v => Math.max(y0 - m, Math.min(y1 + m, v));
+    cam.tx = cx(cam.tx); cam.ty = cy(cam.ty); cam.x = cx(cam.x); cam.y = cy(cam.y);
+  }
+  function pan(dx, dy) { cam.tx -= dx / cam.z; cam.ty -= dy / cam.z; cam.x = cam.tx; cam.y = cam.ty; clampCam(); }
   function zoomAt(sx, sy, f) {
     const [wx, wy] = toWorld(sx, sy);
     cam.tz = Math.max(0.35, Math.min(2.6, cam.tz * f));
     // keep point under cursor fixed (instant for responsiveness)
     cam.z = cam.tz; cam.x = cam.tx = wx - (sx - W / 2) / cam.z; cam.y = cam.ty = wy - (sy - H / 2) / cam.z;
+    clampCam();
   }
 
   // ── picking ──

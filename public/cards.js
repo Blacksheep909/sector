@@ -27,15 +27,15 @@ const Cards = (() => {
     const up = d.kind === 'unit' && opts.upFrom != null && lv > opts.upFrom, upA = up && d.atk ? ' up' : '', upD = up ? ' up' : '';
     const ribbon = up ? `<div class="c-up">${d.atk ? `<span>⚔${d.atk + opts.upFrom}→${d.atk + lv}</span>` : ''}<span>🛡${d.def + opts.upFrom}→${d.def + lv}</span></div>` : '';
     if (d.kind === 'unit') stats = `<div class="c-stats"><span class="a${upA}" title="Attack">${d.atk + (d.atk ? lv : 0)}</span><span class="d${upD}" title="Defence">${d.def + lv}</span><span class="m" title="Move">${d.mv}</span>${d.range ? `<span class="r" title="Range">${d.range}</span>` : ''}</div>`;
-    const type = d.kind === 'unit' ? E.CLASS_NAME[d.cls] : 'Tactic';
+    const type = d.kind !== 'unit' ? 'Tactic' : d.ability === 'aa' || d.ability === 'sam' ? 'Anti-air' : E.CLASS_NAME[d.cls];
     c.innerHTML = `<div class="ci">
       <div class="c-top"><div class="c-cost">$${cost}</div><div class="c-gem" title="${E.RARITY[d.rarity].name}"></div></div>
       <div class="c-art"><img src="${Art.cardArt(id)}" alt=""></div>
       ${stars}
-      <div class="c-name${d.name.length > 12 ? ' long' : ''}">${d.name}</div>
+      <div class="c-name${d.name.length > 12 ? ' long' : ''}${d.name.length > 17 ? ' xlong' : ''}">${d.name}</div>
       <div class="c-type">${type} · ${E.RARITY[d.rarity].name}</div>
       ${stats}${ribbon}
-      <div class="c-desc">${d.desc}</div>
+      <div class="c-desc"${d.short && !opts.full ? ` title="${d.desc}"` : ''}>${opts.full ? d.desc : d.short || d.desc}</div>
       <div class="c-foil"></div><div class="c-shine"></div>
     </div>` + (opts.key ? `<span class="c-key">${opts.key}</span>` : '') + (opts.count ? `<span class="count">${opts.count}</span>` : '') + (opts.tag ? `<span class="c-tag">${opts.tag}</span>` : '');
     tilt(c);
@@ -641,7 +641,7 @@ const Cards = (() => {
     const lvl = (card.querySelector('.c-stars') || {}).textContent;
     // the enlarged copy shows the price the small card shows (what you'd pay now, e.g. $1 off in an Arms Fair round)
     const shown = parseInt(((card.querySelector('.c-cost') || {}).textContent || '').replace('$', ''), 10);
-    z.innerHTML = ''; const big = make(id, { level: lvl ? lvl.length : 0, cost: Number.isFinite(shown) ? shown : undefined }); big.classList.add('zoomed'); z.appendChild(big);
+    z.innerHTML = ''; const big = make(id, { full: true, level: lvl ? lvl.length : 0, cost: Number.isFinite(shown) ? shown : undefined }); big.classList.add('zoomed'); z.appendChild(big);
     const r = card.getBoundingClientRect(), W = 236, H = 336;
     let x = r.left + r.width / 2 - W / 2, y = r.top - H - 18;
     if (y < 8) y = Math.min(innerHeight - H - 8, r.bottom + 14);

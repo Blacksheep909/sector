@@ -31,10 +31,23 @@ let problems = 0;
         }
         if (bad) { const nm = n => (n.id ? '#' + n.id : '') + (n.className && typeof n.className === 'string' ? '.' + n.className.trim().split(/\\s+/).slice(0,2).join('.') : '') || n.tagName; const top = bad.closest('[id]'); out.push((e.id ? '#' + e.id : (e.textContent || '').trim().slice(0, 24)) + ' ← covered by ' + nm(bad) + (top && top !== bad ? ' (in #' + top.id + ')' : '')); }
       }
-      return { n: seen.size, layer: top ? '#' + (top.id || top.className) : 'page', screen: !document.querySelector('#hud').hidden ? 'game' : 'menu', covered: out, err: __err.splice(0) };
+      // spacing: a button (with its drop shadow) must sit at least 4px inside the edges of the panel around it
+      const tight = [];
+      for (const e of seen) {
+        if (!e.classList.contains('btn')) continue;
+        let p = e.parentElement; while (p && p !== document.body) { const s = getComputedStyle(p); if (parseFloat(s.borderBottomWidth) > 0 && s.borderBottomStyle !== 'none' && s.display !== 'inline') break; p = p.parentElement; }
+        if (!p || p === document.body) continue;
+        const ps = getComputedStyle(p), pr = p.getBoundingClientRect(), r = e.getBoundingClientRect();
+        if (ps.overflowY === 'auto' || ps.overflowY === 'scroll') continue;   // a scrolling list: the edge isn't a frame
+        const sh = /(-?\d+(?:\.\d+)?)px\s+(-?\d+(?:\.\d+)?)px/.exec(getComputedStyle(e).boxShadow) || [0, 0, 0];
+        const gB = pr.bottom - parseFloat(ps.borderBottomWidth) - (r.bottom + Math.max(0, +sh[2])), gL = r.left - pr.left - parseFloat(ps.borderLeftWidth), gR = pr.right - parseFloat(ps.borderRightWidth) - r.right, gT = r.top - pr.top - parseFloat(ps.borderTopWidth);
+        const g = Math.min(gB, gL, gR, gT);
+        if (g < 4 && g > -40) tight.push((e.id ? '#' + e.id : (e.textContent || '').trim().slice(0, 20)) + ' in ' + (p.id ? '#' + p.id : '.' + String(p.className).split(' ')[0]) + ' (' + Math.round(g) + 'px from the ' + (g === gB ? 'bottom' : g === gT ? 'top' : g === gL ? 'left' : 'right') + ')');
+      }
+      return { n: seen.size, layer: top ? '#' + (top.id || top.className) : 'page', screen: !document.querySelector('#hud').hidden ? 'game' : 'menu', covered: out, tight, err: __err.splice(0) };
     })())`));
-    const bad = r.covered.length + r.err.length; problems += bad;
-    console.log((bad ? 'PROBLEM ' : 'ok      ') + label + ' · ' + r.n + ' buttons on ' + r.screen + ' / ' + r.layer + (r.covered.length ? '\n          covered: ' + r.covered.join('\n                   ') : '') + (r.err.length ? '\n          errors: ' + r.err.join(' | ') : ''));
+    const bad = r.covered.length + r.err.length + r.tight.length; problems += bad;
+    console.log((bad ? 'PROBLEM ' : 'ok      ') + label + ' · ' + r.n + ' buttons on ' + r.screen + ' / ' + r.layer + (r.covered.length ? '\n          covered: ' + r.covered.join('\n                   ') : '') + (r.tight.length ? '\n          cramped: ' + r.tight.join('\n                   ') : '') + (r.err.length ? '\n          errors: ' + r.err.join(' | ') : ''));
     if (bad) await b.shot(path.join(process.env.AUDIT_OUT || os.tmpdir(), 'audit-' + label.replace(/[^a-z0-9]+/gi, '-') + '.png'));
   };
   const js = (code, wait = 600) => evalJS(code + '; true').then(() => sleep(wait));
@@ -65,6 +78,10 @@ let problems = 0;
   await audit('in a war (HUD)');
   await js(`(()=>{ const S=SECTOR_DEBUG.state(), me=SECTOR_DEBUG.you(), u=Object.values(S.units).find(u=>u.owner===me); if (u) SECTOR_DEBUG.click(u.hex); })()`, 800);
   await audit('in a war, a unit selected');
+  // an alliance offer from the bot (as the server would send it)
+  await js(`(()=>{ const S=SECTOR_DEBUG.state(), me=SECTOR_DEBUG.you(), o=S.players.find(p=>p.id!==me); S.allyOffer={from:o.id,to:me}; SECTOR_DEBUG.refresh(); })()`, 900);
+  await audit('alliance offer'); if (process.env.AUDIT_OUT) await b.shot(path.join(process.env.AUDIT_OUT, 'audit-alliance-offer.png'));
+  await js(`(()=>{ const S=SECTOR_DEBUG.state(); S.allyOffer=null; SECTOR_DEBUG.refresh(); })()`, 300);
   await esc(); await audit('Esc menu'); await esc();
   await js(`(()=>{ const l=[...document.querySelectorAll('#escMenu button')].find(x=>/LEAVE/i.test(x.textContent)); })()`);
   await esc(); await js(`(()=>{ const l=[...document.querySelectorAll('#escMenu button')].find(x=>/LEAVE/i.test(x.textContent)); l && l.click(); l && l.click(); })()`, 1800);

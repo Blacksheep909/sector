@@ -4,6 +4,15 @@ Every release, newest first. Each version also has its own post on the [Releases
 
 ## Unreleased
 
+- **🃏 Card text fits on the card.** Long card descriptions used to run off the bottom of the card. Every card now has a short line that fits at full size in the hand, the deploy bar, drafts, packs, the market and the index; hover a card (or zoom it) for the full rules. The picture is a little shorter to leave room for three lines, and the type line no longer wraps.
+- **Anti-air cards say Anti-air.** Stinger, Scorpion, Skyguard, Sentinel and Grumble now show **Anti-air** as their type instead of Infantry, Vehicle or Artillery.
+- **Mythic cards look cleaner.** The rainbow foil now sweeps the pearl frame only, instead of washing over the picture and the words, and the type line on a mythic card is readable.
+- **Alliance offer buttons:** ACCEPT and DECLINE share the width of the offer, with room below them.
+- **The SERVER button** (on the computer running the server) now sits in the front page's top bar, so it no longer covers the leaderboard on shorter screens.
+- **Long callsigns** are cut off with "…" in the party list instead of being clipped mid-letter and pushing out the YOU and status tags.
+- **After the war:** the top bar says WAR OVER instead of a round past the last one (like ROUND 16/15), the build bar, deck and END TURN go away, the chart's last point is labelled END, VIEW BOARD frames the whole map, and a tall victory screen scrolls instead of being cut off at the top.
+- **The map can't be dragged off screen:** panning and zooming keep the map in view.
+- **Tidier text:** the log, toasts and pause hint use proper punctuation, and the pause hint fits the kind of game you're in.
 - **🗺 Map themes.** A new **Map theme** lobby option sets the climate of the land: Mixed climates, Grasslands, Woodland, Desert, Badlands, Arctic, Jungle, Wetlands or Highlands. **Random** (the default) rolls one for each war. Each theme changes what the land is made of (deserts full of sand and red canyons, jungles you hack through, highlands full of ridges, wetlands of swamp and lakes) and its look: snowfields on arctic maps, dry scrub in the desert. The map reel names it as it lands.
 - **💣 Strategic Bombing actually bombs:** besides hitting buildings and stopping the land's income for 2 turns, each enemy unit under the bombs now has a 30% chance to be destroyed, and the strike says what it hit.
 - **No buildings in rivers:** nobody can stand in an unbridged river, and now nothing can be built in one either (only a Bridge).

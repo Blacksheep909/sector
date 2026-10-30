@@ -473,7 +473,7 @@ function onMessage(c, m) {
       if (game) {
         if (target.bot) return;
         const seats = [target.id, ...lobby.players.filter(p => p.local && p.controller === target.id).map(p => p.id)];
-        game.log.push('👢 ' + target.name + ' was removed by the host — a bot took over.');
+        game.log.push('👢 ' + target.name + ' was removed by the host. A bot took over.');
         botifySeats(seats, true);
         for (const cl of clients) if (seats.includes(cl.pid)) { send(cl, { t: 'kicked' }); cl.pid = null; cl.left = true; clients.delete(cl); }
         note(target.name.replace(/ \(bot\)$/, '') + ' was kicked by the host');
@@ -676,7 +676,7 @@ function startGame(c) {
   return afterChange();
 }
 function pushLeave(seats) {
-  for (const id of seats) { const gp = game.players.find(p => p.id === id); if (gp) game.log.push('🚪 ' + gp.name.replace(' (bot)', '') + ' left — a bot took over.'); }
+  for (const id of seats) { const gp = game.players.find(p => p.id === id); if (gp) game.log.push('🚪 ' + gp.name.replace(' (bot)', '') + ' left. A bot took over.'); }
   while (game.log.length > 40) game.log.shift();
 }
 
@@ -913,7 +913,7 @@ function onDisconnect(c) {
       if (!game || isConnected(pid)) return;
       botifySeats(seats, false);
       const p = lobby.players.find(x => x.id === pid);
-      if (p) { game.log.push('📡 ' + p.name + ' lost connection — a bot is covering until they return.'); note(p.name + ' is away: a bot took over'); }
+      if (p) { game.log.push('📡 ' + p.name + ' lost connection. A bot is covering until they return.'); note(p.name + ' is away: a bot took over'); }
       game.v++; broadcastLobby(); broadcastState([], null); afterChange();
     }, AWAY_GRACE);
   }
@@ -1082,7 +1082,7 @@ function forceEnd(pid) {
       lp.idle = actedKey === turnKey ? 0 : (lp.idle || 0) + 1;
       if (lp.idle >= 2) {
         botifySeats([pid], false); lp.afk = true; const gp = game.players.find(g => g.id === pid); if (gp) gp.afk = true;
-        game.log.push('💤 ' + lp.name + ' is AFK — a bot is covering until they are back.'); note(lp.name + ' is AFK: a bot took over');
+        game.log.push('💤 ' + lp.name + ' is AFK. A bot is covering until they are back.'); note(lp.name + ' is AFK: a bot took over');
         broadcastLobby();
       }
     } }

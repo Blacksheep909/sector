@@ -86,7 +86,7 @@
     }
     sessionStart = openSession;
     ws.onmessage = ev => onMsg(JSON.parse(ev.data));
-    ws.onclose = () => { if (closedFor) return; toast('Connection lost — reconnecting…', 'err'); setTimeout(connect, 1500); };
+    ws.onclose = () => { if (closedFor) return; toast('Connection lost. Reconnecting…', 'err'); setTimeout(connect, 1500); };
   }
   let joinedOnce = false, leftGame = false;
   const send = o => { if (ws && ws.readyState === 1) ws.send(JSON.stringify(o)); };
@@ -187,7 +187,7 @@
     const lost = before.filter(u => !next.units[u.id]); if (!lost.length) return;
     const why = events.some(e => e.e === 'drown') ? 'lost at sea' : events.some(e => e.e === 'evicted') ? 'cut off when a pact ended' : events.some(e => e.e === 'crash') ? 'went down with their transport' : events.some(e => e.e === 'tactic') ? 'hit by an enemy strike' : events.some(e => e.e === 'combat' || e.e === 'fogstop') ? 'killed in battle' : events.some(e => e.e === 'eliminate') ? 'lost with your HQ' : 'destroyed';
     const names = {}; for (const u of lost) names[E.UNITS[u.type].name] = (names[E.UNITS[u.type].name] || 0) + 1;
-    toast('💀 Lost ' + Object.entries(names).map(([n, c]) => (c > 1 ? c + '× ' : '') + n).join(', ') + ' — ' + why, 'err');
+    toast('💀 Lost ' + Object.entries(names).map(([n, c]) => (c > 1 ? c + '× ' : '') + n).join(', ') + ': ' + why, 'err');
     const at = lost[0].hex; if (at && S && S.map.tiles[at]) Render.ring(at, '#ff4f5e', 50, 0.8, 4);
   }
   function act(action) {
@@ -592,7 +592,7 @@
       if (Object.keys(r).some(k => r[k].kind === 'attack' && E.dist(k, hex) <= 1)) { delete marches[key]; toast('⚑ March halted: enemy contact', 'err'); Render.ring(hex, '#ff4f5e', 50, 0.6, 4); continue; }
       let best = null, bd = E.dist(hex, o.to);
       for (const k in r) { if (r[k].kind !== 'move' && r[k].kind !== 'capture') continue; const d = E.dist(k, o.to); if (d < bd || (d === bd && best && r[k].c < r[best].c)) { bd = d; best = k; } }
-      if (!best) { toast('⚑ March blocked — pick a new objective', 'err'); delete marches[key]; continue; }
+      if (!best) { toast('⚑ March blocked: pick a new objective', 'err'); delete marches[key]; continue; }
       const a = { a: 'move', from: hex, units: ids, to: best }; if (S.fogOn) a.path = E.pathTo(r, best);
       const ok = await act(a);
       if (ok) { moved++; if (best === o.to) { delete marches[key]; toast('⚑ March complete: troops reached their objective', 'good'); } }
@@ -876,7 +876,7 @@
       sel.extra = sel.extra || [];
       const i = sel.extra.findIndex(g => g.hex === k);
       if (i >= 0) sel.extra.splice(i, 1); else sel.extra.push({ hex: k, units: new Set(units.map(u => u.id)) });
-      SFX.select(); toast(sel.extra.length ? `${sel.extra.length + 1} stacks selected — click a red target for a pincer assault` : 'Back to one stack'); refreshAll(); return;
+      SFX.select(); toast(sel.extra.length ? `${sel.extra.length + 1} stacks selected: click a red target for a pincer assault` : 'Back to one stack'); refreshAll(); return;
     }
     sel = { hex: k, units: new Set(units.map(u => u.id)), extra: [] };
     SFX.select();
@@ -1035,7 +1035,7 @@
     if (!hexes.length) return;
     const grp = k => new Set(Object.values(ds.units).filter(u => u.hex === k && u.owner === you && E.canAct(ds, u)).map(u => u.id));
     sel = { hex: hexes[0], units: grp(hexes[0]), extra: hexes.slice(1).map(k => ({ hex: k, units: grp(k) })) };
-    SFX.select(); toast(`${hexes.length} stack${hexes.length > 1 ? 's' : ''} selected — click a hex to send them all, or a red target to attack together`); refreshAll();
+    SFX.select(); toast(`${hexes.length} stack${hexes.length > 1 ? 's' : ''} selected: click a hex to send them all, or a red target to attack together`); refreshAll();
   }, true);
   cvs.addEventListener('pointermove', e => {
     if (e.pointerType === 'touch') return;   // fingers are handled by the touch layer below
@@ -1230,7 +1230,7 @@
     $('#escInfo').textContent = mission ? 'Mission · turn ' + Math.min(S.scenario.turns || 99, (S.scenario.heroTurns || 0) + 1) + (S.scenario.turns ? ' of ' + S.scenario.turns : '')
       : (S.phase === 'over' ? 'Game over' : 'Round ' + S.turn.round) + ' · ' + (lobby ? lobby.players.length : S.players.length) + ' commanders' + (host && others ? ' · you are the host' : '');
     $('#escHint').textContent = mission ? 'Quit any time: the mission waits for you in Missions.'
-      : S.phase === 'over' ? '' : !others && !pub ? 'Your war saves itself as you play: carry on from Singleplayer.' : 'Leaving hands your empire to a bot so the others can keep playing.';
+      : S.phase === 'over' ? '' : !others && !pub ? (lobby && lobby.solo ? 'Your war saves itself as you play: carry on from Singleplayer.' : 'Your war saves itself as you play: carry on later from your saved wars.') : 'Leaving hands your empire to a bot so the others can keep playing.';
     $('#escSound').textContent = 'SOUND: ' + (SFX.muted ? 'OFF' : 'ON');
     $('#escAuto').textContent = 'AUTO-END TURN: ' + (autoEndOff ? 'OFF' : 'ON');
     $('#escLeave').textContent = spectator || !myP() || S.phase === 'over' ? 'BACK TO MENU' : mission ? 'QUIT MISSION' : 'LEAVE GAME';
@@ -1536,6 +1536,7 @@
     }
   }
   function renderTop() {
+    document.body.classList.toggle('war-over', S.phase === 'over');   // the board after a war is for looking at: the build bar, deck and hand step aside
     const box = $('#players'); box.innerHTML = '';
     // land is what scores (Conquest target, time-up winner), so that's the headline number; sea is in the tooltip
     const counts = {}, seas = {}; for (const k in S.map.tiles) { const t = S.map.tiles[k], o = t.owner; if (!o) continue; if (E.isLandTile(t)) counts[o] = (counts[o] || 0) + 1; else seas[o] = (seas[o] || 0) + 1; }
@@ -1546,7 +1547,7 @@
       const extra = S.map.beacon ? ` · ◆${p.koth}/3` : '';
       if (!p.alive) c.style.setProperty('--pc', '#5b6670');
       c.innerHTML = `<div class="av"><img src="${Art.iconURL('glyph', f ? f.glyph : 'shield', '#0b0f13', 48)}"></div><div><div class="pn">${esc(p.name)}${p.alive ? '' : ' <span class="out">☠ OUT</span>'}${p.team ? ` <span class="teamchip t${p.team}">${'ABCD'[p.team - 1]}</span>` : ''}${p.traitor ? ' <span class="out" title="Broke an alliance: -40% income and no new pacts">🗡 TRAITOR</span>' : ''}${moodTag(p)}</div><div class="ps"><span title="${counts[p.id] || 0} land hexes (what counts to win) + ${seas[p.id] || 0} sea">⬢ <b>${counts[p.id] || 0}</b></span><span>$<b>${p.cash}</b></span><span>🂠 <b>${p.tacticCount ?? p.tactics.length}</b></span>${extra}</div></div>`;
-      c.title = f ? f.name + ' — ' + f.perk + ': ' + f.desc : '';
+      c.title = f ? f.name + ' · ' + f.perk + ': ' + f.desc : '';
       c.onclick = () => { if (p.hq) Render.focus(p.hq); };
       if (saying[p.id]) sayOn(c, p.id, false);
       const allied = E.isAlly(S, you, p.id), pact = allied && (S.allies || []).find(x => (x.a === p.id || x.b === p.id) && (x.a === you || x.b === you));
@@ -1612,7 +1613,8 @@
       const mine = myP() ? land(you) : 0;
       modeTxt += `<div class="cq">${myP() ? `You <b>${mine}</b>/${need} · <b>${Math.max(0, need - mine)}</b> to go` : ''}${lead && lead.id !== you ? `<span> · leader ${esc(lead.name)} ${land(lead.id)}</span>` : ''}</div>`;
     }
-    $('#roundBox').innerHTML = `<b>ROUND ${S.turn.round}${S.settings.maxRounds ? '/' + S.settings.maxRounds : ''}</b>${modeTxt}`;
+    { const over = S.phase === 'over', r = S.settings.maxRounds ? Math.min(S.turn.round, S.settings.maxRounds) : S.turn.round;   // a war that ran its full length ends on its last round, not one past it
+      $('#roundBox').innerHTML = `<b>${over ? 'WAR OVER · ' : ''}ROUND ${r}${S.settings.maxRounds ? '/' + S.settings.maxRounds : ''}</b>${modeTxt}`; }
   }
 
   let shownCash = null;
@@ -3168,7 +3170,7 @@
       v.querySelectorAll('.wr-pane').forEach(p => { p.hidden = p.dataset.p !== b.dataset.wr; }); drawPane(b.dataset.wr);
     });
     for (let i = 0; i < 6; i++) setTimeout(() => { if (!S) return; const k = Object.keys(S.map.tiles).filter(k => S.map.tiles[k].owner === w.pid); const r = k[Math.floor(Math.random() * k.length)]; if (r) { Render.burst(r, [wp.color, '#fff', '#ffc53d'], 30, { speed: 1.6, up: 200, square: true }); } }, i * 300);
-    $('#vicLook').onclick = () => { v.hidden = true; setTimeout(() => { if (S && S.phase === 'over') { v.hidden = false; } }, 8000); };
+    $('#vicLook').onclick = () => { v.hidden = true; Render.fitMap({ l: 40, r: 40, t: 90, b: 60 }); setTimeout(() => { if (S && S.phase === 'over') { v.hidden = false; } }, 8000); };
     const bl = $('#vicLobby'); if (bl) bl.onclick = () => send({ t: 'toLobby' });
     const ag = $('#vicAgain'); if (ag) ag.onclick = () => { SFX.select(); send({ t: 'quick', name: myName() }); };
     $('#vicMenu').onclick = () => { SFX.click(); send({ t: 'leave' }); setTimeout(() => { if (S || $('#home').hidden) { lobby = null; backToMenu(); } }, 1500); };
@@ -3236,7 +3238,7 @@
     for (const f of [0, 0.25, 0.5, 0.75, 1]) { const y = padT + ih * (1 - f); c.beginPath(); c.moveTo(padL, y); c.lineTo(padL + iw, y); c.stroke(); c.fillText(Math.round(f * 100) + '%', padL - 8, y); }
     c.textAlign = 'center'; c.textBaseline = 'top';
     const step = Math.max(1, Math.ceil(n / 12));
-    for (let i = 0; i < n; i += step) c.fillText('R' + hist[i].r, X(i), padT + ih + 8);
+    for (let i = 0; i < n; i += step) c.fillText(i === n - 1 && S && S.phase === 'over' ? 'END' : 'R' + hist[i].r, X(i), padT + ih + 8);   // the last point is the board as the war ended
     // lead changes
     const notes = []; let lead = null;
     hist.forEach((h, i) => {
@@ -3291,7 +3293,7 @@
     c.strokeStyle = 'rgba(255,255,255,.12)'; c.lineWidth = 1; c.font = '600 18px "Chakra Petch", sans-serif'; c.fillStyle = '#7f8c98'; c.textAlign = 'right'; c.textBaseline = 'middle';
     for (const f of [0, 0.25, 0.5, 0.75, 1]) { const y = padT + ih * (1 - f); c.beginPath(); c.moveTo(padL, y); c.lineTo(padL + iw, y); c.stroke(); c.fillText(unit + Math.round(max * f), padL - 8, y); }
     c.textAlign = 'center'; c.textBaseline = 'top'; const step = Math.max(1, Math.ceil(n / 12));
-    for (let i = 0; i < n; i += step) c.fillText('R' + rows[i].r, X(i), padT + ih + 8);
+    for (let i = 0; i < n; i += step) c.fillText(i === n - 1 && S && S.phase === 'over' ? 'END' : 'R' + rows[i].r, X(i), padT + ih + 8);
     for (const p of players) {
       c.beginPath(); rows.forEach((h, i) => { const y = Y(get(h)[p.id] || 0); i ? c.lineTo(X(i), y) : c.moveTo(X(i), y); });
       c.strokeStyle = '#000'; c.lineWidth = 7; c.stroke(); c.strokeStyle = p.color; c.lineWidth = 4; c.stroke();
