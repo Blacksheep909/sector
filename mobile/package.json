@@ -1,7 +1,7 @@
 {
   "name": "sector-mobile",
   "private": true,
-  "version": "0.10.7",
+  "version": "0.11.0",
   "description": "SECTOR for Android and iOS: a native shell that connects to a SECTOR server (your PC's, a friend's or a hosted one).",
   "scripts": {
     "prepare-www": "node prepare.js",

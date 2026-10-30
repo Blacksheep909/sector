@@ -2,7 +2,9 @@
 
 Every release, newest first. Each version also has its own post on the [Releases page](https://github.com/Blacksheep909/sector/releases).
 
-## Unreleased
+## v0.11.0
+
+**Map themes, card packs, readable cards, a singleplayer screen, and a big round of fixes.**
 
 - **🃏 Card text fits on the card.** Long card descriptions used to run off the bottom of the card. Every card now has a short line that fits at full size in the hand, the deploy bar, drafts, packs, the market and the index; hover a card (or zoom it) for the full rules. The picture is a little shorter to leave room for three lines, and the type line no longer wraps.
 - **Anti-air cards say Anti-air.** Stinger, Scorpion, Skyguard, Sentinel and Grumble now show **Anti-air** as their type instead of Infantry, Vehicle or Artillery.
