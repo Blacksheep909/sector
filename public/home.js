@@ -38,7 +38,7 @@ const Home = (() => {
     return false;
   }
   // everything on the page, after the profile (or anything else) changes
-  function render() { drawCard(); drawParty(); drawBoard(); drawNews(); drawStats(); }
+  function render() { drawCard(); drawParty(); drawRecruit(); drawBoard(); drawNews(); drawStats(); }
   function shown() { send({ t: 'menu' }); send({ t: 'leaderboard', period: boardTab }); render(); }
 
   function drawStats() {
@@ -93,6 +93,20 @@ const Home = (() => {
   }
 
   // ── party: friends who queue together ──
+  // refer a friend: your link, what it pays, and how many have joined through it
+  let recruitKey = '';
+  function drawRecruit() {
+    const box = $('#recruitBox'); if (!box) return;
+    const p = Locker.profile;
+    const key = JSON.stringify([p && p.refCode, p && p.recruits]); if (key === recruitKey) return; recruitKey = key;
+    box.hidden = !p || !p.refCode; if (box.hidden) return;
+    const link = location.origin + '/?ref=' + p.refCode, n = p.recruits || 0;
+    box.innerHTML = `<h3>RECRUIT FRIENDS <span class="rc-n" title="${n < 3 ? 'Recruit ' + (3 - n) + ' more for the Recruiter banner' : 'You have the Recruiter banner'}">${n}/3 for a banner</span></h3>
+      <div class="sub">You get <b><i class="vm"></i>250</b> for each friend who joins with your link and makes an account. They get <b><i class="vm"></i>100</b>.</div>
+      <div class="rc-link"><code>${esc(link.replace(/^https?:\/\//, ''))}</code><button class="btn tiny gold" id="rcCopy">COPY LINK</button></div>`;
+    box.querySelector('#rcCopy').onclick = () => { sfx('select'); const done = ok => { if (ok) toast('🎖 Recruit link copied'); };
+      if (navigator.clipboard && window.isSecureContext) navigator.clipboard.writeText(link).then(() => done(true), () => done(false)); else { const ta = document.createElement('textarea'); ta.value = link; document.body.appendChild(ta); ta.select(); let ok = false; try { ok = document.execCommand('copy'); } catch (e) {} ta.remove(); done(ok); } };
+  }
   function drawParty() {
     const box = $('#partyBox'); if (!box) return;
     if (!party) {

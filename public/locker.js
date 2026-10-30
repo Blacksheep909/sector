@@ -104,7 +104,6 @@ const Locker = (() => {
     const tabs = el('div', 'ix-tabs');
     for (const [k, label] of Object.entries(C.SLOTS)) { const b = el('button', 'btn' + (tab === k ? ' on' : ''), label.toUpperCase()); b.onclick = () => { tab = k; SFX.click(); drawLocker(); }; tabs.appendChild(b); }
     p.appendChild(tabs);
-    p.appendChild(recruitBox());
     const grid = el('div', 'lk-grid');
     let items = Object.values(C.ITEMS).filter(i => i.slot === tab);
     if (tab === 'card') {
@@ -121,6 +120,7 @@ const Locker = (() => {
     if (tab !== 'card') { const none = el('div', 'lk-tile none' + (!profile.equipped[tab] ? ' on' : ''), `<div class="lk-prev"><div class="sub">Standard</div></div><div class="lk-name"><b>None</b></div><div class="lk-act"></div>`); const b = el('button', 'btn tiny', profile.equipped[tab] ? 'USE STANDARD' : '✔ EQUIPPED'); b.onclick = () => send({ t: 'equip', slot: tab, item: null }); none.querySelector('.lk-act').appendChild(b); grid.prepend(none); }
     p.appendChild(grid);
   }
+  // the recruit link lives on the front page now (Home draws it); kept here for anything else that wants the box
   function recruitBox() {
     const link = location.origin + '/?ref=' + profile.refCode;
     const b = el('div', 'lk-recruit', `<span>🎖 <b>Recruit:</b> friends who join with your link and make an account earn you <b><i class="vm"></i>250</b> each, and them <b><i class="vm"></i>100</b> (3 earn the Recruiter banner) · Recruited <b>${profile.recruits}</b></span><code>${esc(link)}</code><button class="btn tiny">COPY</button>`);

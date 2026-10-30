@@ -1700,6 +1700,8 @@ body.in-room .title-wrap .tagline { display: none; }
 
 /* party */
 .mm-party { display: flex; flex-direction: column; gap: 10px; }
+.mm-recruit { display: flex; flex-direction: column; gap: 6px; padding-top: 10px; padding-bottom: 10px; } .mm-recruit .sub { font-size: 12px; line-height: 1.35; } .mm-recruit h3 { margin: 0; display: flex; align-items: baseline; justify-content: space-between; } .mm-recruit .rc-n { font: 700 11px var(--ui); color: var(--gold); letter-spacing: 1px; }
+.mm-recruit .rc-link { display: flex; gap: 8px; align-items: center; } .mm-recruit code { flex: 1; min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; background: #0a1016; padding: 5px 8px; border-radius: 6px; color: #9fe8ff; font-size: 12px; }
 .pt-n { font-family: var(--ui); font-size: 12px; color: var(--dim); letter-spacing: 1px; }
 .pt-empty { display: flex; flex-direction: column; align-items: center; gap: 6px; text-align: center; }
 .pt-icons { font-size: 22px; opacity: .55; letter-spacing: 4px; } .pt-icons b { font-size: 14px; color: var(--gold); margin: 0 2px; }
