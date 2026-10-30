@@ -490,6 +490,13 @@ const Render = (() => {
     if (ov.planTiles && ov.planTiles.has(k)) { hexPath(cx, cy, s * 0.9); ctx.fillStyle = 'rgba(143,220,255,.22)'; ctx.fill(); ctx.strokeStyle = 'rgba(143,220,255,.8)'; ctx.lineWidth = 2 * z; ctx.setLineDash([5 * z, 4 * z]); ctx.stroke(); ctx.setLineDash([]); }
     if (ov.spawn && ov.spawn.has(k)) { hexPath(cx, cy, s * 0.86); ctx.fillStyle = `rgba(120,255,170,${0.18 + pulse * 0.2})`; ctx.fill(); ctx.strokeStyle = '#8affb8'; ctx.lineWidth = 2 * z; ctx.setLineDash([5 * z, 4 * z]); ctx.lineDashOffset = -t * 20; ctx.stroke(); ctx.setLineDash([]); }
     if (ov.targets && ov.targets.has(k)) { hexPath(cx, cy, s * 0.86); ctx.fillStyle = `rgba(255,190,60,${0.16 + pulse * 0.2})`; ctx.fill(); ctx.strokeStyle = '#ffcf5a'; ctx.lineWidth = 2 * z; ctx.setLineDash([5 * z, 4 * z]); ctx.lineDashOffset = -t * 20; ctx.stroke(); ctx.setLineDash([]); }
+    // covered airspace: a light red wash, with a dashed edge where the cover ends
+    if (ov.aaZone && ov.aaZone[k]) {
+      hexPath(cx, cy, s * 0.96); ctx.fillStyle = `rgba(255,70,90,${0.12 + pulse * 0.05})`; ctx.fill();
+      ctx.strokeStyle = 'rgba(255,120,130,.55)'; ctx.lineWidth = 1.2 * z; ctx.setLineDash([4 * z, 4 * z]);
+      const nbs = E.neighbors(k); ctx.beginPath(); for (let i = 0; i < 6; i++) { if (ov.aaZone[nbs[EDGE_DIR[i]]]) continue; const v = VERT[i], w = VERT[(i + 1) % 6], f = s * 0.96; ctx.moveTo(cx + v[0] * f, cy + v[1] * f * TILT); ctx.lineTo(cx + w[0] * f, cy + w[1] * f * TILT); }
+      ctx.stroke(); ctx.setLineDash([]);
+    }
     if (ov.reach) {
       const r = ov.reach[k];
       if (r && r.kind !== 'start' && r.kind !== 'pass') {

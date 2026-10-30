@@ -311,5 +311,46 @@ function crossing(s) {
   const calm = guard(null), wary = guard('break');
   ok(wary >= calm + 2, `bots guard their HQ against a breaking ally's army (defence ${wary.toFixed(1)} vs ${calm.toFixed(1)} with a steady ally)`);
 }
+{ // passive air defence: anti-air fires on its own at aircraft that stop within its range less 1, once per enemy turn
+  const flat = (s, n) => { const T = s.map.tiles, ok2 = k => T[k] && E.isLandTile(T[k]) && !T[k].river && T[k].t === 'plains';
+    for (const k in T) { if (!ok2(k)) continue; const p2 = [k]; for (let i = 1; i < n; i++) { const nx = E.neighbors(p2[i - 1]).find(m => ok2(m) && p2.every((q, j) => E.dist(q, m) === i - j)); if (!nx) break; p2.push(nx); } if (p2.length === n) return p2; } };
+  const s = board(), L = flat(s, 5); s.map.tiles[L[0]].owner = 'A';
+  put(s, 'sg', 'skyguard', L[4], 'B');
+  ok(E.aaReach(s.units.sg) === 1 && E.aaReach({ type: 'sentinel' }) === 2 && E.aaReach({ type: 'stinger' }) === 1 && E.aaReach({ type: 'grunt' }) === 0, 'passive reach is range less 1, at least 1 (Skyguard 1, Sentinel 2, Stinger 1)');
+  const z = E.aaZone(s, 'A'); ok(z[L[3]] && !z[L[2]] && !E.aaZone(s, 'B')[L[3]], 'the covered airspace is the enemy\'s zone only');
+  put(s, 'h', 'ravager', L[0]);
+  let r = E.applyAction(s, 'A', { a: 'move', from: L[0], units: ['h'], to: L[2] });
+  ok(r.ok && !r.events.some(e => e.e === 'combat'), 'stopping outside the zone draws no fire');
+  // stop inside: one volley, a Snap Shot (-1 Mult), and the Skyguard keeps its own turn
+  let fired = 0, again = 0, snap = 0, kept = 0;
+  for (let i = 0; i < 60; i++) {
+    const t = board(); const M = flat(t, 5); t.map.tiles[M[0]].owner = 'A';
+    put(t, 'sg', 'skyguard', M[4], 'B'); put(t, 'h', 'ravager', M[0]); put(t, 'h2', 'ravager', M[1]);
+    const r1 = E.applyAction(t, 'A', { a: 'move', from: M[0], units: ['h'], to: M[3] });
+    const f = r1.events.find(e => e.e === 'combat'); if (f && f.aaPassive) fired++;
+    if (f && f.att.bonuses.some(b => b.label === 'Snap Shot' && b.mult === -1)) snap++;
+    if (t.units.sg && !t.units.sg.moved) kept++;
+    const r2 = E.applyAction(t, 'A', { a: 'move', from: M[1], units: ['h2'], to: M[3] });
+    if (r2.ok && r2.events.some(e => e.e === 'combat')) again++;
+  }
+  ok(fired === 60 && snap === 60, 'an aircraft stopping in the zone always draws one Snap Shot volley');
+  ok(again === 0, 'each anti-air stack fires once per enemy turn (the second flight gets in free)');
+  ok(kept === 60, 'firing on its own doesn\'t use up the anti-air\'s next turn');
+  // passengers go down with their helicopter
+  let lostWith = 0, downs = 0;
+  for (let i = 0; i < 200; i++) {
+    const t = board(); const M = flat(t, 5); t.map.tiles[M[0]].owner = 'A';
+    put(t, 'sn', 'sentinel', M[4], 'B'); put(t, 'w', 'wren', M[0]); put(t, 'g1', 'grunt', M[0]); put(t, 'g2', 'grunt', M[0]);
+    const r1 = E.applyAction(t, 'A', { a: 'move', from: M[0], units: ['w', 'g1', 'g2'], to: M[2] });
+    if (!r1.ok) continue;
+    if (!t.units.w) { downs++; if (!t.units.g1 && !t.units.g2) lostWith++; }
+  }
+  ok(downs > 50 && lostWith === downs, `Grunts aboard a helicopter shot down go down with it (${lostWith}/${downs})`);
+  // stealth flies through, and an ally's air defence holds fire
+  const s2 = board(), M2 = flat(s2, 5); s2.map.tiles[M2[0]].owner = 'A';
+  put(s2, 'sg', 'skyguard', M2[4], 'B'); put(s2, 'p', 'phantom', M2[0]);
+  r = E.applyAction(s2, 'A', { a: 'move', from: M2[0], units: ['p'], to: M2[3] });
+  ok(r.ok && !r.events.some(e => e.e === 'combat'), 'stealth bombers are not engaged');
+}
 console.log(fails ? fails + ' FAILED' : 'all passed');
 process.exit(fails ? 1 : 0);

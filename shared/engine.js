@@ -122,14 +122,14 @@
     skitter: { name: 'Skitter', cls: 'veh', cost: 3, atk: 2, def: 1, mv: 4, rarity: 'common', desc: 'Raider buggy. Grabs land fast.' },
     thumper: { name: 'Thumper', cls: 'art', cost: 4, atk: 5, def: 1, mv: 1, range: 2, rarity: 'common', desc: 'Mortar crew. Fires 2 hexes instead of moving.' },
     barracuda: { name: 'Barracuda', cls: 'sea', cost: 4, atk: 3, def: 2, mv: 4, rarity: 'common', desc: 'Fast gunboat. Claims sea lanes, raids coasts.' },
-    stinger: { name: 'Stinger', cls: 'inf', cost: 3, atk: 1, def: 1, mv: 2, range: 1, rarity: 'common', ability: 'aa', aa: 3, short: '+3 Chips vs air. Downs 25% of air strikes on its hex.', desc: 'MANPADS team. Fires at aircraft 1 hex away (+3 Chips vs aircraft), and a 25% chance to shoot down air strikes on its hex. Weak against ground troops.' },
+    stinger: { name: 'Stinger', cls: 'inf', cost: 3, atk: 1, def: 1, mv: 2, range: 1, rarity: 'common', ability: 'aa', aa: 3, short: '+3 Chips vs air; fires at aircraft that stop next to it.', desc: 'MANPADS team. Fires at aircraft 1 hex away (+3 Chips vs air), and on its own at any that stop next to it. 25% to down air strikes on its hex. Weak vs ground troops.' },
     corpsman: { name: 'Corpsman', cls: 'inf', cost: 3, atk: 1, def: 3, mv: 2, rarity: 'common', ability: 'medic', short: 'Medic squad. Its stack never takes pyrrhic losses.', desc: 'Medic squad. Its stack never suffers pyrrhic losses.' },
     jackal: { name: 'Jackal', cls: 'veh', cost: 3, atk: 3, def: 2, mv: 4, rarity: 'uncommon', short: 'Patrol truck with a heavy MG. Cheap and quick.', desc: 'Light patrol truck with a heavy machine gun. Cheap, quick, hits above its weight.' },
     coyote: { name: 'Coyote', cls: 'veh', cost: 4, atk: 2, def: 2, mv: 4, rarity: 'uncommon', ability: 'recon', short: 'Scout truck. Sees 2 hexes further in fog of war.', desc: 'Scout truck with a sensor mast. Sees 2 hexes further in the fog of war.' },
     lancer: { name: 'Lancer', cls: 'inf', cost: 5, atk: 3, def: 2, mv: 2, rarity: 'uncommon', ability: 'hunter', desc: 'Tank Hunter: +3 Chips when fighting vehicles.' },
     warden: { name: 'Warden', cls: 'air', cost: 4, atk: 1, def: 3, mv: 3, rarity: 'uncommon', ability: 'aegis', short: 'Radar plane. +1 Mult when its hex defends.', desc: 'Airborne radar plane. Aegis: +1 Mult when its hex defends.' },
     sapper: { name: 'Sapper', cls: 'inf', cost: 4, atk: 2, def: 2, mv: 2, rarity: 'uncommon', ability: 'sapper', short: 'Demolitions: +3 Chips attacking buildings.', desc: 'Demolitions: +3 Chips attacking a hex with buildings.' },
-    scorpion: { name: 'Scorpion', cls: 'veh', cost: 5, atk: 2, def: 1, mv: 3, range: 2, rarity: 'uncommon', ability: 'aa', aa: 4, short: '+4 Chips vs air. Downs 35% of air strikes within 1.', desc: 'Self-propelled anti-air gun. Fires at aircraft 2 hexes away (+4 Chips vs aircraft); 35% to shoot down air strikes within 1. Weak against ground troops.' },
+    scorpion: { name: 'Scorpion', cls: 'veh', cost: 5, atk: 2, def: 1, mv: 3, range: 2, rarity: 'uncommon', ability: 'aa', aa: 4, short: '+4 vs air; guards the air 1 hex out. Downs 35% of strikes.', desc: 'Self-propelled AA gun. Fires at aircraft 2 hexes away (+4 Chips vs air), and on its own at any that stop within 1. Downs 35% of air strikes within 1. Weak vs ground troops.' },
     bulwark: { name: 'Bulwark', cls: 'veh', cost: 6, atk: 3, def: 5, mv: 3, rarity: 'uncommon', lift: 4, short: 'APC. Holds the line; carries 4 Grunts at its speed.', desc: 'Armoured personnel carrier. Holds the line, and carries up to 4 Grunts with it at its own speed.' },
     hornet: { name: 'Hornet', cls: 'air', cost: 4, atk: 2, def: 1, mv: 4, rarity: 'common', short: 'Scout drone. Flies over anything; sees 3 hexes.', desc: 'Scout drone. Flies over mountains and water and sees 3 hexes around it.' },
     mauler: { name: 'Mauler', cls: 'veh', cost: 6, atk: 5, def: 4, mv: 2, rarity: 'uncommon', desc: 'Main battle tank.' },
@@ -137,7 +137,7 @@
     marlin: { name: 'Marlin', cls: 'sea', cost: 7, atk: 5, def: 4, mv: 4, range: 2, rarity: 'rare', desc: 'Destroyer. Shells coasts and ships 2 hexes away.' },
     basilisk: { name: 'Basilisk', cls: 'art', cost: 7, atk: 7, def: 2, mv: 1, range: 3, rarity: 'rare', desc: 'Rocket artillery truck. Fires 3 hexes.' },
     ranger: { name: 'Ranger', cls: 'inf', cost: 6, atk: 4, def: 3, mv: 3, rarity: 'rare', ability: 'pathfinder', desc: 'Pathfinders: rough terrain costs only 1 move.' },
-    skyguard: { name: 'Skyguard', cls: 'veh', cost: 7, atk: 3, def: 1, mv: 3, range: 2, rarity: 'rare', ability: 'aa', aa: 6, short: '+6 Chips vs air. Downs 50% of air strikes within 2.', desc: 'Air defence truck. Fires at aircraft 2 hexes away (+6 Chips vs aircraft); 50% to shoot down air strikes within 2. Weak against ground troops.' },
+    skyguard: { name: 'Skyguard', cls: 'veh', cost: 7, atk: 3, def: 1, mv: 3, range: 2, rarity: 'rare', ability: 'aa', aa: 6, short: '+6 vs air; guards the air 1 hex out. Downs 50% of strikes.', desc: 'Air defence truck. Fires at aircraft 2 hexes away (+6 Chips vs air), and on its own at any that stop within 1. Downs 50% of air strikes within 2. Weak vs ground troops.' },
     hellcat: { name: 'Hellcat', cls: 'veh', cost: 7, atk: 6, def: 2, mv: 3, rarity: 'rare', ability: 'blitzer', desc: 'Strike tank. Can act on the turn it is deployed.' },
     wraith: { name: 'Outrider', cls: 'veh', cost: 7, atk: 5, def: 3, mv: 5, rarity: 'rare', lift: 4, short: '8-wheeled IFV. Fastest on the ground; carries 4 Grunts.', desc: 'Eight-wheeled fighting vehicle. 5 move: the fastest thing on the ground. Carries up to 4 Grunts.' },
     kraken: { name: 'Kraken', cls: 'sea', cost: 8, atk: 7, def: 2, mv: 4, rarity: 'rare', ability: 'torpedo', desc: 'Submarine. Torpedoes: +4 Chips vs ships.' },
@@ -150,8 +150,8 @@
     stormcrow: { name: 'Stormcrow', cls: 'air', cost: 9, atk: 3, def: 2, mv: 4, rarity: 'epic', lift: 6, heli: true, short: 'Utility heli. Carries 6 Grunts over anything.', desc: 'Utility helicopter with door guns. Carries up to 6 Grunts over mountains and water (it sets them down on land).' },
     phantom: { name: 'Phantom', cls: 'air', cost: 10, atk: 7, def: 3, mv: 5, rarity: 'epic', ability: 'stealth', short: 'Stealth bomber. Immune to artillery and air strikes.', desc: 'Stealth bomber. Immune to artillery, airstrikes and bombardment.' },
     hailstorm: { name: 'Hailstorm', cls: 'art', cost: 11, atk: 9, def: 3, mv: 2, range: 4, rarity: 'epic', ability: 'salvo', short: 'MLRS. A hit also kills 1 in each enemy stack beside it.', desc: 'Tracked rocket launcher (MLRS). Range 4. A hit also rains rockets on every enemy stack next to the target: 1 unit each.' },
-    sentinel: { name: 'Sentinel', cls: 'art', cost: 9, atk: 6, def: 1, mv: 1, range: 3, rarity: 'epic', ability: 'sam', aa: 7, short: '+7 Chips vs air. Downs 60% of strikes. Stops Tridents.', desc: 'Patriot SAM. Fires at aircraft 3 hexes away (+7 Chips vs air), downs 60% of air strikes within 3 and stops Tridents. Weak vs ground troops.' },
-    grumble: { name: 'Grumble', cls: 'veh', cost: 10, atk: 5, def: 1, mv: 1, range: 3, rarity: 'epic', ability: 'sam', aa: 7, short: '+7 Chips vs air. Downs 55% of strikes. Stops Tridents.', desc: 'S-300 SAM launcher. Fires at aircraft 3 hexes away (+7 Chips vs aircraft), downs 55% of air strikes within 3 and intercepts Tridents. Weak vs ground troops.' },
+    sentinel: { name: 'Sentinel', cls: 'art', cost: 9, atk: 6, def: 1, mv: 1, range: 3, rarity: 'epic', ability: 'sam', aa: 7, short: '+7 vs air; guards the air 2 out. Downs 60%; stops Tridents.', desc: 'Patriot SAM. Fires at aircraft 3 away (+7 Chips vs air), and on its own at any that stop within 2. Downs 60% of strikes within 3; stops Tridents.' },
+    grumble: { name: 'Grumble', cls: 'veh', cost: 10, atk: 5, def: 1, mv: 1, range: 3, rarity: 'epic', ability: 'sam', aa: 7, short: '+7 vs air; guards the air 2 out. Downs 55%; stops Tridents.', desc: 'S-300 SAM. Fires at aircraft 3 away (+7 Chips vs air), and on its own at any that stop within 2. Downs 55% of air strikes within 3; stops Tridents. Weak vs ground.' },
     bastion: { name: 'Bastion', cls: 'sea', cost: 11, atk: 8, def: 8, mv: 3, range: 3, rarity: 'epic', desc: 'Battleship. Long guns, range 3.' },
     leviathan: { name: 'Leviathan', cls: 'veh', cost: 14, atk: 12, def: 10, mv: 1, rarity: 'legendary', ability: 'juggernaut', desc: 'Land dreadnought. Never suffers pyrrhic losses.' },
     titan: { name: 'Titan', cls: 'veh', cost: 16, atk: 13, def: 12, mv: 1, rarity: 'legendary', ability: 'titan', short: 'Landship. Siege Breaker; never takes pyrrhic losses.', desc: 'Landship with naval guns. Siege Breaker and never suffers pyrrhic losses.' },
@@ -1166,6 +1166,7 @@
     if (hellfire && has(defenders, 'veh')) { att.chips += 3 * hellfire; att.bonuses.push({ label: 'Hellfire', chips: 3 * hellfire }); }
     const torps = units.filter(u => UNITS[u.type].ability === 'torpedo').length;
     if (torps && has(defenders, 'sea')) { att.chips += 4 * torps; att.bonuses.push({ label: 'Torpedoes', chips: 4 * torps }); }
+    if (ranged && units.some(u => u.snap)) { att.mult -= 1; att.bonuses.push({ label: 'Snap Shot', mult: -1 }); }   // passive air defence fires off the cuff
     if (!ranged && isLandTile(t)) {
       const inFight = new Set(units.map(u => u.id));
       const guns = side => { let n = 0; for (const nb of neighbors(target)) { const w = s.map.tiles[nb]; if (!w || !isWater(w)) continue; for (const u of idx[nb] || []) if (u.owner === side && isSea(u.type) && UNITS[u.type].atk > 0 && UNITS[u.type].ability !== 'transport' && !inFight.has(u.id) && !u.stun) n++; } return Math.min(3, n); };
@@ -1204,14 +1205,17 @@
       const st = s.map.tiles[stages[0]];
       if (st && st.t === 'hills') { att.mult += 1; att.bonuses.push({ label: 'High Ground', mult: 1 }); }
     }
+    // anti-air missiles go for the aircraft: troops riding in them, or standing below, don't shield them
+    const shield = aaShot && has(defenders, 'air') ? defenders.filter(u => UNITS[u.type].cls === 'air') : defenders;
     for (const u of defenders) def.chips += unitDef(s, u);
+    if (shield !== defenders) { const cut = defenders.filter(u => !shield.includes(u)).reduce((n, u) => n + unitDef(s, u), 0); if (cut) { def.chips -= cut; def.bonuses.push({ label: 'Aircraft Only', chips: -cut }); } }
     // shelling: artillery is how walls come down, so bunkers and FOB walls count for half against it
     const bombard = ranged && units.every(u => UNITS[u.type].cls === 'art' && !airOnly(u));
     const dlv = defenders.reduce((a, u) => a + levelOf(s, u), 0);
     if (dlv) def.bonuses.push({ label: 'Veteran ★', chips: dlv, note: true });
     const ocD = dp && dp.faction === 'volt' ? defenders.filter(u => UNITS[u.type].cls === 'air').length : 0;
     if (ocD) def.bonuses.push({ label: 'Overclock', chips: ocD, note: true });
-    if (dp && dp.faction === 'iron' && defenders.length) { def.chips += defenders.length; def.bonuses.push({ label: 'Steel Wall', chips: defenders.length }); }
+    if (dp && dp.faction === 'iron' && shield.length) { def.chips += shield.length; def.bonuses.push({ label: 'Steel Wall', chips: shield.length }); }
     { const gf = defenders.filter(u => UNITS[u.type].cls === 'inf').length; if (gf && units.some(isHeli)) { def.chips += gf; def.bonuses.push({ label: 'Ground Fire', chips: gf }); } }
     const aaD = defenders.reduce((n, u) => n + (UNITS[u.type].aa || 0), 0);
     if (aaD && has(units, 'air')) { def.chips += aaD; def.bonuses.push({ label: 'Anti-Air', chips: aaD }); }
@@ -2325,6 +2329,7 @@
         if (c.dest.kind !== 'board' && (navy || rig ? isWater(t) : isLandTile(t)) && captureTile(s, a.to, pid)) caps.push(a.to);
         ev.push({ e: 'move', pid, units: fleet.concat(cargo).map(u => u.id), path: c.path, captures: caps });
         lootPath(s, pid, c.path, ev, rng);
+        aaPassive(s, pid, a.to, fleet.concat(cargo), rng, ev);
       }
       return { ok: true, events: ev };
     }
@@ -2851,6 +2856,48 @@
     }
     return out;
   }
+  // passive air defence: an anti-air stack fires on its own at enemy aircraft that end a move within its passive range
+  // (its range less 1, at least 1), once per enemy turn. A normal ranged roll; helicopters shot down take their Grunts with them
+  const aaReach = u => { const d = UNITS[u.type]; return ['aa', 'sam'].includes(d.ability) ? Math.max(1, (d.range || 1) - 1) : 0; };
+  const aaTurn = s => s.turn.round + ':' + s.turn.idx;
+  function aaZone(s, pid) {   // every hex an enemy of pid's air defence still covers this turn (for the map overlay and bots)
+    const out = {}, key = aaTurn(s);
+    for (const id in s.units) { const u = s.units[id], r = aaReach(u); if (!r || u.stun || u.aaT === key || u.owner === pid || isAlly(s, pid, u.owner)) continue; for (const k of area(u.hex, r)) if (s.map.tiles[k]) (out[k] = out[k] || []).push(u.hex); }
+    return out;
+  }
+  function aaPassive(s, pid, hex, flyers, rng, ev) {
+    const airOf = () => flyers.filter(u => s.units[u.id] && UNITS[u.type].cls === 'air' && UNITS[u.type].ability !== 'stealth');
+    if (s._preview || !airOf().length) return;
+    const key = aaTurn(s), stacks = {};
+    for (const id in s.units) {
+      const u = s.units[id], r = aaReach(u);
+      if (!r || u.stun || u.owner === pid || isAlly(s, pid, u.owner) || u.aaT === key || dist(u.hex, hex) > r) continue;
+      (stacks[u.hex + '|' + u.owner] = stacks[u.hex + '|' + u.owner] || []).push(u);
+    }
+    for (const g of Object.values(stacks).sort((x, y) => dist(x[0].hex, hex) - dist(y[0].hex, hex))) {
+      if (!airOf().length) break;
+      const was = g.map(u => u.moved);
+      g.forEach(u => { u.aaT = key; });
+      const at = ev.length;
+      g.forEach(u => { u.snap = true; });
+      resolveFire(s, g[0].owner, g, g[0].hex, hex, rng, ev);
+      g.forEach(u => { delete u.snap; });
+      g.forEach((u, i) => { u.moved = was[i]; });   // firing on their own doesn't use up their next turn
+      const fight = ev.slice(at).find(e2 => e2.e === 'combat');
+      if (!fight) continue;
+      fight.aaPassive = true;
+      // passengers: Grunts that flew in go down with the helicopters carrying them
+      const alive = flyers.filter(u => s.units[u.id]);
+      const lift = alive.reduce((n, u) => n + (UNITS[u.type].lift || 0), 0), grunts = alive.filter(u => u.type === 'grunt');
+      if (fight.killed.length && grunts.length > lift && flyers.some(u => UNITS[u.type].lift)) {
+        const lost = grunts.slice(lift);
+        tallyLosses(s, g[0].owner, pid, lost);
+        fight.killed.push(...lost.map(u => u.id)); fight.passengers = lost.length;
+      }
+      const op = player(s, g[0].owner), mp = player(s, pid);
+      pushLog(s, '🎯 ' + (op ? op.name : '?') + "'s air defence fired on " + (mp ? mp.name : '?') + "'s aircraft: " + (fight.attWin ? (fight.killed.length - (fight.passengers || 0)) + ' shot down' + (fight.passengers ? ', ' + fight.passengers + ' Grunts lost with them' : '') : 'missed') + '.');
+    }
+  }
   function overwatchFire(s, owner, from, target, rng) {
     const ev = [], units = Object.values(s.units).filter(u => u.hex === from && u.owner === owner && u.ow);
     if (!units.length || !Object.values(s.units).some(u => u.hex === target && u.owner !== owner)) return { ok: false, err: 'Nothing to shoot at', events: [] };
@@ -2911,6 +2958,8 @@
       mem = mem || { explored: new Set(), seen: {} };
       const vis = visionOf(s, pid);
       for (const k of vis) { const t0 = s.map.tiles[k]; if (!t0) continue; mem.explored.add(k); mem.seen[k] = { owner: t0.owner, structs: JSON.parse(JSON.stringify(structsOf(t0))), poi: t0.poi, gar: t0.gar, ruin: t0.ruin || 0, wreck: !!t0.wreck }; }
+      // a bunker line (★★ and up) is a big earthwork: you can see it from next door, so the odds you're shown count it
+      for (const k of vis) for (const n of neighbors(k)) { const t0 = s.map.tiles[n], b0 = t0 && !vis.has(n) && getS(t0, 'bunker'); if (b0 && slvlOf(b0) >= 2) { mem.explored.add(n); mem.seen[n] = { ...(mem.seen[n] || {}), owner: t0.owner, structs: JSON.parse(JSON.stringify(structsOf(t0))), poi: t0.poi, gar: t0.gar }; } }
       for (const id in c.units) { const u = c.units[id]; if (u.owner !== pid && !teammate(s, pid, u.owner) && !vis.has(u.hex)) delete c.units[id]; }
       for (const k in c.map.tiles) {
         if (vis.has(k)) continue;
@@ -2959,6 +3008,6 @@
     POI, WEATHER, isAlly, teammate, recordHistory, RARITY, RARITY_ORDER, CRATES, DROP_TIERS, SCRAP_VALUE, DECK_MAX, MAX_LEVEL, TERRAIN, DIFFICULTY, UNITS, TACTICS, STRUCTS, BUILD_ORDER, UPGRADABLE, MAX_SLVL, FACTIONS, ROLL_BASE, COLORS, TEAM_COLORS, TEAM_NAMES, teamColor, MAX_STACK, GRUNT_STACK, stackFits, CLASS_NAME, cardDef,
     BATTLE_MAX, cardFee, turnOdds, marketPrice, MARKET_UNLOCK, AIRBASE_CARDS, cacheCard, scenarioCheck, assaultPlan, openBattle, closeBattle, battleOdds, battleHand, battleCard, INTEL_COST, intelCost, overwatchTriggers, overwatchFire, attackTarget, ECON, infraValue, econOf, AIR_STRIKES, airDefenders, interceptChance, generateMap, createGame, applyAction, spawnChoices, visionOf, startTurn, endTurn, simulateTurnStart, view, drawCards,
     player, current, buildIndex, canAct, moveAllow, ownedTiles, ownedLand, spawnPoints, musterHexes, supplySet, computeIncome, levelOf, unitAtk, unitDef,
-    payout: scaled, blocOf, blocCap, blocTooBig, riders, tsarArea, moodOf, addMood, threatOf, rerollCost, bountyValue, reachable, pathTo, rangedTargets, deployHexes, buildHexes, buildError, isSea, isWater, isCoastal, movers, combatCalc, tacticTargets, unitCost, structCost, buildCost, structsOf, MAX_STRUCTS, conquestTarget, isLandTile, aaCovered,
+    aaZone, aaReach, payout: scaled, blocOf, blocCap, blocTooBig, riders, tsarArea, moodOf, addMood, threatOf, rerollCost, bountyValue, reachable, pathTo, rangedTargets, deployHexes, buildHexes, buildError, isSea, isWater, isCoastal, movers, combatCalc, tacticTargets, unitCost, structCost, buildCost, structsOf, MAX_STRUCTS, conquestTarget, isLandTile, aaCovered,
   };
 });

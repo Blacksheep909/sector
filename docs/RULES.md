@@ -235,6 +235,8 @@ Units with a range stat fire instead of moving.
 - **Shelling brings walls down:** against a shot from artillery alone, a Bunker's and a FOB's walls count for half their mult.
 - Shots can't pass through mountains (the Oracle, and anti-air firing at aircraft, ignore this).
 - **Anti-air fires only at aircraft**, and only shoots down aircraft: the Stinger team at **1 hex**, the Scorpion and Skyguard at **2**, and the **Sentinel** (Patriot) and **Grumble** (S-300) batteries at **3**. On overwatch it only fires at a move that includes aircraft.
+- **Covered airspace (passive air defence).** Anti-air also fires **on its own, during the enemy's turn**, at enemy aircraft that **end a move** within its passive range: its range less 1, at least 1 (Stinger, Scorpion and Skyguard **1 hex**, Sentinel and Grumble **2**). It's a normal ranged roll with a **Snap Shot −1 Mult**, each anti-air stack fires **once per enemy turn** (the first aircraft to stop in its cover draws the fire, so a second flight can follow it in), and firing this way doesn't use up its own turn. Flying *through* covered airspace is safe; only where you stop counts, and attacking the anti-air directly doesn't trigger it. The Phantom's stealth keeps it out of the fight. **Grunts aboard a helicopter that's shot down go down with it.** While you move aircraft, the airspace enemy anti-air covers is shaded red on the map.
+- **Missiles go for the aircraft:** when anti-air fires, only the aircraft on the target hex defend; troops riding in them or standing below don't add their defence.
 - **Anti-air is weak against ground troops:** when it attacks a hex with no aircraft in it, each anti-air unit counts only half its attack (**AA Guns vs Ground**).
 
 ## The sea

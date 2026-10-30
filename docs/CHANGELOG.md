@@ -2,6 +2,13 @@
 
 Every release, newest first. Each version also has its own post on the [Releases page](https://github.com/Blacksheep909/sector/releases).
 
+## Unreleased
+
+- **🎯 Covered airspace.** Anti-air now defends on its own: during your turn, an aircraft that **stops** within an enemy anti-air unit's passive range (its range less 1, at least 1: Stinger, Scorpion and Skyguard 1 hex, Sentinel and Grumble 2) draws a normal ranged roll with a **Snap Shot −1 Mult**. Each anti-air stack fires once per enemy turn, it doesn't use up its own turn, flying *through* is safe, and the Phantom's stealth keeps it out. **Grunts aboard a helicopter that's shot down go down with it.** While you move aircraft, the covered airspace is shaded red with a dashed edge, and bots keep their aircraft out of it.
+- **Anti-air missiles go for the aircraft:** troops riding in a helicopter (or standing below it) no longer add their defence when anti-air fires at it.
+- **Honest odds next to a bunker line:** a ★★ or better bunker beside the hex you attack adds to its defence (Bunker Line). It's now visible from next door even in fog of war, so the odds you're shown count it.
+- **🚀 Oracle launch, Iskander-style:** the launcher fires in a bloom of exhaust, the missile climbs almost straight up, arcs high over the map and comes down near vertical, with a red warning ring on the target just before impact (the old cyan satellite ring is gone).
+
 ## v0.11.0
 
 **Map themes, card packs, readable cards, a singleplayer screen, and a big round of fixes.**

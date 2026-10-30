@@ -480,6 +480,8 @@ function botStep(s, pid, mem) {
     let best = null, bv = 0.5;
     const exposed = tiles[k].owner && tiles[k].owner !== pid && E.isAlly(s, pid, tiles[k].owner) && soonFoe(s, pid, tiles[k].owner);
     if (exposed) bv = -99;   // any way out beats staying: the pact's end kills every unit still inside
+    // covered airspace: enemy air defence fires on aircraft that stop inside it (once a turn), and Grunts aboard go down too
+    const flies = movers.some(u => E.UNITS[u.type].cls === 'air' && E.UNITS[u.type].ability !== 'stealth'), az = flies ? E.aaZone(s, pid) : null;
     for (const dest in reach) {
       const r = reach[dest];
       if (r.kind === 'start' || r.kind === 'pass') continue;
@@ -547,6 +549,7 @@ function botStep(s, pid, mem) {
         // massing: close on the war target together, joining friendly stacks on the way rather than trickling in
         if (strat.goal.length && friends && (stuck || near) && E.stackFits(idx[dest].filter(u => u.owner === pid), movers)) v += 2 + Math.min(4, friends / 4) * K.guard;
         if (movers.some(u => E.UNITS[u.type].heli) && !movers.some(u => u.type === 'grunt')) v -= heliDanger(s, pid, idx, dest) * 1.5 * K.heli;   // helicopters keep away from AA and riflemen
+        if (az && az[dest]) v -= (3 + stackValue(movers) * 0.5) * az[dest].length * (K.heli || 1);
       }
       v += Math.random() * K.noise;
       if (v > bv) { bv = v; best = dest; }

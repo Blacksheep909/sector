@@ -897,7 +897,7 @@
   function updateOverlays() {
     const ov = Render.ov, ds = dispState();
     ov.me = you; ov.myTurn = isMyTurn() || planning();
-    ov.reach = null; ov.probs = null; ov.fire = null; ov.guns = null; ov.spawn = null; ov.targets = null; ov.path = null;
+    ov.reach = null; ov.aaZone = null; ov.probs = null; ov.fire = null; ov.guns = null; ov.spawn = null; ov.targets = null; ov.path = null;
     ov.selected = sel ? sel.hex : null;
     ov.selectedExtra = sel && sel.extra ? sel.extra.map(g => g.hex) : [];
     ov.unsupplied = null;
@@ -917,6 +917,8 @@
       const idx = E.buildIndex(ds);
       ov.reach = E.reachable(ds, you, ids, sel.hex, idx);
       const units = ids.map(id => ds.units[id]);
+      // flying: light up the airspace enemy air defence covers (stop there and it fires on its own, once a turn)
+      if (units.some(u => u && E.UNITS[u.type].cls === 'air' && E.UNITS[u.type].ability !== 'stealth')) ov.aaZone = E.aaZone(ds, you);
       // troops riding a transport can wade ashore straight from the selection
       const cargo = units.filter(u => u && !E.isSea(u.type));
       if (cargo.length && cargo.length < units.length) {
@@ -2612,8 +2614,9 @@
         }
         case 'combat': {
           follow(ev.to);
-          if (ev.def && ev.def.pid === you && ev.att.pid !== you) pushAlert(`⚔ ${pName(ev.att.pid)} ${ev.overwatch ? 'fired on' : 'attacked'} you${ev.attWin ? '. You lost the fight' : '. You held'}`, ev.to);
+          if (ev.def && ev.def.pid === you && ev.att.pid !== you) pushAlert(`⚔ ${pName(ev.att.pid)} ${ev.overwatch || ev.aaPassive ? 'fired on' : 'attacked'} you${ev.attWin ? '. You lost the fight' : '. You held'}`, ev.to);
           if (ev.overwatch) { Render.float(ev.from, '🎯 OVERWATCH', '#ffc53d', 18); }
+          if (ev.aaPassive) { Render.float(ev.from, '🎯 AIR DEFENCE', '#ff8a96', 18); if (ev.passengers) later(1.2, () => Render.float(ev.to, '−' + ev.passengers + ' GRUNTS ABOARD', '#ff5a64', 15)); }
           if (ev.ranged) await fireFx(ev.att.units, ev.from, ev.to);
           // the dice tray is for fights a human is in: bot-vs-bot (or bot-vs-garrison) plays a quick clash on the map.
           // A 95%+ fight that went the expected way skips the dice and the long animation too
@@ -2877,9 +2880,13 @@
         Render.missile(from, to, { loft: 220, dur: 0.9 * sp, delay: d0 * sp, size: 1.5, color: '#ffd27a', boom: false, onHit: () => { Render.flash(0.3, '#ffd9a0'); Render.shake(14); Render.burst(to, ['#fff', '#ffb03a', '#ff5a2a'], 50, { speed: 2 }); SFX.boom(1.2); } });
         end = Math.max(end, d0 + 0.9);
       } else if (kind === 'ballistic') {
-        at(0, () => { SFX.whoosh(); Render.smoke(from, 12, 'rgba(225,225,225,'); Render.burst(from, ['#ffd27a', '#fff', '#ff8a3a'], 20, { up: 160 }); Render.ring(to, '#7ff3ff', 36, 0.5, 3); });
-        Render.missile(from, to, { loft: 260, accel: 1.1, dur: 1.0 * sp, delay: d0 * sp, size: 1.6, color: '#e9edf2', boom: false, onHit: () => { Render.flash(0.3, '#ffd9a0'); Render.shake(14); Render.burst(to, ['#fff', '#ffd27a', '#ffb03a', '#ff5a2a'], 50, { speed: 2, up: 140 }); SFX.boom(1.2); } });
-        end = Math.max(end, d0 + 1.0);
+        // an Iskander-style shot: the launcher truck fires in a bloom of exhaust, the missile climbs near vertical, arcs high
+        // out over the map and comes down almost straight onto the target, with a warning ring on the ground just before
+        at(0, () => { SFX.whoosh(); Render.smoke(from, 16, 'rgba(230,226,218,'); Render.burst(from, ['#fff3c4', '#ffd27a', '#ff8a3a'], 26, { up: 220, speed: 1.4 }); Render.shake(4); });
+        at(0.25, () => Render.smoke(from, 10, 'rgba(200,196,190,'));
+        Render.missile(from, to, { alt0: 18, loft: 380, accel: 1.6, dur: 1.25 * sp, delay: d0 * sp, size: 1.7, color: '#f2efe6', boom: false, onHit: () => { Render.flash(0.35, '#ffe2b0'); Render.shake(16); Render.burst(to, ['#fff', '#ffd27a', '#ffb03a', '#ff5a2a'], 60, { speed: 2.2, up: 170 }); Render.smoke(to, 18, 'rgba(90,80,70,'); SFX.boom(1.3); } });
+        at(0.85, () => Render.ring(to, '#ff4a5a', 34, 0.4, 3));
+        end = Math.max(end, d0 + 1.25);
       } else if (kind === 'aa') {
         // anti-air: a salvo straight in on white trails (aircraft fly, so they're hit up in the air)
         const n = Math.min(4, Math.max(2, types.filter(ut => fireKind(ut) === 'aa').length));
