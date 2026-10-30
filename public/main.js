@@ -380,7 +380,7 @@
   $('#advBtn').onclick = () => { SFX.click(); const on = $('#lobbyBox').classList.toggle('show-adv'); $('#advBtn').textContent = on ? 'FEWER SETTINGS ▴' : 'MORE SETTINGS ▾'; };
   function renderSolo(host) {
     const box = $('#soloBox'), solo = !!(lobby && lobby.solo && host);
-    $('#lobbyBox').classList.toggle('solo', solo); $('#advBtn').hidden = !solo; box.hidden = !solo;
+    $('#lobbyBox').classList.toggle('solo', solo); $('#advBtn').hidden = false; box.hidden = !solo;
     if (!solo) return;
     $('#startBtn').textContent = 'START WAR';
     const bots = lobby.players.filter(p => p.bot), diffs = [...new Set(bots.map(p => p.diff || 'medium'))], diff = diffs.length === 1 ? diffs[0] : 'mixed';
@@ -1430,6 +1430,10 @@
       if (!k || !Render.ov.spawn || !Render.ov.spawn.has(k)) { if (!k) cancel(); else { toast('Build on a highlighted hex', 'err'); SFX.error(); } return; }
       if (!canPlace()) return;
       const st = mode.struct;
+      { // the price on this hex (an upgrade costs more than a new building): say so here rather than sending an order the server will refuse
+        const me = dispState().players.find(p => p.id === you), cost = me && E.buildCost(dispState(), me, st, k);
+        if (me && cost > me.cash) { toast(`${E.structsOf(dispState().map.tiles[k]).some(x => x.type === st) ? 'Upgrading this ' + E.STRUCTS[st].name + ' costs' : 'That costs'} $${cost}: you have $${me.cash}`, 'err'); SFX.error(); return; }
+      }
       doAction({ a: 'build', struct: st, hex: k }).then(() => {
         const me = dispState().players.find(p => p.id === you);
         if (mode && mode.struct === st && me && (!E.buildHexes(dispState(), you, st).some(k2 => me.cash >= E.buildCost(dispState(), me, st, k2)))) { mode = null; refreshAll(); }

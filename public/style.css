@@ -130,7 +130,7 @@ input:focus, select:focus { border-color: var(--blue); }
 .pempty { font-size: 12px; color: var(--dim); font-style: italic; }
 
 #logBox { position: absolute; left: 12px; bottom: 190px; width: 300px; display: flex; flex-direction: column; gap: 6px; pointer-events: none; }
-#log { display: flex; flex-direction: column; gap: 3px; max-height: 26vh; overflow-y: auto; overflow-x: hidden; pointer-events: auto; scrollbar-width: thin; scrollbar-color: #3a4b5c transparent; mask-image: linear-gradient(transparent, #000 30px); overscroll-behavior: contain; }
+#log { display: flex; flex-direction: column; gap: 3px; max-height: 26vh; overflow-y: auto; overflow-x: hidden; pointer-events: none; scrollbar-width: thin; scrollbar-color: #3a4b5c transparent; mask-image: linear-gradient(transparent, #000 30px); overscroll-behavior: contain; }
 #log > :first-child { margin-top: auto; }   /* newest at the bottom; scroll up for older lines */
 .lg { font-size: 12px; background: rgba(10,16,22,.78); padding: 4px 8px; border-radius: 6px; border-left: 3px solid #3a4b5c; animation: slideIn .25s ease-out; color: #c9d3dc; }
 .lg.chat b { color: var(--c); }
@@ -2010,8 +2010,8 @@ body.reeling #map { visibility: hidden; }
 
 /* ── singleplayer: its own screen (continue a saved war, or set up a new one against bots) ── */
 #lobbyBox.solo .lobby-players > :not(#soloBox) { display: none !important; }
-#lobbyBox.solo .lobby-settings .set.adv { display: none; }
-#lobbyBox.solo.show-adv .lobby-settings .set.adv { display: flex; }
+#lobbyBox .lobby-settings .set.adv { display: none; }
+#lobbyBox.show-adv .lobby-settings .set.adv { display: flex; }
 #lobbyBox.solo #saveBox { display: none !important; }
 #soloBox { display: flex; flex-direction: column; gap: 12px; }
 #soloBox h3 { margin: 0; }
@@ -2080,3 +2080,6 @@ body.reeling #map { visibility: hidden; }
 .or-art.or-pack { width: 64px; height: 92px; overflow: visible; } .or-art.or-pack .pack { transform: scale(.3); transform-origin: 0 0; } .or-art.or-pack .pk-hint, .or-art.or-pack .pk-glow { display: none; }
 .sd-packstage { position: relative; display: flex; justify-content: center; margin-top: 60px; z-index: 2; }
 .pack.k-elite.holo .pk-body::before { opacity: .3; } .pack.k-elite .pk-body { background: linear-gradient(160deg, #3a3f4b 0%, #16181d 45%, #0b0c0f 75%, #2a2140 100%); box-shadow: inset 0 0 0 2px #e9b949, inset 0 -40px 60px rgba(120,60,200,.25); } .pack.k-elite .pk-top i { background-image: repeating-linear-gradient(90deg, rgba(0,0,0,.35) 0 2px, rgba(233,185,73,.35) 2px 4px), linear-gradient(180deg, #e9b949, #8a6418); }
+/* the lobby's main button never hides below the fold: it stays pinned to the bottom of the screen while the settings scroll */
+#lobbyBox #startBtn, #lobbyBox #readyBtn { position: sticky; bottom: 12px; z-index: 3; box-shadow: 0 6px 0 var(--red-d, #8a1f2b), 0 10px 28px rgba(0,0,0,.6); }
+#log > * { pointer-events: auto; }   /* the log box is wider than its lines: only the lines catch clicks, the map shows through around them */

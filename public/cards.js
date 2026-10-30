@@ -562,12 +562,15 @@ const Cards = (() => {
       const front = make(id, { level: upNow ? hl + 1 : 0, upFrom: upNow ? hl : null, tag: owned ? (upNow ? 'UPGRADE ★' + (hl + 1) : 'MAXED') : dd.kind === 'unit' ? 'NEW UNIT' : 'TACTIC' }); front.classList.add('cfront');
       flip.append(back, front); row.appendChild(flip);
       flip.onclick = async () => {
-        if (!flip.classList.contains('open')) return;
+        // one pick per round: a second click (a double-click, or a click while the screen fades out) must not send another
+        if (!flip.classList.contains('open') || row.dataset.chose) return;
+        row.dataset.chose = '1';
         let replace = null;
-        if (dd.kind === 'unit' && !owned && me.arsenal.length >= E.DECK_MAX) { replace = await pickReplace(me, id); if (!replace) return; }
+        if (dd.kind === 'unit' && !owned && me.arsenal.length >= E.DECK_MAX) { replace = await pickReplace(me, id); if (!replace) { delete row.dataset.chose; return; } }
         row.querySelectorAll('.flip').forEach(f => { if (f !== flip) f.classList.add('discard'); });
         flip.classList.add('chosen'); SFX.select();
-        await onPick(i, replace);
+        const ok = await onPick(i, replace);
+        if (ok === false) { delete row.dataset.chose; flip.classList.remove('chosen'); row.querySelectorAll('.flip').forEach(f => f.classList.remove('discard')); }
       };
     });
     box.appendChild(row);
