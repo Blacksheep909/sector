@@ -2,7 +2,9 @@
 
 Every release, newest first. Each version also has its own post on the [Releases page](https://github.com/Blacksheep909/sector/releases).
 
-## Unreleased
+## v0.12.0
+
+**Smarter, deadlier bots, covered airspace, Tiny maps and 10-commander wars, and land that runs off the board.**
 
 - **Anti-air and artillery do their own jobs.** Anti-air against a hex with no aircraft is now just its crew's small arms (1 chip a unit, was half its attack), and against aircraft only its missiles count, up close or from range. Guns can't shell aircraft (only the ground units under them defend and can be hit), and in a close assault each gun is just its crew (1 chip). Lower defence for the guns: **Basilisk 1** (was 2), **Hailstorm 1** (was 3), **Oracle 2** (was 3).
 - **🌫 Bots play fair in fog of war.** With fog on, a bot now decides everything from what a player in its seat would see: the land it has explored, what it last saw there, and what its units and territory can see now. Hidden armies, HQs and buildings are hidden from it too (walking into one is an ambush, as for you). Before, only its air strikes and artillery respected the fog.
