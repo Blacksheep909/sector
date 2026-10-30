@@ -93,6 +93,8 @@ function situation(id, runs = 16) {
       const cur = E.current(s), key = cur.id + ':' + s.turn.round;
       const m = mem[key] = mem[key] || { n: 0 };
       let a;
+      if (process.env.SITTRACE && active && cur.id === HERO && !m.traced) { m.traced = 1; const by = o => { const st = {}; for (const u of Object.values(s.units)) if (u.owner === o) st[u.hex] = (st[u.hex] || '') + u.type[0]; return JSON.stringify(st); };
+        console.log(`  r${s.turn.round} $${E.player(s, HERO).cash} hero ${by(HERO)} | foe ${s.players.filter(q => q.id !== HERO).map(q => by(q.id) + ' $' + q.cash).join(' ')} | goal ${s.scenario.goal.hexes.map(k => k + ':' + (s.map.tiles[k].owner || '-')).join(',')}`); }
       if (cur.id === HERO) a = active ? heroPlan(s, m) : (s.turn.stage === 'choose' ? { a: 'choose', pick: 'income' } : { a: 'end' });
       else a = cur.scenarioAI === 'passive' || m.n++ > 120 ? (s.turn.stage === 'choose' ? { a: 'choose', pick: 'income' } : { a: 'end' }) : botStep(s, cur.id, m);
       const r = E.applyAction(s, cur.id, a || { a: 'end' }, Math.random);
@@ -305,7 +307,7 @@ const SOLUTIONS = {
   },
 };
 const only = process.argv[2];
-for (const sc of SC.SCENARIOS) {
+for (const sc of SC.SCENARIOS.concat(only ? SC.DRAFTS : [])) {   // a draft mission runs when named
   if (only && sc.id !== only) continue;
   const g = game(sc.id), sol = SOLUTIONS[sc.id];
   if (!sol) { ok(false, sc.n + '. ' + sc.name + ': no solution written'); continue; }

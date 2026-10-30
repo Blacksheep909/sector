@@ -19,9 +19,21 @@ function cardScore(s, p, id) {
     if (p.arsenal.includes(id)) v = 2 + (E.UNITS[id].cost / 3);              // upgrade
     else v *= p.arsenal.length < 6 ? 1.4 : 1;
     if (d.cls === 'sea' && !hasCoast(s, p)) v *= 0.4;
+    // a war across the sea: no land route to any rival HQ. Then a transport is the card that wins it
+    if (s.phase === 'play' && overseas(s, p.id)) { if (id === 'ark') v = p.arsenal.includes('ark') ? 4 : 14; else if (d.cls === 'sea') v *= 1.3; }
     const taste = (playOf(p).cls || {})[d.cls]; if (taste) v *= 1 + taste * 0.25;
   } else v *= 0.85 * (playOf(p).tactics || 1);
   return v;
+}
+const overseasMemo = new WeakMap();
+function overseas(s, pid) {
+  const key = s.turn.round + ':' + s.turn.idx, m = overseasMemo.get(s) || {}; if (m.key !== key) { m.key = key; m.v = {}; overseasMemo.set(s, m); }
+  if (pid in m.v) return m.v[pid];
+  const tiles = s.map.tiles, hqs = new Set(s.players.filter(q => q.alive && q.id !== pid && q.hq && !E.isAlly(s, pid, q.id)).map(q => q.hq));
+  const seen = new Set(), q = Object.keys(tiles).filter(k => tiles[k].owner === pid && E.isLandTile(tiles[k]));
+  q.forEach(k => seen.add(k)); let hit = false;
+  for (let i = 0; i < q.length && !hit; i++) { if (hqs.has(q[i])) hit = true; for (const n of E.neighbors(q[i])) if (tiles[n] && !seen.has(n) && E.isLandTile(tiles[n])) { seen.add(n); q.push(n); } }
+  return (m.v[pid] = hqs.size > 0 && q.length > 0 && !hit);
 }
 function hasCoast(s, p) { return E.ownedLand(s, p.id).some(k => E.isCoastal(s, k)); }
 // pick the best card from an offer; if the deck is full, replace the weakest unit
@@ -482,16 +494,17 @@ function botTurn(s, pid, mem) {
   // walking distance over open land (around mountains and lakes), so troops don't pile up against a ridge they can't cross.
   // Falls back to straight-line distance where there's no land route at all (islands: that's the navy's job)
   const walkMaps = mem.walkMaps && mem.walkMaps.key === s.v + ':' + s.turn.round + ':' + s.turn.idx ? mem.walkMaps : (mem.walkMaps = { key: s.v + ':' + s.turn.round + ':' + s.turn.idx });
-  const walkField = (name, list) => {
+  // (no ground unit crosses an unbridged river; `fordable` pretends it can, for 'could a bridge get us there?')
+  const walkField = (name, list, fordable) => {
     if (walkMaps[name]) return walkMaps[name];
     const f = {}, q = [];
     for (const k of list) if (tiles[k]) { f[k] = 0; q.push(k); }
-    for (let i = 0; i < q.length; i++) for (const n of E.neighbors(q[i])) { const t = tiles[n]; if (!t || n in f || !E.isLandTile(t) || t.t === 'mountain') continue; f[n] = f[q[i]] + 1; q.push(n); }
+    for (let i = 0; i < q.length; i++) for (const n of E.neighbors(q[i])) { const t = tiles[n]; if (!t || n in f || !E.isLandTile(t) || t.t === 'mountain' || (t.river && !t.bridge && !fordable)) continue; f[n] = f[q[i]] + 1; q.push(n); }
     return (walkMaps[name] = f);
   };
   const walkGain = (name, list, from, to) => { const f = walkField(name, list); return from in f && to in f ? f[from] - f[to] : nearest(from, list) - nearest(to, list); };
   // overseas: no land route from anything we hold to the war target. That's the Ark's job: load troops and sail at them
-  const seaborne = strat.goal.length > 0 && (() => { const f = walkField('goal', strat.goal); return !Object.keys(tiles).some(k => tiles[k].owner === pid && k in f); })();
+  const seaborne = strat.goal.length > 0 && (() => { const f = walkField('goalFord', strat.goal, true); const sp = E.spawnPoints(s, pid); return !(sp.length ? sp : [p.hq]).some(k => k in f); })();   // judged from the bases new troops come from: a lone beachhead doesn't make the war a land war
   const navalNeed = stuck || seaborne;
   const arkHexes = Object.keys(idx).filter(k => E.isWater(tiles[k]) && idx[k].some(u => u.owner === pid && u.type === 'ark' && idx[k].filter(x => x.owner === pid && !E.isSea(x.type)).length < 3));   // room aboard (an Ark carries 3)
   const landFor = seaborne ? strat.goal : targets;   // where a loaded transport heads
@@ -540,7 +553,16 @@ function botTurn(s, pid, mem) {
     const fleet = movers.some(u => E.isSea(u.type));
     const carrying = fleet && (idx[k] || []).some(u => u.owner === pid && !E.isSea(u.type));
     // empty transports wait at the dock for troops
-    if (fleet && !carrying && movers.every(u => u.type === 'ark')) { mem.skip.add(k); continue; }
+    // empty transports wait at the dock for troops, or (a war overseas) sail to where the army is waiting
+    if (fleet && !carrying && movers.every(u => u.type === 'ark')) {
+      const army = navalNeed ? (mem.armyHexes = mem.armyHexes || [...new Set(Object.values(s.units).filter(u => u.owner === pid && !E.isSea(u.type) && E.UNITS[u.type].cls !== 'air' && E.isLandTile(tiles[u.hex])).map(u => u.hex))]) : [];
+      if (army.length && nearest(k, army) > 1) {
+        const r = E.reachable(s, pid, ids, k, idx); let to = null, bd = nearest(k, army);
+        for (const d in r) if ((r[d].kind === 'move' || r[d].kind === 'capture') && E.isWater(tiles[d])) { const dd = nearest(d, army); if (dd < bd) { bd = dd; to = d; } }
+        if (to) { const a = tryOnce({ a: 'move', from: k, units: ids, to }); if (a) return a; }
+      }
+      mem.skip.add(k); continue;
+    }
     const reach = E.reachable(s, pid, ids, k, idx);
     const carryingAttackOnly = false;
     const myDefHere = movers.reduce((a, u) => a + E.unitDef(s, u), 0), myAtkHere = movers.reduce((a, u) => a + E.unitAtk(s, u), 0);
@@ -646,6 +668,16 @@ function botTurn(s, pid, mem) {
     const spots = E.buildHexes(s, pid, 'bridge');
     if (spots.length) { const b_ = tryOnce({ a: 'build', struct: 'bridge', hex: spots.sort((a, b) => nearest(a, targets) - nearest(b, targets))[0] }); if (b_) return b_; }
   }
+  // a river between our bases and the war: bridge it where the crossing is shortest (one at a time: it takes a turn to build)
+  if (strat.goal.length && !seaborne && !mem.crossTried && p.cash >= E.structCost(p, 'bridge') + 2 && !Object.values(tiles).some(t => t.river && E.structsOf(t).some(x => x.type === 'bridge' && x.owner === pid && x.lock))) {
+    mem.crossTried = true;
+    const sp = E.spawnPoints(s, pid), home = walkField('home', sp.length ? sp : [p.hq]), there = walkField('goal', strat.goal);
+    if (!Object.keys(home).some(k => k in there)) {
+      let best = null, bv = 1e9;
+      for (const k of E.buildHexes(s, pid, 'bridge')) { if (!tiles[k].river) continue; const ns = E.neighbors(k), a = Math.min(...ns.map(n => n in home ? home[n] : 1e3)), b = Math.min(...ns.map(n => n in there ? there[n] : 1e3)); const v = a >= 1e3 ? 1e9 : a + (b >= 1e3 ? 60 + nearest(k, strat.goal) : b); if (v < bv) { bv = v; best = k; } }
+      if (best) { const b_ = tryOnce({ a: 'build', struct: 'bridge', hex: best }); if (b_) return b_; }
+    }
+  }
   // vehicles can't ford rivers: bridge the river hex nearest the front when we field them
   if (!mem.riverTried && p.cash >= E.structCost(p, 'bridge') + 4 && p.arsenal.some(t => ['veh', 'art'].includes(E.UNITS[t].cls))) {
     mem.riverTried = true;
@@ -707,6 +739,7 @@ function botTurn(s, pid, mem) {
   if (p.cash >= E.structCost(p, 'fob') + 3 && !mem.fobTried && !stuck) {
     mem.fobTried = true;
     const bases = E.spawnPoints(s, pid);
+    const gField = strat.goal.length ? walkField('goal', strat.goal) : null, gBase = gField ? Math.min(99, ...bases.map(b => b in gField ? gField[b] : 99)) : 0;
     let best = null, bv = -1;
     for (const k of supLand) {
       const t = tiles[k]; if (t.struct || t.contam) continue;
@@ -716,7 +749,9 @@ function botTurn(s, pid, mem) {
       const fr = E.neighbors(k).filter(n => tiles[n] && E.isLandTile(tiles[n]) && !tiles[n].owner).length;   // neutral land to grow into
       const df = fromFoe(k);
       if (df <= 1) continue;   // never on the front line: it'd be the first thing lost
-      const v = far * 0.7 + fr * 1.2 - (df === 2 ? 2 : df > 5 ? (df - 5) * 0.8 : 0);
+      let v = far * 0.7 + fr * 1.2 - (df === 2 ? 2 : df > 5 ? (df - 5) * 0.8 : 0);
+      // on the road to the war: reinforcements that start nearer the target's HQ get there while it still matters
+      if (gField && k in gField) v += Math.max(0, gBase - gField[k]) * 0.9;
       if (v > bv) { bv = v; best = k; }
     }
     if (best) { const b_ = tryOnce({ a: 'build', struct: 'fob', hex: best }); if (b_) return b_; }
@@ -734,8 +769,10 @@ function botTurn(s, pid, mem) {
   const mine = Object.values(s.units).filter(u => u.owner === pid);
   const myArks = mine.filter(u => u.type === 'ark').length;
   const warships = mine.filter(u => E.isSea(u.type) && u.type !== 'ark').length, landUnits = mine.length - warships - myArks;
-  const options = p.arsenal.filter(t => E.unitCost(p, t) <= p.cash && E.deployHexes(s, pid, t, idx).some(h => !(mem.badHex && mem.badHex.has(h))))
-    .filter(t => t !== 'ark' || (navalNeed && myArks < Math.min(8, 2 + Math.floor(landUnits / 8))))   // a big army stranded on an island needs a fleet of transports
+  // battle cards are paid for when the fight starts: keep the price of the two cheapest in hand (they win HQ assaults)
+  const keep = Math.min(Math.round((s.turn.income || 0) * 0.5), p.tactics.filter(c => E.TACTICS[c.id].target === 'battle').map(c => E.TACTICS[c.id].cost).sort((a, b) => a - b).slice(0, 2).reduce((a, b) => a + b, 0));
+  const options = p.arsenal.filter(t => E.unitCost(p, t) <= p.cash - (t === 'ark' ? 0 : keep) && E.deployHexes(s, pid, t, idx).some(h => !(mem.badHex && mem.badHex.has(h))))
+    .filter(t => t !== 'ark' || (navalNeed && myArks < Math.min(6, 1 + Math.floor(landUnits / 8)) && !mine.some(u => u.type === 'ark' && !mine.some(x => x.hex === u.hex && !E.isSea(x.type)))))   // a big army stranded on an island needs a fleet of transports (but not while one waits empty)
     .filter(t => !E.isSea(t) || t === 'ark' || (t === 'carrier' && !mine.some(u => u.type === 'carrier') && p.arsenal.some(x => E.UNITS[x].cls === 'air')) || (PL.navy ? warships < landUnits && Math.random() < 0.85 : warships < landUnits / 2 && Math.random() < 0.5));
   if (options.length) {
     // counter what the enemy fields: anti-air against air power, tank hunters against armour, siege against forts
@@ -757,10 +794,12 @@ function botTurn(s, pid, mem) {
       return b; };
     // what to buy: early on, punch per dollar; once money is plentiful, punch per slot (a hex only holds 5).
     // Under pressure, sturdiness counts double
+    // a long march to the war: slow juggernauts arrive after it's over, so speed counts for more
+    const far = (gf0 => Math.min(99, ...E.spawnPoints(s, pid).map(sp => sp in gf0 ? gf0[sp] : 99)))(walkField('deploy', strat.goal.length ? strat.goal : enemyTiles.length ? enemyTiles : targets)) >= 8;
     const rich = Math.min(1, (s.turn.income || 0) / 45), pressed = Object.values(mem.threat || {}).reduce((a, v) => Math.max(a, v), 0) > 0;
     const worth = t => { const d = E.UNITS[t], lv = (p.levels[t] || 0), a = d.atk + (d.atk ? lv : 0), df = d.def + lv, c = E.unitCost(p, t);
       const aa = !!d.aa;   // anti-air: only its crew's small arms count against ground, and its range is only for aircraft
-      const power = (aa ? 1 : a) * (pressed ? 0.8 : 1.1) + df * (pressed ? 1.3 : 0.8) + Math.min(d.mv, 5) * 0.4 + (d.range && !aa ? 2 : 0);
+      const power = (aa ? 1 : a) * (pressed ? 0.8 : 1.1) + df * (pressed ? 1.3 : 0.8) + Math.min(d.mv, 5) * (far ? 1 : 0.4) + (d.range && !aa ? 2 : 0);
       return (power / c) * 3 * (1 - rich) + (power / 4) * rich; };
     const scored = options.map(t => [t, (t === 'ark' ? 9 : K.deploy2 === false ? unitValue(t) / Math.sqrt(E.unitCost(p, t)) + (E.unitCost(p, t) >= 5 ? 0.6 : 0) : worth(t)) + counter(t) + Math.random() * 0.5]).sort((a, b) => b[1] - a[1]);
     const type = scored[0][0];

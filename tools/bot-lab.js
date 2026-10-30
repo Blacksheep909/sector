@@ -2,11 +2,13 @@
 //   node tools/bot-lab.js [games=12] [diff=hard] [players=4]
 // Reports: wars won outright vs run to the round limit, when commanders get knocked out, Arks bought and troops landed
 // from the sea, and where economic buildings go (hexes from the nearest enemy land when built) and how many are lost.
-const E = require('../shared/engine'); const { botStep, draftStep } = require('../shared/bot');
+const E = require('../shared/engine'); const { botStep, draftStep, battlePick } = require('../shared/bot');
 const games = +(process.argv[2] || 12), diff = process.argv[3] || 'hard', N = +(process.argv[4] || 4);
-const facs = Object.keys(E.FACTIONS), out = { conquest: 0, timeout: 0, rounds: 0, knockouts: [], arks: 0, landings: 0, econBuilt: 0, econDist: 0, econFront: 0, econLost: 0, hqAttacks: 0, fobDist: 0, fobs: 0 };
+const facs = Object.keys(E.FACTIONS), out = { conquest: 0, timeout: 0, rounds: 0, knockouts: [], arks: 0, landings: 0, econBuilt: 0, econDist: 0, econFront: 0, econLost: 0, hqAttacks: 0, fobDist: 0, fobs: 0, battleCards: 0, hqCards: 0 };
 const ECON = ['warehouse', 'refinery', 'depot'];
 for (let g = 0; g < games; g++) {
+  if (process.env.LABTURN && g !== +process.env.LABTURN.split(':')[0]) continue;
+  Math.random = E.mulberry32(E.hashStr('botlab' + g));   // bots roll Math.random: seed it so a game replays the same
   const roster = Array.from({ length: N }, (_, i) => ({ id: 'p' + i, name: 'Bot' + i, color: E.COLORS[i], faction: facs[(i + g) % facs.length], bot: true, diff: diff.includes(':') ? diff.split(':')[i % 2] : diff }));
   const { state: s } = E.createGame({ mode: 'domination', mapSize: 'medium', timer: 0, maxRounds: 50, seed: 'lab' + g }, roster);
   while (s.phase === 'draft') for (const p of s.players) { const a = draftStep(s, p.id); if (a) E.applyAction(s, p.id, a); }
@@ -14,10 +16,18 @@ for (let g = 0; g < games; g++) {
   let actions = 0; const alive = new Set(s.players.map(p => p.id));
   while (s.phase === 'play' && actions < 80000) {
     const p = E.current(s); const mem = {}; let n = 0;
+    const dump = process.env.LABTURN === g + ':' + p.id + ':' + s.turn.round;   // LABTURN=game:pid:round prints that turn
+    if (dump) { const st = {}; for (const u of Object.values(s.units)) if (u.owner === p.id && !E.isSea(u.type)) (st[u.hex] = st[u.hex] || []).push(u.type); console.error('stacks', JSON.stringify(st), 'cash', p.cash, 'rivals', s.players.filter(q => q.alive && q.id !== p.id).map(q => q.id + '@' + q.hq).join(' ')); }
     while (s.phase === 'play' && E.current(s).id === p.id) {
       let a = botStep(s, p.id, mem); if (++n > 90) a = { a: 'end' };
       const before = a.a === 'build' && ECON.concat('fob').includes(a.struct) && !E.structsOf(s.map.tiles[a.hex]).some(x => x.type === a.struct) ? dist(a.hex, p.id) : null;
-      const r = E.applyAction(s, p.id, a); actions++; if (!r.ok) continue;
+      // the pre-roll window, as the server runs it for bots: each side may throw in battle cards
+      const b = (a.a === 'move' || a.a === 'assault') && E.openBattle(s, p.id, a);
+      if (b) { if (!b.def || b.def === p.id || !E.player(s, b.def)) E.closeBattle(s); else {
+        for (let i = 0; i < 6 && s.battle; i++) { let played = false; for (const pid of [b.att, b.def]) { const uid = battlePick(s, pid); if (uid != null && E.battleCard(s, pid, uid).ok) { played = true; out.battleCards++; if (E.structsOf(s.map.tiles[b.hex]).some(x => x.type === 'hq')) out.hqCards++; } } if (!played) break; }
+        if (s.battle && !b.cards.att.length && !b.cards.def.length) E.closeBattle(s); } }
+      const r = E.applyAction(s, p.id, a); actions++; if (s.battle) E.closeBattle(s, true); if (!r.ok) continue;
+      if (dump) console.error(r.ok ? 'ok' : 'NO', JSON.stringify(a).slice(0, 150));
       if (before !== null) { if (a.struct === 'fob') { out.fobs++; out.fobDist += before; } else { out.econBuilt++; out.econDist += before; if (before <= 2) out.econFront++; } }
       if (a.a === 'deploy' && a.unit === 'ark') out.arks++;
       for (const e of r.events) {
@@ -28,10 +38,20 @@ for (let g = 0; g < games; g++) {
     for (const q of s.players) if (alive.has(q.id) && !q.alive) { alive.delete(q.id); out.knockouts.push(s.turn.round); }
   }
   // economic buildings still standing at the end vs built (a rough measure of how many were lost)
-  if (s.winner && /standing|captured|conquer/i.test(s.winner.reason)) out.conquest++; else out.timeout++;
+  if (s.winner && /standing|captured|conquer/i.test(s.winner.reason)) out.conquest++;
+  else { out.timeout++; // a stall: could the leader have walked to a rival HQ (land) or was the sea in the way?
+    const alive = s.players.filter(q => q.alive), lead = alive.sort((a, b) => E.ownedLand(s, b.id).length - E.ownedLand(s, a.id).length)[0];
+    const seen = new Set(E.spawnPoints(s, lead.id)), q = [...seen]; for (let i = 0; i < q.length; i++) for (const n of E.neighbors(q[i])) if (s.map.tiles[n] && !seen.has(n) && E.isLandTile(s.map.tiles[n])) { seen.add(n); q.push(n); }
+    const land = alive.some(o => o.id !== lead.id && seen.has(o.hq)); if (land) out.landStall = (out.landStall || 0) + 1; else out.seaStall = (out.seaStall || 0) + 1;
+    { const w = new Set(E.spawnPoints(s, lead.id)), q2 = [...w]; for (let i = 0; i < q2.length; i++) for (const n of E.neighbors(q2[i])) { const t = s.map.tiles[n]; if (t && !w.has(n) && E.isLandTile(t) && !(t.river && !t.bridge)) { w.add(n); q2.push(n); } }
+      if (land && !alive.some(o => o.id !== lead.id && w.has(o.hq))) out.riverStall = (out.riverStall || 0) + 1; }
+    if (process.env.LABDBG) { const us = Object.values(s.units).filter(u => u.owner === lead.id && !E.isSea(u.type) && E.UNITS[u.type].cls !== 'air'), rivals = alive.filter(o => o.id !== lead.id);
+      const near = u => Math.min(...rivals.map(o => E.dist(u.hex, o.hq))), ds = us.map(near).sort((a, b) => a - b);
+      process.stderr.write(`  ${land ? 'LAND' : 'SEA'} stall g${g}: leader ${lead.id} land army ${us.length} (mv ${(us.reduce((a, u) => a + E.UNITS[u.type].mv, 0) / Math.max(1, us.length)).toFixed(1)}) dist to rival HQ median ${ds[ds.length >> 1]} min ${ds[0]} · rivals ` +
+        rivals.map(o => `${o.id} hq★${(E.structsOf(s.map.tiles[o.hq]).find(x => x.type === 'hq') || {}).lvl || 1} on-hq ${Object.values(s.units).filter(u => u.hex === o.hq).length} army ${Object.values(s.units).filter(u => u.owner === o.id).length}`).join(' | ') + '\n'); } }
   out.rounds += s.turn.round;
   process.stderr.write(`game ${g}: round ${s.turn.round}, ${s.winner ? s.winner.reason : 'unfinished'}, ${s.players.filter(p => p.alive).length} left\n`);
 }
 const ko = out.knockouts.sort((a, b) => a - b);
 console.log(JSON.stringify({ diff, games, wonOutright: out.conquest, ranToLimit: out.timeout, avgRounds: +(out.rounds / games).toFixed(1), knockouts: ko.length, medianKnockoutRound: ko[Math.floor(ko.length / 2)] || null,
-  hqAttacks: out.hqAttacks, arksBought: out.arks, seaLandings: out.landings, econBuilt: out.econBuilt, econAvgHexesFromEnemy: +(out.econDist / Math.max(1, out.econBuilt)).toFixed(2), econOnFront: out.econFront, fobAvgHexesFromEnemy: +(out.fobDist / Math.max(1, out.fobs)).toFixed(2) }));
+  hqAttacks: out.hqAttacks, arksBought: out.arks, seaLandings: out.landings, econBuilt: out.econBuilt, econAvgHexesFromEnemy: +(out.econDist / Math.max(1, out.econBuilt)).toFixed(2), econOnFront: out.econFront, fobAvgHexesFromEnemy: +(out.fobDist / Math.max(1, out.fobs)).toFixed(2), landStalls: out.landStall || 0, seaStalls: out.seaStall || 0, riverCut: out.riverStall || 0, battleCards: out.battleCards, hqBattleCards: out.hqCards }));
