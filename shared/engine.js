@@ -376,6 +376,14 @@
     const rows = Math.max(10, Math.round(total / cols));
     const blobs = [];
     const R = (a, b) => a + rng() * (b - a);
+    // open edges: on many land maps the land runs straight off one to three sides of the board instead of ending in a
+    // ring of sea (an inland sea is sometimes landlocked all round). Rolled on its own stream so the rest of the map is unchanged
+    const open = { L: false, R: false, T: false, B: false };
+    { const er = mulberry32((seed ^ 0x5bd1e995) >>> 0), sides = ['L', 'R', 'T', 'B'];
+      if (['continent', 'pangaea', 'twin', 'inland', 'crescent'].includes(arch) && er() < 0.6) {
+        const n = arch === 'inland' && er() < 0.4 ? 4 : 1 + Math.floor(er() * 3);
+        sides.sort(() => er() - 0.5).slice(0, n).forEach(k => { open[k] = true; });
+      } }
     if (arch === 'continent') blobs.push([R(-.1, .1), R(-.1, .1), 0.75]);
     if (arch === 'pangaea') { blobs.push([0, 0, 0.9]); blobs.push([R(-.5, .5), R(-.5, .5), 0.5]); }
     if (arch === 'twin') { const a = rng() * Math.PI; blobs.push([Math.cos(a) * .5, Math.sin(a) * .5, 0.52], [-Math.cos(a) * .5, -Math.sin(a) * .5, 0.52]); }
@@ -409,8 +417,11 @@
       const wx = nx + (warpN(px * 0.07 + ox, py * 0.07, 2) - 0.5) * wa, wy = ny + (warpN(px * 0.07, py * 0.07 + oy, 2) - 0.5) * wa;
       const nw = arch === 'ocean' ? 0.22 : arch === 'archipelago' ? 0.3 : 0.6;
       let e = mask(wx, wy) * 0.9 + noise(px * 0.15 + ox, py * 0.15 + oy, 4) * nw;
-      const edge = Math.max(Math.abs(nx), Math.abs(ny));
+      // the sea closes in toward a closed edge; toward an open one the land swells out to meet it
+      const sv = { L: -nx, R: nx, T: -ny, B: ny };
+      const edge = Math.max(0, ...Object.keys(sv).filter(k => !open[k]).map(k => sv[k]));
       if (edge > 0.7) e -= (edge - 0.7) * 4;
+      for (const k in sv) if (open[k] && sv[k] > 0.55) e += (sv[k] - 0.55) * 1.4;
       cells.push({ q, r, px, py, e });
     }
     // auto threshold: exactly landTarget hexes of land
@@ -443,13 +454,16 @@
       tiles[key(c.q, c.r)] = { q: c.q, r: c.r, t, owner: null, struct: null, res: false, contam: 0, smoke: null };
       elev[key(c.q, c.r)] = c.e;
     }
-    // sea: everything within 2 hexes of land
+    // sea: everything within 2 hexes of land (but not past an open edge: the land runs off the board there)
+    const offBoard = (q, r) => { const row = r + Math.floor(rows / 2), col = q + Math.floor(cols / 2) + Math.floor(r / 2); return (open.L && col < 0) || (open.R && col >= cols) || (open.T && row < 0) || (open.B && row >= rows); };
     for (const k of Object.keys(tiles)) for (const a of area(k, 2)) {
       if (tiles[a]) continue;
       const [q, r] = parse(a);
+      if (offBoard(q, r)) continue;
       tiles[a] = { q, r, t: 'water', owner: null, struct: null, res: false, contam: 0, smoke: null };
     }
     openSea(tiles);
+    for (const k in tiles) { const t = tiles[k]; if (t.t === 'water' && offBoard(t.q, t.r)) delete tiles[k]; }
     for (const k in tiles) if (tiles[k].t === 'water') tiles[k].deep = !neighbors(k).some(n => tiles[n] && tiles[n].t !== 'water');
     const isLand = k => tiles[k] && TERRAIN[tiles[k].t].land;
     const compOf = {}, comps = [];
@@ -520,9 +534,11 @@
         if (tiles[src].river || heads.some(h => dist(h, src) < 4)) continue;
         const path = [src], seen = new Set([src]); let cur = src, mouth = null;
         for (let step = 0; step < 45 && !mouth; step++) {
-          const nb = neighbors(cur).filter(n => tiles[n] && !seen.has(n) && tiles[n].t !== 'mountain');
-          const sea = nb.find(n => tiles[n].t === 'water'); if (sea) { mouth = sea; break; }
-          const join = nb.find(n => tiles[n].river); if (join && path.length >= 2) { mouth = join; break; }
+          const nb0 = neighbors(cur).filter(n => tiles[n] && !seen.has(n) && tiles[n].t !== 'mountain');
+          const sea = nb0.find(n => tiles[n].t === 'water'); if (sea) { mouth = sea; break; }
+          const join = nb0.find(n => tiles[n].river); if (join) { if (path.length >= 2) mouth = join; break; }   // meet another river: join it (never run down its bed)
+          // a river is one hex wide: it never steps beside its own earlier course or another river, and keeps clear of the HQ sites
+          const nb = nb0.filter(n => !spawns.includes(n) && neighbors(n).every(m => m === cur || !tiles[m] || (!tiles[m].river && !(seen.has(m) && m !== cur))));
           if (!nb.length) break;
           nb.sort((a, b) => (elev[a] || 0) - (elev[b] || 0));
           const next = nb[rng() < 0.2 && nb[1] ? 1 : 0];
@@ -553,7 +569,7 @@
       tiles[k].res = true; rigs++;
     }
     // points of interest: loot to grab, neutral strongholds to conquer, relics to hold
-    const free = landNow.filter(k => !tiles[k].res && spawns.every(sp => dist(sp, k) >= 3)).sort(() => rng() - 0.5);
+    const free = landNow.filter(k => !tiles[k].res && !tiles[k].river && spawns.every(sp => dist(sp, k) >= 3)).sort(() => rng() - 0.5);   // never in a river (it would cut it in two)
     const want2 = { ruins: 0.035, cache: 0.025, village: 0.03, fort: 0.015 };
     let fi = 0;
     for (const [poi, frac] of Object.entries(want2)) {
@@ -576,7 +592,7 @@
     }
     let relicIsles = 0;
     isles.sort(() => rng() - 0.5).forEach((comp, i) => {
-      const spots = comp.filter(k => tiles[k].t !== 'mountain' && !tiles[k].res).sort(() => rng() - 0.5);
+      const spots = comp.filter(k => tiles[k].t !== 'mountain' && !tiles[k].res && !tiles[k].river).sort(() => rng() - 0.5);
       for (const k of spots) delete tiles[k].poi;
       const loot = i % 3 === 0 ? ['relic', 'cache'] : i % 3 === 1 ? ['ruins', 'cache'] : ['ruins', 'village'];
       if (comp.length < 5) loot.length = 1;
@@ -584,12 +600,12 @@
     });
     // relics sit far from everyone's HQ (fewer on the mainland when islands already carry some)
     const relics = Math.max(relicIsles ? 0 : 1, Math.round(nP / 2) - relicIsles);
-    const farthest = landNow.filter(k => !tiles[k].poi && !tiles[k].res).map(k => [k, Math.min(...spawns.map(sp => dist(sp, k)))]).sort((a, b) => b[1] - a[1]);
+    const farthest = landNow.filter(k => !tiles[k].poi && !tiles[k].res && !tiles[k].river).map(k => [k, Math.min(...spawns.map(sp => dist(sp, k)))]).sort((a, b) => b[1] - a[1]);
     for (let i = 0, placedR = 0; i < farthest.length && placedR < relics; i++) { const k = farthest[i][0]; if (neighbors(k).some(nb => tiles[nb] && tiles[nb].poi === 'relic')) continue; tiles[k].poi = 'relic'; placedR++; }
     let cx = 0, cy = 0; for (const k of landNow) { cx += tiles[k].q; cy += tiles[k].r; }
     const centre = key(Math.round(cx / landNow.length), Math.round(cy / landNow.length));
     let beacon = null, bd = 1e9;
-    for (const k of landNow) { const d = dist(k, centre); if (d < bd && !spawns.includes(k)) { bd = d; beacon = k; } }
+    for (const k of landNow) { const d = dist(k, centre) + (tiles[k].river ? 1000 : 0); if (d < bd && !spawns.includes(k)) { bd = d; beacon = k; } }   // never on a river if there's any dry ground
     tiles[beacon].t = 'plains'; tiles[beacon].res = false; delete tiles[beacon].poi; tiles[beacon].structs = []; tiles[beacon].struct = null;
     // towns, forts, relics and the beacon sit on dry ground beside the river, not in it
     for (const k in tiles) if (tiles[k].river && (tiles[k].poi || k === beacon)) delete tiles[k].river;
@@ -663,7 +679,7 @@
       const isL = k => state.map.tiles[k] && TERRAIN[state.map.tiles[k].t].land;
       const cands = Object.keys(state.map.tiles).filter(k => {
         const t = state.map.tiles[k];
-        return ['plains', 'forest', 'desert'].includes(t.t) && !t.poi && !t.res && k !== map.beacon && neighbors(k).filter(isL).length >= 4 && area(k, 4).filter(isL).length >= 16;
+        return ['plains', 'forest', 'desert'].includes(t.t) && !t.poi && !t.res && !t.river && k !== map.beacon && neighbors(k).filter(isL).length >= 4 && area(k, 4).filter(isL).length >= 16;
       });
       for (const k of map.spawns) if (!cands.includes(k)) cands.push(k);
       state.spawn = { order: state.players.map(p => p.id).reverse(), i: 0, cands, minDist, fallback: map.spawns.slice() };
@@ -675,7 +691,7 @@
   // World War: superweapon silos sit in the no-man's-land between the HQs
   function placeSilos(state, spawns) {
     const tiles = state.map.tiles, n = Math.max(3, Math.floor(state.players.length / 2) + 1), out = [];
-    const cands = Object.keys(tiles).filter(k => { const t = tiles[k]; return isLandTile(t) && t.t !== 'mountain' && !t.poi && !t.res && !t.owner && !structsOf(t).length; })
+    const cands = Object.keys(tiles).filter(k => { const t = tiles[k]; return isLandTile(t) && t.t !== 'mountain' && !t.poi && !t.res && !t.river && !t.owner && !structsOf(t).length; })
       .map(k => ({ k, d: Math.min(...spawns.map(sp => dist(sp, k))) })).filter(c => c.d >= 4).sort((a, b) => b.d - a.d);
     for (const c of cands) {
       if (out.length >= n) break;

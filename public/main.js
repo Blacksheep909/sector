@@ -2576,6 +2576,8 @@
           const d = ev.id ? E.cardDef(ev.id) : null;
           if (ev.pid === you && d && ev.level) { toast(`★ ${d.name} upgraded to level ${ev.level}!`, 'leg'); break; }
           if (ev.pid === you && d && ev.refund) { toast(`${d.name} is maxed: +$${ev.refund}`); break; }
+          // the opening draft has its own screen (with everyone's progress under the cards): no toast for every pick there
+          if (S && S.phase === 'draft') { await sleep(50); break; }
           if (ev.pid !== you) {
             if (ev.rarity === 'legendary') { toast(`★ ${pName(ev.pid)} drafted LEGENDARY ${d ? d.name : ''}!`, 'leg'); SFX.legendary(); Render.flash(0.25, '#ffb52e'); }
             else toast(`${pName(ev.pid)} drafted ${d && ev.kind === 'unit' ? d.name : 'a ' + E.RARITY[ev.rarity].name + ' card'}`);
