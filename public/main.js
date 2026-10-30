@@ -272,7 +272,7 @@
     applyPrefs(me);
     renderRoomBar();
     const host = lobby.hostId === you, pub = lobby.kind === 'public';
-    { const sp = lobby.players.filter(p => p.spectator).length; $('#pCount').textContent = (lobby.players.length - sp) + '/' + (lobby.cap || 8) + (sp ? ' · ' + sp + ' watching' : ''); }
+    { const sp = lobby.players.filter(p => p.spectator).length; $('#pCount').textContent = (lobby.players.length - sp) + '/' + (lobby.cap || 10) + (sp ? ' · ' + sp + ' watching' : ''); }
     // public wars: hosted like any room, but no ready-up, no shared-screen players and no missions; bots fill the empty seats on DEPLOY
     $('#addBot').parentElement.hidden = !host && pub; $('#addLocal').hidden = pub; $('#lanBox').hidden = pub || lobby.code !== 'MAIN';   // missions live on the front page
     const pl = $('#playerList'); pl.innerHTML = '';
@@ -1543,6 +1543,7 @@
   function renderTop() {
     document.body.classList.toggle('war-over', S.phase === 'over');   // the board after a war is for looking at: the build bar, deck and hand step aside
     const box = $('#players'); box.innerHTML = '';
+    box.classList.toggle('many', S.players.length > 6);   // big wars: compact chips
     // land is what scores (Conquest target, time-up winner), so that's the headline number; sea is in the tooltip
     const counts = {}, seas = {}; for (const k in S.map.tiles) { const t = S.map.tiles[k], o = t.owner; if (!o) continue; if (E.isLandTile(t)) counts[o] = (counts[o] || 0) + 1; else seas[o] = (seas[o] || 0) + 1; }
     for (const p of S.players) {
@@ -1553,7 +1554,7 @@
       if (!p.alive) c.style.setProperty('--pc', '#5b6670');
       c.innerHTML = `<div class="av"><img src="${Art.iconURL('glyph', f ? f.glyph : 'shield', '#0b0f13', 48)}"></div><div><div class="pn">${esc(p.name)}${p.alive ? '' : ' <span class="out">☠ OUT</span>'}${p.team ? ` <span class="teamchip t${p.team}">${'ABCD'[p.team - 1]}</span>` : ''}${p.traitor ? ' <span class="out" title="Broke an alliance: -40% income and no new pacts">🗡 TRAITOR</span>' : ''}${moodTag(p)}</div><div class="ps"><span title="${counts[p.id] || 0} land hexes (what counts to win) + ${seas[p.id] || 0} sea">⬢ <b>${counts[p.id] || 0}</b></span><span>$<b>${p.cash}</b></span><span>🂠 <b>${p.tacticCount ?? p.tactics.length}</b></span>${extra}</div></div>`;
       c.title = f ? f.name + ' · ' + f.perk + ': ' + f.desc : '';
-      c.onclick = () => { if (p.hq) Render.focus(p.hq); };
+      c.onclick = () => { if (p.hq) Render.focus(p.hq); if (box.classList.contains('many')) { const was = c.classList.contains('open'); box.querySelectorAll('.pchip.open').forEach(x => x.classList.remove('open')); c.classList.toggle('open', !was); } };   // a tap opens TRADE / ALLY in a big war
       if (saying[p.id]) sayOn(c, p.id, false);
       const allied = E.isAlly(S, you, p.id), pact = allied && (S.allies || []).find(x => (x.a === p.id || x.b === p.id) && (x.a === you || x.b === you));
       if (allied) {

@@ -69,7 +69,7 @@ There are no accounts, no internet servers and no port forwarding. Prefer one sc
 | 🤝 **Diplomacy** | Trade cash and cards with other players. Bots haggle too. |
 | 🧠 **Bots** | Four difficulties. Bots draft, build, invade by sea, set up pincers and judge trades. They have moods, hold grudges and ally against whoever is most dangerous. |
 | 📋 **Blueprint** | Queue your turn while others play; it runs the moment your turn begins. |
-| 🗺️ **Living maps** | Map themes (Grasslands, Woodland, Desert, Badlands, Arctic, Jungle, Wetlands, Highlands or Mixed), rivers you ford or bridge, ruins and caches to loot, villages and forts to conquer, relics to fight over. Small to Huge sizes. Random spawns or pick your HQ. |
+| 🗺️ **Living maps** | Map themes (Grasslands, Woodland, Desert, Badlands, Arctic, Jungle, Wetlands, Highlands or Mixed), rivers you ford or bridge, ruins and caches to loot, villages and forts to conquer, relics to fight over. Tiny to Huge sizes, up to 10 commanders. Random spawns or pick your HQ. |
 | 🌫 **Fog, alliances and events** | Optional fog of war, alliances with shared victory (and betrayal), world events like storms and gold rushes, undo, and an end-of-game War Report with battle heatmaps, charts and awards. |
 | ⚔️ **Factions** | Iron Covenant, Volt Syndicate, Ashen Nomads, Verdant Host and Null Order, each with a perk and a starting unit. |
 | 🎨 **No assets** | Every unit, card and building is procedural vector art, and every sound is synthesized. The whole game is about 300 KB of code. |

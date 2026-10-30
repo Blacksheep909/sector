@@ -1239,6 +1239,13 @@ body:has(#draft:not([hidden])) #toasts, body:has(#supply:not([hidden])) #toasts,
 .pchip { flex-wrap: wrap; }
 .pchip > .chipbtns { position: static; transform: none; flex: 1 1 100%; justify-content: center; margin-top: 2px; bottom: auto; left: auto; }
 .chipbtns .tradebtn { white-space: nowrap; }
+/* big wars (7+ commanders): compact chips in at most two rows; TRADE / ALLY open under a chip on hover (or a tap) */
+#players.many { gap: 6px; }
+#players.many .pchip { padding: 3px 9px 3px 4px; gap: 6px; position: relative; flex-wrap: nowrap; }
+#players.many .pchip .av { width: 22px; height: 22px; border-radius: 6px; } #players.many .pchip .av img { width: 15px; height: 15px; }
+#players.many .pchip .pn { font-size: 12px; max-width: 92px; } #players.many .pchip .ps { font-size: 10px; gap: 6px; }
+#players.many .pchip > .chipbtns { display: none; position: absolute; top: calc(100% - 2px); left: 50%; transform: translateX(-50%); z-index: 6; padding: 6px; margin: 0; border-radius: 10px; background: var(--panel); border: 2px solid var(--line); box-shadow: 0 4px 0 #000; flex: none; }
+#players.many .pchip:hover > .chipbtns, #players.many .pchip.open > .chipbtns { display: flex; }
 /* quick decision pop-up: a few seconds, then gone */
 /* speed strip: ⏸ > >> >>> 🚀 */
 .speed-ctl { display: flex; gap: 2px; background: var(--panel); border: 3px solid var(--line); border-radius: 10px; padding: 2px; box-shadow: 0 4px 0 #000; }

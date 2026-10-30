@@ -274,7 +274,7 @@
     fervour: { name: 'War Fervour', icon: '🔥', desc: 'Every attack gets +1 Mult this round.' },
     clear: { name: 'Clear Skies', icon: '☀', desc: 'Everyone sees 2 hexes further this round (fog of war).' },
   };
-  const COLORS = ['#ff4f5e', '#36c9ff', '#ffc53d', '#59f08a', '#c27dff', '#ff8ad0', '#ff9a3c', '#e9edf2'];
+  const COLORS = ['#ff4f5e', '#36c9ff', '#ffc53d', '#59f08a', '#c27dff', '#ff8ad0', '#ff9a3c', '#e9edf2', '#2ad8c4', '#9aa6ff'];   // up to 10 commanders
   // teams play in team colours: A red, B blue, C gold, D green (the other shades are spare)
   const TEAM_COLORS = {
     1: ['#ff4f5e', '#ff8f6b', '#c42a4a', '#ff6fa8'],
@@ -366,7 +366,7 @@
     const rng = mulberry32(seed);
     const noise = makeNoise(seed % 100000), noise2 = makeNoise((seed * 3 + 17) % 100000), warpN = makeNoise((seed * 7 + 5) % 100000);
     const arch = forceArch || ARCHETYPES[Math.floor(rng() * ARCHETYPES.length)];
-    const sizeMul = { small: 0.7, medium: 1, large: 1.8, huge: 2.6, colossal: 3.8 }[size] || 1;
+    const sizeMul = { tiny: 0.48, small: 0.7, medium: 1, large: 1.8, huge: 2.6, colossal: 3.8 }[size] || 1;
     const tempN = makeNoise((seed * 11 + 3) % 100000);
     const landTarget = Math.round((70 + nP * 38) * sizeMul);
     const landFrac = arch === 'ocean' ? 0.24 : arch === 'archipelago' ? 0.36 : arch === 'pangaea' ? 0.55 : 0.45;

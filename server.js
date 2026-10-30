@@ -83,7 +83,7 @@ const FWD = ['x-forwarded-for', 'x-real-ip', 'forwarded', 'cf-connecting-ip', 't
 // a name a player typed: cleaned up, or null (and they're told) when it isn't allowed
 function cleanName(raw, c) { const n = F.name(raw); if (!n && raw && String(raw).trim() && c) send(c, { t: 'err', msg: 'That callsign isn’t allowed. Pick another.' }); return n; }
 // lobby settings: only the values the menus offer
-const SETTING_OK = { mode: ['domination', 'conquest', 'koth', 'worldwar'], mapType: ['random', 'continent', 'pangaea', 'twin', 'archipelago', 'inland', 'crescent', 'ocean'], theme: ['random', 'mixed', 'grasslands', 'woodland', 'desert', 'badlands', 'arctic', 'jungle', 'wetlands', 'highlands'], mapSize: ['small', 'medium', 'large', 'huge'], spawns: ['pick', 'random'], fog: ['on', 'off'], events: ['on', 'off'], timer: ['0', '45', '60', '90', '150'], maxRounds: ['0', '15', '25', '40'], teams: ['off', 'on'], speed: ['normal', 'fast', 'super', 'max'], bank: ['off', '3', '6'], personas: ['on', 'off'] };
+const SETTING_OK = { mode: ['domination', 'conquest', 'koth', 'worldwar'], mapType: ['random', 'continent', 'pangaea', 'twin', 'archipelago', 'inland', 'crescent', 'ocean'], theme: ['random', 'mixed', 'grasslands', 'woodland', 'desert', 'badlands', 'arctic', 'jungle', 'wetlands', 'highlands'], mapSize: ['tiny', 'small', 'medium', 'large', 'huge'], spawns: ['pick', 'random'], fog: ['on', 'off'], events: ['on', 'off'], timer: ['0', '45', '60', '90', '150'], maxRounds: ['0', '15', '25', '40'], teams: ['off', 'on'], speed: ['normal', 'fast', 'super', 'max'], bank: ['off', '3', '6'], personas: ['on', 'off'] };
 function cleanSettings(s) {
   const out = {}; if (!s || typeof s !== 'object') return out;
   for (const k in SETTING_OK) if (k in s && SETTING_OK[k].includes(String(s[k]))) out[k] = ['timer', 'maxRounds'].includes(k) ? +s[k] : String(s[k]);
@@ -209,7 +209,7 @@ setInterval(() => {
 // ───────────────────────── a room: one lobby and its war ─────────────────────────
 // Everything from here to the end of createRoom belongs to a single room. Rooms share nothing but profiles,
 // so online each one can live in its own isolated worker (one Cloudflare Durable Object per room, say).
-const PUBLIC_SEATS = 6, PUBLIC_MIN = 4;
+const PUBLIC_SEATS = 6, PUBLIC_MIN = 4, MAX_SEATS = 10;   // a room of your own holds up to 10 commanders
 // quick-play rooms: a standard war with a turn clock, so strangers can't stall it
 const PUBLIC_SETTINGS = { mode: 'domination', mapSize: 'small', mapType: 'random', theme: 'random', spawns: 'random', fog: 'on', events: 'on', timer: 60, maxRounds: 0, conquestPct: 60, seed: '', teams: 'off', speed: 'fast', bank: 'off', personas: 'on' };
 function createRoom(code, kind) {
@@ -226,7 +226,7 @@ const autoPids = new Set(); // dev: humans driven by the bot AI (SECTOR_DEV=1)
 
 function lobbyView() {
   return {
-    code, kind, cap: isPublic ? PUBLIC_SEATS : 8,
+    code, kind, cap: isPublic ? PUBLIC_SEATS : MAX_SEATS,
     players: lobby.players.map(p => ({ id: p.id, name: p.name, handle: p.handle || null, color: p.color, faction: p.faction, bot: p.bot, diff: p.diff, local: !!p.local, controller: p.controller || null, spectator: !!p.spectator, team: p.team || 0, cos: p.cos || null, ready: isReady(p), away: !!p.away, afk: !!p.afk, connected: p.bot || isConnected(p.id) })),
     hostId: lobby.hostId, solo: !!lobby.solo, saveCap: profiles.SAVE_CAP, settings: lobby.settings, inGame: !!game, saves: game || isPublic ? [] : savesFor((lobby.players.find(p => p.id === lobby.hostId) || {}).profileId), version: VERSION, lan: lanAddresses().map(a => 'http://' + a + ':' + PORT), port: PORT,
   };
@@ -328,7 +328,7 @@ function onMessage(c, m) {
       let p = m.token && lobby.players.find(x => x.token === m.token);
       if (!p && game) { send(c, { t: 'welcome', you: null, spectator: true }); send(c, { t: 'lobby', lobby: lobbyView() }); send(c, { t: 'state', state: E.view(game, null), events: [] }); return; }
       if (!p) {
-        if (lobby.players.filter(x => !x.bot || !isPublic).length >= (isPublic ? PUBLIC_SEATS : 8)) return send(c, { t: 'err', msg: 'That room is full' });
+        if (lobby.players.filter(x => !x.bot || !isPublic).length >= (isPublic ? PUBLIC_SEATS : MAX_SEATS)) return send(c, { t: 'err', msg: 'That room is full' });
         if (isPublic) { const bot = lobby.players.find(x => x.bot); if (bot && lobby.players.length >= PUBLIC_SEATS) lobby.players = lobby.players.filter(x => x !== bot); }
         p = { id: 'p' + nextPid++, token: crypto.randomBytes(12).toString('hex'), name: cleanName(m.name, c) || 'Commander', color: freeColor(), faction: pickFaction(c), bot: false };
         lobby.players.push(p);
@@ -403,7 +403,7 @@ function onMessage(c, m) {
     }
     case 'settings': if (c.pid !== lobby.hostId || game) return; Object.assign(lobby.settings, cleanSettings(m.settings)); for (const p of lobby.players) if (p.id !== lobby.hostId) p.ready = false; return broadcastLobby();
     case 'addLocal': {
-      if (game || !c.pid || isPublic || lobby.players.length >= 8) return;   // shared-screen players are for rooms of your own
+      if (game || !c.pid || isPublic || lobby.players.length >= MAX_SEATS) return;   // shared-screen players are for rooms of your own
       const n = lobby.players.filter(p => p.local).length + 2;
       lobby.players.push({ id: 'p' + nextPid++, token: null, name: 'Player ' + n, color: freeColor(), faction: pickFaction(c), bot: false, local: true, controller: c.pid });
       return broadcastLobby();
@@ -417,7 +417,7 @@ function onMessage(c, m) {
       return broadcastLobby();
     }
     case 'addBot': {
-      if (c.pid !== lobby.hostId || game || lobby.players.length >= (isPublic ? PUBLIC_SEATS : 8)) return;
+      if (c.pid !== lobby.hostId || game || lobby.players.length >= (isPublic ? PUBLIC_SEATS : MAX_SEATS)) return;
       const used = new Set(lobby.players.map(p => p.name));
       const name = BOT_NAMES.find(n => !used.has(n)) || 'Bot';
       // a new bot takes the difficulty of the bot above it (so filling a lobby with Hard bots is one setting, not five)
@@ -441,9 +441,9 @@ function onMessage(c, m) {
     // singleplayer: how many bots, and how good, in one go
     case 'soloCfg': {
       if (c.pid !== lobby.hostId || game || !lobby.solo) return;
-      const want = Math.max(1, Math.min(7, Math.round(+m.bots) || 0)), diff = E.DIFFICULTY[m.diff] || m.diff === 'random' ? m.diff : null;
+      const want = Math.max(1, Math.min(MAX_SEATS - 1, Math.round(+m.bots) || 0)), diff = E.DIFFICULTY[m.diff] || m.diff === 'random' ? m.diff : null;
       let bots = lobby.players.filter(p => p.bot);
-      while (m.bots != null && bots.length < want && lobby.players.length < 8) { onMessage(c, { t: 'addBot', diff: diff || undefined }); bots = lobby.players.filter(p => p.bot); }
+      while (m.bots != null && bots.length < want && lobby.players.length < MAX_SEATS) { onMessage(c, { t: 'addBot', diff: diff || undefined }); bots = lobby.players.filter(p => p.bot); }
       while (m.bots != null && bots.length > want) { const gone = bots.pop(); lobby.players = lobby.players.filter(p => p !== gone); }
       if (diff) for (const p of lobby.players) if (p.bot) p.diff = diff;
       return broadcastLobby();
@@ -1703,7 +1703,7 @@ function tuiPaint() {
   if (rooms.size > 1 || st.online) L.push(label('ROOMS') + A.ink + st.rooms + ' open · ' + st.wars + ' at war · ' + st.online + ' online' + A.r + A.dim + (f ? '  (showing ' + (f.code === MAIN ? 'the main lobby' : 'room ' + f.code) + ')' : '') + A.r);
   const counts = {}; if (game) for (const k in game.map.tiles) { const o = game.map.tiles[k].owner; if (o) counts[o] = (counts[o] || 0) + 1; }
   if (!lobby.players.length) L.push(label('COMMANDERS') + A.dim + 'Nobody yet — press O to open the game' + A.r);
-  lobby.players.slice(0, 8).forEach((p, i) => {
+  lobby.players.slice(0, MAX_SEATS).forEach((p, i) => {
     const c = [...clients].find(x => x.pid === p.id && !x.left), gp = game && game.players.find(x => x.id === p.id);
     const tags = [p.id === lobby.hostId ? A.gold + 'HOST' + A.r : '', p.spectator ? A.blue + 'spectator' + A.r : '', p.bot ? A.dim + 'bot · ' + (p.diff || 'medium') + A.r : p.local ? A.dim + 'local player' + A.r : c ? A.dim + addrOf(c) + A.r : A.red + 'disconnected' + A.r,
       gp ? (gp.alive ? A.dim + (counts[p.id] || 0) + ' hexes' + A.r : A.red + 'eliminated' + A.r) : ''].filter(Boolean).join(A.dim + ' · ' + A.r);
