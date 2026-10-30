@@ -400,7 +400,7 @@ function botStep(s, pid, mem) {
       if (!(idx[t] || []).length) { if (walk[t] && ['move', 'capture'].includes(walk[t].kind)) continue; const v = E.infraValue(s, t) * 0.8; if (v > bv && v >= 3) { bv = v; best = t; } continue; }   // shell undefended buildings
       const c = E.combatCalc(s, pid, art, k, t, true, idx);
       const v = c.winProb * stackValue(idx[t]);
-      if (c.winProb > 0.4 && v > bv) { bv = v; best = t; }
+      if (c.winProb > (aa ? 0.25 : 0.18) && v > bv) { bv = v; best = t; }   // a shot from range risks nothing: take any real chance
     }
     if (best) { const a = tryOnce({ a: 'fire', from: k, units: ids, to: best }); if (a) return a; }
   }
@@ -503,8 +503,19 @@ function botStep(s, pid, mem) {
       if (all.length <= movers.length) movers = movers.slice().sort((a, b) => E.UNITS[b.type].def - E.UNITS[a.type].def).slice(1);
       if (!movers.length) { mem.skip.add(k); continue; }
     }
-    // artillery / gunships that can still shoot later should stay put
-    if (movers.every(u => E.UNITS[u.type].range && !isAA(u)) && enemyNear(k, 3)) { mem.skip.add(k); continue; }
+    // roles: guns fight from range, anti-air covers the army, empty troop helicopters fetch troops
+    // what guns aim at and keep their distance from: enemy troops on the ground, and enemy buildings worth shelling
+    const landFoes = mem.landFoes = mem.landFoes || Object.values(s.units).filter(u => wary(s, pid, u.owner) && !E.isSea(u.type) && E.UNITS[u.type].cls !== 'air').map(u => u.hex).concat(Object.keys(tiles).filter(x => tiles[x].owner && wary(s, pid, tiles[x].owner) && E.structsOf(tiles[x]).length));
+    const foeDist = h => { let m = 99; for (const f of landFoes) { const d = E.dist(f, h); if (d < m) m = d; } return m; };
+    const guns = !movers.some(u => E.isSea(u.type)) && movers.every(u => E.UNITS[u.type].range && !isAA(u));
+    const gunRange = guns ? Math.min(...movers.map(u => E.UNITS[u.type].range)) : 0;
+    // a gun battery already in range (but not in contact) holds and shoots next turn
+    if (guns && foeDist(k) >= 2 && foeDist(k) <= gunRange) { mem.skip.add(k); continue; }
+    const airCover = !movers.some(u => E.isSea(u.type)) && movers.every(isAA);
+    const reachAA = airCover ? Math.max(...movers.map(u => E.aaReach(u))) : 0;
+    const myStacks = airCover ? (mem.myStacks = mem.myStacks || [...new Set(Object.values(s.units).filter(u => u.owner === pid && !isAA(u) && !E.isSea(u.type)).map(u => u.hex))].concat(E.spawnPoints(s, pid))) : null;
+    const coverAt = h => myStacks.filter(x => E.dist(x, h) <= reachAA).length;
+    const liftAir = movers.every(u => E.UNITS[u.type].cls === 'air' && E.UNITS[u.type].lift) && !movers.some(u => u.type === 'grunt');
     const ids = movers.map(u => u.id);
     const fleet = movers.some(u => E.isSea(u.type));
     const carrying = fleet && (idx[k] || []).some(u => u.owner === pid && !E.isSea(u.type));
@@ -528,6 +539,16 @@ function botStep(s, pid, mem) {
       // allied land is for passing through, not for parking troops (they'd be lost if the pact ends)
       if (t.owner && t.owner !== pid && E.isAlly(s, pid, t.owner)) continue;
       if (exposed) v += 20 + (t.owner === pid ? 10 : 0);   // out of the ally's land, home if possible
+      if (r.kind !== 'attack' && r.kind !== 'board' && (guns || airCover || liftAir)) {
+        const fd = foeDist(dest);
+        if (guns) v += fd <= 1 ? -14 : fd <= gunRange ? 8 + ((idx[dest] || []).some(u => u.owner === pid) ? 1.5 : 0) : (foeDist(k) - fd) * 1.6;   // in range, never in contact
+        else if (airCover) v += (coverAt(dest) - coverAt(k)) * 2.2 + (fd <= 1 ? -12 : 0) + ((idx[dest] || []).some(u => u.owner === pid && !isAA(u)) ? 1.5 : 0);   // umbrella over the army
+        else { const g = (idx[dest] || []).filter(u => u.owner === pid && u.type === 'grunt' && E.canAct(s, u)).length; v += g ? 4 + Math.min(g, 3) : -1; if (az && az[dest]) v -= 6; }   // fly to troops waiting for a lift
+        if (t.owner !== pid && fd >= 2) v += t.owner ? 2 : 1;   // still glad to claim ground on the way
+        v += Math.random() * K.noise;
+        if (v > bv) { bv = v; best = dest; }
+        continue;
+      }
       if (r.kind === 'board') {
         const aboard = idx[dest].filter(u => !E.isSea(u.type)).length;
         v = navalNeed ? 7 - aboard : -1;
@@ -564,6 +585,7 @@ function botStep(s, pid, mem) {
         for (const pk of path.slice(1)) if (tiles[pk].owner !== pid && E.isWater(tiles[pk])) v += tiles[pk].res ? 5 : tiles[pk].fish ? 4 : 1.2;
         { const tt = tiles[dest]; if (tt && !E.isWater(tt) && (tt.poi === 'relic' || tt.poi === 'cache' || tt.poi === 'ruins')) v += 6; }
         if (carrying) v += (nearest(k, landFor) - nearest(dest, landFor)) * 2.5 + (nearest(dest, landFor) <= 1 ? 4 : 0);
+        else if (movers.some(u => u.type === 'carrier') && enemyTiles.length) { const d0 = nearest(k, landFor), d1 = nearest(dest, landFor); v += (Math.abs(d0 - 3) - Math.abs(d1 - 3)) * 2 + (d1 <= 1 ? -6 : 0); }   // a floating airbase stands off the enemy coast, in strike range
         else if (enemyTiles.length) v += (nearest(k, enemyTiles) - nearest(dest, enemyTiles)) * 0.6;
       } else {
         if (t.owner !== pid) v += t.owner ? 6 + (p.faction === 'ashen' ? 2.5 : 0) : 3;
@@ -694,13 +716,15 @@ function botStep(s, pid, mem) {
   const warships = mine.filter(u => E.isSea(u.type) && u.type !== 'ark').length, landUnits = mine.length - warships - myArks;
   const options = p.arsenal.filter(t => E.unitCost(p, t) <= p.cash && E.deployHexes(s, pid, t, idx).length)
     .filter(t => t !== 'ark' || (navalNeed && myArks < Math.min(8, 2 + Math.floor(landUnits / 8))))   // a big army stranded on an island needs a fleet of transports
-    .filter(t => !E.isSea(t) || t === 'ark' || (PL.navy ? warships < landUnits && Math.random() < 0.85 : warships < landUnits / 2 && Math.random() < 0.5));
+    .filter(t => !E.isSea(t) || t === 'ark' || (t === 'carrier' && !mine.some(u => u.type === 'carrier') && p.arsenal.some(x => E.UNITS[x].cls === 'air')) || (PL.navy ? warships < landUnits && Math.random() < 0.85 : warships < landUnits / 2 && Math.random() < 0.5));
   if (options.length) {
     // counter what the enemy fields: anti-air against air power, tank hunters against armour, siege against forts
     const counter = t => { const d = E.UNITS[t]; let b = 0;
       // anti-air only earns its keep against aircraft: none seen means don't buy it, and don't outnumber them
       if (d.aa) { const ownAA = mine.filter(u => E.UNITS[u.type].aa).length; b += !strat.seen.air ? -4 : ownAA >= strat.seen.air * 1.5 ? -2 : Math.min(3, strat.seen.air * 0.6); }
       if (d.ability === 'hunter') b += Math.min(1.6, strat.seen.veh * 0.25);
+      // a carrier is only worth it with aircraft to fly off it (and pays off most in a war across the sea)
+      if (t === 'carrier') b += p.arsenal.some(x => E.UNITS[x].cls === 'air') ? 2 + (navalNeed ? 2 : 0) : -6;
       if (['siege', 'titan'].includes(d.ability)) b += Math.min(1.5, strat.seen.fort * 0.5);
       const pc = (PL.cls || {})[d.cls]; if (pc) b += pc * 0.6;
       // play to the faction: Volt's aircraft are cheaper and stronger, Ashen's Skitters cheap land-grabbers, Iron holds ground
@@ -708,6 +732,8 @@ function botStep(s, pid, mem) {
       if (p.faction === 'ashen' && (t === 'skitter' || d.mv >= 4)) b += t === 'skitter' ? 1.2 : 0.5;
       if (p.faction === 'iron') b += d.def * 0.12;
       if (PL.def) b += d.def * PL.def * 0.15;
+      // guns need a base near the fighting: without one they'd spend the war walking to it
+      if (d.range && !d.aa && !E.isSea(t) && d.cls !== 'air' && !E.spawnPoints(s, pid).some(sp => nearest(sp, enemyTiles) <= d.range + 3)) b -= 2.5;
       return b; };
     // what to buy: early on, punch per dollar; once money is plentiful, punch per slot (a hex only holds 5).
     // Under pressure, sturdiness counts double
@@ -722,7 +748,9 @@ function botStep(s, pid, mem) {
     const goal = strat.goal.length ? strat.goal : enemyTiles.length ? enemyTiles : targets;
     let bs = hexes[0], bd = 99;
     const gf = walkField('deploy', goal);
-    for (const sp of hexes) { const md = (sp in gf ? gf[sp] : nearest(sp, goal) + 20) - (strat.danger[sp] ? 6 + strat.danger[sp] / 3 : 0); if (md < bd) { bd = md; bs = sp; } }
+    const flier = E.UNITS[type].cls === 'air', gun = E.UNITS[type].range && !E.UNITS[type].aa && !E.isSea(type) && !flier;   // aircraft fly: straight-line distance (and a carrier off the enemy coast is the closest start)
+    // guns deploy at the base just behind the front
+    for (const sp of hexes) { const md = (gun ? (d0 => d0 <= 1 ? 50 : Math.max(0, d0 - (E.UNITS[type].range + 1)))(nearest(sp, enemyTiles)) : flier ? nearest(sp, goal) : sp in gf ? gf[sp] : nearest(sp, goal) + 20) - (strat.danger[sp] ? 6 + strat.danger[sp] / 3 : 0); if (md < bd) { bd = md; bs = sp; } }
     const a = tryOnce({ a: 'deploy', unit: type, hex: bs, n: mem.deployN = (mem.deployN || 0) + 1 });
     if (a) { delete a.n; return a; }
   }

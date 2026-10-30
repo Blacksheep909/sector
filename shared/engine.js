@@ -120,7 +120,7 @@
   const UNITS = {
     grunt: { name: 'Grunts', cls: 'inf', cost: 2, atk: 2, def: 1, mv: 2, rarity: 'common', desc: 'Cheap, dependable rifle squad.' },
     skitter: { name: 'Skitter', cls: 'veh', cost: 3, atk: 2, def: 1, mv: 4, rarity: 'common', desc: 'Raider buggy. Grabs land fast.' },
-    thumper: { name: 'Thumper', cls: 'art', cost: 4, atk: 5, def: 1, mv: 1, range: 2, rarity: 'common', desc: 'Mortar crew. Fires 2 hexes instead of moving.' },
+    thumper: { name: 'Thumper', cls: 'art', cost: 4, atk: 5, def: 1, mv: 2, range: 2, rarity: 'common', desc: 'Mortar crew. Fires 2 hexes instead of moving.' },
     barracuda: { name: 'Barracuda', cls: 'sea', cost: 4, atk: 3, def: 2, mv: 4, rarity: 'common', desc: 'Fast gunboat. Claims sea lanes, raids coasts.' },
     stinger: { name: 'Stinger', cls: 'inf', cost: 3, atk: 1, def: 1, mv: 2, range: 1, rarity: 'common', ability: 'aa', aa: 3, short: '+3 Chips vs air; fires at aircraft that stop next to it.', desc: 'MANPADS team. Fires at aircraft 1 hex away (+3 Chips vs air), and on its own at any that stop next to it. 25% to down air strikes on its hex. Weak vs ground troops.' },
     corpsman: { name: 'Corpsman', cls: 'inf', cost: 3, atk: 1, def: 3, mv: 2, rarity: 'common', ability: 'medic', short: 'Medic squad. Its stack never takes pyrrhic losses.', desc: 'Medic squad. Its stack never suffers pyrrhic losses.' },
@@ -146,7 +146,7 @@
     // helicopters
     wren: { name: 'Wren', cls: 'air', cost: 5, atk: 2, def: 0, mv: 5, rarity: 'rare', ability: 'strafe', lift: 2, heli: true, short: 'Light heli. Carries 2 Grunts; +2 Mult vs ground.', desc: 'Light assault helicopter. Fast, with 2 Grunts riding on its benches. Strafing Run: +2 Mult attacking ground targets.' },
     ravager: { name: 'Ravager', cls: 'air', cost: 7, atk: 4, def: 1, mv: 4, rarity: 'rare', ability: 'strafe', heli: true, short: 'Armoured attack heli. +2 Mult vs ground.', desc: 'Armoured attack helicopter with a chin cannon. Strafing Run: +2 Mult attacking ground targets.' },
-    mule: { name: 'Mule', cls: 'air', cost: 6, atk: 1, def: 1, mv: 4, rarity: 'rare', lift: 8, heli: true, short: 'Heavy-lift heli. Carries 8 Grunts over anything.', desc: 'Tandem-rotor heavy-lift helicopter. Barely armed, but carries up to 8 Grunts over mountains and water (it sets them down on land).' },
+    mule: { name: 'Mule', cls: 'air', cost: 6, atk: 1, def: 2, mv: 4, rarity: 'rare', lift: 8, heli: true, short: 'Heavy-lift heli. Carries 8 Grunts over anything.', desc: 'Tandem-rotor heavy-lift helicopter. Barely armed, but carries up to 8 Grunts over mountains and water (it sets them down on land).' },
     stormcrow: { name: 'Stormcrow', cls: 'air', cost: 9, atk: 3, def: 2, mv: 4, rarity: 'epic', lift: 6, heli: true, short: 'Utility heli. Carries 6 Grunts over anything.', desc: 'Utility helicopter with door guns. Carries up to 6 Grunts over mountains and water (it sets them down on land).' },
     phantom: { name: 'Phantom', cls: 'air', cost: 10, atk: 7, def: 3, mv: 5, rarity: 'epic', ability: 'stealth', short: 'Stealth bomber. Immune to artillery and air strikes.', desc: 'Stealth bomber. Immune to artillery, airstrikes and bombardment.' },
     hailstorm: { name: 'Hailstorm', cls: 'art', cost: 11, atk: 9, def: 3, mv: 2, range: 4, rarity: 'epic', ability: 'salvo', short: 'MLRS. A hit also kills 1 in each enemy stack beside it.', desc: 'Tracked rocket launcher (MLRS). Range 4. A hit also rains rockets on every enemy stack next to the target: 1 unit each.' },

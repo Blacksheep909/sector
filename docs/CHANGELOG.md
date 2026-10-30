@@ -4,6 +4,8 @@ Every release, newest first. Each version also has its own post on the [Releases
 
 ## Unreleased
 
+- **🤖 Bots use each unit for its job.** Guns (Thumper, Bastion, Hailstorm, Basilisk, Oracle) hold at firing range, never park next to the enemy, deploy at the base just behind the front and fire at any real chance (a shot from range risks nothing). Anti-air moves to put an umbrella over the army and its bases, and stays off the front line. Empty troop helicopters fly to Grunts waiting for a lift (Valkyries now carry troops most of the time). Bots field a Carrier when they have aircraft for it, park it off the enemy coast and deploy aircraft onto it. A new tool (tools/bot-units.js) measures all of this per unit type.
+- **Thumper moves 2** (was 1): it could rarely get within range of anything. **Mule defence 2** (was 1).
 - **🤖 Bots put troops first.** They were spending more on black-market cards than on their armies, so by the late game everyone had a handful of units and wars ran out the clock. Now the market is a luxury: one good card a turn at most, and only while their army stands up to their strongest rival's. Spending on troops roughly doubled.
 - **Bots go for the kill**, harder the higher the difficulty: they pick on a rival who's fallen behind with an HQ in reach, march on that HQ instead of any of their land, and mass more stacks (on slightly closer odds) to take it.
 - **Bots use the sea.** When the war target is overseas (or their landmass is full) they build a Port, buy Arks (more of them the bigger their stranded army), march troops and vehicles to them and sail them across: about 5× as many Arks and sea landings in test games.

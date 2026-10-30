@@ -12,7 +12,7 @@ Unit cards are permanent unlocks: deploy as many as you can afford.
 |---|---|---|---|---|---|---|---|---|
 | **Grunts** | Infantry | Common | $2 | 2 | 1 | 2 | – | Cheap, dependable rifle squad. |
 | **Skitter** | Vehicle | Common | $3 | 2 | 1 | 4 | – | Raider buggy. Grabs land fast. |
-| **Thumper** | Artillery | Common | $4 | 5 | 1 | 1 | 2 | Mortar crew. Fires 2 hexes instead of moving. |
+| **Thumper** | Artillery | Common | $4 | 5 | 1 | 2 | 2 | Mortar crew. Fires 2 hexes instead of moving. |
 | **Barracuda** | Naval | Common | $4 | 3 | 2 | 4 | – | Fast gunboat. Claims sea lanes, raids coasts. |
 | **Stinger** | Anti-air | Common | $3 | 1 | 1 | 2 | 1 | MANPADS team. Fires at aircraft 1 hex away (+3 Chips vs air), and on its own at any that stop next to it. 25% to down air strikes on its hex. Weak vs ground troops. |
 | **Corpsman** | Infantry | Common | $3 | 1 | 3 | 2 | – | Medic squad. Its stack never suffers pyrrhic losses. |
@@ -35,7 +35,7 @@ Unit cards are permanent unlocks: deploy as many as you can afford.
 | **Kraken** | Naval | Rare | $8 | 7 | 2 | 4 | – | Submarine. Torpedoes: +4 Chips vs ships. |
 | **Wren** | Air | Rare | $5 | 2 | 0 | 5 | – | Light assault helicopter. Fast, with 2 Grunts riding on its benches. Strafing Run: +2 Mult attacking ground targets. |
 | **Ravager** | Air | Rare | $7 | 4 | 1 | 4 | – | Armoured attack helicopter with a chin cannon. Strafing Run: +2 Mult attacking ground targets. |
-| **Mule** | Air | Rare | $6 | 1 | 1 | 4 | – | Tandem-rotor heavy-lift helicopter. Barely armed, but carries up to 8 Grunts over mountains and water (it sets them down on land). |
+| **Mule** | Air | Rare | $6 | 1 | 2 | 4 | – | Tandem-rotor heavy-lift helicopter. Barely armed, but carries up to 8 Grunts over mountains and water (it sets them down on land). |
 | **Goliath** | Vehicle | Epic | $10 | 7 | 6 | 1 | – | Siege mortar tank. +2 Mult vs fortified hexes. |
 | **Valkyrie** | Air | Epic | $10 | 6 | 3 | 4 | – | Tiltrotor assault transport. Carries up to 8 Grunts over mountains and water (it sets them down on land). Strafing Run: +2 Mult attacking ground targets. |
 | **Stormcrow** | Air | Epic | $9 | 3 | 2 | 4 | – | Utility helicopter with door guns. Carries up to 6 Grunts over mountains and water (it sets them down on land). |
