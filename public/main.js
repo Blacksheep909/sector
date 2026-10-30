@@ -178,6 +178,7 @@
       if (m.seq && (m.mine || m.by === you) && pending.has(m.seq)) { pending.get(m.seq)(true); pending.delete(m.seq); }
     }
     processing = false;
+    if (endQueued) sendEnd();   // END TURN was pressed while that played out
   }
 
   // tell the player plainly when they lose units, and why (so nothing just vanishes off-screen)
@@ -1936,8 +1937,11 @@
     const b = $('#endBtn');
     const mine = isMyTurn();
     b.hidden = !mine || S.phase !== 'play';
-    b.disabled = animating || executing;
+    if (endQueued && (!mine || endQueued !== turnKey())) endQueued = null;   // that turn is over
+    b.classList.toggle('ending', !!endQueued);
+    b.disabled = !!endQueued;   // a click while an animation plays is queued, not refused
     clearInterval(timerInt);
+    if (endQueued) { b.innerHTML = 'ENDING…'; return; }
     // turn clock: a draining bar in the current player's colour, red and ticking for the last 10 seconds
     let clock = $('#turnClock');
     if (!clock) { clock = el('div', '', '<div class="tc-bar"><i></i></div><span></span>'); clock.id = 'turnClock'; $('#centerStack').appendChild(clock); }
@@ -1961,7 +1965,26 @@
     const ds = S; const anyReady = Object.values(ds.units).some(u => u.owner === you && E.canAct(ds, u));
     b.classList.toggle('pulse', mine && !anyReady);
   }
-  $('#endBtn').onclick = async () => { if (!isMyTurn() || animating) return; if (Missions.holdEnd()) { SFX.error(); return; } mode = null; sel = null; SFX.click(); await act({ a: 'end' }); };
+  // END TURN: one click always counts. It shows ENDING… straight away; if your last move is still playing out, the turn ends the
+  // moment it finishes (a click used to be dropped then, and the button gave no sign the first click had worked)
+  let endQueued = null, endSentFor = null;   // the turn ('round:seat') END TURN was pressed in, and the one it was sent for
+  const turnKey = () => S ? S.turn.round + ':' + S.turn.idx : '';
+  async function sendEnd() {
+    if (!endQueued) return;
+    if (!isMyTurn() || endQueued !== turnKey()) { endQueued = null; renderEnd(); return; }   // that turn is over
+    if (animating || executing || endSentFor === endQueued) return;   // still busy (tried again when it settles), or already on its way
+    endSentFor = endQueued;
+    const ok = await act({ a: 'end' });
+    if (!ok) { endQueued = endSentFor = null; renderEnd(); }
+  }
+  $('#endBtn').onclick = () => {
+    if (!isMyTurn() || endQueued) return;
+    if (Missions.holdEnd()) { SFX.error(); return; }
+    mode = null; sel = null; SFX.click();
+    endQueued = turnKey();
+    const b = $('#endBtn'); b.classList.add('ending'); b.innerHTML = 'ENDING…'; refreshAll();
+    sendEnd();
+  };
 
   let titleBlink = null;
   function renderTurnPill() {
@@ -3329,6 +3352,6 @@
   if (!seat) showHome();
 
   Locker.init({ send }); window.SECTOR_TOAST = t => toast(t, 'good');
-  window.SECTOR_DEBUG = { flyTo: (a, b) => flyTo(a, b), resume: () => pump(), refresh: () => refreshAll(), victoryFx: () => showVictory(), crushFx: ev => obliterate(ev), combatFx: ev => showCombat(ev), tacticFx: ev => animTactic(ev), fireFx: (types, from, to) => fireFx(types, from, to), send, state: () => S, you: () => you, plan: () => plan, planState: () => planState, act: doAction, click: onHexClick };
+  window.SECTOR_DEBUG = { flyTo: (a, b) => flyTo(a, b), resume: () => pump(), refresh: () => refreshAll(), victoryFx: () => showVictory(), crushFx: ev => obliterate(ev), combatFx: ev => showCombat(ev), tacticFx: ev => animTactic(ev), busy: () => ({ animating, executing, processing, queued: msgQ.length }), fireFx: (types, from, to) => fireFx(types, from, to), send, state: () => S, you: () => you, plan: () => plan, planState: () => planState, act: doAction, click: onHexClick };
   connect();
 })();

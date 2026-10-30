@@ -304,7 +304,7 @@
         { text: 'Resupply again.', wait: 'pick' },
         { text: 'Your airbase delivered a **strike card**: it\'s in your hand. A ★ airbase sends commons (**Gun Run**, **Kamikaze Drone**). Click it, then click the enemy troops on the island.', focus: 'e1', wait: 'tactic' },
         { text: 'See the **purple badge** on your cash panel? That\'s the **black market**: 5 tactic cards for cash, new stock every turn. In a real war it opens once you earn **$50 a turn**. Open it and buy something useful.', wait: 'market' },
-        { text: 'Upgrade the airbase (build it again on the same hex) and it hands out **rares at ★★** (Precision Strike, Strategic Bombing) and **epics at ★★★** (Cruise Missile, Carpet Bombing, Bunker Buster). You can own up to 5. Each upgrade takes a turn. **Destroy every enemy unit on the island.**', wait: 'win' },
+        { text: 'Upgrade the airbase (build it again on the same hex) and it hands out **rares at ★★** (Precision Strike, Strategic Bombing) and **epics at ★★★** (Cruise Missile, Carpet Bombing, Bunker Buster). You can own up to 3. Each upgrade takes a turn. **Destroy every enemy unit on the island.**', wait: 'win' },
       ],
       hints: ['Each strike card needs a roll: a Gun Run kills on a 3+, a Kamikaze Drone on a 4+. Keep the cards coming and play them all on the island.', 'Upgrade to ★★ when you can afford it: a Precision Strike kills the strongest unit outright. The black market may sell strikes too.'],
     },

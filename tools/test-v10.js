@@ -249,5 +249,16 @@ function crossing(s) {
   }
   ok(runs >= 10 && killed / (runs * 4) > 0.15 && killed / (runs * 4) < 0.45, 'Strategic Bombing kills about 30% of the troops under it (' + killed + ' of ' + runs * 4 + ' in ' + runs + ' runs)');
 }
+{ // at most 3 airbases each
+  const roster = [0, 1].map(i => ({ id: 'p' + i, name: 'P' + i, color: E.COLORS[i], faction: 'iron' }));
+  const { state: s } = E.createGame({ mode: 'domination', mapSize: 'large' }, roster);
+  s.phase = 'play'; const p = E.player(s, 'p0'); p.cash = 999; const T = s.map.tiles;
+  const far = Object.keys(T).filter(k => E.isLandTile(T[k]) && T[k].t !== 'mountain' && !T[k].river && !T[k].poi && !(T[k].structs || []).length && E.dist(k, p.hq) > 4).slice(0, 4);
+  for (const k of far) T[k].owner = 'p0';
+  const canBuild = k => !E.buildError(s, 'p0', 'airbase', k, new Set(far));
+  ok(canBuild(far[0]), 'an airbase can go up away from the HQ');
+  for (const k of far.slice(0, 3)) { T[k].structs = [{ type: 'airbase', owner: 'p0', lvl: 1 }]; T[k].struct = T[k].structs[0]; }
+  ok(/3 airbases/.test(E.buildError(s, 'p0', 'airbase', far[3], new Set(far)) || ''), 'but no more than 3: ' + E.buildError(s, 'p0', 'airbase', far[3], new Set(far)));
+}
 console.log(fails ? fails + ' FAILED' : 'all passed');
 process.exit(fails ? 1 : 0);

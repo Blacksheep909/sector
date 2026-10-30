@@ -217,7 +217,7 @@
     bridge: { name: 'Bridge', cost: 6, desc: 'Span a 1-hex sea gap between two shores. Land units cross on top; ships sail underneath (but cannot stop there). Not next to another bridge. A destroyed bridge leaves wreckage: rebuilding there costs $8 more.' },
     bunker: { name: 'Bunker', cost: 4, desc: 'Strongpoint with its own garrison: +3 Chips per level even when empty, so enemies must attack it. +2 Mult defence (+1 per extra level). ★★+ also gives your neighbouring hexes +1 Mult. Digs in against big attacks: +40% of the attacker chip lead (up to 4 per level). ★★★ Citadel: 14 garrison Chips, +5 Mult, +2 Mult to neighbours, and holds 60% of the lead (up to 20). Destroyed if an enemy captures it.' },
     mine: { name: 'Sea Mine', cost: 4, desc: 'A minefield on one of your sea hexes: the naval Bunker. +3 Chips per level even when empty, so enemy ships must fight their way through instead of sailing past. +2 Mult defence (+1 per extra level). Cleared if an enemy captures the hex.' },
-    airbase: { name: 'Airbase', cost: 25, lvlCost: [25, 40, 60], ramp: 8, desc: 'Every turn it hands you an air-strike card: commons (Gun Run, Kamikaze Drone) at ★, rares (Precision Strike, Strategic Bombing) at ★★, epics (Cruise Missile, Carpet Bombing, Bunker Buster) at ★★★. Up to 5 per commander, and none within 3 hexes of your HQ. Takes a turn to build and a turn to upgrade. $25, $40, $60, plus $8 for each one you bought or upgraded before.' },
+    airbase: { name: 'Airbase', cost: 25, lvlCost: [25, 40, 60], ramp: 8, desc: 'Every turn it hands you an air-strike card: commons (Gun Run, Kamikaze Drone) at ★, rares (Precision Strike, Strategic Bombing) at ★★, epics (Cruise Missile, Carpet Bombing, Bunker Buster) at ★★★. Up to 3 per commander, and none within 3 hexes of your HQ. Takes a turn to build and a turn to upgrade. $25, $40, $60, plus $8 for each one you bought or upgraded before.' },
     flak: { name: 'Flak (retired)', cost: 5, legacy: true, desc: 'No longer built and has no effect: anti-air units took over air defence. Only found in old saves.' },
   };
   const BUILD_ORDER = ['hq', 'fob', 'warehouse', 'refinery', 'depot', 'port', 'bridge', 'bunker', 'mine', 'airbase'];
@@ -975,7 +975,7 @@
   const AIR_STRIKES = ['kamikaze', 'gunrun', 'airstrike', 'precision', 'buster', 'strategic', 'carpet', 'cruise'];
   // what an airbase hands out each turn, by its level
   const AIRBASE_CARDS = { 1: ['gunrun', 'kamikaze'], 2: ['precision', 'strategic'], 3: ['cruise', 'carpet', 'buster'] };
-  const MAX_AIRBASES = 5;
+  const MAX_AIRBASES = 3;
   const AA_COVER = { stinger: [0, 0.25], scorpion: [1, 0.35], skyguard: [2, 0.5], sentinel: [3, 0.6], grumble: [3, 0.55] };   // [reach, shoot-down chance]
   function airDefenders(s, pid, k) {
     const out = [];
