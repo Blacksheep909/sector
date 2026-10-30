@@ -132,7 +132,7 @@
     {
       id: 'river', name: 'Crossing', tier: 'Easy', technique: 'Rivers, bridges and combined arms',
       brief: 'A river stands between your tank column and the enemy. Infantry can wade it. Tanks can\'t.',
-      turns: 2, reward: 200,
+      turns: 3, reward: 200,
       players: { A: { name: 'You', cash: 6, arsenal: ['grunt', 'mauler'] }, B: { name: 'Rivermen', ai: 'passive' } },
       map: [
         '~ ~ ~ ~ ~ ~ ~ ~ ~',
@@ -144,8 +144,8 @@
       structs: { hq: [['A', 'hq']], bhq: [['B', 'hq', 3]] },
       units: { m: [['A', 'mauler', 1]], g: [['A', 'grunt', 2]], obj: [['B', 'grunt', 3]] },
       goal: { type: 'capture', hexes: ['obj'] },
-      intro: '**Infantry** can ford a river straight across, but it takes their whole move. **Vehicles need a bridge**: build one ($6) on a river hex next to your land. And mixing unit types in an attack earns **Combined Arms** (+1 Mult per extra type).',
-      hints: ['Build a Bridge on the river beside your tank, drive the tank over it, and wade the Grunts across.', 'Turn 2: attack the outpost with the tank and the Grunts together.'],
+      intro: '**Infantry** can ford a river straight across, but it takes their whole move. **Vehicles need a bridge**: build one ($6) on a river hex next to your land. It takes a turn to build, so it opens on your next turn. And mixing unit types in an attack earns **Combined Arms** (+1 Mult per extra type).',
+      hints: ['Turn 1: build a Bridge on the river beside your tank, and wade the Grunts across.', 'Turn 2: the bridge is open: drive the tank over it.', 'Turn 3: attack the outpost with the tank and the Grunts together.'],
     },
     {
       id: 'fob', name: 'Forward Base', tier: 'Easy', technique: 'FOBs: deploying at the front, not just at home',

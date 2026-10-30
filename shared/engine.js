@@ -214,7 +214,7 @@
     refinery: { name: 'Refinery', cost: 6, desc: '+$1 per turn per level (+$3 per level on a Resource node or oil rig).' },
     depot: { name: 'Depot', cost: 4, desc: 'Logistics hub: your units starting their turn nearby get +1 move. Range = level.' },
     port: { name: 'Port', cost: 5, desc: 'Coast only. Launch ships into the adjacent sea. Supply source for sea lanes.' },
-    bridge: { name: 'Bridge', cost: 6, desc: 'Span a 1-hex sea gap between two shores. Land units cross on top; ships sail underneath (but cannot stop there). Not next to another bridge. A destroyed bridge leaves wreckage: rebuilding there costs $8 more.' },
+    bridge: { name: 'Bridge', cost: 6, desc: 'Span a 1-hex sea gap between two shores (or a river). Opens to traffic on your next turn. Land units cross on top; ships sail underneath (but cannot stop there). Not next to another bridge. A destroyed bridge leaves wreckage: rebuilding there costs $8 more.' },
     bunker: { name: 'Bunker', cost: 4, desc: 'Strongpoint with its own garrison: +3 Chips per level even when empty, so enemies must attack it. +2 Mult defence (+1 per extra level). ★★+ also gives your neighbouring hexes +1 Mult. Digs in against big attacks: +40% of the attacker chip lead (up to 4 per level). ★★★ Citadel: 14 garrison Chips, +5 Mult, +2 Mult to neighbours, and holds 60% of the lead (up to 20). Destroyed if an enemy captures it.' },
     mine: { name: 'Sea Mine', cost: 4, desc: 'A minefield on one of your sea hexes: the naval Bunker. +3 Chips per level even when empty, so enemy ships must fight their way through instead of sailing past. +2 Mult defence (+1 per extra level). Cleared if an enemy captures the hex.' },
     airbase: { name: 'Airbase', cost: 25, lvlCost: [25, 40, 60], ramp: 8, desc: 'Every turn it hands you an air-strike card: commons (Gun Run, Kamikaze Drone) at ★, rares (Precision Strike, Strategic Bombing) at ★★, epics (Cruise Missile, Carpet Bombing, Bunker Buster) at ★★★. Up to 3 per commander, and none within 3 hexes of your HQ. Takes a turn to build and a turn to upgrade. $25, $40, $60, plus $8 for each one you bought or upgraded before.' },
@@ -795,7 +795,7 @@
   function wreckBridge(s, k) {
     const t = s.map.tiles[k], b = getS(t, 'bridge'); if (b) removeStruct(t, b);
     t.bridge = false; t.wreck = true;
-    if (t.riverBridge) delete t.riverBridge; else t.owner = null;   // a river hex is still land: only the span is lost
+    if (t.riverBridge || t.river) delete t.riverBridge; else t.owner = null;   // a river hex is still land: only the span is lost
   }
   function canAct(s, u) { const p = player(s, u.owner); return !u.moved && !u.stun && (!u.fresh || (p && p.blitz) || UNITS[u.type].ability === 'blitzer'); }
   function moveAllow(s, u) {
@@ -1615,7 +1615,7 @@
     if (!preview && !(s.scenario && !s.scenario.live && !s.scenario.airbase)) airbaseCards(s, p, rng || Math.random, ev);
     for (const k in s.map.tiles) {
       const t = s.map.tiles[k];
-      for (const st of structsOf(t)) if (st.lock && st.owner === p.id) delete st.lock;
+      for (const st of structsOf(t)) if (st.lock && st.owner === p.id) { delete st.lock; if (st.type === 'bridge') { t.bridge = true; if (t.river) t.riverBridge = true; } }
       const h = getS(t, 'hq');
       // the blueprint preview must not resolve sieges: it would paint the victim's whole empire in your colour
       if (h && h.siege && h.siege.by === p.id && !preview) {
@@ -1959,7 +1959,7 @@
       case 'spawn': return spawnPoints(s, pid).filter(k => stackFits(idx[k] || [], ['grunt']));
       case 'enemyUnits': for (const k in tiles) {
         const occ = idx[k] || [];
-        if (!(occ.length ? occ[0].owner !== pid && !isAlly(s, pid, occ[0].owner) : isEnemyInfra(s, pid, k) || (id === 'airstrike' && isEnemyBridge(s, pid, k)))) continue;   // troops, undefended buildings, or (Airstrike) a bridge
+        if (!(occ.length ? occ[0].owner !== pid && !isAlly(s, pid, occ[0].owner) : isEnemyInfra(s, pid, k) || isEnemyBridge(s, pid, k))) continue;   // troops, undefended buildings, or a bridge
         if (nearOwned(s, pid, k, def.range)) out.push(k);
       } return out;
       case 'precision': for (const k in tiles) {
@@ -2265,9 +2265,9 @@
         pushLog(s, p.name + ' upgraded a ' + STRUCTS[a.struct].name + ' to ' + '★'.repeat(ex.lvl) + '.');
         return { ok: true, events: ev };
       }
-      const slow = a.struct === 'fob' || a.struct === 'airbase';   // these take a turn to come online
+      const slow = a.struct === 'fob' || a.struct === 'airbase' || a.struct === 'bridge';   // these take a turn to come online (a bridge opens to traffic next turn)
       addStruct(t, slow ? { type: a.struct, owner: pid, lvl: 1, lock: 1 } : { type: a.struct, owner: pid, lvl: 1 });
-      if (a.struct === 'bridge') { t.bridge = true; t.owner = pid; delete t.wreck; if (t.river) t.riverBridge = true; }
+      if (a.struct === 'bridge') { t.owner = pid; delete t.wreck; }   // the span opens on the builder's next turn
       ev.push({ e: 'build', pid, struct: a.struct, hex: a.hex, lvl: 1, lock: slow ? 1 : 0 });
       return { ok: true, events: ev };
     }
@@ -2428,6 +2428,14 @@
     }
     if (def.target !== 'none' && def.target !== 'battle' && def.target !== 'heli' && !tacticTargets(s, pid, id).includes(a.target)) return 'Invalid target';
     const base = { e: 'tactic', pid, id, target: a.target };
+    // an enemy bridge with nobody on it: a strike drops the span on its roll (need: 3+ bombs, 4+ a drone, 5+ a cannon)
+    const bridgeShot = (need, who) => {
+      if (Object.values(s.units).some(u => u.hex === a.target) || !isEnemyBridge(s, pid, a.target)) return false;
+      const roll = rollDie(rng), hit = roll >= need; if (hit) wreckBridge(s, a.target);
+      ev.push({ ...base, roll, kills: [], bridge: hit }); pushLog(s, who + (hit ? ' dropped a bridge into the water.' : ' missed a bridge.')); return true;
+    };
+    // the bridges under an area bombing: each empty enemy span comes down on a 4+
+    const spans = ks => ks.filter(k => isEnemyBridge(s, pid, k) && !Object.values(s.units).some(u => u.hex === k && !isAirU(u)) && rollDie(rng) >= 4).map(k => { wreckBridge(s, k); return k; });
     if (AIR_STRIKES.includes(id) && a.target && !s._preview) p.intel = (p.intel || []).filter(x => x.until >= s.turn.round).concat([{ hex: a.target, until: s.turn.round, bda: true }]);   // damage assessment: you see what you hit
     if (AIR_STRIKES.includes(id) && id !== 'strategic' && id !== 'carpet') {
       const ch = interceptChance(s, pid, a.target, id);
@@ -2481,10 +2489,7 @@
         ev.push({ ...base, units: made }); break;
       }
       case 'airstrike': {
-        if (!Object.values(s.units).some(u => u.hex === a.target) && isEnemyBridge(s, pid, a.target)) {
-          const roll = rollDie(rng), hit = roll >= 3; if (hit) wreckBridge(s, a.target);
-          ev.push({ ...base, roll, kills: [], bridge: hit }); pushLog(s, '✈ ' + p.name + (hit ? ' bombed a bridge into the water.' : ' missed a bridge.')); break;
-        }
+        if (bridgeShot(3, '✈ ' + p.name + "'s airstrike")) break;
         if (!Object.values(s.units).some(u => u.hex === a.target)) {
           const roll = rollDie(rng), infra = damageInfra(s, a.target, roll >= 4 ? 2 : 1);
           ev.push({ ...base, roll, kills: [], infra, structs: structsOf(tiles[a.target]) });
@@ -2517,6 +2522,7 @@
       }
       case 'kamikaze': {
         // a one-way drone: longer reach than a Gun Run, a little less reliable
+        if (bridgeShot(4, '💥 ' + p.name + "'s drone")) break;
         if (!Object.values(s.units).some(u => u.hex === a.target)) {
           const infra = damageInfra(s, a.target, 1);
           ev.push({ ...base, roll: 6, kills: [], infra, structs: structsOf(tiles[a.target]) });
@@ -2530,6 +2536,7 @@
         break;
       }
       case 'gunrun': {
+        if (bridgeShot(5, '✈ ' + p.name + "'s Gun Run")) break;   // a cannon is a poor tool for dropping a bridge
         if (!Object.values(s.units).some(u => u.hex === a.target)) {
           const infra = damageInfra(s, a.target, 1);
           ev.push({ ...base, roll: 6, kills: [], infra, structs: structsOf(tiles[a.target]) });
@@ -2570,7 +2577,8 @@
           for (const u of Object.values(s.units)) if (u.hex === k && u.owner !== pid && !isAlly(s, pid, u.owner) && UNITS[u.type].ability !== 'stealth' && rng() < 0.3) kills.push(u);
         }
         kills.forEach(kill);
-        ev.push({ ...base, hexes, shot, kills: kills.map(u => u.id) });
+        const bridges = spans(area(a.target, 1).filter(k => !shot.includes(k)));
+        ev.push({ ...base, hexes, shot, kills: kills.map(u => u.id), bridges });
         pushLog(s, '💣 ' + p.name + ' sent the bombers over ' + (player(s, tiles[a.target].owner) || {}).name + ': ' + hexes.length + ' hexes bombed out' + (kills.length ? ', ' + kills.length + ' destroyed' : '') + '.');
         break;
       }
@@ -2596,7 +2604,8 @@
         const ar = area(a.target, 1), kills = [], shot = ar.filter(k => { const ch = interceptChance(s, pid, k, id); return ch > 0 && rng() < ch; });
         for (const u of Object.values(s.units)) if (ar.includes(u.hex) && !shot.includes(u.hex) && u.owner !== pid && UNITS[u.type].ability !== 'stealth' && rng() < 0.5) kills.push(u);
         kills.forEach(kill);
-        ev.push({ ...base, area: ar, kills: kills.map(u => u.id), shot });
+        const bridges = spans(ar.filter(k => !shot.includes(k)));
+        ev.push({ ...base, area: ar, kills: kills.map(u => u.id), shot, bridges });
         pushLog(s, '💣 ' + p.name + ' carpet-bombed: ' + kills.length + ' destroyed.');
         break;
       }

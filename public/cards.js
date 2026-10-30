@@ -64,13 +64,13 @@ const Cards = (() => {
     }
   }
   // rays anchored to an element: they follow the card wherever its animation takes it
-  function raysOn(elm, color, dur = 1200, big = false) {
+  function raysOn(elm, color, dur = 1200, big = false, cls = '') {
     const host = (elm.closest && elm.closest('.flip')) || elm;
-    const r = el('div', 'rays local' + (big ? ' big' : '')); r.style.setProperty('--rc', color);
+    const r = el('div', 'rays local' + (big ? ' big' : '') + (cls ? ' ' + cls : '')); r.style.setProperty('--rc', color);
     host.insertBefore(r, host.firstChild); setTimeout(() => r.remove(), dur);
   }
-  function rays(x, y, color, dur = 1200, big = false) {
-    const r = el('div', 'rays' + (big ? ' big' : '')); r.style.left = x + 'px'; r.style.top = y + 'px'; r.style.setProperty('--rc', color);
+  function rays(x, y, color, dur = 1200, big = false, cls = '') {
+    const r = el('div', 'rays' + (big ? ' big' : '') + (cls ? ' ' + cls : '')); r.style.left = x + 'px'; r.style.top = y + 'px'; r.style.setProperty('--rc', color);
     $('#flyLayer').appendChild(r); setTimeout(() => r.remove(), dur);
   }
   function bigText(text, color, cls = '') {
@@ -91,7 +91,7 @@ const Cards = (() => {
     if (rk >= 5) {
       // mythic: a white-hot, rainbow-edged reveal
       SFX.legendary(); setTimeout(() => SFX.legendary(), 260); Render.flash(0.7, '#ffffff'); Render.shake(24);
-      raysOn(card, '#ffffff', 3000, true); burstAt(x, y, ['#ffffff', '#ff7ad9', '#7af7ff', '#fff27a', '#9dff7a', '#b48cff'], 160, 540, 12);
+      raysOn(card, '#ffffff', 3000, true, 'myth');   // a soft rainbow aurora, not hard spokes burstAt(x, y, ['#ffffff', '#ff7ad9', '#7af7ff', '#fff27a', '#9dff7a', '#b48cff'], 160, 540, 12);
       bigText('MYTHIC', '#ffffff', 'legend mythic');
       setTimeout(() => burstAt(x, y, ['#fff', '#7af7ff', '#ff7ad9'], 80, 420, 9), 450);
       return;
@@ -424,7 +424,7 @@ const Cards = (() => {
     await run(overshoot, exact, 260, p => p * p * (3 - 2 * p));
     const won = strip.children[landAt]; won.classList.add('won');
     SFX.victoryHit(); Render.shake(T === 'mythic' ? 16 : T === 'gilded' ? 8 : 3);
-    if (T !== 'standard') { const [x, y] = center(won); rays(x, y, TIER_COL[T], 1400, T === 'mythic'); burstAt(x, y, [TIER_COL[T], '#fff'], T === 'mythic' ? 70 : 30, 260); }
+    if (T !== 'standard') { const [x, y] = center(won); rays(x, y, TIER_COL[T], 1400, T === 'mythic', T === 'mythic' ? 'myth' : ''); burstAt(x, y, [TIER_COL[T], '#fff'], T === 'mythic' ? 70 : 30, 260); }
     await wait(520);
     // 2. the card pack drops in as the reel clears away: no empty beat in between
     reel.classList.add('sd-out'); luckBar.classList.add('sd-out');

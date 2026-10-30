@@ -60,15 +60,16 @@ There are no accounts, no internet servers and no port forwarding. Prefer one sc
 |---|---|
 | 🗺️ **Procedural maps** | Seven layouts (continent, supercontinent, twin continents, archipelago, inland sea, crescent isles, open ocean), noise-warped so no two outlines match. |
 | 🃏 **Cards** | A deck of up to 10 unit cards. Pull a duplicate and it levels up (★ +1 ATK/DEF, max ★★★). Six rarities from Common to Mythic, and every Legendary and Mythic is unique. |
-| 🎰 **Supply Drop** | A tactic card in Rare, Epic and Legendary versions. Playing it spins a slot-machine reel for a crate tier, then the crate bursts open. |
+| 🎰 **Supply Drop** | A tactic card in Rare, Epic and Legendary versions. Playing it spins a slot-machine reel for a pack tier, then you tear the foil pack open along its top seam and it lights up in the best card's rarity colour. |
 | 🎲 **Combat** | Score = chips × (d6 + mult). Throw the die yourself. Combined Arms, Pincers, Flanking, terrain and structures all stack. |
-| ⚓ **Navy** | Claim sea lanes and oil rigs, earn shipping-lane income from your Ports, raid treasure islands with Ark transports, and back up land battles with naval gunfire. Build bridges across narrow straits. |
+| ✈️ **Air power and air defence** | Helicopters, gunships and stealth bombers, strikes from Gun Runs to B-52 raids and cruise missiles. Anti-air guards the airspace around it: aircraft that stop inside it draw fire, shown as red shaded airspace while you fly. |
+| ⚓ **Navy** | Claim sea lanes and oil rigs, earn shipping-lane income from your Ports, raid treasure islands with Ark transports, and back up land battles with naval gunfire. Build bridges across narrow straits and rivers (they open the turn after you build them). |
 | 🏭 **Economy and logistics** | Hexes only pay if they're connected by supply to your HQ, a FOB or a Port. Build Warehouses, Refineries and Depots, and **stack them up to ★★★**. Fortify your HQ. Encircle enemy pockets to annex them. |
 | 🌐 **Easy LAN** | A host/join panel scans your Wi-Fi for games. Watch games in progress and **take over a bot** mid-game. The Esc menu lets you leave, and a bot takes over your seat. |
 | 🤝 **Diplomacy** | Trade cash and cards with other players. Bots haggle too. |
 | 🧠 **Bots** | Four difficulties. Bots draft, build, invade by sea, set up pincers and judge trades. They have moods, hold grudges and ally against whoever is most dangerous. |
 | 📋 **Blueprint** | Queue your turn while others play; it runs the moment your turn begins. |
-| 🗺️ **Living maps** | Biomes (desert, jungle, tundra, swamp), ruins and caches to loot, villages and forts to conquer, relics to fight over. Small to Huge sizes. Random spawns or pick your HQ. |
+| 🗺️ **Living maps** | Map themes (Grasslands, Woodland, Desert, Badlands, Arctic, Jungle, Wetlands, Highlands or Mixed), rivers you ford or bridge, ruins and caches to loot, villages and forts to conquer, relics to fight over. Small to Huge sizes. Random spawns or pick your HQ. |
 | 🌫 **Fog, alliances and events** | Optional fog of war, alliances with shared victory (and betrayal), world events like storms and gold rushes, undo, and an end-of-game War Report with battle heatmaps, charts and awards. |
 | ⚔️ **Factions** | Iron Covenant, Volt Syndicate, Ashen Nomads, Verdant Host and Null Order, each with a perk and a starting unit. |
 | 🎨 **No assets** | Every unit, card and building is procedural vector art, and every sound is synthesized. The whole game is about 300 KB of code. |

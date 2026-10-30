@@ -227,8 +227,8 @@ const Render = (() => {
     const ang = opts.angle ?? (Math.random() * 0.6 - 0.3), dx = Math.cos(ang), dy = Math.sin(ang) * 0.5, L = 900, alt = 150;
     const n = opts.count || 1, dur = opts.dur || 1.7, t0 = t;
     for (let i = 0; i < n; i++) {
-      const side = (i - (n - 1) / 2) * 46;     // formation spacing, perpendicular to the flight path
-      planes.push({ x0: cx - dx * L - dy * side, y0: cy - dy * L + dx * side * 0.5, x1: cx + dx * L - dy * side, y1: cy + dy * L + dx * side * 0.5, alt, t0: t0 + i * 0.12, dur, color: opts.color || '#e9edf2', ang, down: i === 0 ? opts.downAt : null });
+      const side = (i - (n - 1) / 2) * (opts.spacing || 46);     // formation spacing, perpendicular to the flight path
+      planes.push({ x0: cx - dx * L - dy * side, y0: cy - dy * L + dx * side * 0.5, x1: cx + dx * L - dy * side, y1: cy + dy * L + dx * side * 0.5, alt, t0: t0 + i * 0.12, dur, color: opts.color || '#e9edf2', shape: opts.shape, ang, down: i === 0 ? opts.downAt : null });
     }
     // bombs leave the lead plane as it passes over each target, in flight order (a plane that gets shot down drops none)
     if (!opts.noBombs) pts.slice().sort((a, b) => (a[0] - cx) * dx + (a[1] - cy) * dy - ((b[0] - cx) * dx + (b[1] - cy) * dy)).forEach((p, i) => {
@@ -252,6 +252,38 @@ const Render = (() => {
     if (ink) {
       ctx.fillStyle = 'rgba(255,255,255,.28)'; P([[1.0, 0], [0.2, -0.06], [-0.85, -0.05], [-0.85, 0], [0.2, 0]]); ctx.fill();   // light along the spine
       ctx.fillStyle = '#16324a'; ctx.beginPath(); ctx.ellipse(0.55 * s, 0, 0.17 * s, 0.06 * s, 0, 0, Math.PI * 2); ctx.fill();   // canopy
+    }
+  }
+  // the other aircraft, seen from above like the jet (facing +x, s = half its length), each in the same flat ink style:
+  // b52: the long-winged heavy bomber with eight engines in four pods; b2: the stealth flying wing; a10: the straight-winged
+  // gun ship with its two engines on the back
+  const CRAFT = {
+    b52: { k: 1.75, parts: m => [
+      [[0.3, 0.07 * m], [-0.42, 1.05 * m], [-0.56, 1.05 * m], [-0.18, 0.08 * m]],                       // wing
+      [[-0.78, 0.05 * m], [-0.95, 0.36 * m], [-1.04, 0.36 * m], [-0.97, 0.05 * m]],                    // tailplane
+    ], pods: [[0.13, 0.33, 0.11, 0.045], [-0.08, 0.62, 0.11, 0.045]], body: [[1.05, 0], [0.92, -0.06], [0.3, -0.07], [-0.95, -0.05], [-1.05, -0.03], [-1.05, 0.03], [-0.95, 0.05], [0.3, 0.07], [0.92, 0.06]] },
+    b2: { k: 1.6, parts: () => [], body: [[0.55, 0], [-0.22, -1.1], [-0.44, -0.78], [-0.3, -0.52], [-0.52, -0.26], [-0.38, 0], [-0.52, 0.26], [-0.3, 0.52], [-0.44, 0.78], [-0.22, 1.1]] },
+    a10: { k: 1.15, parts: m => [
+      [[0.12, 0.06 * m], [0.12, 0.88 * m], [-0.14, 0.88 * m], [-0.14, 0.06 * m]],                       // straight wing
+      [[-0.72, 0.04 * m], [-0.72, 0.4 * m], [-0.86, 0.4 * m], [-0.86, 0.04 * m]],                      // tailplane
+      [[-0.66, 0.36 * m], [-0.66, 0.45 * m], [-0.92, 0.45 * m], [-0.92, 0.36 * m]],                    // twin fin
+    ], pods: [[-0.44, 0.19, 0.17, 0.08]], body: [[1.0, 0], [0.86, -0.08], [0.2, -0.1], [-0.8, -0.07], [-0.9, 0], [-0.8, 0.07], [0.2, 0.1], [0.86, 0.08]] },
+  };
+  function craft(shape, s, fill, ink) {
+    const c = CRAFT[shape]; if (!c) return jet(s, fill, ink);
+    s *= c.k;
+    const P = pts => { ctx.beginPath(); pts.forEach(([x, y], i) => i ? ctx.lineTo(x * s, y * s) : ctx.moveTo(x * s, y * s)); ctx.closePath(); };
+    const parts = [...c.parts(1), ...c.parts(-1), c.body];
+    // engine pods: dark capsules (two-engine pods slung ahead of a B-52's wing, the A-10's pair high on its back)
+    const pods = (c.pods || []).flatMap(([x, y, rx, ry]) => [[x, y, rx, ry], [x, -y, rx, ry]]);
+    const pod = ([x, y, rx, ry]) => { ctx.beginPath(); ctx.ellipse(x * s, y * s, rx * s, ry * s, 0, 0, Math.PI * 2); };
+    ctx.lineJoin = 'round';
+    if (ink) { ctx.strokeStyle = ink; ctx.lineWidth = Math.max(1.5, s * 0.1); for (const f of parts) { P(f); ctx.stroke(); } }
+    ctx.fillStyle = fill; for (const f of parts) { P(f); ctx.fill(); }
+    for (const q of pods) { pod(q); if (ink) ctx.stroke(); ctx.fillStyle = fill; ctx.fill(); ctx.fillStyle = 'rgba(0,0,0,.32)'; ctx.fill(); }
+    if (ink) {
+      ctx.fillStyle = 'rgba(255,255,255,.26)'; P(shape === 'b2' ? [[0.5, 0], [-0.2, -0.9], [-0.26, -0.8], [0.3, 0]] : [[0.95, 0], [0.3, -0.04], [-0.9, -0.03], [-0.9, 0], [0.3, 0]]); ctx.fill();   // light along the top
+      ctx.fillStyle = '#16324a'; ctx.beginPath(); ctx.ellipse((shape === 'b2' ? 0.3 : 0.78) * s, 0, 0.09 * s, 0.04 * s, 0, 0, Math.PI * 2); ctx.fill();   // cockpit
     }
   }
   // ── guided missiles: a fast dart with a white smoke trail that hangs in the air after it hits ──
@@ -388,13 +420,13 @@ const Render = (() => {
       // the heading on screen (the flight path, not the old icon's built-in rotation)
       const [ax, ay] = toScreen(pl.x0, pl.y0), [bx, by] = toScreen(pl.x1, pl.y1), head = Math.atan2(by - ay, bx - ax);
       // ground shadow
-      ctx.save(); ctx.translate(gx, gy); ctx.rotate(head); ctx.scale(1, 0.5); ctx.globalAlpha = 0.3; jet(15 * z, '#000', null); ctx.restore();
+      ctx.save(); ctx.translate(gx, gy); ctx.rotate(head); ctx.scale(1, 0.5); ctx.globalAlpha = 0.3; craft(pl.shape, 15 * z, '#000', null); ctx.restore();
       // contrail
       const [tx0, ty0] = toScreen(wx - (pl.x1 - pl.x0) * 0.08, wy - pl.alt - (pl.y1 - pl.y0) * 0.08);
       const g = ctx.createLinearGradient(tx0, ty0, sx, sy); g.addColorStop(0, 'rgba(255,255,255,0)'); g.addColorStop(1, 'rgba(255,255,255,.55)');
       ctx.strokeStyle = g; ctx.lineWidth = 3 * z; ctx.lineCap = 'round'; ctx.beginPath(); ctx.moveTo(tx0, ty0); ctx.lineTo(sx, sy); ctx.stroke();
       // the strike jet, nose first along its path: team-coloured, with an ink outline
-      ctx.save(); ctx.translate(sx, sy); ctx.rotate(head); jet(15 * z, pl.color, '#0b0f13'); ctx.restore();
+      ctx.save(); ctx.translate(sx, sy); ctx.rotate(head); craft(pl.shape, 15 * z, pl.color, '#0b0f13'); ctx.restore();
     }
   }
   function burst(k, color, n = 16, opts = {}) {
@@ -492,8 +524,8 @@ const Render = (() => {
     if (ov.targets && ov.targets.has(k)) { hexPath(cx, cy, s * 0.86); ctx.fillStyle = `rgba(255,190,60,${0.16 + pulse * 0.2})`; ctx.fill(); ctx.strokeStyle = '#ffcf5a'; ctx.lineWidth = 2 * z; ctx.setLineDash([5 * z, 4 * z]); ctx.lineDashOffset = -t * 20; ctx.stroke(); ctx.setLineDash([]); }
     // covered airspace: a light red wash, with a dashed edge where the cover ends
     if (ov.aaZone && ov.aaZone[k]) {
-      hexPath(cx, cy, s * 0.96); ctx.fillStyle = `rgba(255,70,90,${0.12 + pulse * 0.05})`; ctx.fill();
-      ctx.strokeStyle = 'rgba(255,120,130,.55)'; ctx.lineWidth = 1.2 * z; ctx.setLineDash([4 * z, 4 * z]);
+      hexPath(cx, cy, s * 0.96); ctx.fillStyle = `rgba(255,50,70,${0.26 + pulse * 0.08})`; ctx.fill();
+      ctx.strokeStyle = 'rgba(255,80,95,.95)'; ctx.lineWidth = 2.4 * z; ctx.setLineDash([6 * z, 4 * z]);
       const nbs = E.neighbors(k); ctx.beginPath(); for (let i = 0; i < 6; i++) { if (ov.aaZone[nbs[EDGE_DIR[i]]]) continue; const v = VERT[i], w = VERT[(i + 1) % 6], f = s * 0.96; ctx.moveTo(cx + v[0] * f, cy + v[1] * f * TILT); ctx.lineTo(cx + w[0] * f, cy + w[1] * f * TILT); }
       ctx.stroke(); ctx.setLineDash([]);
     }
@@ -582,6 +614,7 @@ const Render = (() => {
     drawRoad(k, cx, cy, z);
     // bridges and their wreckage (sea and river alike)
     if (tile.bridge) drawBridge(tile, c.q + ',' + c.r, cx, cy, s, z);
+    else if ((tile.structs || []).some(x => x.type === 'bridge' && x.lock)) drawBridge(tile, c.q + ',' + c.r, cx, cy, s, z, true);   // still being built
     else if (tile.wreck) {
       // the stumps and twisted deck of a destroyed bridge
       ctx.save(); ctx.fillStyle = '#4a3d2c';
@@ -686,7 +719,7 @@ const Render = (() => {
   }
   // a 2.5D bridge: concrete piers in the water, an asphalt deck with a visible edge, railings, and a steel arch overhead.
   // River bridges run bank to bank (across the flow)
-  function drawBridge(tile, k, cx, cy, s, z) {
+  function drawBridge(tile, k, cx, cy, s, z, building) {
     const tiles = S_.map.tiles, bank = n => tiles[n] && E.TERRAIN[tiles[n].t].land && !tiles[n].river;
     const nb = E.neighbors(k).filter(n => tiles[n] && (tile.river ? bank(n) : E.TERRAIN[tiles[n].t].land));
     let a = null, b = null, best = -1;
@@ -716,6 +749,21 @@ const Render = (() => {
     for (const t of [0.3, 0.7]) {
       const p1 = at(t, -0.75, waterH), p2 = at(t, 0.75, waterH), q1 = at(t, -0.75, deckH - thick), q2 = at(t, 0.75, deckH - thick);
       poly([p1, p2, q2, q1], '#8d8a83'); poly([p1, [p1[0] + 2 * z, p1[1]], [q1[0] + 2 * z, q1[1]], q1], 'rgba(0,0,0,.25)');
+    }
+    // under construction: the piers are in and half the deck reaches out from the near bank; open to traffic next turn
+    if (building) {
+      poly([at(0, -1, deckH), at(0.5, -1, deckH), at(0.5, 1, deckH), at(0, 1, deckH)], '#4a4d52');
+      ctx.strokeStyle = 'rgba(255,197,61,.9)'; ctx.lineWidth = 1.4 * z; ctx.setLineDash([4 * z, 3 * z]);
+      { const q = [at(0.5, -1, deckH), at(1, -1, deckH), at(1, 1, deckH), at(0.5, 1, deckH)]; ctx.beginPath(); q.forEach((p, i) => i ? ctx.lineTo(p[0], p[1]) : ctx.moveTo(p[0], p[1])); ctx.closePath(); ctx.stroke(); }
+      ctx.setLineDash([]); ctx.restore();
+      if (z > 0.55) late.push(() => {
+        const label = 'NEXT TURN', [x, y] = at(0.5, 0, deckH);
+        ctx.font = `800 ${7 * Math.min(1.25, Math.max(0.85, z))}px "Chakra Petch",sans-serif`; ctx.textAlign = 'center'; ctx.textBaseline = 'middle';
+        const w = ctx.measureText(label).width + 10 * z, ly = y + 13 * z;
+        ctx.fillStyle = '#1d1404'; ctx.beginPath(); ctx.roundRect ? ctx.roundRect(x - w / 2, ly - 6 * z, w, 12 * z, 4 * z) : ctx.rect(x - w / 2, ly - 6 * z, w, 12 * z); ctx.fill();
+        ctx.strokeStyle = '#ffc53d'; ctx.lineWidth = 1.5 * z; ctx.stroke(); ctx.fillStyle = '#ffc53d'; ctx.fillText(label, x, ly + 0.5 * z);
+      });
+      return;
     }
     // deck: the near edge face, then the road surface
     const front = at(0, 1, deckH)[1] > at(0, -1, deckH)[1] ? 1 : -1;
@@ -1423,5 +1471,7 @@ const Render = (() => {
   // Settings → Graphics: Low draws at 1× pixel density (much lighter on high-DPI screens and older machines)
   function setLowGfx(on) { lowGfx = !!on; try { localStorage.setItem('sector.gfx', on ? 'low' : 'high'); } catch (e) {} dispatchEvent(new Event('resize')); }
 
-  return { setLowGfx, get lowGfx() { return lowGfx; }, invalidate, perf, flyover, missile, missileAt, drone, droneAt, init, setState, recolor, focus, fitMap, pan, zoomAt, hexAt, screenOf, topOf, world, ov, unitPos, unitHidden, extraUnits, burst, smoke, float, ring, beam, lance, emp, shake, flash, pop, cam, get time() { return t; }, get roads() { return roads; } };
+  // draw one aircraft onto any canvas (for previews): shape jet | b52 | b2 | a10
+  function drawCraft(c2, shape, x, y, size, fill) { const keep = ctx; ctx = c2; ctx.save(); ctx.translate(x, y); craft(shape, size, fill, '#0b0f13'); ctx.restore(); ctx = keep; }
+  return { drawCraft, setLowGfx, get lowGfx() { return lowGfx; }, invalidate, perf, flyover, missile, missileAt, drone, droneAt, init, setState, recolor, focus, fitMap, pan, zoomAt, hexAt, screenOf, topOf, world, ov, unitPos, unitHidden, extraUnits, burst, smoke, float, ring, beam, lance, emp, shake, flash, pop, cam, get time() { return t; }, get roads() { return roads; } };
 })();

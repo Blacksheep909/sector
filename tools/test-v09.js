@@ -91,7 +91,7 @@ const idle = (s, pid) => s.players.find(p => p.id !== pid && p.id !== me(s).id) 
   ok(!E.reachable(s, p.id, ['tk'], p.hq)[k], 'a tank cannot drive into a river');
   { const r = E.reachable(s, p.id, ['gr'], p.hq); ok(!r[k] || r[k].kind === 'pass', 'infantry never stop in a river (they ford across: see test-v10)'); }
   ok(E.buildHexes(s, p.id, 'bridge').includes(k), 'you can bridge a river on your land');
-  E.applyAction(s, p.id, { a: 'build', struct: 'bridge', hex: k });
+  E.applyAction(s, p.id, { a: 'build', struct: 'bridge', hex: k }); for (const q of s.map.tiles[k].structs || []) if (q.type === 'bridge' && q.lock) { delete q.lock; s.map.tiles[k].bridge = true; }   // (it opens next turn)
   ok(!!E.reachable(s, p.id, ['tk'], p.hq)[k], 'a bridged river lets vehicles across');
   const sea = Object.keys(s.map.tiles).find(x => E.isWater(s.map.tiles[x]) && E.dist(x, p.hq) <= 3 && !Object.values(s.units).some(u => u.hex === x));
   if (sea) { s.units.hn = { id: 'hn', type: 'hornet', owner: p.id, hex: p.hq, moved: false, fresh: false };

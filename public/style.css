@@ -896,6 +896,8 @@ body.host-page { overflow: auto; background: radial-gradient(ellipse at top, #16
 .rays.local { position: absolute; left: 50%; top: 50%; z-index: -1; mix-blend-mode: normal; opacity: .45; pointer-events: none; }
 .rays.local.big { width: 1400px; height: 1400px; }
 .rays { mix-blend-mode: normal !important; }
+/* mythic: a soft, slowly turning rainbow aurora behind the card instead of hard spokes */
+.rays.myth { background: conic-gradient(from 0deg, #ff7ad9, #fff27a, #9dff7a, #7af7ff, #b48cff, #ff7ad9) !important; filter: blur(46px); opacity: .5 !important; -webkit-mask: radial-gradient(circle, #000 0, rgba(0,0,0,.6) 25%, transparent 55%) !important; mask: radial-gradient(circle, #000 0, rgba(0,0,0,.6) 25%, transparent 55%) !important; }
 .sd-rays { width: 75vmax !important; height: 75vmax !important; contain: strict; will-change: transform; animation: sdSpin 60s linear infinite !important; }
 @keyframes sdSpin { from { transform: translate(-50%, -50%) scale(2) rotate(0deg); } to { transform: translate(-50%, -50%) scale(2) rotate(360deg); } }
 
@@ -1209,6 +1211,8 @@ body.my-turn #hud::before { content: ''; position: fixed; inset: 0; pointer-even
 #actions > [hidden] { display: none !important; }
 #actions #autoEnd { max-width: 220px; }
 #toasts { top: calc(var(--stackB) + 8px) !important; }
+/* full-screen card screens (the opening draft, a supply drop, a pack) keep their title clear: toasts move to the right edge */
+body:has(#draft:not([hidden])) #toasts, body:has(#supply:not([hidden])) #toasts, body:has(#crate:not([hidden])) #toasts { top: 90px !important; left: auto; right: 18px; transform: none; align-items: flex-end; }
 #offerPop, #allyPop { z-index: 7; }
 @media (max-width: 1250px) { :root { --sideW: 250px; } #rightCol { width: 240px; } #centerStack { right: 262px; } }
 #leftCol > * { top: auto !important; left: auto !important; right: auto !important; bottom: auto !important; }

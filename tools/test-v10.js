@@ -28,8 +28,11 @@ function crossing(s) {
   p.hq = a; T[a].owner = 'A'; T[a].structs = [{ type: 'hq', owner: 'A', lvl: 1 }]; T[a].struct = T[a].structs[0];
   ok(T[k].owner === null && E.buildError(s, 'A', 'bridge', k) === null, 'an unclaimed river hex beside your land can be bridged');
   p.cash = 50; const r = E.applyAction(s, 'A', { a: 'build', struct: 'bridge', hex: k });
-  ok(r.ok && T[k].bridge && T[k].owner === 'A', 'building the bridge claims it');
-  put(s, 'm', 'mauler', a); ok(!!E.reachable(s, 'A', ['m'], a)[k], 'tanks drive onto the bridge');
+  ok(r.ok && !T[k].bridge && T[k].owner === 'A', 'building the bridge claims it, and it takes a turn to build');
+  put(s, 'm', 'mauler', a); ok(!E.reachable(s, 'A', ['m'], a)[k], 'nothing crosses a bridge still being built');
+  E.applyAction(s, 'A', { a: 'end' }); E.applyAction(s, 'B', { a: 'end' });
+  ok(T[k].bridge && !(T[k].structs || []).some(x => x.lock), 'it opens on the builder\'s next turn');
+  s.units.m.moved = false; ok(!!E.reachable(s, 'A', ['m'], a)[k], 'tanks drive onto the bridge');
 }
 { // helicopters: troops aboard stay aboard over water, and can't be left hanging there
   const s = board(), T = s.map.tiles;

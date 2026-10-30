@@ -15,7 +15,7 @@ const sleep = ms => new Promise(r => setTimeout(r, ms));
 
 async function main() {
   const prof = path.join(require('os').tmpdir(), 'sector-shots-' + Date.now());
-  const proc = spawn(BROWSER, ['--headless=new', '--remote-debugging-port=9333', '--user-data-dir=' + prof, `--window-size=${W},${H}`, '--hide-scrollbars', '--autoplay-policy=no-user-gesture-required', 'about:blank'], { stdio: 'ignore' });
+  const proc = spawn(BROWSER, ['--headless=new', '--no-sandbox', '--remote-debugging-port=9333', '--user-data-dir=' + prof, `--window-size=${W},${H}`, '--hide-scrollbars', '--autoplay-policy=no-user-gesture-required', 'about:blank'], { stdio: 'ignore' });
   let target;
   for (let i = 0; i < 50 && !target; i++) {
     await sleep(200);
@@ -44,8 +44,8 @@ async function main() {
   await evalJS(`document.querySelector('#lanBox').innerHTML='Friends on your network join at:<br><b>http://192.168.1.20:3000</b>'; true`);
   await shot('lobby');
   await evalJS(`document.querySelector('#startBtn').click(); true`);
-  await waitFor(`document.querySelectorAll('#draft .flip.dealt').length===3`);
-  await sleep(700);
+  console.log('draft dealt:', await waitFor(`!document.querySelector('#draft').hidden && document.querySelectorAll('#draft .flip.dealt').length===3`, 90000));
+  await sleep(1500);
   await evalJS(`document.querySelector('#draft .flip').click(); true`); await sleep(1200);
   await shot('draft');
   // finish the draft

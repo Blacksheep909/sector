@@ -2650,7 +2650,7 @@
         }
         case 'silo': {
           const d = E.cardDef(ev.card);
-          follow(ev.hex); Render.lance(ev.hex, '#ffffff', 0.8 * speed()); Render.ring(ev.hex, '#fff', 90, 0.8, 6); SFX.legendary();
+          follow(ev.hex); Render.smoke(ev.hex, 14, 'rgba(230,230,230,'); Render.burst(ev.hex, ['#fff', '#ffd27a'], 24, { up: 120 }); Render.ring(ev.hex, '#fff', 90, 0.8, 6); SFX.legendary();   // the silo doors blow open and it vents
           banner('🚀 SILO ARMED', pName(ev.pid) + ' gets ' + (d ? d.name : 'a mythic'), '#ffffff');
           if (ev.pid === you) Render.flash(0.4, '#ffffff');
           await sleep(1100); break;
@@ -2961,7 +2961,7 @@
       const sp = speed();   // effects run on the render clock: scale them like sleep() is scaled
       if (ev.id === 'kamikaze') { const dr = Render.drone(ev.target, { color: pColor(ev.pid), dur: 1.5 * sp, stopAt: 0.8 }); samFire(ev.by || [], Render.droneAt(dr, 0.8), 1.2 * sp); await sleep(1200); }
       else if (ev.id === 'cruise') { const from = launchSite(ev.pid, ev.target), o = cruiseOpts(from, ev.target, sp); Render.missile(from, ev.target, { ...o, stopAt: 0.82 }); samFire(ev.by || [], Render.missileAt(from, ev.target, o, 0.82), o.dur * 0.82); await sleep(o.dur * 820 / sp); }
-      else { const [x, y] = Render.topOf(ev.target); Render.flyover([ev.target, ev.target], { color: pColor(ev.pid), dur: 1.4 * sp, noBombs: true, downAt: 0.5 }); samFire(ev.by || [], [x, y - 150], 0.7 * sp); await sleep(700); }
+      else { const [x, y] = Render.topOf(ev.target); Render.flyover([ev.target, ev.target], { shape: { strategic: 'b52', carpet: 'b52', buster: 'b2', gunrun: 'a10' }[ev.id], color: pColor(ev.pid), dur: 1.4 * sp, noBombs: true, downAt: 0.5 }); samFire(ev.by || [], [x, y - 150], 0.7 * sp); await sleep(700); }
       SFX.boom(0.7); Render.shake(6); await sleep(150);
       Render.float(ev.target, '🛡 SHOT DOWN', '#7ff3ff', 18);
       if (ev.pid === you) toast(`🛡 Your ${d.name} was shot down by air defences`, 'err');
@@ -2975,19 +2975,20 @@
       case 'march': Render.ring(ev.target, pColor(ev.pid), 60, 0.6, 4); Render.float(ev.target, 'FORCED MARCH', '#fff', 16); SFX.select(); break;
       case 'conscript': for (const u of ev.units) { S.units[u.id] = u; } Render.ring(ev.target, pColor(ev.pid), 50, 0.5); SFX.deploy(); Render.shake(4); break;
       case 'carpet': {
-        // a three-jet formation lays bombs along the strip
+        // a three-ship B-52 cell lays bombs along the strip
         SFX.whoosh();
-        Render.flyover(ev.area.filter(k2 => S.map.tiles[k2]), { count: 3, color: pColor(ev.pid), dur: 2.1 * speed(), fall: 0.42 * speed(), onBomb: () => { SFX.boom(0.5); Render.shake(6); } });
+        Render.flyover(ev.area.filter(k2 => S.map.tiles[k2]), { count: 3, shape: 'b52', spacing: 64, color: pColor(ev.pid), dur: 2.1 * speed(), fall: 0.42 * speed(), onBomb: () => { SFX.boom(0.5); Render.shake(6); } });
         await sleep(2000);
         Render.float(ev.target, ev.kills.length + ' DESTROYED', '#ff4f5e', 20); killUnits(ev.kills);
+        for (const k of ev.bridges || []) { dropBridge(k); Render.float(k, 'BRIDGE DESTROYED', '#ff8a5a', 16); }
         for (const k of ev.shot || []) { Render.burst(k, ['#ffb03a', '#fff'], 20, { up: 200 }); Render.float(k, '🛡 SHOT DOWN', '#7ff3ff', 18); }
         await sleep(300); break;
       }
       case 'jackpot': SFX.coin(8); Render.flash(0.2, '#ffc53d'); break;
       case 'strategic': {
-        // a bomber stream crosses the target area; every hex under it smokes and stops paying
+        // a B-52 stream crosses the target area; every hex under it smokes and stops paying
         SFX.whoosh(); SFX.alarm();
-        Render.flyover(ev.hexes.map(h => h.k).concat([ev.target]), { color: pColor(ev.pid), dur: 2.2 * speed(), fall: 0.42 * speed(), onBomb: () => { SFX.boom(0.8); Render.shake(10); } });
+        Render.flyover(ev.hexes.map(h => h.k).concat([ev.target]), { count: 3, shape: 'b52', spacing: 64, color: pColor(ev.pid), dur: 2.2 * speed(), fall: 0.42 * speed(), onBomb: () => { SFX.boom(0.8); Render.shake(10); } });
         await sleep(1900);
         for (const h of ev.hexes) { const tt = S.map.tiles[h.k]; if (tt) tt.ruin = 2; if (h.infra.length) infraHit(h.k, h.infra, h.structs); else { Render.burst(h.k, ['#ffb03a', '#5a5a5a'], 14, { up: 90 }); Render.smoke(h.k, 8, 'rgba(70,65,60,'); } }
         Render.recolor(); Render.invalidate();
@@ -2995,11 +2996,12 @@
         { const hit = ev.hexes.reduce((n, h) => n + h.infra.length, 0), kills = (ev.kills || []).length;
           Render.float(ev.target, [kills ? kills + ' DESTROYED' : '', hit ? hit + ' BUILDING' + (hit > 1 ? 'S' : '') + ' HIT' : '', ev.hexes.length ? ev.hexes.length + ' HEXES PAY NOTHING FOR 2 TURNS' : ''].filter(Boolean).join(' · ') || 'NOTHING HIT', kills ? '#ff4f5e' : '#ff8a5a', kills ? 20 : 18);
           killUnits(ev.kills || []); }
+        for (const k of ev.bridges || []) { dropBridge(k); Render.float(k, 'BRIDGE DESTROYED', '#ff8a5a', 16); }
         await sleep(500); break;
       }
       case 'buster': {
-        // a heavy bomber, a long fall, then the fortifications crumble
-        SFX.whoosh(); Render.flyover([ev.target, ev.target], { color: pColor(ev.pid), dur: 1.9 * speed(), fall: 0.42 * speed(), onBomb: () => { SFX.boom(1); Render.shake(16); Render.flash(0.25, '#ffb03a'); } });
+        // a B-2 stealth bomber (the plane that carries the real bunker buster), a long fall, then the fortifications crumble
+        SFX.whoosh(); Render.flyover([ev.target, ev.target], { shape: 'b2', color: pColor(ev.pid), dur: 1.9 * speed(), fall: 0.42 * speed(), onBomb: () => { SFX.boom(1); Render.shake(16); Render.flash(0.25, '#ffb03a'); } });
         await sleep(1700);
         { const tt = S.map.tiles[ev.target]; if (tt && ev.structs) { tt.structs = ev.structs; tt.struct = ev.structs.find(x => x.type === 'hq') || ev.structs[0] || null; } }
         Render.burst(ev.target, ['#ffb03a', '#8a8a8a', '#3a3a3a'], 40, { speed: 1.8, size: 4, up: 160 }); Render.smoke(ev.target, 16, 'rgba(90,85,80,');
@@ -3036,7 +3038,7 @@
         } else if (ev.id === 'gunrun') {
           // a strafing run: the cannon walks a line of hits through the hex as the jet passes low
           const ang = Math.random() * 0.6 - 0.3, dx = Math.cos(ang), dy = Math.sin(ang) * 0.5, dur = 1.4 * sp;
-          SFX.brrrt(); Render.flyover([ev.target], { color: col, dur, noBombs: true, angle: ang });
+          SFX.brrrt(); Render.flyover([ev.target], { shape: 'a10', color: col, dur, noBombs: true, angle: ang });   // an A-10 and its cannon
           for (let i = 0; i < 9; i++) setTimeout(() => { const o = (i - 4) * 9; Render.burst([x + dx * o, y + dy * o], ['#fff2a8', '#ffb03a', '#8a7a66'], 5, { up: 50, speed: 0.6, size: 2 }); if (i % 3 === 0) Render.shake(3); }, (dur * 0.5 + (i * 0.05 - 0.3) * sp) * 1000);
           await sleep(1300);
         } else {
@@ -3069,7 +3071,10 @@
         Render.float(ev.target, '⚡ ' + (ev.units || []).length + ' FROZEN', '#7ff3ff', 18); await sleep(900); break;
       }
       case 'nuke': {
-        banner('☢ NUCLEAR LAUNCH DETECTED', who, '#8a9a2c'); SFX.alarm(); await sleep(1300);
+        banner('☢ NUCLEAR LAUNCH DETECTED', who, '#8a9a2c'); SFX.alarm(); await sleep(900);
+        // the warhead comes down almost straight out of the sky on a long white trail
+        { const [nx, ny] = Render.topOf(ev.target); Render.ring(ev.target, '#d9ff3b', 60, 0.6, 4); SFX.whoosh();
+          Render.missile([nx + 30, ny], ev.target, { alt0: 420, alt1: 0, loft: 0, accel: 2.4, dur: 0.75 * speed(), size: 1.6, color: '#eef2c8', boom: false }); await sleep(750); }
         Render.flash(1.2, '#ffffff'); SFX.boom(3); Render.shake(40);
         for (let i = 0; i < 4; i++) Render.ring(ev.target, ['#fff', '#ffdd55', '#ff7a2a', '#d9ff3b'][i], 160 + i * 40, 1 + i * 0.3, 8);
         Render.burst(ev.target, ['#fff', '#ffdd55', '#ff7a2a', '#ff3a1a', '#444'], 120, { speed: 3, size: 5, life: 1.4 });
@@ -3079,11 +3084,12 @@
         Render.recolor(); await sleep(1100); break;
       }
       case 'quarry': {
-        Render.lance(ev.target, '#ffb03a', 0.5 * speed()); await sleep(200);
+        // demolition charges drilled into the rock: they blink faster and faster, then the mountain comes down
+        for (let i = 0; i < 4; i++) { Render.ring(ev.target, '#ffb03a', 22, 0.22, 3); SFX.click(); await sleep(240 - i * 45); }
         SFX.boom(1.4); Render.shake(16); Render.burst(ev.target, ['#8a7a66', '#5d5144', '#c9b78f', '#ffb03a'], 70, { speed: 2.2, size: 4, up: 160 });
         Render.smoke(ev.target, 24, 'rgba(150,135,115,');
         S.map.tiles[ev.target].t = 'hills'; Render.recolor(); Render.invalidate();
-        if (ev.also && S.map.tiles[ev.also]) { await sleep(250); Render.lance(ev.also, '#ffb03a', 0.4 * speed()); SFX.boom(1.1); Render.shake(12); Render.burst(ev.also, ['#8a7a66', '#5d5144', '#c9b78f', '#ffb03a'], 50, { speed: 2, size: 4, up: 140 }); Render.smoke(ev.also, 18, 'rgba(150,135,115,'); S.map.tiles[ev.also].t = 'hills'; Render.recolor(); Render.invalidate(); }
+        if (ev.also && S.map.tiles[ev.also]) { await sleep(250); Render.ring(ev.also, '#ffb03a', 22, 0.25, 3); SFX.boom(1.1); Render.shake(12); Render.burst(ev.also, ['#8a7a66', '#5d5144', '#c9b78f', '#ffb03a'], 50, { speed: 2, size: 4, up: 140 }); Render.smoke(ev.also, 18, 'rgba(150,135,115,'); S.map.tiles[ev.also].t = 'hills'; Render.recolor(); Render.invalidate(); }
         Render.float(ev.target, 'PASS OPENED', '#ffb03a', 16); await sleep(500); break;
       }
       case 'spy': {
@@ -3095,7 +3101,11 @@
       }
       case 'tsar': {
         banner('☢ TSAR BOMBA', who + ' — 9-hex blast', '#ffffff'); SFX.alarm(); await sleep(900); SFX.alarm(); await sleep(700);
-        Render.lance(ev.target, '#ffffff', 1.0 * speed()); await sleep(450);
+        // the real one was dropped from a bomber and slowed by a parachute: a heavy bomber passes, the bomb drifts down, then the flash
+        { const sp = speed(), [tx, ty] = Render.topOf(ev.target); SFX.jet();
+          Render.flyover([ev.target], { shape: 'b52', color: pColor(ev.pid), dur: 2.0 * sp, noBombs: true });
+          Render.missile([tx - 40, ty], ev.target, { alt0: 150, alt1: 0, loft: 0, accel: 0.7, dur: 1.4 * sp, delay: 0.75 * sp, size: 1.9, color: '#f4f4f4', boom: false });
+          await sleep(2150); }
         Render.flash(1.6, '#ffffff'); SFX.boom(3); later(0.22, () => SFX.boom(2.4)); Render.shake(55);
         for (let i = 0; i < 6; i++) Render.ring(ev.target, ['#fff', '#ffe6a0', '#ffdd55', '#ff7a2a', '#d9ff3b', '#ffffff'][i], 200 + i * 55, 1.1 + i * 0.3, 10);
         for (const k of ev.area) { Render.burst(k, ['#fff', '#ffdd55', '#ff7a2a', '#ff3a1a', '#444'], 50, { speed: 2.6, size: 5, life: 1.4 }); Render.smoke(k, 16, 'rgba(120,110,90,'); }

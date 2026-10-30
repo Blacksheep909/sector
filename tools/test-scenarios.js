@@ -112,7 +112,8 @@ const SOLUTIONS = {
     return g.assault('obj', ['a'], ['b']);
   },
   river(g) {
-    g.build('bridge', 'x'); g.move('m', 'y'); g.move('g', 'z'); g.end();
+    g.build('bridge', 'x'); g.move('g', 'z'); g.end();   // the bridge opens next turn
+    g.move('m', 'y'); g.end();
     console.log('     odds: tank alone ' + Math.round(g.odds('obj', ['y']) * 100) + '%, together ' + Math.round(g.odds('obj', ['y'], ['z']) * 100) + '%');
     return g.assault('obj', ['y'], ['z']);
   },
