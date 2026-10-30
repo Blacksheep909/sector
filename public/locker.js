@@ -28,7 +28,16 @@ const Locker = (() => {
     try { const r = new URLSearchParams(location.search).get('ref'); if (r) localStorage.setItem('sector.ref', r); return r || localStorage.getItem('sector.ref'); } catch (e) { return null; }
   }
   function init(o) { send = o.send; }
-  function set(p) { profile = p; pill(); if (open === 'locker') drawLocker(); if (open === 'store') drawStore(); if (open === 'orders') drawOrders(); }
+  // a profile update (an equip, a buy, a crate) redraws the open panel: keep every scrolled list where it was, or the view snaps to the top
+  function keepScroll(draw) {
+    const m = $('#lockerModal'), was = [];
+    if (m && !m.hidden) m.querySelectorAll('*').forEach((e, i) => { if (e.scrollTop || e.scrollLeft) was.push([e.className, i, e.scrollTop, e.scrollLeft]); });
+    draw();
+    if (!was.length) return;
+    const restore = () => { const all = m.querySelectorAll('*'); for (const [cls, i, top, left] of was) { const e = all[i] && all[i].className === cls ? all[i] : m.querySelector('.' + String(cls).trim().split(/\s+/).join('.')); if (e) { e.scrollTop = top; e.scrollLeft = left; } } };
+    restore(); requestAnimationFrame(restore);   // again once images and canvases have laid out
+  }
+  function set(p) { profile = p; pill(); const mm = $('#lockerModal'); if (!mm || mm.hidden) open = null; keepScroll(() => { if (open === 'locker') drawLocker(); if (open === 'store') drawStore(); if (open === 'orders') drawOrders(); }); }
   const owns = id => !!profile && profile.owned.includes(id);
   const variant = cardId => (profile && profile.cards && profile.cards[cardId]) || null;
   const bannerClass = cos => cos && cos.banner ? ' bn-' + cos.banner : '';
@@ -53,7 +62,7 @@ const Locker = (() => {
     const p = el('div', 'panel locker-card');
     p.innerHTML = `<div class="ix-head"><h2>${title}</h2><div class="lk-coins"><i class="vm"></i><b>${profile ? profile.coins.toLocaleString() : 0}</b></div><button class="icon-btn" id="lkClose">✕</button></div>`;
     m.appendChild(p);
-    const close = () => { m.hidden = true; open = null; SFX.click(); };
+    const close = () => { m.hidden = true; open = null; SFX.click(); }; m._close = close;   // Esc closes it the same way
     p.querySelector('#lkClose').onclick = close; m.onclick = e => { if (e.target === m) close(); };
     return p;
   }

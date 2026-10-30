@@ -119,7 +119,7 @@
         if (m.bought) { toast('✔ ' + SectorCosmetics.ITEMS[m.bought].name + ' is yours', 'good'); SFX.legendary(); } break;
       case 'reward': Locker.set(m.profile); setTimeout(() => Locker.reward(m.reward), 1600); break;
       case 'boxOpened': Locker.boxOpened(m); break;
-      case 'state': if (leftGame) break; msgQ.push(m); pump(); break;
+      case 'state': if (leftGame) break; if (!S && m.state) closeMenuModals(); msgQ.push(m); pump(); break;
       case 'err':
         if (m.seq && pending.has(m.seq)) { pending.get(m.seq)(false); pending.delete(m.seq); }
         // a code this server doesn't have, on a LAN server: probably a friend's room on their own server
@@ -1135,6 +1135,7 @@
     keys.add(e.key.toLowerCase());
     if (e.key === 'Escape') {
       if (!$('#hostPanel').hidden) closeHost();
+      else if (closeTopModal()) {}
       else if (!$('#escMenu').hidden) closeEsc();
       else if (!$('#market').hidden) $('#market').hidden = true;
       else if (!$('#index').hidden) $('#index').hidden = true;
@@ -1190,17 +1191,28 @@
   function openEsc() {
     if (!S) return;
     const m = $('#escMenu'); m.hidden = false; SFX.select();
-    const host = lobby && lobby.hostId === realId;
-    $('#escEnd').hidden = !host;
-    $('#escSave').hidden = !host || S.phase !== 'play';
-    $('#escRestart').hidden = !S.scenario || !host;
-    $('#escInvite').hidden = !lobby || lobby.kind === 'public' || lobby.code === 'MAIN' || S.phase === 'over' || !!S.scenario;
-    $('#escInfo').textContent = (S.phase === 'over' ? 'Game over' : 'Round ' + S.turn.round) + ' · ' + (lobby ? lobby.players.length : S.players.length) + ' commanders' + (host ? ' · you are the host' : '');
+    const host = lobby && lobby.hostId === realId, mission = !!S.scenario, pub = lobby && lobby.kind === 'public';
+    // the menu fits the kind of war: a mission is yours alone, a war against bots ends when you leave, a war with friends goes on
+    const others = lobby ? lobby.players.filter(p => !p.bot && !p.local && p.id !== realId).length : 0;
+    $('#escEnd').hidden = !host || mission || !others || S.phase === 'over';
+    $('#escSave').hidden = !host || mission || pub || S.phase !== 'play';
+    $('#escRestart').hidden = !mission || !host;
+    $('#escInvite').hidden = !lobby || pub || lobby.code === 'MAIN' || S.phase === 'over' || mission;
+    $('#escInfo').textContent = mission ? 'Mission · turn ' + Math.min(S.scenario.turns || 99, (S.scenario.heroTurns || 0) + 1) + (S.scenario.turns ? ' of ' + S.scenario.turns : '')
+      : (S.phase === 'over' ? 'Game over' : 'Round ' + S.turn.round) + ' · ' + (lobby ? lobby.players.length : S.players.length) + ' commanders' + (host && others ? ' · you are the host' : '');
+    $('#escHint').textContent = mission ? 'Quit any time: the mission waits for you in Missions.'
+      : S.phase === 'over' ? '' : !others && !pub ? 'Your war saves itself as you play: carry on from Singleplayer.' : 'Leaving hands your empire to a bot so the others can keep playing.';
     $('#escSound').textContent = 'SOUND: ' + (SFX.muted ? 'OFF' : 'ON');
     $('#escAuto').textContent = 'AUTO-END TURN: ' + (autoEndOff ? 'OFF' : 'ON');
-    $('#escLeave').textContent = spectator || !myP() ? 'BACK TO MENU' : 'LEAVE GAME';
+    $('#escLeave').textContent = spectator || !myP() || S.phase === 'over' ? 'BACK TO MENU' : mission ? 'QUIT MISSION' : 'LEAVE GAME';
   }
   function closeEsc() { $('#escMenu').hidden = true; }
+  // the menu's pop-up panels (Missions, Locker, Store, Orders, Settings, profiles): Esc closes the one on top, the way its ✕ does
+  const MENU_MODALS = '#missionsModal, #lockerModal, .home-modal, #joinNet';
+  function topModal() { const open = [...document.querySelectorAll(MENU_MODALS)].filter(m => !m.hidden && getComputedStyle(m).display !== 'none'); return open.sort((a, b) => (+getComputedStyle(a).zIndex || 0) - (+getComputedStyle(b).zIndex || 0)).pop(); }
+  function closeTopModal() { const m = topModal(); if (!m) return false; if (m._close) m._close(); else m.hidden = true; return true; }
+  // a war starting under you (the host deployed) clears the menu's panels off the screen
+  function closeMenuModals() { for (let i = 0; i < 8 && closeTopModal(); i++); }
   // tear down every in-game overlay and return to the title screen
   let menuGen = 0;
   // every step is fenced off: one failing cleanup must never strand you on a blank screen with no menu
@@ -1306,7 +1318,7 @@
     if (!myP()) backToMenu();
   };
   $('#escEnd').onclick = () => {
-    if ($('#escEnd').dataset.armed !== '1') { $('#escEnd').dataset.armed = '1'; $('#escEnd').textContent = 'CLICK AGAIN — ENDS IT FOR ALL'; setTimeout(() => { $('#escEnd').dataset.armed = ''; $('#escEnd').textContent = 'END GAME FOR EVERYONE'; }, 2500); return; }
+    if ($('#escEnd').dataset.armed !== '1') { $('#escEnd').dataset.armed = '1'; $('#escEnd').textContent = 'CLICK AGAIN TO END IT FOR ALL'; setTimeout(() => { $('#escEnd').dataset.armed = ''; $('#escEnd').textContent = 'END GAME FOR EVERYONE'; }, 2500); return; }
     $('#escEnd').dataset.armed = ''; closeEsc(); send({ t: 'toLobby' });
   };
 
@@ -1343,7 +1355,7 @@
   }
   // a room code this server doesn't know: it may be a friend's room on their own server, so look for it on the network
   async function findRoomOnLan(code) {
-    toast('Looking for room ' + code + ' on your network…');
+    toast('Looking for room ' + code + ' on your network (this takes a few seconds)…');
     let hit = null;
     await scanLan(sv => { if (sv.url !== location.origin && (sv.lobbies || []).some(l => l.code === code)) { hit = sv; return false; } });
     if (hit) goTo(hit.url + '/?room=' + code);

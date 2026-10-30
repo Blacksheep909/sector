@@ -589,6 +589,7 @@ function onMessage(c, m) {
     case 'leave': {
       // leaving: in a running game your seats become bots so the match carries on
       const seats = seatsOf(c);
+      if (game && game.phase === 'play' && game.saveId && !game.scenario && !lobby.players.some(p => !p.bot && !p.local && !p.spectator && !seats.includes(p.id))) { writeSave(); game.saveId = null; }
       if (game) { for (const id of seats) { const lp = lobby.players.find(p => p.id === id); if (lp) payLeaver(lp); } pushLeave(seats); botifySeats(seats, true); } else lobby.players = lobby.players.filter(p => !seats.includes(p.id));
       if (seats.includes(lobby.hostId)) { const h = lobby.players.find(p => !p.bot && !p.local && isConnected(p.id) && !seats.includes(p.id)); lobby.hostId = h ? h.id : null; }
       { const p = lobby.players.find(x => x.id === seats[0]); if (p) note(p.name.replace(/ \(bot\)$/, '') + (game ? ' left — a bot took over' : ' left the lobby')); }
@@ -721,9 +722,10 @@ function loadSave(c, id) {
   const players = [];
   for (const gp of g.players) {
     const sv = seats.find(x => x.id === gp.id) || { id: gp.id, name: gp.name, bot: gp.bot };
-    const h = !sv.bot && !sv.local && gp.alive && humans.find(x => !taken.has(x) && base(x.name) === base(sv.name));
+    const wasHuman = !sv.bot || / \(bot\)$/.test(sv.name || gp.name || '');   // a seat someone walked out of
+    const h = wasHuman && !sv.local && gp.alive && humans.find(x => !taken.has(x) && base(x.name) === base(sv.name));
     if (h) {
-      taken.add(h); remap.set(h.id, gp.id);
+      taken.add(h); remap.set(h.id, gp.id); gp.name = String(gp.name).replace(/ \(bot\)$/, '');
       players.push({ ...h, id: gp.id, name: gp.name, color: gp.color, faction: gp.faction, team: gp.team || 0, spectator: false, ready: true, away: false, afk: false });
       gp.bot = false; gp.away = false; gp.afk = false;
       continue;
@@ -744,7 +746,7 @@ function loadSave(c, id) {
   // clocks were wall-clock times when saved: restart this turn's
   g.turn.pausedAt = 0; g.paused = false;
   g.turn.deadline = g.settings.timer ? Date.now() + g.settings.timer * 1000 : 0; g.turn.prevDeadline = 0;
-  game = g; game.v = (game.v || 0) + 1; game.t0 = Date.now(); for (const lp of lobby.players) { delete lp.since; delete lp.base; } botMem = {}; undoStack.length = 0; undoStack.owner = null;
+  game = g; game.v = (game.v || 0) + 1; game.t0 = Date.now(); for (const lp of lobby.players) { const gp = g.players.find(x => x.id === lp.id); lp.since = Date.now(); lp.base = gp ? { kills: gp.stats.kills, captured: gp.stats.captured, crates: gp.stats.crates } : {}; } botMem = {};   // rewards count from the resume, not the first turn undoStack.length = 0; undoStack.owner = null;
   fogMem = {}; for (const k in d.fog || {}) fogMem[k] = { explored: new Set(d.fog[k].explored || []), seen: d.fog[k].seen || {} };
   for (const k in bankLeft) delete bankLeft[k]; Object.assign(bankLeft, d.bank || {}); bankKey = ''; bankPid = null; turnKey = '';
   for (const k in warNotes) delete warNotes[k];

@@ -52,6 +52,7 @@ const Missions = (() => {
       grid.appendChild(t);
     }
     p.appendChild(grid); m.appendChild(p);
+    m._close = () => { m.hidden = true; };   // Esc closes it too
     $('#msClose').onclick = () => { m.hidden = true; };
     m.onclick = e => { if (e.target === m) m.hidden = true; };
   }

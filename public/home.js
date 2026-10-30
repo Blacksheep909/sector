@@ -46,7 +46,7 @@ const Home = (() => {
     $('#mmOnline').textContent = stats.online.toLocaleString(); $('#mmWars').textContent = stats.wars.toLocaleString();
     $('#mmVer').textContent = 'v' + stats.version + (stats.mode === 'lan' ? ' · LAN server' : '');
     $('#lanRow').hidden = stats.mode !== 'lan';
-    $('#playSub').textContent = stats.waiting ? stats.waiting + ' commander' + (stats.waiting > 1 ? 's' : '') + ' in open wars · join one' : 'join an open war, or host your own';
+    $('#playSub').textContent = stats.waiting ? stats.waiting + ' commander' + (stats.waiting > 1 ? 's' : '') + ' in open wars · Join one' : 'Join an open war, or host your own';
   }
 
   // ── your commander card: banner, territory skin, record, and the way into the Locker ──
@@ -196,7 +196,7 @@ const Home = (() => {
 
   // shared modal shell
   function modal(id) { let m = $('#' + id); if (!m) { m = el('div', 'modal-bg home-modal'); m.id = id; document.body.appendChild(m); } m.hidden = false; return m; }
-  function wire(m) { const close = () => { m.hidden = true; sfx('click'); }; m.querySelectorAll('[data-x]').forEach(b => b.onclick = close); m.onclick = e => { if (e.target === m) close(); }; }
+  function wire(m) { const close = () => { m.hidden = true; sfx('click'); }; m._close = close; m.querySelectorAll('[data-x]').forEach(b => b.onclick = close); m.onclick = e => { if (e.target === m) close(); }; }
 
   return { init, onMsg, render, shown, profile, settings, get opts() { return opts; }, get party() { return party; }, get you() { return me; } };
 })();

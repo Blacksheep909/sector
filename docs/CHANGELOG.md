@@ -17,6 +17,11 @@ Every release, newest first. Each version also has its own post on the [Releases
 - **Map labels match.** Floating labels use one style per meaning: red for kills, orange for damage, gold for money and upgrades, cyan for defence, grey for misses, each at one size.
 - **Dig in and Intel ops show on the map:** digging in throws up earth and a "⛏ DUG IN" label; your Intel op shows a satellite sweep (only you see it).
 - **The OBLITERATED! sequence keeps pace with the game speed** like every other animation.
+- **Singleplayer saves give you your seat back.** Leaving a war against bots used to save it with your seat already handed to a bot, so loading it put a bot ("Commander (bot)") in your place and you could only watch. Your war is now saved with your seat still yours when you leave, and older saves with a "(bot)" seat in your name give it back too. Resuming also no longer pays you a second time for kills and land from before the save.
+- **The pause menu fits the war.** In missions and tutorials it shows RESTART and QUIT MISSION (no "End game for everyone", Save or Invite). Against bots, "End game for everyone" is gone (leaving already ends it) and the hint says your war saves itself. With friends, nothing changes.
+- **Esc closes the menu's panels:** Missions, Locker, Store, Orders and Settings all close with Esc, the same way their ✕ does. Panels you had open also clear away when a war starts, instead of sitting on top of it, and a closed Locker no longer pops back up when your profile updates.
+- **The Locker and Store keep your place:** equipping or buying something no longer scrolls the list back to the top.
+- **A new menu test** walks the front page, rooms, missions and singleplayer like a player, and fails on any error, stuck panel or lost save seat.
 - **Text clean-up:** hints, captions and messages across the game start with a capital and use proper punctuation.
 - **Airbases go to the front:** you can't build a new one within 3 hexes of your HQ (upgrading one you already have is fine).
 - **Safari fix (Macs, iPhones, iPads):** on smaller screens the HUD shrinks to fit, and Safari got that wrong, pushing your hand, deck and build bar half off the bottom of the screen. The HUD and the phone card screens now scale a way every browser handles the same.
