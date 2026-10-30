@@ -2092,6 +2092,8 @@
     if (!k || !S) return hideTip();
     const ov = Render.ov, ds = dispState();
     let html = '';
+    // a flying stack about to stop inside enemy air defence: say so before it goes
+    const aaWarn = airWarn(ds, k);
     if (ov.reach && ov.reach[k] && (ov.reach[k].kind === 'attack') && sel) {
       const gs = assaultGroups(ds, k, E.buildIndex(ds));
       if (gs.length) {
@@ -2117,14 +2119,20 @@
     else {
       const t = ds.map.tiles[k];
       const units = Object.values(ds.units).filter(u => u.hex === k);
-      if (!units.length && !t.struct && !t.res && !t.owner) return hideTip();
+      if (!units.length && !t.struct && !t.res && !t.owner && !aaWarn) return hideTip();
       if (t.fog === 2) html = '<b>Unexplored</b>'; else html = `<b style="color:${t.owner ? pColor(t.owner) : '#fff'}">${t.owner ? esc(pName(t.owner)) : 'Unclaimed'}</b> · ${t.bridge ? 'Bridge' : t.contam ? 'Fallout' : E.TERRAIN[t.t].name}` + (t.res ? ` · <span style="color:#9ffcf2">${E.isWater(t) ? 'Oil rig' : 'Resource'} +$2</span>` : '') + (t.fish ? ' · <span style="color:#9ffcf2">Fishing grounds +$1</span>' : '') + (t.poi && E.POI[t.poi] && !(t.poi === 'fort' && t.owner) ? ` · <span style="color:var(--gold)">${E.POI[t.poi].name}</span>` : '');
       if (!t.bridge) for (const st of E.structsOf(t)) html += `<div class="tip-struct"><img src="${Art.iconURL('struct', st.type, '#fff', 40)}">${E.STRUCTS[st.type].name} <span class="gold">${'★'.repeat(st.lvl || 1)}</span>${st.siege ? ' <b style="color:#ff6a4a">UNDER SIEGE</b>' : ''}</div>`;
       html += intel(ds, k);
     }
-    tip.innerHTML = html; tip.hidden = false;
+    tip.innerHTML = html + aaWarn; tip.hidden = false;
     const w = tip.offsetWidth || 280;
     tip.style.left = Math.min(innerWidth - w - 10, x + 16) + 'px'; tip.style.top = Math.min(innerHeight - tip.offsetHeight - 10, y + 16) + 'px';
+  }
+  function airWarn(ds, k) {
+    const ov = Render.ov, r = ov.reach && ov.reach[k], cover = ov.aaZone && ov.aaZone[k];
+    if (!cover || !r || r.kind === 'attack' || r.kind === 'start' || r.kind === 'pass') return '';
+    const sites = new Set(cover).size;
+    return `<div class="tip-aa"><b>🎯 COVERED AIRSPACE</b><div class="sub">${cover.length} launcher${cover.length > 1 ? 's' : ''} from ${sites} site${sites > 1 ? 's' : ''} ${cover.length > 1 ? 'take' : 'takes'} a Snap Shot (−1 Mult) at your aircraft if they stop here.</div></div>`;
   }
   // hover intel: the actual unit cards sitting on a hex
   function intel(ds, k) {

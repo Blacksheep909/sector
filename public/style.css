@@ -2114,3 +2114,5 @@ body.reeling #map { visibility: hidden; }
 #victory > *, #rules > * { margin-top: auto; margin-bottom: auto; }
 /* after the war: nothing left to build or deploy */
 body.war-over #dock, body.war-over #endBtn, body.war-over #marketBtn { display: none !important; }
+#tooltip .tip-aa{margin-top:6px;padding:5px 7px;border-radius:6px;background:rgba(255,70,80,.14);border-left:3px solid #ff4f5e}
+#tooltip .tip-aa b{color:#ff8a8f;font-size:11px;letter-spacing:.06em}
