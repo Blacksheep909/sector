@@ -11,6 +11,7 @@ Every release, newest first. Each version also has its own post on the [Releases
 - **Bots stage forward:** FOBs go on the road to the target's HQ, so reinforcements don't spend the war walking.
 - **Bots at sea:** empty Arks sail to where the army is waiting instead of sitting at the dock, no new Ark while one waits empty, and a bot whose war is overseas goes after the Ark card.
 - **Bots keep cash for battle cards** in hand, so they can actually play them when a fight opens.
+- **Alerts:** a long alert ("…You lost the fight") no longer pushes its LOOK button onto a line of its own.
 
 ## v0.12.0
 
