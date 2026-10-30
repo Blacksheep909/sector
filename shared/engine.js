@@ -135,7 +135,7 @@
     mauler: { name: 'Mauler', cls: 'veh', cost: 6, atk: 5, def: 4, mv: 2, rarity: 'uncommon', desc: 'Main battle tank.' },
     ark: { name: 'Ark', cls: 'sea', cost: 4, atk: 0, def: 3, mv: 4, rarity: 'uncommon', ability: 'transport', desc: 'Transport. Carries up to 3 land units across the sea.' },
     marlin: { name: 'Marlin', cls: 'sea', cost: 7, atk: 5, def: 4, mv: 4, range: 2, rarity: 'rare', desc: 'Destroyer. Shells coasts and ships 2 hexes away.' },
-    basilisk: { name: 'Basilisk', cls: 'art', cost: 7, atk: 7, def: 2, mv: 1, range: 3, rarity: 'rare', desc: 'Rocket artillery truck. Fires 3 hexes.' },
+    basilisk: { name: 'Basilisk', cls: 'art', cost: 7, atk: 7, def: 1, mv: 1, range: 3, rarity: 'rare', desc: 'Rocket artillery truck. Fires 3 hexes.' },
     ranger: { name: 'Ranger', cls: 'inf', cost: 6, atk: 4, def: 3, mv: 3, rarity: 'rare', ability: 'pathfinder', desc: 'Pathfinders: rough terrain costs only 1 move.' },
     skyguard: { name: 'Skyguard', cls: 'veh', cost: 7, atk: 3, def: 1, mv: 3, range: 2, rarity: 'rare', ability: 'aa', aa: 6, short: '+6 vs air; guards the air 1 hex out. Downs 50% of strikes.', desc: 'Air defence truck. Fires at aircraft 2 hexes away (+6 Chips vs air), and on its own at any that stop within 1. Downs 50% of air strikes within 2. Weak vs ground troops.' },
     hellcat: { name: 'Hellcat', cls: 'veh', cost: 7, atk: 6, def: 2, mv: 3, rarity: 'rare', ability: 'blitzer', desc: 'Strike tank. Can act on the turn it is deployed.' },
@@ -149,7 +149,7 @@
     mule: { name: 'Mule', cls: 'air', cost: 6, atk: 1, def: 2, mv: 4, rarity: 'rare', lift: 8, heli: true, short: 'Heavy-lift heli. Carries 8 Grunts over anything.', desc: 'Tandem-rotor heavy-lift helicopter. Barely armed, but carries up to 8 Grunts over mountains and water (it sets them down on land).' },
     stormcrow: { name: 'Stormcrow', cls: 'air', cost: 9, atk: 3, def: 2, mv: 4, rarity: 'epic', lift: 6, heli: true, short: 'Utility heli. Carries 6 Grunts over anything.', desc: 'Utility helicopter with door guns. Carries up to 6 Grunts over mountains and water (it sets them down on land).' },
     phantom: { name: 'Phantom', cls: 'air', cost: 10, atk: 7, def: 3, mv: 5, rarity: 'epic', ability: 'stealth', short: 'Stealth bomber. Immune to artillery and air strikes.', desc: 'Stealth bomber. Immune to artillery, airstrikes and bombardment.' },
-    hailstorm: { name: 'Hailstorm', cls: 'art', cost: 11, atk: 9, def: 3, mv: 2, range: 4, rarity: 'epic', ability: 'salvo', short: 'MLRS. A hit also kills 1 in each enemy stack beside it.', desc: 'Tracked rocket launcher (MLRS). Range 4. A hit also rains rockets on every enemy stack next to the target: 1 unit each.' },
+    hailstorm: { name: 'Hailstorm', cls: 'art', cost: 11, atk: 9, def: 1, mv: 2, range: 4, rarity: 'epic', ability: 'salvo', short: 'MLRS. A hit also kills 1 in each enemy stack beside it.', desc: 'Tracked rocket launcher (MLRS). Range 4. A hit also rains rockets on every enemy stack next to the target: 1 unit each.' },
     sentinel: { name: 'Sentinel', cls: 'art', cost: 9, atk: 6, def: 1, mv: 1, range: 3, rarity: 'epic', ability: 'sam', aa: 7, short: '+7 vs air; guards the air 2 out. Downs 60%; stops Tridents.', desc: 'Patriot SAM. Fires at aircraft 3 away (+7 Chips vs air), and on its own at any that stop within 2. Downs 60% of strikes within 3; stops Tridents.' },
     grumble: { name: 'Grumble', cls: 'veh', cost: 10, atk: 5, def: 1, mv: 1, range: 3, rarity: 'epic', ability: 'sam', aa: 7, short: '+7 vs air; guards the air 2 out. Downs 55%; stops Tridents.', desc: 'S-300 SAM. Fires at aircraft 3 away (+7 Chips vs air), and on its own at any that stop within 2. Downs 55% of air strikes within 3; stops Tridents. Weak vs ground.' },
     bastion: { name: 'Bastion', cls: 'sea', cost: 11, atk: 8, def: 8, mv: 3, range: 3, rarity: 'epic', desc: 'Battleship. Long guns, range 3.' },
@@ -158,7 +158,7 @@
     seraph: { name: 'Seraph', cls: 'air', cost: 12, atk: 9, def: 4, mv: 5, rarity: 'legendary', ability: 'strafe', short: 'Heavy gunship. +2 Mult vs ground.', desc: 'Heavy gunship. Strafing Run: +2 Mult attacking ground targets.' },
     banshee: { name: 'Banshee', cls: 'air', cost: 14, atk: 8, def: 2, mv: 4, rarity: 'legendary', ability: 'hellfire', heli: true, short: 'Attack heli. +3 Chips vs vehicles, +2 Mult vs ground.', desc: 'Attack helicopter with anti-tank missiles. Hellfire: +3 Chips against vehicles, and Strafing Run: +2 Mult attacking ground targets.' },
     carrier: { name: 'Carrier', cls: 'sea', cost: 13, atk: 2, def: 2, mv: 1, rarity: 'legendary', ability: 'carrier', short: 'Floating airbase. Holds 4 aircraft.', desc: 'Floating airbase: deploy aircraft onto it and fly them off it. Holds 4.' },
-    oracle: { name: 'Oracle', cls: 'art', cost: 11, atk: 8, def: 3, mv: 2, range: 4, rarity: 'legendary', ability: 'orbital', short: 'Satellite-guided missiles. Fires over mountains.', desc: 'Satellite-guided missile launcher. Range 4, fires over mountains.' },
+    oracle: { name: 'Oracle', cls: 'art', cost: 11, atk: 8, def: 2, mv: 2, range: 4, rarity: 'legendary', ability: 'orbital', short: 'Satellite-guided missiles. Fires over mountains.', desc: 'Satellite-guided missile launcher. Range 4, fires over mountains.' },
     trident: { name: 'Trident', cls: 'sea', cost: 16, atk: 10, def: 4, mv: 3, range: 4, rarity: 'legendary', ability: 'ballistic', short: 'Missile sub. Fires over mountains; a hit kills 1 extra.', desc: 'Missile submarine. Fires at any troops or buildings within 4, over mountains; a hit kills one extra unit. Only Sentinel and Grumble batteries can intercept it.' },
     abyssal: { name: 'Abyssal', cls: 'sea', cost: 15, atk: 12, def: 10, mv: 3, range: 4, rarity: 'legendary', ability: 'juggernaut', short: 'Sea dreadnought. Never takes pyrrhic losses.', desc: 'Sea dreadnought. Range 4. Never suffers pyrrhic losses.' },
   };
@@ -1150,6 +1150,7 @@
       if (!occ || !occ.length || occ[0].owner === pid || isAlly(s, pid, occ[0].owner)) continue;
       if (occ.every(u => UNITS[u.type].ability === 'stealth')) continue;
       if (sam && !occ.some(u => UNITS[u.type].cls === 'air' && UNITS[u.type].ability !== 'stealth')) continue;
+      if (!sam && !occ.some(u => UNITS[u.type].cls !== 'air' && UNITS[u.type].ability !== 'stealth')) continue;   // guns can't hit aircraft
       if (!orbital && !sam && !hasLOS(s, from, k)) continue;
       out.push(k);
     }
@@ -1167,10 +1168,14 @@
     const att = { pid, chips: 0, mult: 0, bonuses: [] }, def = { pid: defPid, chips: 0, mult: 0, bonuses: [] };
     const has = (list, cls) => list.some(u => UNITS[u.type].cls === cls);
     for (const u of units) att.chips += unitAtk(s, u);
-    if (!has(defenders, 'air')) { const cut = units.filter(airOnly).reduce((n, u) => n + Math.ceil(unitAtk(s, u) / 2), 0); if (cut) { att.chips -= cut; att.bonuses.push({ label: 'AA Guns vs Ground', chips: -cut }); } }
+    // anti-air is built to shoot down aircraft: against a hex with none, each unit is just its crew's small arms (1 chip)
+    if (!has(defenders, 'air')) { const cut = units.filter(airOnly).reduce((n, u) => n + Math.max(0, unitAtk(s, u) - 1), 0); if (cut) { att.chips -= cut; att.bonuses.push({ label: 'AA Guns vs Ground', chips: -cut }); } }
+    // guns fight from range: dragged into a close assault, each one is just its crew (1 chip)
+    if (!ranged) { const cut = units.filter(u => UNITS[u.type].cls === 'art' && !airOnly(u)).reduce((n, u) => n + Math.max(0, unitAtk(s, u) - 1), 0); if (cut) { att.chips -= cut; att.bonuses.push({ label: 'Guns in Close Combat', chips: -cut }); } }
     // an anti-air shot from range is its missiles alone (the Anti-Air chips below), not the crew's rifles, and aircraft jink and drop flares
     const aaShot = ranged && units.length && units.every(airOnly);
     if (aaShot) { const own = units.reduce((n, u) => n + unitAtk(s, u), 0); att.chips -= own; att.bonuses.push({ label: 'Missiles Only', chips: -own }); }
+    else if (has(defenders, 'air') && units.some(airOnly)) { const own = units.filter(airOnly).reduce((n, u) => n + unitAtk(s, u), 0); if (own) { att.chips -= own; att.bonuses.push({ label: 'Missiles Only', chips: -own }); } }   // close in, it's still the missiles that bring aircraft down
     const lv = units.reduce((a, u) => a + (UNITS[u.type].atk ? levelOf(s, u) : 0), 0);
     if (lv) att.bonuses.push({ label: 'Veteran ★', chips: lv, note: true });
     // Volt's Overclock is in each aircraft's own numbers (like Veteran ★); listed so the fight panel adds up
@@ -1222,9 +1227,10 @@
       if (st && st.t === 'hills') { att.mult += 1; att.bonuses.push({ label: 'High Ground', mult: 1 }); }
     }
     // anti-air missiles go for the aircraft: troops riding in them, or standing below, don't shield them
-    const shield = aaShot && has(defenders, 'air') ? defenders.filter(u => UNITS[u.type].cls === 'air') : defenders;
+    const gunShot = ranged && units.length && !units.some(airOnly) && defenders.some(u => UNITS[u.type].cls !== 'air');
+    const shield = aaShot && has(defenders, 'air') ? defenders.filter(u => UNITS[u.type].cls === 'air') : gunShot ? defenders.filter(u => UNITS[u.type].cls !== 'air') : defenders;
     for (const u of defenders) def.chips += unitDef(s, u);
-    if (shield !== defenders) { const cut = defenders.filter(u => !shield.includes(u)).reduce((n, u) => n + unitDef(s, u), 0); if (cut) { def.chips -= cut; def.bonuses.push({ label: 'Aircraft Only', chips: -cut }); } }
+    if (shield !== defenders) { const cut = defenders.filter(u => !shield.includes(u)).reduce((n, u) => n + unitDef(s, u), 0); if (cut) { def.chips -= cut; def.bonuses.push({ label: aaShot ? 'Aircraft Only' : 'Ground Only', chips: -cut }); } }
     // shelling: artillery is how walls come down, so bunkers and FOB walls count for half against it
     const bombard = ranged && units.every(u => UNITS[u.type].cls === 'art' && !airOnly(u));
     const dlv = defenders.reduce((a, u) => a + levelOf(s, u), 0);
@@ -1376,7 +1382,7 @@
     const attWin = crush || aScore > dScore, killed = [];
     if (attWin) {
       const sam = units.some(airOnly);
-      const pool = defenders.filter(u => UNITS[u.type].ability !== 'stealth' && (!sam || UNITS[u.type].cls === 'air'));
+      const pool = defenders.filter(u => UNITS[u.type].ability !== 'stealth' && (sam ? UNITS[u.type].cls === 'air' : UNITS[u.type].cls !== 'air'));   // missiles down aircraft, shells hit the ground
       // a hit kills 1; a heavy one (half again the defence) 2, and a crushing one (two and a half times) 3
       // anti-air brings down one aircraft per hit
       const n = sam ? 1 : 1 + (aScore >= 1.6 * dScore ? 1 : 0) + (aScore >= 2.5 * dScore ? 1 : 0) + (units.some(u => UNITS[u.type].ability === 'ballistic') ? 1 : 0);
@@ -2877,6 +2883,7 @@
       const reach = Math.max(1, ...ow.map(u => UNITS[u.type].range || 1));
       if (dist(n, hex) > reach) continue;
       if (ow.every(airOnly) && !movers.some(u => UNITS[u.type].cls === 'air')) continue;   // anti-air only fires at aircraft
+      if (ow.every(u => UNITS[u.type].range && !airOnly(u)) && movers.every(u => UNITS[u.type].cls === 'air')) continue;   // and guns can't hit aircraft
       out.push({ owner: ow[0].owner, from: n, units: ow.filter(u => u.owner === ow[0].owner).map(u => u.id), target: hex, defPid: moverPid });
     }
     return out;

@@ -759,8 +759,8 @@ function botTurn(s, pid, mem) {
     // Under pressure, sturdiness counts double
     const rich = Math.min(1, (s.turn.income || 0) / 45), pressed = Object.values(mem.threat || {}).reduce((a, v) => Math.max(a, v), 0) > 0;
     const worth = t => { const d = E.UNITS[t], lv = (p.levels[t] || 0), a = d.atk + (d.atk ? lv : 0), df = d.def + lv, c = E.unitCost(p, t);
-      const aa = !!d.aa;   // anti-air: half its attack counts against ground, and its range is only for aircraft
-      const power = (aa ? a / 2 : a) * (pressed ? 0.8 : 1.1) + df * (pressed ? 1.3 : 0.8) + Math.min(d.mv, 5) * 0.4 + (d.range && !aa ? 2 : 0);
+      const aa = !!d.aa;   // anti-air: only its crew's small arms count against ground, and its range is only for aircraft
+      const power = (aa ? 1 : a) * (pressed ? 0.8 : 1.1) + df * (pressed ? 1.3 : 0.8) + Math.min(d.mv, 5) * 0.4 + (d.range && !aa ? 2 : 0);
       return (power / c) * 3 * (1 - rich) + (power / 4) * rich; };
     const scored = options.map(t => [t, (t === 'ark' ? 9 : K.deploy2 === false ? unitValue(t) / Math.sqrt(E.unitCost(p, t)) + (E.unitCost(p, t) >= 5 ? 0.6 : 0) : worth(t)) + counter(t) + Math.random() * 0.5]).sort((a, b) => b[1] - a[1]);
     const type = scored[0][0];

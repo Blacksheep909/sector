@@ -27,7 +27,7 @@ Unit cards are permanent unlocks: deploy as many as you can afford.
 | **Mauler** | Vehicle | Uncommon | $6 | 5 | 4 | 2 | – | Main battle tank. |
 | **Ark** | Naval | Uncommon | $4 | 0 | 3 | 4 | – | Transport. Carries up to 3 land units across the sea. |
 | **Marlin** | Naval | Rare | $7 | 5 | 4 | 4 | 2 | Destroyer. Shells coasts and ships 2 hexes away. |
-| **Basilisk** | Artillery | Rare | $7 | 7 | 2 | 1 | 3 | Rocket artillery truck. Fires 3 hexes. |
+| **Basilisk** | Artillery | Rare | $7 | 7 | 1 | 1 | 3 | Rocket artillery truck. Fires 3 hexes. |
 | **Ranger** | Infantry | Rare | $6 | 4 | 3 | 3 | – | Pathfinders: rough terrain costs only 1 move. |
 | **Skyguard** | Anti-air | Rare | $7 | 3 | 1 | 3 | 2 | Air defence truck. Fires at aircraft 2 hexes away (+6 Chips vs air), and on its own at any that stop within 1. Downs 50% of air strikes within 2. Weak vs ground troops. |
 | **Hellcat** | Vehicle | Rare | $7 | 6 | 2 | 3 | – | Strike tank. Can act on the turn it is deployed. |
@@ -40,7 +40,7 @@ Unit cards are permanent unlocks: deploy as many as you can afford.
 | **Valkyrie** | Air | Epic | $10 | 6 | 3 | 4 | – | Tiltrotor assault transport. Carries up to 8 Grunts over mountains and water (it sets them down on land). Strafing Run: +2 Mult attacking ground targets. |
 | **Stormcrow** | Air | Epic | $9 | 3 | 2 | 4 | – | Utility helicopter with door guns. Carries up to 6 Grunts over mountains and water (it sets them down on land). |
 | **Phantom** | Air | Epic | $10 | 7 | 3 | 5 | – | Stealth bomber. Immune to artillery, airstrikes and bombardment. |
-| **Hailstorm** | Artillery | Epic | $11 | 9 | 3 | 2 | 4 | Tracked rocket launcher (MLRS). Range 4. A hit also rains rockets on every enemy stack next to the target: 1 unit each. |
+| **Hailstorm** | Artillery | Epic | $11 | 9 | 1 | 2 | 4 | Tracked rocket launcher (MLRS). Range 4. A hit also rains rockets on every enemy stack next to the target: 1 unit each. |
 | **Sentinel** | Anti-air | Epic | $9 | 6 | 1 | 1 | 3 | Patriot SAM. Fires at aircraft 3 away (+7 Chips vs air), and on its own at any that stop within 2. Downs 60% of strikes within 3; stops Tridents. |
 | **Grumble** | Anti-air | Epic | $10 | 5 | 1 | 1 | 3 | S-300 SAM. Fires at aircraft 3 away (+7 Chips vs air), and on its own at any that stop within 2. Downs 55% of air strikes within 3; stops Tridents. Weak vs ground. |
 | **Bastion** | Naval | Epic | $11 | 8 | 8 | 3 | 3 | Battleship. Long guns, range 3. |
@@ -49,7 +49,7 @@ Unit cards are permanent unlocks: deploy as many as you can afford.
 | **Seraph** | Air | Legendary | $12 | 9 | 4 | 5 | – | Heavy gunship. Strafing Run: +2 Mult attacking ground targets. |
 | **Banshee** | Air | Legendary | $14 | 8 | 2 | 4 | – | Attack helicopter with anti-tank missiles. Hellfire: +3 Chips against vehicles, and Strafing Run: +2 Mult attacking ground targets. |
 | **Carrier** | Naval | Legendary | $13 | 2 | 2 | 1 | – | Floating airbase: deploy aircraft onto it and fly them off it. Holds 4. |
-| **Oracle** | Artillery | Legendary | $11 | 8 | 3 | 2 | 4 | Satellite-guided missile launcher. Range 4, fires over mountains. |
+| **Oracle** | Artillery | Legendary | $11 | 8 | 2 | 2 | 4 | Satellite-guided missile launcher. Range 4, fires over mountains. |
 | **Trident** | Naval | Legendary | $16 | 10 | 4 | 3 | 4 | Missile submarine. Fires at any troops or buildings within 4, over mountains; a hit kills one extra unit. Only Sentinel and Grumble batteries can intercept it. |
 | **Abyssal** | Naval | Legendary | $15 | 12 | 10 | 3 | 4 | Sea dreadnought. Range 4. Never suffers pyrrhic losses. |
 
