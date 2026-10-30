@@ -49,11 +49,20 @@ const SKILL = {
   impossible: { attack: 0.6, combo: 3, guard: 1, noise: 0.15, idle: 0, tactics: 1, heli: 1 },
 };
 
+// an ally about to stop being one: a break has been announced (by either side), or the pact is in its last round and they
+// haven't agreed to renew it. Bots plan their defence against them from then on, and get their troops out of that land in time
+function soonFoe(s, pid, q) {
+  const x = (s.allies || []).find(x => (x.a === pid && x.b === q) || (x.b === pid && x.a === q));
+  if (!x || x.team) return false;
+  return !!x.ending || (!!x.until && s.turn.round >= x.until - 1 && !(x.renew && x.renew[q]));
+}
+// someone to guard against: an enemy, or an ally on the way out
+const wary = (s, pid, q) => !!q && q !== pid && (!E.isAlly(s, pid, q) || soonFoe(s, pid, q));
 // ── the threat map: how much enemy punch could land on each of our hexes next turn ──
 function threatMap(s, pid, idx) {
   const out = {}, tiles = s.map.tiles;
   for (const k in idx) {
-    const foes = idx[k].filter(u => u.owner !== pid && !E.isAlly(s, pid, u.owner) && E.UNITS[u.type].atk > 0);
+    const foes = idx[k].filter(u => wary(s, pid, u.owner) && E.UNITS[u.type].atk > 0);
     if (!foes.length) continue;
     const atk = foes.reduce((a, u) => a + E.unitAtk(s, u), 0);
     const reach = Math.min(5, Math.max(1, ...foes.map(u => E.UNITS[u.type].range || E.moveAllow(s, u))));
@@ -190,12 +199,12 @@ function strategy(s, pid, idx) {
   const goal = target ? Object.keys(tiles).filter(k => tiles[k].owner === target) : [];
   // what the enemy fields near us decides what we buy
   const seen = { air: 0, veh: 0, fort: 0 };
-  for (const id in s.units) { const u = s.units[id]; if (u.owner === pid || E.isAlly(s, pid, u.owner)) continue; const c = E.UNITS[u.type].cls; if (c === 'air') seen.air++; else if (c === 'veh') seen.veh++; }
+  for (const id in s.units) { const u = s.units[id]; if (!wary(s, pid, u.owner)) continue; const c = E.UNITS[u.type].cls; if (c === 'air') seen.air++; else if (c === 'veh') seen.veh++; }
   for (const k of goal) if (E.structsOf(tiles[k]).some(x => ['hq', 'fob', 'bunker'].includes(x.type) && x.owner === target)) seen.fort++;
   // bases under threat get reinforcements first
   const danger = {};
   for (const sp of E.spawnPoints(s, pid)) {
-    let atk = 0; for (const a of E.area(sp, 2)) for (const u of idx[a] || []) if (u.owner !== pid && !E.isAlly(s, pid, u.owner)) atk += E.unitAtk(s, u);
+    let atk = 0; for (const a of E.area(sp, 2)) for (const u of idx[a] || []) if (wary(s, pid, u.owner)) atk += E.unitAtk(s, u);
     const def = (idx[sp] || []).filter(u => u.owner === pid).reduce((a, u) => a + E.unitDef(s, u), 0);
     if (atk > def) danger[sp] = atk - def;
   }
@@ -232,7 +241,8 @@ function botStep(s, pid, mem) {
     return { a: 'pick', idx: c.idx, replace: c.replace };
   }
   mem.tried = mem.tried || new Set();
-  const tryOnce = (act) => { if (act && act.a === 'move') act = keepTogether(act); const k = JSON.stringify(act); if (mem.tried.has(k)) return null; mem.tried.add(k); return act; };
+  const tryOnce = (act) => { if (act && act.a === 'move') act = keepTogether(act); if (act && act.a === 'build' && E.buildError(s, pid, act.struct, act.hex)) return null;   // never propose a build the rules refuse (a river, a full hex)
+    const k = JSON.stringify(act); if (mem.tried.has(k)) return null; mem.tried.add(k); return act; };
   // a carrier doesn't drive off and strand more Grunts than the hex can hold: take them along, or leave the carrier
   const keepTogether = (act) => {
     const here = (idx[act.from] || []).filter(u => u.owner === pid), ids = new Set(act.units), left = () => here.filter(u => !ids.has(u.id));
@@ -259,6 +269,17 @@ function botStep(s, pid, mem) {
       const spot = E.deployHexes(s, pid, land[0] || 'grunt', idx).find(k => mh.includes(k));
       if (land.length && spot) { mem.musterN = (mem.musterN || 0) + 1; return { a: 'deploy', unit: land[0], hex: spot }; }
     } }
+  // 0a. an ally on the way out: get every stack out of their land first (the pact's end kills whatever is still inside),
+  // home if it can reach, else any land that isn't theirs, nearest our HQ
+  for (const k in idx) {
+    const t = tiles[k]; if (!t.owner || t.owner === pid || !E.isAlly(s, pid, t.owner) || !soonFoe(s, pid, t.owner)) continue;
+    const ids = idx[k].filter(u => u.owner === pid && E.canAct(s, u)).map(u => u.id); if (!ids.length) continue;
+    const r = E.reachable(s, pid, ids, k, idx);
+    const outs = Object.keys(r).filter(d => ['move', 'capture'].includes(r[d].kind) && !(tiles[d].owner && tiles[d].owner !== pid && E.isAlly(s, pid, tiles[d].owner)));
+    if (!outs.length) continue;
+    const score = d => (tiles[d].owner === pid ? 0 : 10) + (p.hq ? E.dist(d, p.hq) : 0);
+    const a = tryOnce({ a: 'move', from: k, units: ids, to: outs.sort((x, y) => score(x) - score(y))[0] }); if (a) return a;
+  }
   // 0b. the black market: with cash to spare, buy the best tactic on offer (keeping a reserve to deploy with)
   if (p.market && p.market.round === s.turn.round && (mem.bought || 0) < 2) {
     const reserve = Math.max(8, s.turn.income * 0.4);
@@ -325,7 +346,7 @@ function botStep(s, pid, mem) {
     mem.persBuild = true;
     const B = PL.build;
     if (B.bunkers && p.cash >= E.structCost(p, 'bunker') + 8) {
-      const edge = supLand.filter(k => !tiles[k].struct && !tiles[k].contam && E.neighbors(k).some(n => tiles[n] && tiles[n].owner && tiles[n].owner !== pid && !E.isAlly(s, pid, tiles[n].owner)));
+      const edge = supLand.filter(k => !tiles[k].struct && !tiles[k].contam && E.neighbors(k).some(n => tiles[n] && wary(s, pid, tiles[n].owner)));
       if (edge.length) { const k = edge.sort((a, b) => E.dist(a, p.hq) - E.dist(b, p.hq))[0]; const a = tryOnce({ a: 'build', struct: 'bunker', hex: k }); if (a) return a; }
     }
     if (B.hq && s.turn.round >= 6 && tiles[p.hq].owner === pid && tiles[p.hq].struct && tiles[p.hq].struct.type === 'hq' && (tiles[p.hq].struct.lvl || 1) < 3 && p.cash >= E.buildCost(s, p, 'hq', p.hq) + 6) { const a = tryOnce({ a: 'build', struct: 'hq', hex: p.hq }); if (a) return a; }
@@ -457,6 +478,8 @@ function botStep(s, pid, mem) {
     const carryingAttackOnly = false;
     const myDefHere = movers.reduce((a, u) => a + E.unitDef(s, u), 0), myAtkHere = movers.reduce((a, u) => a + E.unitAtk(s, u), 0);
     let best = null, bv = 0.5;
+    const exposed = tiles[k].owner && tiles[k].owner !== pid && E.isAlly(s, pid, tiles[k].owner) && soonFoe(s, pid, tiles[k].owner);
+    if (exposed) bv = -99;   // any way out beats staying: the pact's end kills every unit still inside
     for (const dest in reach) {
       const r = reach[dest];
       if (r.kind === 'start' || r.kind === 'pass') continue;
@@ -466,6 +489,7 @@ function botStep(s, pid, mem) {
       for (const pk of path.slice(1, -1)) if (tiles[pk].owner !== pid && !(tiles[pk].owner && E.isAlly(s, pid, tiles[pk].owner)) && E.isLandTile(tiles[pk])) v += 2.5;
       // allied land is for passing through, not for parking troops (they'd be lost if the pact ends)
       if (t.owner && t.owner !== pid && E.isAlly(s, pid, t.owner)) continue;
+      if (exposed) v += 20 + (t.owner === pid ? 10 : 0);   // out of the ally's land, home if possible
       if (r.kind === 'board') {
         const aboard = idx[dest].filter(u => !E.isSea(u.type)).length;
         v = stuck ? 7 - aboard : -1;
@@ -515,9 +539,9 @@ function botStep(s, pid, mem) {
         else if (enemyTiles.length) v += walkGain('enemy', enemyTiles, k, dest) * 0.8;
         if (t.owner && t.owner === strat.target) v += 3;
         // mass up: join a friendly stack on the front line so the next push has the numbers
-        if (t.owner === pid && (idx[dest] || []).some(u => u.owner === pid) && E.neighbors(dest).some(n => (idx[n] || []).some(u => u.owner !== pid && !E.isAlly(s, pid, u.owner)))) v += 2.5;
-        if (r.kind === 'move' && t.owner === pid && v < 1) continue;   // a step closer to the front is worth taking
-        let near = 0; for (const n of E.neighbors(dest)) for (const u of idx[n] || []) if (u.owner !== pid && !E.isAlly(s, pid, u.owner)) near += E.unitAtk(s, u);
+        if (t.owner === pid && (idx[dest] || []).some(u => u.owner === pid) && E.neighbors(dest).some(n => (idx[n] || []).some(u => wary(s, pid, u.owner)))) v += 2.5;
+        if (r.kind === 'move' && t.owner === pid && v < 1 && !exposed) continue;   // a step closer to the front is worth taking
+        let near = 0; for (const n of E.neighbors(dest)) for (const u of idx[n] || []) if (wary(s, pid, u.owner)) near += E.unitAtk(s, u);
         const friends = (idx[dest] || []).filter(u => u.owner === pid).reduce((a, u) => a + E.unitDef(s, u), 0);
         if (near > (myDefHere + friends) * 1.6) v -= 4 + near / 4 * K.guard;   // don't walk alone into a stronger enemy's reach
         // massing: close on the war target together, joining friendly stacks on the way rather than trickling in
@@ -536,13 +560,13 @@ function botStep(s, pid, mem) {
   if (stuck && !mem.bridgeTried && p.cash >= E.structCost(p, 'bridge') + 2) {
     mem.bridgeTried = true;
     const spots = E.buildHexes(s, pid, 'bridge');
-    if (spots.length) return { a: 'build', struct: 'bridge', hex: spots.sort((a, b) => nearest(a, targets) - nearest(b, targets))[0] };
+    if (spots.length) { const b_ = tryOnce({ a: 'build', struct: 'bridge', hex: spots.sort((a, b) => nearest(a, targets) - nearest(b, targets))[0] }); if (b_) return b_; }
   }
   // vehicles can't ford rivers: bridge the river hex nearest the front when we field them
   if (!mem.riverTried && p.cash >= E.structCost(p, 'bridge') + 4 && p.arsenal.some(t => ['veh', 'art'].includes(E.UNITS[t].cls))) {
     mem.riverTried = true;
     const spots = E.buildHexes(s, pid, 'bridge').filter(k => tiles[k].river).sort((a, b) => nearest(a, targets) - nearest(b, targets));
-    if (spots[0] && nearest(spots[0], enemyTiles.length ? enemyTiles : targets) <= 5) return { a: 'build', struct: 'bridge', hex: spots[0] };
+    if (spots[0] && nearest(spots[0], enemyTiles.length ? enemyTiles : targets) <= 5) { const b_ = tryOnce({ a: 'build', struct: 'bridge', hex: spots[0] }); if (b_) return b_; }
   }
   const myPorts = Object.keys(tiles).filter(k => tiles[k].owner === pid && tiles[k].struct && tiles[k].struct.type === 'port');
   // sea prizes (rigs, fishing grounds, treasure islands) near our coast make a port worth it too
@@ -552,7 +576,7 @@ function botStep(s, pid, mem) {
     mem.portTried = true;
     let best = null, bv = 99;
     for (const k of supLand) { const t = tiles[k]; if (t.struct || t.contam || !E.isCoastal(s, k)) continue; const v = nearest(k, targets.length ? targets : enemyTiles); if (v < bv) { bv = v; best = k; } }
-    if (best) return { a: 'build', struct: 'port', hex: best };
+    if (best) { const b_ = tryOnce({ a: 'build', struct: 'port', hex: best }); if (b_) return b_; }
   }
   if (myPorts.length && !mem.mineTried && p.cash >= E.structCost(p, 'mine') + 6) {
     mem.mineTried = true;
@@ -560,7 +584,7 @@ function botStep(s, pid, mem) {
     if (enemyShips.length) {
       const cands = Object.keys(tiles).filter(k => { const t = tiles[k]; return E.isWater(t) && t.owner === pid && sup.has(k) && !E.structsOf(t).length && myPorts.some(pk => E.dist(pk, k) <= 2); });
       cands.sort((a, b) => Math.min(...enemyShips.map(u => E.dist(u.hex, a))) - Math.min(...enemyShips.map(u => E.dist(u.hex, b))));
-      if (cands[0] && Math.min(...enemyShips.map(u => E.dist(u.hex, cands[0]))) <= 6) return { a: 'build', struct: 'mine', hex: cands[0] };
+      if (cands[0] && Math.min(...enemyShips.map(u => E.dist(u.hex, cands[0]))) <= 6) { const b_ = tryOnce({ a: 'build', struct: 'mine', hex: cands[0] }); if (b_) return b_; }
     }
   }
   const owns = type => Object.keys(tiles).filter(k => tiles[k].owner === pid && tiles[k].struct && tiles[k].struct.type === type).length;
@@ -568,33 +592,33 @@ function botStep(s, pid, mem) {
     mem.upTried = true;
     const ups = Object.keys(tiles).filter(k => { const t = tiles[k]; return t.owner === pid && t.struct && ['warehouse', 'refinery'].includes(t.struct.type) && (t.struct.lvl || 1) < 3 && sup.has(k); });
     const k = ups.sort((a, b) => (tiles[a].struct.lvl || 1) - (tiles[b].struct.lvl || 1))[0];
-    if (k && p.cash >= E.buildCost(s, p, tiles[k].struct.type, k) + 6) return { a: 'build', struct: tiles[k].struct.type, hex: k };
+    if (k && p.cash >= E.buildCost(s, p, tiles[k].struct.type, k) + 6) { const b_ = tryOnce({ a: 'build', struct: tiles[k].struct.type, hex: k }); if (b_) return b_; }
   }
   if (!mem.hqTried && tiles[p.hq].owner === pid && enemyNear(p.hq, 3) && tiles[p.hq].struct && tiles[p.hq].struct.type === 'hq' && (tiles[p.hq].struct.lvl || 1) < 3) {
     mem.hqTried = true;
-    if (p.cash >= E.buildCost(s, p, 'hq', p.hq) + 3) return { a: 'build', struct: 'hq', hex: p.hq };
+    if (p.cash >= E.buildCost(s, p, 'hq', p.hq) + 3) { const b_ = tryOnce({ a: 'build', struct: 'hq', hex: p.hq }); if (b_) return b_; }
   }
   // airbases: one once the war is under way (more as it drags on), well back from the front; upgrade them when rich
   if (!mem.airTried && s.turn.round >= 5) {
     mem.airTried = true;
     const mine = Object.keys(tiles).filter(k => { const ab = E.structsOf(tiles[k]).find(x => x.type === 'airbase'); return ab && ab.owner === pid && tiles[k].owner === pid; });
     const up = mine.filter(k => { const ab = E.structsOf(tiles[k]).find(x => x.type === 'airbase'); return !ab.lock && (ab.lvl || 1) < 3 && sup.has(k); })[0];
-    if (up && p.cash >= E.buildCost(s, p, 'airbase', up) + 8 + s.turn.income * 0.15) return { a: 'build', struct: 'airbase', hex: up };
+    if (up && p.cash >= E.buildCost(s, p, 'airbase', up) + 8 + s.turn.income * 0.15) { const b_ = tryOnce({ a: 'build', struct: 'airbase', hex: up }); if (b_) return b_; }
     if (mine.length < 1 + Math.floor(s.turn.round / 20) && p.cash >= E.structCost(p, 'airbase') + 10) {
       const ok = new Set(E.buildHexes(s, pid, 'airbase'));
       const spot = supLand.filter(k => ok.has(k) && !mine.includes(k) && !E.structsOf(tiles[k]).some(x => x.type === 'airbase') && !enemyNear(k, 3)).sort((a, b) => nearest(b, enemyTiles) - nearest(a, enemyTiles))[0];
-      if (spot) return { a: 'build', struct: 'airbase', hex: spot };
+      if (spot) { const b_ = tryOnce({ a: 'build', struct: 'airbase', hex: spot }); if (b_) return b_; }
     }
   }
   if (p.diff !== 'easy' && !mem.wareTried && p.cash >= E.structCost(p, 'warehouse') + 4 && owns('warehouse') < 1 + Math.floor(s.turn.round / 10)) {
     mem.wareTried = true;
     const spot = supLand.find(k => !tiles[k].struct && !tiles[k].contam && !enemyNear(k, 3));
-    if (spot) return { a: 'build', struct: 'warehouse', hex: spot };
+    if (spot) { const b_ = tryOnce({ a: 'build', struct: 'warehouse', hex: spot }); if (b_) return b_; }
   }
   if (!mem.depotTried && p.cash >= E.structCost(p, 'depot') + 6 && owns('depot') < 1 && s.turn.round > 4) {
     mem.depotTried = true;
     const spot = supLand.filter(k => !tiles[k].struct && !tiles[k].contam).sort((a, b) => nearest(a, enemyTiles) - nearest(b, enemyTiles))[0];
-    if (spot && enemyTiles.length) return { a: 'build', struct: 'depot', hex: spot };
+    if (spot && enemyTiles.length) { const b_ = tryOnce({ a: 'build', struct: 'depot', hex: spot }); if (b_) return b_; }
   }
   if (p.cash >= E.structCost(p, 'fob') + 3 && !mem.fobTried && !stuck) {
     mem.fobTried = true;
@@ -609,7 +633,7 @@ function botStep(s, pid, mem) {
       const v = far + fr * 1.5;
       if (v > bv) { bv = v; best = k; }
     }
-    if (best) return { a: 'build', struct: 'fob', hex: best };
+    if (best) { const b_ = tryOnce({ a: 'build', struct: 'fob', hex: best }); if (b_) return b_; }
   }
 
   // 5b. stacks with nothing better to do on the front line watch for enemy moves instead

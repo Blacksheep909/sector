@@ -271,5 +271,45 @@ function crossing(s) {
   s.turn.idx = s.players.findIndex(q => q.id === 'p0'); E.startTurn(s, [], Math.random);   // the owner's next turn brings the FOB online
   ok(!s.map.tiles[k].struct.lock && !s.map.tiles[k].structs[0].lock, 'and a FOB under construction finishes, as drawn too');
 }
+{ // a bot whose ally is on the way out (a break announced, or a pact running out unrenewed) gets its troops out of that land in
+  // time (they'd be lost), and guards its HQ against that ally's army the way it would against an enemy's
+  const { botStep } = require('../shared/bot');
+  const game = (seed, ending) => {
+    const roster = ['A', 'B', 'C'].map((id, i) => ({ id, name: id, color: E.COLORS[i], faction: 'iron', bot: true }));   // C keeps the war going (two allies alone would have won)
+    const { state: s } = E.createGame({ mode: 'domination', mapSize: 'medium', spawns: 'random', seed }, roster);
+    s.phase = 'play'; s.turn.stage = 'act'; s.turn.idx = s.players.findIndex(p => p.id === 'A'); s.units = {}; s.weather = null; s.players.forEach(q => { q.tactics = []; q.cash = 0; });
+    s.allies = [{ a: 'A', b: 'B', since: 1, until: s.turn.round + (ending === 'expiry' ? 1 : 4), renew: {}, ...(ending === 'break' ? { ending: 'B' } : {}) }];
+    return s;
+  };
+  const play = s => { const mem = {}; for (let i = 0; i < 120; i++) { const a = botStep(s, 'A', mem); if (!a || a.a === 'end') break; E.applyAction(s, 'A', a); } };
+  for (const why of ['break', 'expiry']) {
+    let left = 0, total = 0;
+    for (let g = 0; g < 20; g++) {
+      const s = game('ev' + g, why), T = s.map.tiles, A = E.player(s, 'A');
+      const strip = Object.keys(T).filter(k => E.isLandTile(T[k]) && T[k].t !== 'mountain' && !T[k].river && [2, 3].includes(E.dist(k, A.hq))).slice(0, 5);
+      strip.forEach((k, i) => { T[k].owner = 'B'; put(s, 'a' + i, 'grunt', k, 'A'); put(s, 'm' + i, 'mauler', k, 'A'); });
+      for (const n of E.area(A.hq, 1)) if (T[n] && E.isLandTile(T[n]) && !strip.includes(n)) T[n].owner = 'A';
+      play(s);
+      for (const u of Object.values(s.units)) if (u.owner === 'A' && T[u.hex].owner === 'B') { const r = E.reachable(s, 'A', [u.id], u.hex); if (Object.keys(r).some(k => ['move', 'capture'].includes(r[k].kind) && T[k].owner !== 'B')) left++; }
+      total += strip.length * 2;
+    }
+    ok(left <= total * 0.02, `bots get their troops out of an ally's land before a ${why === 'break' ? 'break' : 'pact running out'} (${left} of ${total} left behind with a way out)`);
+  }
+  const guard = ending => { let tot = 0, n = 0;
+    for (let g = 0; g < 20; g++) {
+      const s = game('gd' + g, ending), T = s.map.tiles, A = E.player(s, 'A');
+      const land = E.area(A.hq, 3).filter(k => T[k] && E.isLandTile(T[k]) && T[k].t !== 'mountain' && !T[k].river);
+      const camp = land.find(k => E.dist(k, A.hq) === 2), away = camp ? land.filter(k => E.dist(k, A.hq) === 3 && E.dist(k, camp) >= 4) : [];
+      if (!camp || away.length < 2) continue; n++;
+      for (const k of land) T[k].owner = 'A'; T[camp].owner = 'B';
+      for (let i = 0; i < 4; i++) put(s, 'b' + i, 'mauler', camp, 'B');
+      put(s, 'x1', 'bulwark', away[0]); put(s, 'x2', 'bulwark', away[0]); put(s, 'y1', 'bulwark', away[1]); put(s, 'y2', 'bulwark', away[1]);
+      play(s);
+      for (const u of Object.values(s.units)) if (u.owner === 'A' && E.dist(u.hex, A.hq) <= 1) tot += E.unitDef(s, u);
+    }
+    return tot / Math.max(1, n); };
+  const calm = guard(null), wary = guard('break');
+  ok(wary >= calm + 2, `bots guard their HQ against a breaking ally's army (defence ${wary.toFixed(1)} vs ${calm.toFixed(1)} with a steady ally)`);
+}
 console.log(fails ? fails + ' FAILED' : 'all passed');
 process.exit(fails ? 1 : 0);
