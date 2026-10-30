@@ -312,7 +312,9 @@ The same goes for water: a pocket of 12 or fewer sea hexes walled in by your coa
 
 ## Missions and the tutorial
 
-**🎯 MISSIONS & TUTORIAL** (front page or lobby) opens 20 hand-built missions, each teaching one technique. Most are fixed boards with set armies, cash and cards, a goal and a turn limit: no resupply draws and no weather, so every one has a solution to find. General Hale briefs you on each, and the mission bar has a **HINT** button if you're stuck. Clear a mission to unlock the next. Your first clear of each pays **100 Valor**, and clearing them all pays a **1,000 Valor** bonus. The last one, **Endgame** (Nightmare), needs every arm in the right order: take the bridge before the Ark sails under it, knock out the air defence before the Bunker Buster goes in, then storm the ★★★ fortress from two sides with your cards.
+**🎯 MISSIONS & TUTORIAL** (front page or lobby) opens 25 hand-built missions, each teaching one technique. Most are fixed boards with set armies, cash and cards, a goal and a turn limit: no resupply draws and no weather, so every one has a solution to find. General Hale briefs you on each, and the mission bar has a **HINT** button if you're stuck. Clear a mission to unlock the next. Your first clear of each pays **100 Valor**, and clearing them all pays a **1,000 Valor** bonus. The last one, **Endgame** (Nightmare), needs every arm in the right order: take the bridge before the Ark sails under it, knock out the air defence before the Bunker Buster goes in, then storm the ★★★ fortress from two sides with your cards.
+
+After Endgame come five **Situations** on bigger boards: a **live enemy** that plays like a bot, with real income and resupply on both sides, so there's no single solution, only a plan. **Breakout** (relieve a cut-off division), **Island Chain** (seize a bridgehead and push through), **Relief Force** (hold a besieged town), **Two Fronts** (two enemies at once) and **Total War** (knock out a rival on a whole continent).
 
 | # | Mission | Tier | Technique |
 |---|---|---|---|

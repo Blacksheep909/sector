@@ -2,6 +2,16 @@
 
 Every release, newest first. Each version also has its own post on the [Releases page](https://github.com/Blacksheep909/sector/releases).
 
+## Unreleased
+
+- **🎯 Five Situations: missions with a live enemy.** After Endgame come five bigger missions where the enemy is a real bot with income and resupply, so there's no single solution, only a plan: **Breakout** (smash the gate town between your home army and a cut-off division), **Island Chain** (seize a bridgehead and the bunkered town beyond it), **Relief Force** (hold a besieged FOB for seven turns), **Two Fronts** (take a fortress while a second enemy marches on your capital) and **Total War** (knock out a rival on open ground). 25 missions in all.
+- **Covered airspace in the move preview:** hovering (or tapping, or long-pressing on a phone) a hex where your aircraft would stop inside enemy air defence now warns you how many launchers would take a Snap Shot.
+- **Sky Shield** now teaches covered airspace and that anti-air is just 1 chip against ground troops.
+- **🤖 Bots cross rivers:** their routes no longer run through unbridged rivers (they used to march to the bank and stop), and a bot whose bases are cut off from its target by a river bridges the shortest crossing. In test games, armies stranded behind a river were the most common reason a war ran to the round limit.
+- **Bots stage forward:** FOBs go on the road to the target's HQ, so reinforcements don't spend the war walking.
+- **Bots at sea:** empty Arks sail to where the army is waiting instead of sitting at the dock, no new Ark while one waits empty, and a bot whose war is overseas goes after the Ark card.
+- **Bots keep cash for battle cards** in hand, so they can actually play them when a fight opens.
+
 ## v0.12.0
 
 **Smarter, deadlier bots, covered airspace, Tiny maps and 10-commander wars, and land that runs off the board.**
