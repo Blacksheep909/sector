@@ -426,39 +426,25 @@ const Cards = (() => {
     SFX.victoryHit(); Render.shake(T === 'mythic' ? 16 : T === 'gilded' ? 8 : 3);
     if (T !== 'standard') { const [x, y] = center(won); rays(x, y, TIER_COL[T], 1400, T === 'mythic'); burstAt(x, y, [TIER_COL[T], '#fff'], T === 'mythic' ? 70 : 30, 260); }
     await wait(520);
-    // 2. the chest drops in as the reel clears away: no empty beat in between
+    // 2. the card pack drops in as the reel clears away: no empty beat in between
     reel.classList.add('sd-out'); luckBar.classList.add('sd-out');
     setTimeout(() => { reel.remove(); luckBar.remove(); }, 350);
     const sun = el('div', 'sd-sun'); sun.style.setProperty('--tc', glowCol); box.appendChild(sun);
-    const stage = el('div', 'sd-stage tier-' + T, `<div class="sd-glow"></div><div class="sd-shadow"></div>
-      <div class="sd-chest"><img class="sd-body" src="${Art.chest(T, 'body')}" alt=""><div class="sd-leak"></div><img class="sd-lid" src="${Art.chest(T, 'lid')}" alt=""><div class="sd-count">${crate.cards.length}</div></div>
-      <div class="sd-hint">CLICK TO OPEN</div>`);
-    stage.style.setProperty('--tc', glowCol);
-    box.appendChild(stage);
-    const chestEl = stage.querySelector('.sd-chest'), countEl = stage.querySelector('.sd-count');
+    const stage = el('div', 'sd-packstage'); box.appendChild(stage);
+    const pk = Crates.pack(T, { count: crate.cards.length }); pk.classList.add('drop-in'); stage.appendChild(pk);
+    const countEl = pk.querySelector('.pk-count') || el('div');
     SFX.whoosh();
-    await wait(330);   // it hits the ground 55% of the way through its drop
-    { const r = chestEl.getBoundingClientRect(); burstAt(r.left + r.width / 2, r.bottom - 6, ['#b8a68a', '#8c7b62', '#d9cbb2'], 22, 140, 8); }
-    SFX.boom(0.5); SFX.deploy(); Render.shake(T === 'mythic' ? 12 : T === 'gilded' ? 9 : 6);
-    await wait(300);
-    stage.classList.add('ready');
-    await new Promise(res => {
-      let done = false;
-      const go = () => { if (done) return; done = true; removeEventListener('keydown', key); stage.onclick = null; res(); };
-      const key = e => { if (e.key === ' ' || e.key === 'Enter') { e.preventDefault(); go(); } };
-      addEventListener('keydown', key); stage.onclick = go; box.addEventListener('click', go, { once: true }); setTimeout(go, fast() ? 40 : 1000);
-    });
-    // 3. one rising charge: the shake builds and light pours from the seam
-    stage.classList.remove('ready'); stage.classList.add('charge');
-    for (let i = 0; i < 3; i++) setTimeout(() => { SFX.chip(5 + i * 3); Render.shake(2 + i * 2); }, (fast() ? 30 : 200) * i);
-    await wait(620);
-    // 4. the lid blows off; the glow stays round the chest instead of whiting out the screen
-    stage.classList.remove('charge'); stage.classList.add('open'); sun.classList.add('open');
-    const seam = stage.querySelector('.sd-leak').getBoundingClientRect(), mx = seam.left + seam.width / 2, my = seam.top + seam.height / 2;
-    SFX.boom(1); SFX.victoryHit(); Render.shake(T === 'mythic' ? 18 : 11);
-    burstAt(mx, my, [glowCol, '#ffffff', glowCol], T === 'mythic' ? 70 : 44, 300, 9);
-    await wait(200);
-    // 5. the cards rise out of the chest one after another and fan into their places
+    await wait(380);
+    { const r = pk.getBoundingClientRect(); burstAt(r.left + r.width / 2, r.bottom - 6, ['#b8a68a', '#8c7b62', '#d9cbb2'], 18, 120, 7); }
+    SFX.deploy(); Render.shake(T === 'mythic' ? 10 : T === 'gilded' ? 7 : 4);
+    // 3. tear it open along the top: the light that pours out is the colour of the best card inside
+    const best = crate.cards.reduce((b, id) => Math.max(b, E.RARITY_ORDER.indexOf(E.cardDef(id).rarity)), 0), lc = E.RARITY[E.RARITY_ORDER[best]].color;
+    const [mx, my] = await Crates.tear(pk, { col: lc, autoAfter: fast() ? 60 : 4000 });
+    sun.classList.add('open'); sun.style.setProperty('--tc', lc);
+    SFX.victoryHit(); Render.shake(best >= 4 ? 18 : best >= 3 ? 12 : 7);
+    burstAt(mx, my, [lc, '#ffffff', lc], 30 + best * 12, 280, 9);
+    await wait(160);
+    // 4. the cards rise out of the pack one after another and fan into their places
     const row = el('div', 'cr-cards sd-row'); box.appendChild(row); box.appendChild(el('div', 'reveal-slot'));
     const slots = crate.cards.map((id, i) => {
       const d = E.cardDef(id);
@@ -484,8 +470,8 @@ const Cards = (() => {
       setTimeout(() => { countEl.textContent = String(slots.length - 1 - i); countEl.classList.remove('pop'); void countEl.offsetWidth; countEl.classList.add('pop'); SFX.card(); SFX.chip(8 + i * 2); }, i * gap);
     });
     await sleep((slots.length - 1) * gap + fly * 0.7);
-    // 6. the empty chest sinks away behind the cards before the reveal starts
-    stage.classList.add('gone'); sun.classList.add('fade');
+    // 5. the empty pack drops away behind the cards before the reveal starts
+    pk.classList.add('gone'); sun.classList.add('fade');
     setTimeout(() => { stage.remove(); sun.remove(); }, 450);
     await wait(320);
     if (!document.contains(row)) return;

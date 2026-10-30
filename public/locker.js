@@ -134,7 +134,7 @@ const Locker = (() => {
     const p = shell('STORE');
     p.classList.add('store-card');
     const tabs = el('div', 'ix-tabs st-tabs');
-    for (const [k, label] of [['shop', 'TODAY’S SHOP'], ['crates', 'CRATES' + (profile.freeCrates ? ` <span class="st-free">${profile.freeCrates} FREE</span>` : '')], ['factions', 'FACTIONS'], ['valor', 'VALOR']]) {
+    for (const [k, label] of [['shop', 'TODAY’S SHOP'], ['crates', 'PACKS' + (profile.freeCrates ? ` <span class="st-free">${profile.freeCrates} FREE</span>` : '')], ['factions', 'FACTIONS'], ['valor', 'VALOR']]) {
       const b = el('button', 'btn' + (storeTab === k ? ' on' : ''), label); b.onclick = () => { storeTab = k; SFX.click(); drawStore(); }; tabs.appendChild(b);
     }
     p.appendChild(tabs);
@@ -173,7 +173,7 @@ const Locker = (() => {
     const grid = el('div', 'vp-grid');
     for (const [name, n] of packs) grid.appendChild(el('div', 'vp-card', `<div class="vp-medals">${'<i class="vm"></i>'.repeat(Math.min(5, 1 + packs.findIndex(x => x[1] === n)))}</div><h3>${esc(name)}</h3><div class="vp-n"><i class="vm"></i>${n.toLocaleString()}</div><button class="btn" disabled>SOON</button>`));
     p.appendChild(grid);
-    p.appendChild(el('div', 'vp-earn', `<h3>EARN VALOR NOW</h3><div><b>Wars</b> pay Valor when they end: more for winning and fighting well.</div><div><b>Orders</b>: daily and weekly objectives, plus a free Field Crate for finishing every weekly order.</div><div><b>Missions</b> pay up to <i class="vm"></i>2,500 the first time you clear them.</div><div><b>Recruits</b>: <i class="vm"></i>250 for every friend who joins with your link and finishes a game.</div>`));
+    p.appendChild(el('div', 'vp-earn', `<h3>EARN VALOR NOW</h3><div><b>Wars</b> pay Valor when they end: more for winning and fighting well.</div><div><b>Orders</b>: daily and weekly objectives, plus a free Field Pack for finishing every weekly order.</div><div><b>Missions</b> pay up to <i class="vm"></i>2,500 the first time you clear them.</div><div><b>Recruits</b>: <i class="vm"></i>250 for every friend who joins with your link and finishes a game.</div>`));
     p.appendChild(el('div', 'sub st-note', 'Everything in the store is looks or a faction to play: nothing you can buy makes you stronger.'));
   }
   // card skins come out of these
@@ -186,7 +186,7 @@ const Locker = (() => {
       row.appendChild(t);
     }
     p.appendChild(row);
-    p.appendChild(el('div', 'sub st-note', 'Every card has a skin at every rarity, Battle-Worn up to a named Mythic. Crates are the cheap way to find them; a few rotate through today’s shop, and any of them can be bought outright from the Locker. A duplicate pays back 30% of its value. Finish every weekly order for a free Field Crate.'));
+    p.appendChild(el('div', 'sub st-note', 'Every card has a skin at every rarity, Battle-Worn up to a named Mythic. Packs are the cheap way to find them; a few rotate through today’s shop, and any of them can be bought outright from the Locker. A duplicate pays back 30% of its value. Finish every weekly order for a free Field Crate.'));
   }
   function openCrate(id, btn) {
     const free = id === 'field' && profile.freeCrates > 0;
@@ -205,10 +205,11 @@ const Locker = (() => {
     const obj = el('div', 'st-obj');
     obj.innerHTML = `<div class="or-col"><h3>DAILY <span class="sub">new in ${h}h</span></h3>${profile.daily.map(row).join('')}</div>`
       + `<div class="or-col"><h3>WEEKLY <span class="sub">${wDone}/${wk.length} done</span></h3>${wk.map(row).join('')}`
-      + `<div class="or-crate${profile.weeklyCrate ? ' got' : ''}"><div class="or-art">${Crates.svg('field')}</div><div class="or-txt"><b>${profile.weeklyCrate ? '✔ Field Crate earned this week' : 'Complete every weekly order'}</b><div class="sub">${profile.weeklyCrate ? (profile.freeCrates ? 'It’s waiting for you in Store → Crates.' : 'New orders arrive next week.') : 'Reward: a free <b>Field Crate</b>, on top of each order’s Valor.'}</div></div>`
+      + `<div class="or-crate${profile.weeklyCrate ? ' got' : ''}"><div class="or-art or-pack"></div><div class="or-txt"><b>${profile.weeklyCrate ? '✔ Field Pack earned this week' : 'Complete every weekly order'}</b><div class="sub">${profile.weeklyCrate ? (profile.freeCrates ? 'It’s waiting for you in Store → Crates.' : 'New orders arrive next week.') : 'Reward: a free <b>Field Crate</b>, on top of each order’s Valor.'}</div></div>`
       + (profile.freeCrates ? `<button class="btn tiny gold" id="orOpen">OPEN IT</button>` : '') + `</div></div>`
       + `<div class="sub st-note">Matches pay Valor too: more for winning and fighting well. The more you've earned today (<i class="vm"></i>${profile.earnedToday.toLocaleString()} so far), the less each extra match adds, so play when you like without grinding.</div>`;
     p.appendChild(obj);
+    { const art = obj.querySelector('.or-pack'); if (art) art.appendChild(Crates.pack('field', { hint: ' ' })); }
     const ob = obj.querySelector('#orOpen'); if (ob) ob.onclick = () => { storeTab = 'crates'; show('store'); };
   }
 
@@ -260,7 +261,7 @@ const Locker = (() => {
     if (r.match) lines.push(`Match · <b><i class="vm"></i>${r.match}</b>` + (r.base > r.match ? ` <span class="sub">(<i class="vm"></i>${r.base} before today's tapering)</span>` : ''));
     else if (r.why) lines.push(`<span class="sub">${esc(r.why)}</span>`);
     for (const o of r.objectives || []) lines.push(`✔ ${esc(o.text)} · <b><i class="vm"></i>${o.coins}</b>`);
-    if (r.crate) lines.push(`🎁 Every weekly order done · <b>free Field Crate</b> <span class="sub">(open it in Store → Crates)</span>`);
+    if (r.crate) lines.push(`🎁 Every weekly order done · <b>free Field Pack</b> <span class="sub">(open it in Store → Packs)</span>`);
     if (r.referral) lines.push(`🎖 Welcome bonus for joining with a friend's link · <b><i class="vm"></i>${r.referral}</b>`);
     if (!lines.length) return;
     if (r.crate) setTimeout(() => SFX.legendary && SFX.legendary(), 900);

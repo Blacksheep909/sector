@@ -74,9 +74,9 @@ Single-use cards from your hand.
 | **Quarry Blast** | Rare | $3 | Blast a mountain within 3 of your land, and the mountain behind it, down into Highlands: a 2-hex pass. |
 | **War Bonds** | Rare | $0 | Gain $1 for every 2 hexes you own. |
 | **Blitz Doctrine** | Rare | $3 | This turn: all units +1 move, fresh units may act. |
-| **Supply Drop** | Rare | $0 | Spin the reel for a crate (60% Standard · 32% Gilded · 8% Mythic), then keep 1 of 3 cards. |
+| **Supply Drop** | Rare | $0 | Spin the reel for a card pack (60% Standard · 32% Gilded · 8% Mythic), then keep 1 of 3 cards. |
 | **Tactical Nuke** | Legendary | $10 | Erase everything in a 1-hex radius. Leaves a fallout zone for 4 rounds. |
-| **Supply Drop** | Legendary | $0 | Spin the reel for a crate (35% Gilded · 65% Mythic), then keep 1 of 3 cards. |
+| **Supply Drop** | Legendary | $0 | Spin the reel for a card pack (35% Gilded · 65% Mythic), then keep 1 of 3 cards. |
 | **Mutiny** | Legendary | $6 | An enemy stack (≤3) bordering your land defects to you. |
 
 ## Structures

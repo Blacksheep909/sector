@@ -1,5 +1,6 @@
 /* SECTOR — crates: the art, their idle life in the Store, and the opening sequence.
-   Field Crate: an olive military supply case. Elite Crate: a black armoured case with gold trim and violet light leaking
+   Field Pack / Elite Pack: foil card packs torn open along the top (the old crate art below is kept for anything that still wants it).
+   Earlier: Field Crate, an olive military supply case; Elite Crate, a black armoured case with gold trim and violet light leaking
    from its seams. Both are drawn as SVG, so they stay crisp at any size. */
 const Crates = (() => {
   const $ = s => document.querySelector(s);
@@ -75,12 +76,71 @@ const Crates = (() => {
     </svg>`;
   }
 
+  // ── card packs: a foil pack with crimped seams, torn open along the top (drag across it, or click and it tears itself) ──
+  // kinds: the supply drop's tiers (standard, gilded, mythic) and the Store's packs (field, elite)
+  const PACK = {
+    standard: { foil: ['#cfdbe6', '#7d93a8', '#34465a'], ink: '#0f1a24', name: 'STANDARD', sub: 'SUPPLY DROP' },
+    gilded: { foil: ['#fff1b8', '#e0a91e', '#7a560c'], ink: '#3a2604', name: 'GILDED', sub: 'SUPPLY DROP' },
+    mythic: { foil: ['#f6dcff', '#9a6bff', '#2f6bd6'], ink: '#1d0d3a', name: 'MYTHIC', sub: 'SUPPLY DROP', holo: true },
+    field: { foil: ['#d9dca0', '#7d8a45', '#3a4524'], ink: '#1d2412', name: 'FIELD PACK', sub: 'CARD SKINS' },
+    elite: { foil: ['#f3d27a', '#2a2d35', '#0d0e12'], ink: '#f3d27a', name: 'ELITE PACK', sub: 'CARD SKINS', holo: true },
+  };
+  const zig = (n, y0, y1) => Array.from({ length: n * 2 + 1 }, (_, i) => `${(i / (n * 2) * 100).toFixed(2)}% ${i % 2 ? y1 : y0}`).join(',');
+  function pack(kind, opts = {}) {
+    const P = PACK[kind] || PACK.standard, SL = 14;
+    const p = el('div', 'pack k-' + kind + (P.holo ? ' holo' : ''));
+    p.style.setProperty('--f0', P.foil[0]); p.style.setProperty('--f1', P.foil[1]); p.style.setProperty('--f2', P.foil[2]); p.style.setProperty('--ink', P.ink);
+    // the body (crimped along the bottom), then the top strip in slices so it can peel away as it's torn
+    p.innerHTML = `<div class="pk-glow"></div><div class="pk-body" style="clip-path:polygon(0 0,100% 0,${zig(16, 'calc(100% - 7px)', '100%').split(',').reverse().join(',')})">
+        <div class="pk-crimp b"></div><div class="pk-sheen"></div>
+        <div class="pk-mark"><svg viewBox="0 0 60 60"><path d="M30 4l22 12.7v26.6L30 56 8 43.3V16.7z" fill="none" stroke="currentColor" stroke-width="4"/><path d="M30 17l11 6.4v12.7L30 42.5 19 36.1V23.4z" fill="currentColor"/></svg></div>
+        <div class="pk-name">${esc(opts.name || P.name)}</div><div class="pk-sub">${esc(opts.sub || P.sub)}</div>
+        ${opts.count ? `<div class="pk-count">${opts.count} CARD${opts.count > 1 ? 'S' : ''}</div>` : ''}
+      </div>
+      <div class="pk-top">${Array.from({ length: SL }, (_, i) => `<i style="--i:${i};--n:${SL}"></i>`).join('')}</div>
+      <div class="pk-leak"></div><div class="pk-hint">${opts.hint || 'DRAG ACROSS THE TOP TO TEAR IT OPEN'}</div>`;
+    return p;
+  }
+  // tear it open: drag along the top seam (or click: it tears itself). Light the colour of the best card inside pours out of the
+  // gap as it goes, then the strip flies off. Resolves with the opening's centre on screen, for the cards to come out of
+  function tear(p, opts = {}) {
+    const S = typeof SFX !== 'undefined' ? SFX : {}, col = opts.col || '#fff', top = p.querySelector('.pk-top'), slices = [...top.children], leak = p.querySelector('.pk-leak');
+    p.style.setProperty('--lc', col);
+    return new Promise(res => {
+      let prog = 0, done = false, dragging = false, auto = null, lastSlice = -1;
+      const set = v => {
+        prog = Math.max(prog, Math.min(1, v));
+        const n = Math.floor(prog * slices.length);
+        slices.forEach((s, i) => s.classList.toggle('torn', i < n));
+        leak.style.width = (prog * 100) + '%'; p.style.setProperty('--tear', prog.toFixed(3));
+        if (n !== lastSlice) { lastSlice = n; S.chip && S.chip(2 + Math.min(10, n)); if (opts.fx && n > 0) { const r = slices[Math.min(n, slices.length) - 1].getBoundingClientRect(); opts.fx.burst(r.right, r.bottom, col, 4, 160, { up: true, spread: 1.4 }); } }
+        if (prog >= 1 && !done) finish();
+      };
+      const finish = () => {
+        done = true; clearInterval(auto); p.onpointerdown = p.onpointermove = p.onpointerup = null; removeEventListener('keydown', key);
+        p.classList.add('torn-open'); S.boom && S.boom(0.6); S.rare && S.rare();
+        const r = p.getBoundingClientRect(), x = r.left + r.width / 2, y = r.top + r.height * 0.08;
+        if (opts.fx) { opts.fx.burst(x, y, col, 50, 520, { up: true, spread: 1.6 }); opts.fx.ring(x, y, col, 320); }
+        setTimeout(() => res([x, y]), 420);
+      };
+      const auto0 = () => { if (auto || done) return; p.classList.add('tearing'); S.whoosh && S.whoosh(); auto = setInterval(() => set(prog + 0.07), 30); };
+      const at = e => { const r = p.getBoundingClientRect(); return { x: (e.clientX - r.left) / r.width, y: (e.clientY - r.top) / r.height }; };
+      p.onpointerdown = e => { const q = at(e); if (q.y < 0.3) { dragging = true; p.setPointerCapture && p.setPointerCapture(e.pointerId); p.classList.add('tearing'); set(q.x); } };
+      p.onpointermove = e => { if (dragging) set(at(e).x); };
+      p.onpointerup = () => { if (!dragging) auto0(); else if (prog < 1) auto0(); dragging = false; };   // a click (or letting go part way) tears the rest
+      const key = e => { if (e.key === ' ' || e.key === 'Enter') { e.preventDefault(); auto0(); } };
+      addEventListener('keydown', key);
+      if (opts.autoAfter) setTimeout(auto0, opts.autoAfter);
+    });
+  }
+
   // ── a crate on the Store shelf: hovering, breathing light, motes, and it leans toward the pointer ──
   function shelf(kind, B, priceHtml, canAfford, onOpen) {
     const t = el('div', 'crate-tile k-' + kind);
     const odds = Object.entries(B.odds).map(([r, w]) => `<div class="co-row"><i style="background:${RCOL[r]}"></i><span>${r[0].toUpperCase() + r.slice(1)}</span><b>${w}%</b></div>`).join('');
-    t.innerHTML = `<div class="ct-stage"><div class="ct-rays"></div><div class="ct-motes">${Array.from({ length: kind === 'elite' ? 14 : 8 }, (_, i) => `<span style="--x:${(i * 37) % 100}%;--d:${(i % 5) * 0.7}s;--s:${0.6 + (i % 3) * 0.3}"></span>`).join('')}</div><div class="ct-crate">${svg(kind)}</div></div>
+    t.innerHTML = `<div class="ct-stage"><div class="ct-rays"></div><div class="ct-motes">${Array.from({ length: kind === 'elite' ? 14 : 8 }, (_, i) => `<span style="--x:${(i * 37) % 100}%;--d:${(i % 5) * 0.7}s;--s:${0.6 + (i % 3) * 0.3}"></span>`).join('')}</div><div class="ct-crate ct-pack"></div></div>
       <div class="ct-info"><div class="ct-tag">${kind === 'elite' ? '★ PREMIUM' : 'STANDARD ISSUE'}</div><h3>${esc(B.name)}</h3><div class="ct-desc">${esc(B.desc)}</div><div class="ct-odds">${odds}</div></div>`;
+    t.querySelector('.ct-pack').appendChild(pack(kind === 'elite' ? 'elite' : 'field', { name: B.name.toUpperCase().replace(/ CRATE$/, ' PACK'), hint: ' ' }));
     const btn = el('button', 'btn big ct-buy', 'OPEN · ' + priceHtml); btn.disabled = !canAfford;
     btn.onclick = e => { e.stopPropagation(); onOpen(btn); };
     t.appendChild(btn);
@@ -135,9 +195,11 @@ const Crates = (() => {
     v = el('div', 'k-' + m.box, ''); v.id = 'crateOpen'; document.body.appendChild(v);
     const R = m.rarity || it.rarity, col = RCOL[R] || '#fff', tier = ORDER.indexOf(R);
     v.style.setProperty('--rc', col);
-    v.innerHTML = `<div class="co-vignette"></div><div class="co-stage"><div class="co-beam"></div><div class="co-crate">${svg(m.box)}</div><div class="co-flipper"><div class="co-back"><div class="cb-logo">SECTOR</div></div><div class="co-front"></div></div></div>
+    v.innerHTML = `<div class="co-vignette"></div><div class="co-stage"><div class="co-beam"></div><div class="co-crate co-pack"></div><div class="co-flipper"><div class="co-back"><div class="cb-logo">SECTOR</div></div><div class="co-front"></div></div></div>
       <div class="co-label"></div><div class="co-btns"></div><div class="co-skip">Click to skip</div>`;
-    const fx = fxCanvas(v), crate = v.querySelector('.co-crate'), csvg = crate.querySelector('svg'), flip = v.querySelector('.co-flipper');
+    const fx = fxCanvas(v), crate = v.querySelector('.co-crate'), flip = v.querySelector('.co-flipper');
+    const B = (typeof SectorCosmetics !== 'undefined' && SectorCosmetics.BOXES[m.box]) || {};
+    const pk = pack(m.box === 'elite' ? 'elite' : 'field', { name: (B.name || 'Pack').toUpperCase().replace(/ CRATE$/, ' PACK'), count: 1, hint: 'DRAG ACROSS THE TOP TO TEAR IT OPEN' }); pk.classList.add('drop-in'); crate.appendChild(pk);
     v.querySelector('.co-front').appendChild(card);
     let skip = false; v.onclick = () => { skip = true; };
     const W = ms => skip ? Promise.resolve() : wait(ms);
@@ -145,22 +207,13 @@ const Crates = (() => {
     const S = typeof SFX !== 'undefined' ? SFX : {};
     S.whoosh && S.whoosh();
     await W(650);
-    // the rattle: one shake per rarity step, the seam glow climbing through the colours
-    for (let i = 0; i <= Math.max(1, tier); i++) {
-      const c2 = RCOL[ORDER[Math.min(i, tier)]];
-      csvg.style.setProperty('--seam', c2); crate.style.setProperty('--glow', c2);
-      crate.classList.remove('rattle'); void crate.offsetWidth; crate.classList.add('rattle'); crate.style.setProperty('--amp', (3 + i * 2.5) + 'px');
-      S.clank ? S.clank() : S.click && S.click(); S.chip && S.chip(3 + i * 2);
-      const [x, y] = center(); fx.motes(x, y, c2, 6 + i * 4);
-      await W(560 - i * 40);
-    }
-    // latches spring open
-    for (const l of crate.querySelectorAll('.cr-latch')) { l.classList.add('pop'); S.click && S.click(); await W(140); }
-    await W(220);
-    // the lid blows off
+    // tear the pack open: the light that pours out is the card's rarity colour (a click, Space or skipping tears it for you)
+    v.onclick = null;
+    const [ox, oy] = await tear(pk, { col, fx, autoAfter: 5000 });
+    v.onclick = () => { skip = true; };
     crate.classList.add('opened'); v.classList.add('lit');
     S.boom && S.boom(0.5 + tier * 0.2); tier >= 3 ? S.legendary && S.legendary() : S.rare && S.rare();
-    { const [x, y] = center(); fx.burst(x, y, col, 50 + tier * 30, 560 + tier * 80, { up: true, spread: 2.2 }); fx.ring(x, y, col, 380 + tier * 80); if (tier >= 3) { fx.ring(x, y, '#ffffff', 600, 1.2); v.classList.add('flash'); } fx.motes(x, y, col, 30); }
+    fx.burst(ox, oy, col, 50 + tier * 30, 560 + tier * 80, { up: true, spread: 2.2 }); fx.ring(ox, oy, col, 380 + tier * 80); if (tier >= 3) { fx.ring(ox, oy, '#ffffff', 600, 1.2); v.classList.add('flash'); } fx.motes(ox, oy, col, 20 + tier * 8);
     await W(380);
     // the card rises out of the light and turns over
     flip.classList.add('rise'); S.whoosh && S.whoosh();
@@ -177,5 +230,5 @@ const Crates = (() => {
     const d = el('button', 'btn big', 'DONE'); d.onclick = e => { e.stopPropagation(); fx.stop(); v.remove(); opts.done && opts.done(); }; btns.appendChild(d);
     v.onclick = null;
   }
-  return { svg, shelf, open, RCOL };
+  return { svg, shelf, open, pack, tear, fxCanvas, RCOL };
 })();

@@ -86,7 +86,7 @@ An optional round limit gives the win to whoever holds the most land when time r
 | Legendary | gold |
 | **Mythic** | white, with a rainbow edge |
 
-Legendaries and Mythics are unique: only one copy exists until it's spent or its owner is eliminated. Mythics are very rare (a sliver of resupply picks and Gilded/Mythic crates, or a superweapon silo in World War).
+Legendaries and Mythics are unique: only one copy exists until it's spent or its owner is eliminated. Mythics are very rare (a sliver of resupply picks and Gilded/Mythic packs, or a superweapon silo in World War).
 
 **The black market.** Once your income reaches **$50 a turn**, the black market opens for good (you'll see a banner). Every turn it stocks **5 random tactic cards** that you can buy outright for cash with the round purple **black market** button on your cash panel. Each costs a set price for its rarity (common $6, uncommon $9, rare $14, epic $22, legendary $34, mythic $50) plus a fifth of your income. The stock is yours alone and changes every turn: what you don't buy is gone. Like resupply, a big economy finds rarer cards there.
 
@@ -102,9 +102,9 @@ Legendaries and Mythics are unique: only one copy exists until it's spent or its
 | Epic | 15% | 55% | 30% |
 | Legendary | 0% | 35% | 65% |
 
-The crate then bursts open and deals 3 cards with that tier's odds. Keep one, or scrap them all for $2 (more as your income grows: scrap value, ruins loot and maxed-card payouts all scale with a tenth of your income).
+A card pack of that tier drops in: tear it open along the top (drag across the seam, or click and it tears itself) and light the colour of the best card inside pours out, then it deals 3 cards with that tier's odds. Keep one, or scrap them all for $2 (more as your income grows: scrap value, ruins loot and maxed-card payouts all scale with a tenth of your income).
 
-| Crate | Common | Uncommon | Rare | Epic | Legendary |
+| Pack | Common | Uncommon | Rare | Epic | Legendary |
 |---|---|---|---|---|---|
 | Standard | 46% | 30% | 15% | 7% | 2% |
 | Gilded | 8% | 30% | 32% | 22% | 8% |
@@ -378,7 +378,7 @@ While others play, queue moves, deploys and builds. The preview shows exactly wh
 
 ## Turn timer and undo
 
-- With a **turn timer** set, a bar under the top bar drains in the current player's colour, turning red for the last 10 seconds. The clock **pauses while your fights and crates play out**, and your resupply pick gets 20 seconds of its own. If time runs out, income is collected and your turn ends.
+- With a **turn timer** set, a bar under the top bar drains in the current player's colour, turning red for the last 10 seconds. The clock **pauses while your fights and supply drops play out**, and your resupply pick gets 20 seconds of its own. If time runs out, income is collected and your turn ends.
 - **Undo** (↶ button or `Ctrl+Z`) takes back moves, deploys and builds that didn't reveal anything: no fights, loot or cards, and in fog of war no newly spotted enemy troops, land or buildings (uncovering empty terrain is fine). Hexes the move captured are given back. You can undo several steps back to the last such reveal. If nothing can be undone, it tells you why. In the blueprint, `Ctrl+Z` takes back the last queued order.
 - **Auto-end turn:** when you have nothing left to do (no stack can act, nothing affordable to deploy or build, no tactic to play), your turn ends after a 3-second countdown. Press STAY to keep it, or switch it off in the Esc menu.
 - **Whose turn:** a pill under the top bar always shows whose turn it is (and when you're next). On your turn the screen edge glows in your colour.
@@ -404,7 +404,7 @@ While others play, queue moves, deploys and builds. The preview shows exactly wh
 | `Space` | Flip the next card · throw your die · skip the animation playing (never ends your turn) |
 | Click a flipping card | Finish its reveal at once; quick clicks flip the rest at triple speed |
 | `Alt` (toggle) | War-room view: the board fades out, every stack shows its total attack and defence, and you can draw arrows (drag) and circles (click) that only your allies see; right-click erases |
-| Crate (Supply Drop) | Click or `Space` to burst it open |
+| Pack (Supply Drop) | Drag across the top seam, click, or `Space` to tear it open |
 | `F` | Jump to your HQ |
 | `Tab` / `Shift+Tab` / `E` | Select the next stack that can still act |
 | `Ctrl`-click, or `M` then click | Give the selected stack a march order |

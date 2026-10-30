@@ -136,8 +136,8 @@
   // ───────── crates: card skins aren't sold outright. A few rotate through the daily store; otherwise you open crates ─────────
   // odds are percentages by rarity; a duplicate pays back part of its value
   const BOXES = {
-    field: { name: 'Field Crate', price: 300, odds: { uncommon: 62, rare: 28, epic: 8, legendary: 1.8, mythic: 0.2 }, desc: 'A card skin for any unit card: mostly Battle-Worn and Foil, with a slim chance of something special.' },
-    elite: { name: 'Elite Crate', price: 1000, odds: { rare: 55, epic: 32, legendary: 11, mythic: 2 }, desc: 'Rare or better, guaranteed. One in fifty is Mythic.' },
+    field: { name: 'Field Pack', price: 300, odds: { uncommon: 62, rare: 28, epic: 8, legendary: 1.8, mythic: 0.2 }, desc: 'A card skin for any unit card: mostly Battle-Worn and Foil, with a slim chance of something special.' },
+    elite: { name: 'Elite Pack', price: 1000, odds: { rare: 55, epic: 32, legendary: 11, mythic: 2 }, desc: 'Rare or better, guaranteed. One in fifty is Mythic.' },
   };
   const DUP_REFUND = 0.3;
   function rollBox(boxId, owned, rng = Math.random) {
