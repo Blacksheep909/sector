@@ -255,7 +255,7 @@
     // public: anyone pressing PLAY can land here until it deploys · private: only people with the code or link
     rb.innerHTML = `<div class="rb-kind${pub ? ' pub' : lobby.solo ? ' solo' : ''}">${pub ? 'PUBLIC WAR' : main ? 'LAN LOBBY' : lobby.solo ? 'SINGLEPLAYER' : 'PRIVATE ROOM'}</div>` + (main ? '<div class="rb-code"><span class="sub">Everyone who opens this server’s address lands here</span></div>'
       : `<div class="rb-code"><span>CODE</span><b>${esc(lobby.code)}</b><button class="btn tiny" id="rbCopy">${lobby.solo ? '🔗 INVITE A FRIEND' : '🔗 COPY INVITE LINK'}</button><span class="sub">${pub ? 'open: anyone who presses PLAY can join until it deploys' : lobby.solo ? 'you against bots · a friend can join any time and take over a bot' : 'invite only'}</span></div>`) + `<button class="btn" id="rbLeave">◂ LEAVE</button>`;
-    const cp = $('#rbCopy'); if (cp) cp.onclick = () => { copyText(link).then(ok => ok && toast('Invite link copied')); SFX.click(); };
+    const cp = $('#rbCopy'); if (cp) cp.onclick = () => { if (lobby.solo && lobby.hostId === realId) send({ t: 'soloOff' }); copyText(link).then(ok => ok && toast('Invite link copied')); SFX.click(); };   // inviting someone turns singleplayer into a room for friends
     $('#rbLeave').onclick = () => { SFX.click(); send({ t: 'leave' }); };
   }
 
@@ -360,6 +360,7 @@
     }
     $('#startBtn').hidden = !host; $('#waitHost').hidden = host;
     renderSaves(host);
+    renderSolo(host);
     // ready-up: guests toggle READY; the host's DEPLOY waits until every guest is ready
     const meRow = lobby.players.find(p => p.id === realId);
     const waiting = pub ? [] : lobby.players.filter(p => !p.bot && !p.local && !p.spectator && !p.ready && p.id !== lobby.hostId);
@@ -367,11 +368,38 @@
     rb.hidden = host || !meRow || meRow.spectator || pub;
     if (meRow) { rb.textContent = meRow.ready ? '✔ READY — CLICK TO CANCEL' : 'READY UP'; rb.classList.toggle('green', !meRow.ready); rb.classList.toggle('on', !!meRow.ready); }
     $('#startBtn').classList.toggle('waiting', waiting.length > 0);
-    $('#startBtn').textContent = waiting.length ? 'WAITING FOR ' + waiting.length + ' TO READY' : 'DEPLOY';
+    $('#startBtn').textContent = waiting.length ? 'WAITING FOR ' + waiting.length + ' TO READY' : lobby.solo ? 'START WAR' : 'DEPLOY';
     $('#startBtn').title = waiting.length ? 'Not ready: ' + waiting.map(p => p.name).join(', ') : '';
     const hostName = (lobby.players.find(p => p.id === lobby.hostId) || {}).name || 'the host';
     $('#waitHost').textContent = pub ? 'Waiting for ' + hostName + ' to deploy · bots fill the empty seats' : meRow && meRow.ready ? 'Ready! Waiting for the host to start…' : 'Ready up so the host can start.';
     if (pub) $('#startBtn').title = 'Bots fill the empty seats';
+  }
+  // ── singleplayer: its own screen. Continue a saved war in one click, or set up a new one: how many bots, how good, which map ──
+  const ADV_SETTINGS = ['#setTeams', '#setFog', '#setEvents', '#setSpawns', '#setTimer', '#setBank', '#setRounds', '#setSpeed', '#setPersonas', '#setSeed'];
+  ADV_SETTINGS.forEach(id => { const e = $(id); if (e && e.closest('.set')) e.closest('.set').classList.add('adv'); });
+  $('#advBtn').onclick = () => { SFX.click(); const on = $('#lobbyBox').classList.toggle('show-adv'); $('#advBtn').textContent = on ? 'FEWER SETTINGS ▴' : 'MORE SETTINGS ▾'; };
+  function renderSolo(host) {
+    const box = $('#soloBox'), solo = !!(lobby && lobby.solo && host);
+    $('#lobbyBox').classList.toggle('solo', solo); $('#advBtn').hidden = !solo; box.hidden = !solo;
+    if (!solo) return;
+    $('#startBtn').textContent = 'START WAR';
+    const bots = lobby.players.filter(p => p.bot), diffs = [...new Set(bots.map(p => p.diff || 'medium'))], diff = diffs.length === 1 ? diffs[0] : 'mixed';
+    const saves = lobby.saves || [], ago = t => { const m = Math.round((Date.now() - t) / 60000); return m < 1 ? 'just now' : m < 60 ? m + 'm ago' : m < 1440 ? Math.round(m / 60) + 'h ago' : Math.round(m / 1440) + 'd ago'; };
+    const key = JSON.stringify([bots.map(p => [p.name, p.diff, p.color]), saves.map(s => [s.id, s.savedAt])]);
+    if (box.dataset.key === key) return; box.dataset.key = key;
+    const [last, ...older] = saves;
+    box.innerHTML = `<h3>SINGLEPLAYER</h3>` +
+      (last ? `<div class="solo-continue"><div><b>${esc(last.title)}</b><div class="sub">Saved ${ago(last.savedAt)}</div></div><button class="btn big green" data-load="${esc(last.id)}">▶ CONTINUE</button></div>` +
+        (older.length ? `<div class="solo-saves">${older.slice(0, 4).map(s => `<div class="ss-row"><span>${esc(s.title)} · ${ago(s.savedAt)}</span><button class="btn tiny" data-load="${esc(s.id)}">RESUME</button></div>`).join('')}</div>` : '') : '') +
+      `<h3>${last ? 'OR START A NEW WAR' : 'NEW WAR'}</h3>
+      <div class="solo-row"><label>OPPONENTS</label><div class="solo-step"><button class="btn" data-bots="-1">−</button><b>${bots.length}</b><button class="btn" data-bots="1">+</button></div></div>
+      <div class="solo-row"><label>BOTS</label><div class="solo-diff">${[['easy', 'Easy'], ['medium', 'Medium'], ['hard', 'Hard'], ['impossible', 'Impossible'], ['random', 'Mixed']].map(([d, n]) => `<button class="chip${(diff === d || (d === 'random' && diff === 'mixed')) ? ' on' : ''}" data-diff="${d}">${n}</button>`).join('')}</div></div>
+      <div class="solo-bots">${bots.map(p => `<span style="--bc:${p.color}">${esc(p.name)}</span>`).join('')}</div>
+      <button class="linkbtn solo-invite" id="soloInvite" title="Turns this into a private room: friends join with the code">＋ Invite a friend instead</button>`;
+    box.querySelectorAll('[data-load]').forEach(b => b.onclick = () => { SFX.select(); send({ t: 'loadSave', id: b.dataset.load }); });
+    box.querySelectorAll('[data-bots]').forEach(b => b.onclick = () => { SFX.click(); send({ t: 'soloCfg', bots: bots.length + +b.dataset.bots }); });
+    box.querySelectorAll('[data-diff]').forEach(b => b.onclick = () => { SFX.select(); send({ t: 'soloCfg', diff: b.dataset.diff }); });
+    $('#soloInvite').onclick = () => { SFX.select(); send({ t: 'soloOff' }); const link = location.origin + '/?room=' + lobby.code; copyText(link).then(ok => ok && toast('Invite link copied: send it to a friend')); };
   }
   // saved wars: the host can resume one; whoever's here with a matching name gets their seat back
   function renderSaves(host) {

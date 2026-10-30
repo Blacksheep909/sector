@@ -438,6 +438,18 @@ function onMessage(c, m) {
       tp.team = Math.max(1, Math.min(4, +m.team || 1));
       return broadcastLobby();
     }
+    // singleplayer: how many bots, and how good, in one go
+    case 'soloCfg': {
+      if (c.pid !== lobby.hostId || game || !lobby.solo) return;
+      const want = Math.max(1, Math.min(7, Math.round(+m.bots) || 0)), diff = E.DIFFICULTY[m.diff] || m.diff === 'random' ? m.diff : null;
+      let bots = lobby.players.filter(p => p.bot);
+      while (m.bots != null && bots.length < want && lobby.players.length < 8) { onMessage(c, { t: 'addBot', diff: diff || undefined }); bots = lobby.players.filter(p => p.bot); }
+      while (m.bots != null && bots.length > want) { const gone = bots.pop(); lobby.players = lobby.players.filter(p => p !== gone); }
+      if (diff) for (const p of lobby.players) if (p.bot) p.diff = diff;
+      return broadcastLobby();
+    }
+    // singleplayer becomes a private room: friends can join with the code
+    case 'soloOff': { if (c.pid !== lobby.hostId || game) return; lobby.solo = false; note('This war is now open to friends: share the code'); return broadcastLobby(); }
     case 'botCfg': {
       if (c.pid !== lobby.hostId || game) return;
       const b = lobby.players.find(p => p.id === m.id && p.bot); if (!b) return;

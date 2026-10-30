@@ -68,6 +68,7 @@
   <div id="roomBar" class="room-bar" hidden></div>
   <div id="lobbyBox" class="lobby" hidden>
     <div class="panel lobby-players">
+      <div id="soloBox" hidden></div>
       <h3>COMMANDERS <span id="pCount"></span></h3>
       <div id="playerList"></div>
       <div class="row"><button id="addBot" class="btn">+ ADD BOT</button><button id="addLocal" class="btn" title="Pass &amp; play: another player on this device">+ LOCAL PLAYER</button></div>
@@ -95,6 +96,7 @@
       <div class="set"><label>Game speed</label><select id="setSpeed"><option value="normal">Normal</option><option value="fast">Fast — quicker bot turns</option><option value="super">Superspeed</option></select></div>
       <div class="set"><label>Bot personalities</label><select id="setPersonas" title="On: each bot gets a hidden personality that shapes how it plays, and it talks in chat. Off: plain, quiet bots."><option value="on">On — bots play their own way and talk</option><option value="off">Off — plain, quiet bots</option></select></div>
       <div class="set"><label>Map seed</label><input id="setSeed" placeholder="random" maxlength="20"></div>
+      <button id="advBtn" class="btn ghost" hidden>MORE SETTINGS ▾</button>
       <button id="startBtn" class="btn big red">DEPLOY</button>
       <button id="readyBtn" class="btn big green" hidden>READY UP</button>
       <div id="waitHost" class="hint" hidden>Waiting for the host to start…</div>

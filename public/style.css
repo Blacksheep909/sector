@@ -2007,3 +2007,25 @@ body.compact #buildBar, body.compact #leftCol > #buildBar { position: fixed !imp
 
 /* while the battlefield is being rolled, the board stays hidden: no peeking at what it'll land on */
 body.reeling #map { visibility: hidden; }
+
+/* ── singleplayer: its own screen (continue a saved war, or set up a new one against bots) ── */
+#lobbyBox.solo .lobby-players > :not(#soloBox) { display: none !important; }
+#lobbyBox.solo .lobby-settings .set.adv { display: none; }
+#lobbyBox.solo.show-adv .lobby-settings .set.adv { display: flex; }
+#lobbyBox.solo #saveBox { display: none !important; }
+#soloBox { display: flex; flex-direction: column; gap: 12px; }
+#soloBox h3 { margin: 0; }
+.solo-continue { display: flex; flex-direction: column; gap: 8px; padding: 12px; border-radius: 12px; background: linear-gradient(135deg, #16301f, #0f1c14); border: 2px solid #2f6b4a; }
+.solo-continue b { font-size: 15px; } .solo-continue .sub { font-size: 12px; }
+.solo-continue .btn { align-self: stretch; }
+.solo-saves { display: flex; flex-direction: column; gap: 4px; }
+.solo-saves .ss-row { display: flex; align-items: center; gap: 8px; font-size: 12px; background: #0e161d; border-radius: 8px; padding: 5px 8px; }
+.solo-saves .ss-row span { flex: 1; min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.solo-row { display: flex; align-items: center; justify-content: space-between; gap: 10px; }
+.solo-row label { font: 800 12px var(--ui); letter-spacing: 1px; color: var(--dim, #8ea0b2); }
+.solo-step { display: flex; align-items: center; gap: 8px; } .solo-step b { min-width: 22px; text-align: center; font-size: 20px; }
+.solo-step .btn { width: 34px; height: 34px; padding: 0; font-size: 18px; }
+.solo-diff { display: flex; flex-wrap: wrap; gap: 6px; }
+.solo-diff .chip { cursor: pointer; }
+.solo-bots { display: flex; flex-wrap: wrap; gap: 6px; } .solo-bots span { font-size: 12px; padding: 3px 8px; border-radius: 8px; background: #101820; border-left: 4px solid var(--bc); }
+.solo-invite { align-self: flex-start; font-size: 12px; }
