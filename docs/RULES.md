@@ -13,7 +13,7 @@ Grab land, build an economy, crush your rivals. **Every hex you hold pays you**,
 
 ## Fog of war, events and alliances
 
-- **Fog of war** (lobby option). You see one hex past your borders, two hexes around your units (three for aircraft), and everything your allies see. **Unexplored** hexes are completely hidden, rival HQs included: you have to find them. Hexes you've explored but can't see right now show what you **last saw** there, without units. March into a hex that hides enemies and you'll fight them: an ambush.
+- **Fog of war** (lobby option). You see one hex past your borders, two hexes around your units (three for aircraft), and everything your allies see. **Unexplored** hexes are completely hidden, rival HQs included: you have to find them. Hexes you've explored but can't see right now show what you **last saw** there, without units. March into a hex that hides enemies and you'll fight them: an ambush. **Bots play by the same fog:** they only know what a player in their seat would.
 - **World events** (on by default). From round 3, most rounds roll an event that lasts the whole round:
 
 | Event | Effect |

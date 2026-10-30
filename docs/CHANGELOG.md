@@ -4,6 +4,7 @@ Every release, newest first. Each version also has its own post on the [Releases
 
 ## Unreleased
 
+- **🌫 Bots play fair in fog of war.** With fog on, a bot now decides everything from what a player in its seat would see: the land it has explored, what it last saw there, and what its units and territory can see now. Hidden armies, HQs and buildings are hidden from it too (walking into one is an ambush, as for you). Before, only its air strikes and artillery respected the fog.
 - **Tiny maps and 10-commander wars.** A new **Tiny** map size for quick, close-quarters games, and private rooms and singleplayer now take up to **10 commanders** (9 bots against you), with two new colours (teal and periwinkle). In a big war the commanders' chips along the top go compact, two rows at most, and TRADE / ALLY open under a chip when you hover or tap it.
 - **🤖 Bots use each unit for its job.** Guns (Thumper, Bastion, Hailstorm, Basilisk, Oracle) hold at firing range, never park next to the enemy, deploy at the base just behind the front and fire at any real chance (a shot from range risks nothing). Anti-air moves to put an umbrella over the army and its bases, and stays off the front line. Empty troop helicopters fly to Grunts waiting for a lift (Valkyries now carry troops most of the time). Bots field a Carrier when they have aircraft for it, park it off the enemy coast and deploy aircraft onto it. A new tool (tools/bot-units.js) measures all of this per unit type.
 - **Thumper moves 2** (was 1): it could rarely get within range of anything. **Mule defence 2** (was 1).

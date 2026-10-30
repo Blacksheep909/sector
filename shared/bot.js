@@ -222,7 +222,27 @@ function strategy(s, pid, idx) {
 
 // experiments only (balance lab): BOTX=noguard,noplan,atk=0.5,… switches parts of the bot off to measure what each is worth
 const BOTX = (typeof process !== 'undefined' && process.env && process.env.BOTX || '').split(',').filter(Boolean);
+// fog of war: a bot sees what a player in its seat would, its own fogged view with what it has explored and last seen
+// there, and decides from that. Its orders still run against the real board (a hidden army it walks into is an ambush)
+const fogMems = new WeakMap();
 function botStep(s, pid, mem) {
+  if (s.settings && s.settings.fog === 'on' && s.phase === 'play') {
+    let byPid = fogMems.get(s); if (!byPid) fogMems.set(s, byPid = {});
+    const seen = byPid[pid] = byPid[pid] || { explored: new Set(), seen: {} };
+    for (let i = 0; i < 4; i++) {
+      const v = E.view(s, pid, seen);
+      v.botMem = s.botMem = s.botMem || {};   // its plans and grudges live on the real game
+      const act = botTurn(v, pid, mem);
+      // a base it remembers may have fallen out of sight since: told "you can't deploy / build there", it picks again
+      const refused = act && ((act.a === 'deploy' && !E.deployHexes(s, pid, act.unit).includes(act.hex)) || (act.a === 'build' && E.buildError(s, pid, act.struct, act.hex)));
+      if (!refused) return act;
+      (mem.badHex = mem.badHex || new Set()).add(act.hex);
+    }
+    return { a: 'end' };
+  }
+  return botTurn(s, pid, mem);
+}
+function botTurn(s, pid, mem) {
   const p = E.player(s, pid);
   let K = SKILL[p.diff] || SKILL.medium;
   const PL = playOf(p);
@@ -714,7 +734,7 @@ function botStep(s, pid, mem) {
   const mine = Object.values(s.units).filter(u => u.owner === pid);
   const myArks = mine.filter(u => u.type === 'ark').length;
   const warships = mine.filter(u => E.isSea(u.type) && u.type !== 'ark').length, landUnits = mine.length - warships - myArks;
-  const options = p.arsenal.filter(t => E.unitCost(p, t) <= p.cash && E.deployHexes(s, pid, t, idx).length)
+  const options = p.arsenal.filter(t => E.unitCost(p, t) <= p.cash && E.deployHexes(s, pid, t, idx).some(h => !(mem.badHex && mem.badHex.has(h))))
     .filter(t => t !== 'ark' || (navalNeed && myArks < Math.min(8, 2 + Math.floor(landUnits / 8))))   // a big army stranded on an island needs a fleet of transports
     .filter(t => !E.isSea(t) || t === 'ark' || (t === 'carrier' && !mine.some(u => u.type === 'carrier') && p.arsenal.some(x => E.UNITS[x].cls === 'air')) || (PL.navy ? warships < landUnits && Math.random() < 0.85 : warships < landUnits / 2 && Math.random() < 0.5));
   if (options.length) {
@@ -744,7 +764,8 @@ function botStep(s, pid, mem) {
       return (power / c) * 3 * (1 - rich) + (power / 4) * rich; };
     const scored = options.map(t => [t, (t === 'ark' ? 9 : K.deploy2 === false ? unitValue(t) / Math.sqrt(E.unitCost(p, t)) + (E.unitCost(p, t) >= 5 ? 0.6 : 0) : worth(t)) + counter(t) + Math.random() * 0.5]).sort((a, b) => b[1] - a[1]);
     const type = scored[0][0];
-    const hexes = E.deployHexes(s, pid, type, idx);
+    const hexes = E.deployHexes(s, pid, type, idx).filter(h => !(mem.badHex && mem.badHex.has(h)));
+    if (!hexes.length) return { a: 'end' };
     const goal = strat.goal.length ? strat.goal : enemyTiles.length ? enemyTiles : targets;
     let bs = hexes[0], bd = 99;
     const gf = walkField('deploy', goal);
