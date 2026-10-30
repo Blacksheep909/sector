@@ -196,12 +196,13 @@ const Crates = (() => {
     const R = m.rarity || it.rarity, col = RCOL[R] || '#fff', tier = ORDER.indexOf(R);
     v.style.setProperty('--rc', col);
     v.innerHTML = `<div class="co-vignette"></div><div class="co-stage"><div class="co-beam"></div><div class="co-crate co-pack"></div><div class="co-flipper"><div class="co-back"><div class="cb-logo">SECTOR</div></div><div class="co-front"></div></div></div>
-      <div class="co-label"></div><div class="co-btns"></div><div class="co-skip">Click to skip</div>`;
+      <div class="co-label"></div><div class="co-btns"></div><div class="co-skip">${matchMedia('(pointer: coarse)').matches ? 'Tap' : 'Click or press Space'} to skip</div>`;
     const fx = fxCanvas(v), crate = v.querySelector('.co-crate'), flip = v.querySelector('.co-flipper');
     const B = (typeof SectorCosmetics !== 'undefined' && SectorCosmetics.BOXES[m.box]) || {};
     const pk = pack(m.box === 'elite' ? 'elite' : 'field', { name: (B.name || 'Pack').toUpperCase().replace(/ CRATE$/, ' PACK'), count: 1, hint: 'DRAG ACROSS THE TOP TO TEAR IT OPEN' }); pk.classList.add('drop-in'); crate.appendChild(pk);
     v.querySelector('.co-front').appendChild(card);
     let skip = false; v.onclick = () => { skip = true; };
+    const skipKey = e => { if (e.key === ' ' && !e.repeat) { e.preventDefault(); skip = true; } }; addEventListener('keydown', skipKey);
     const W = ms => skip ? Promise.resolve() : wait(ms);
     const center = () => { const r = crate.getBoundingClientRect(); return [r.left + r.width / 2, r.top + r.height * 0.42]; };
     const S = typeof SFX !== 'undefined' ? SFX : {};
@@ -225,6 +226,7 @@ const Crates = (() => {
     const lab = v.querySelector('.co-label');
     lab.innerHTML = `<div class="co-rar">${R.toUpperCase()}</div><div class="co-name">${esc(it.name)}</div>${m.dup ? `<div class="co-sub">Already in your Locker · <i class="vm"></i>${m.refund} back</div>` : '<div class="co-sub new">✦ NEW · added to your Locker</div>'}`;
     lab.classList.add('in');
+    removeEventListener('keydown', skipKey);
     const btns = v.querySelector('.co-btns'); v.querySelector('.co-skip').remove();
     if (opts.again) { const b = el('button', 'btn big gold', 'OPEN ANOTHER · ' + opts.againLabel); b.onclick = e => { e.stopPropagation(); fx.stop(); v.remove(); opts.again(); }; btns.appendChild(b); }
     const d = el('button', 'btn big', 'DONE'); d.onclick = e => { e.stopPropagation(); fx.stop(); v.remove(); opts.done && opts.done(); }; btns.appendChild(d);

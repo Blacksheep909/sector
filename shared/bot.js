@@ -241,7 +241,7 @@ function botStep(s, pid, mem) {
     return { a: 'pick', idx: c.idx, replace: c.replace };
   }
   mem.tried = mem.tried || new Set();
-  const tryOnce = (act) => { if (act && act.a === 'move') act = keepTogether(act); if (act && act.a === 'build' && E.buildError(s, pid, act.struct, act.hex)) return null;   // never propose a build the rules refuse (a river, a full hex)
+  const tryOnce = (act) => { if (act && act.a === 'move') act = keepTogether(act); if (act && act.a === 'build' && (E.buildError(s, pid, act.struct, act.hex) || E.buildCost(s, p, act.struct, act.hex) > p.cash)) return null;   // never propose a build the rules refuse (a river, a full hex) or it can't pay for
     const k = JSON.stringify(act); if (mem.tried.has(k)) return null; mem.tried.add(k); return act; };
   // a carrier doesn't drive off and strand more Grunts than the hex can hold: take them along, or leave the carrier
   const keepTogether = (act) => {

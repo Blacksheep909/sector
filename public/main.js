@@ -165,12 +165,12 @@
       if (!S || S.seed !== m.state.seed) { enterGame(m.state); }
       else {
         animating = true; fastForward = msgQ.length > 3;
-        const mineBefore = S && S.units ? Object.values(S.units).filter(u => u.owner === you).map(u => ({ id: u.id, type: u.type, hex: u.hex })) : [];
+        const youBefore = you, mineBefore = S && S.units ? Object.values(S.units).filter(u => u.owner === you).map(u => ({ id: u.id, type: u.type, hex: u.hex })) : [];
         const gen = menuGen;
         try { await playEvents(m.events || [], m.by); } catch (e) { console.error(e); }
         animating = false; fastForward = false; lastAnimEnd = Date.now();
         if (gen !== menuGen || leftGame) continue;   // left the game mid-animation: don't paint the old board back under the menu
-        reportLosses(mineBefore, m.state, m.events || []);
+        if (you === youBefore) reportLosses(mineBefore, m.state, m.events || []);
         if (m.paused && m.by && (m.by === you || m.mine)) send({ t: 'clockResume' });   // my fight finished playing: restart the turn clock
         applyState(m.state);
       }
@@ -184,6 +184,9 @@
   // tell the player plainly when they lose units, and why (so nothing just vanishes off-screen)
   function reportLosses(before, next, events) {
     if (!before.length || !next || !next.units) return;
+    // only real losses: an undo taking back a deploy, a scrapped unit, a gift to an ally, a resync with no events or a seat
+    // change all take units off your list without anyone dying
+    if (!events.length || events.some(e => ['undo', 'scrap', 'donate'].includes(e.e))) return;
     const lost = before.filter(u => !next.units[u.id]); if (!lost.length) return;
     const why = events.some(e => e.e === 'drown') ? 'lost at sea' : events.some(e => e.e === 'evicted') ? 'cut off when a pact ended' : events.some(e => e.e === 'crash') ? 'went down with their transport' : events.some(e => e.e === 'tactic') ? 'hit by an enemy strike' : events.some(e => e.e === 'combat' || e.e === 'fogstop') ? 'killed in battle' : events.some(e => e.e === 'eliminate') ? 'lost with your HQ' : 'destroyed';
     const names = {}; for (const u of lost) names[E.UNITS[u.type].name] = (names[E.UNITS[u.type].name] || 0) + 1;
@@ -1830,7 +1833,9 @@
     $('#deckBar').hidden = $('#buildBar').hidden = !me;
     if (!me) { hu.innerHTML = hb.innerHTML = hand.innerHTML = ''; return; }
     const counts = {}; for (const u of Object.values(ds.units)) if (u.owner === you) counts[u.type] = (counts[u.type] || 0) + 1;
-    const sig = JSON.stringify([units, me.levels, me.cash, mode && { ...mode, el: null }, counts, me.tactics.map(c => c.uid), canCommand()]);
+    // tactic cards with nothing to aim at right now are greyed out, and say so (instead of an error when you click them)
+    const noTarget = new Set(me.tactics.filter(c => { const d = E.TACTICS[c.id]; return d && !['none', 'battle'].includes(d.target) && !E.tacticTargets(ds, you, c.id).length; }).map(c => c.uid));
+    const sig = JSON.stringify([units, me.levels, me.cash, mode && { ...mode, el: null }, counts, me.tactics.map(c => c.uid), canCommand(), [...noTarget]]);
     if (sig === hotbarSig) return; hotbarSig = sig;
     const prevIds = new Set([...hu.children].map(c => c.dataset.id));
     hu.innerHTML = ''; hb.innerHTML = '';
@@ -1852,7 +1857,8 @@
     const n = me.tactics.length;
     me.tactics.forEach((card, i) => {
       const d = E.TACTICS[card.id];
-      const c = cardEl(card.id); c.dataset.uid = card.uid;
+      const c = cardEl(card.id, noTarget.has(card.uid) ? { tag: 'NO TARGET' } : {}); c.dataset.uid = card.uid;
+      if (noTarget.has(card.uid)) { c.classList.add('notarget'); c.title = 'Nothing to aim it at right now'; }
       c.style.setProperty('--fan', ((i - (n - 1) / 2) * 5) + 'deg');
       c.style.setProperty('--lift', (Math.abs(i - (n - 1) / 2) * 6) + 'px');
       if (me.cash < d.cost) c.classList.add('poor');
@@ -2235,7 +2241,7 @@
       const D = side('DEFENDER', ev.def, ev.def.pid ? pName(ev.def.pid) : 'Garrison', ev.def.pid ? pColor(ev.def.pid) : '#aaa');
       const vs = el('div', 'cb-vs', 'VS');
       wrap.append(A, vs, D);
-      wrap.appendChild(el('div', 'cb-odds', `Pre-battle odds ${Math.round(ev.winProb * 100)}% · Click to skip`));
+      wrap.appendChild(el('div', 'cb-odds', `Pre-battle odds ${Math.round(ev.winProb * 100)}% · ${isTouchDevice ? 'Tap' : 'Space'} to skip`));
       box.appendChild(wrap);
       if (!cont) SFX.whoosh();
       await nap(250);

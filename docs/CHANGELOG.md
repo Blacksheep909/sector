@@ -4,6 +4,10 @@ Every release, newest first. Each version also has its own post on the [Releases
 
 ## Unreleased
 
+- **No false "💀 Lost" alerts:** taking back a deploy with undo, scrapping a unit, giving troops to an ally or switching seats no longer reports units as destroyed.
+- **Tactic cards with nothing to aim at are greyed out** in your hand with a NO TARGET tag, instead of giving an error when you click them.
+- **"Space to skip"** on the fight panel (Tap on phones), in a pill of its own so it no longer looks like it belongs to your deck; Space also skips a Store pack opening now.
+- **Bots no longer try to build what they can't afford.**
 - **🗺 Not every map is an island any more.** On most continent, pangaea, twin-continent, inland-sea and crescent maps the land now runs straight off one to three sides of the board instead of ending in a ring of sea, and an inland sea is sometimes landlocked all round. Archipelagos and open ocean stay island maps.
 - **Rivers fixed:** a new river could start beside an old one and run down its bed, which snapped rivers in two and left them running side by side in blobs; and villages, forts, relics, silos and the King of the Hill beacon could land on a river and cut it. Rivers are now one hex wide, never touch each other except where they join, keep clear of HQ sites, and run unbroken to the sea or a lake (checked across 300 maps).
 - **Quieter opening draft:** no more "X drafted Y" toast for every pick while the draft screen is up (it shows everyone's progress already). In the war they still pop up.

@@ -401,6 +401,7 @@ input:focus, select:focus { border-color: var(--blue); }
 .cb-tray:active { cursor: grabbing; }
 .cb-die.hidden-die { opacity: .15; }
 .cb-odds { bottom: -26px; }
+.cb-odds { left: 50%; right: auto; transform: translateX(-50%); width: max-content; padding: 4px 12px; border-radius: 99px; background: rgba(8,12,16,.88); border: 1px solid #2c3d4d; color: #c9d4de; z-index: 3; }   /* reads as the fight's, not floating over the deck */
 
 /* ═════════ trading ═════════ */
 .tradebtn { position: absolute; bottom: -14px; left: 50%; transform: translateX(-50%); font-family: var(--ui); font-weight: 800; font-size: 10px; letter-spacing: 1px; padding: 2px 8px; border-radius: 6px; border: 2px solid #05080b; background: var(--gold); color: #1d1404; cursor: pointer; box-shadow: 0 2px 0 #000; transition: transform .1s; }
@@ -466,7 +467,7 @@ input:focus, select:focus { border-color: var(--blue); }
 .card:hover { transform: translateY(-22px) scale(1.1); z-index: 5; animation-play-state: paused; }
 .card.active { transform: translateY(-30px) scale(1.12); z-index: 6; }
 .card.active .ci { box-shadow: 0 0 0 3px #fff, 0 0 26px var(--rc), 0 8px 0 #000; }
-.card.poor .ci { filter: saturate(.25) brightness(.6); }
+.card.poor .ci { filter: saturate(.25) brightness(.6); } .card.notarget .ci { filter: saturate(.25) brightness(.6); }
 .card .c-key { position: absolute; top: -9px; left: 50%; transform: translateX(-50%); background: #0b0f13; color: #fff; font-size: 11px; font-weight: 800; padding: 0 7px; border-radius: 6px; border: 2px solid #3a4b5c; z-index: 4; }
 .card .count { left: -7px; bottom: -7px; }
 .card .c-tag { position: absolute; bottom: -13px; left: 50%; transform: translateX(-50%); white-space: nowrap; background: var(--rc); color: #0b0f13; font-size: 10px; font-weight: 800; letter-spacing: 1px; padding: 2px 8px; border-radius: 6px; border: 2px solid #0b0f13; z-index: 4; box-shadow: 0 2px 0 #000; }
