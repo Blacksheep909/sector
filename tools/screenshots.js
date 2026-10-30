@@ -73,12 +73,14 @@ async function main() {
   await evalJS(`SECTOR_DEBUG.send({t:'autoplay',on:true}); true`);
   let gotCombat = false;
   const t0 = Date.now();
-  while (Date.now() - t0 < 240000 && !gotCombat) {
+  while (Date.now() - t0 < 120000 && !gotCombat) {
     if (await evalJS(`!document.querySelector('#combat').hidden && !!document.querySelector('#combat .cb-result')`)) { await shot('combat'); gotCombat = true; }
     await sleep(250);
   }
   // let the war develop, then frame the whole board
-  console.log('developing'); await sleep(25000);
+  // (bots finish wars quickly now: stop while all four are still in it, so the board is a war and not a victory screen)
+  console.log('developing');
+  await waitFor(`SECTOR_DEBUG.state().turn.round>=10 || SECTOR_DEBUG.state().players.filter(p=>p.alive).length<4`, 25000);
   await evalJS(`SECTOR_DEBUG.send({t:'autoplay',on:false}); true`);
   // freeze the event stream so live bot turns don't photobomb the board shots
   await evalJS(`window.SECTOR_PAUSE = true; true`);
