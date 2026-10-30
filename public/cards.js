@@ -108,7 +108,8 @@ const Cards = (() => {
     await sleep(settle);
   }
   // spam-clicking: a click during a flip finishes it at once, and the next flips play at triple speed
-  function rush(slots) { let any = false; for (const s of slots) if (s.flipping && s.rush) { s.rush(); any = true; } return any; }
+  // an epic, legendary or mythic showcase plays out in full: only Space (force) cuts it short, never a click on another card
+  function rush(slots, force) { let any = false; for (const s of slots) if (s.flipping && s.rush && (force || !s.stage)) { s.rush(); any = true; } return any; }
   async function flipCard(s, box, quick) {
     if (s.flipping || s.flip.classList.contains('open')) return;
     s.flipping = true;
@@ -195,7 +196,7 @@ const Cards = (() => {
     let skip = false;
     const wait = ms => new Promise(res => { if (skip) return res(); const t = setTimeout(res, ms * f); live.add({ t, res }); });
     const hurry = () => { if (skip) return; skip = true; for (const w of live) { clearTimeout(w.t); w.res(); } live.clear(); for (const a of anims) try { a.finish(); } catch (e) {} };
-    s.rush = hurry;
+    s.rush = hurry; s.stage = true;
     el0.classList.remove('tell'); el0.classList.add('lifting', 'stage-' + (rk >= 5 ? 'mythic' : rk === 4 ? 'legendary' : 'epic'));
     box.classList.add('dim');
     const r = el0.getBoundingClientRect(), dx = innerWidth / 2 - (r.left + r.width / 2), dy = innerHeight * 0.47 - (r.top + r.height / 2);
@@ -234,7 +235,7 @@ const Cards = (() => {
     await new Promise(res => { back.onfinish = res; back.oncancel = res; setTimeout(res, 700); });
     glow.remove();
     el0.classList.remove('lifting', 'stage-epic', 'stage-legendary', 'stage-mythic');
-    s.rush = null; s.flipping = false;
+    s.rush = null; s.stage = false; s.flipping = false;
   }
   function confetti() {
     const cols = ['#ffb52e', '#fff3a8', '#ff4f5e', '#36c9ff', '#59f08a', '#c25cff'];
@@ -258,16 +259,20 @@ const Cards = (() => {
       const busy = () => slots.some(s => s.flipping);
       let lastClick = 0;
       const quick = () => { const q = Date.now() - lastClick < 1500; lastClick = Date.now(); return q; };
-      const next = async () => { const q = quick(); if (busy()) { rush(slots); await sleep(30); } const s = slots.find(s => !s.flip.classList.contains('open') && !s.flipping); if (s) { await flipCard(s, box, q); check(); } };
+      const next = async () => { const q = quick(); if (busy()) { rush(slots, true); while (busy()) await sleep(30); } const s = slots.find(s => !s.flip.classList.contains('open') && !s.flipping); if (s) { await flipCard(s, box, q); check(); } };
       const key = e => { if (e.key === ' ' && !box.hidden) { e.preventDefault(); e.stopPropagation(); next(); } };
       addEventListener('keydown', key, true);
+      // REVEAL ALL: a showcase in progress plays to its end, then the rest turn over one after another
       all.onclick = async () => { if (all.disabled) return; all.disabled = true; rush(slots); while (busy()) await sleep(50); for (const s of slots) { if (!s.flip.classList.contains('open')) { await flipCard(s, box, true); await sleep(120); } } check(); };
       slots.forEach(s => {
         s.flip.addEventListener('click', async () => {
           if (s.flip.classList.contains('open')) return;
           const q = quick();
-          if (s.flipping) { rush(slots); return; }
-          if (busy()) { rush(slots); await sleep(30); }
+          if (s.flipping) { rush(slots); return; }   // clicking the card that's turning finishes a plain flip (a showcase plays out)
+          if (s.queued) return; s.queued = true;
+          rush(slots); while (busy()) await sleep(40);   // another card is still turning: this one waits its turn
+          s.queued = false;
+          if (s.flip.classList.contains('open')) return;
           await flipCard(s, box, q); check();
         });
         s.flip.addEventListener('mouseenter', () => { if (s.flip.classList.contains('open')) return; const rk = RANK(s.d.rarity); SFX.chip(rk * 3); if (rk >= 3) Render.shake(2); });
@@ -282,7 +287,9 @@ const Cards = (() => {
         }
       })();
       // never stall the game: flip whatever's left after a while
-      setTimeout(() => { if (!done) all.click(); }, 14000);
+      let idleSince = Date.now();
+      const guard = () => { if (done || !document.contains(box)) return; if (busy()) idleSince = Date.now(); if (Date.now() - idleSince > 14000) { all.click(); return; } setTimeout(guard, 500); };
+      setTimeout(guard, 500);
     });
   }
 
@@ -343,6 +350,7 @@ const Cards = (() => {
       const flips = [];
       for (const s of slots) {
         if (box.dataset.tok !== tok || !document.contains(s.flip)) return;
+        if (RANK(s.d.rarity) >= 2) await Promise.all(flips);   // a rarer card waits for the quick flips before it to land
         const f = flipCard(s, box); flips.push(f);
         if (RANK(s.d.rarity) <= 1) await sleep(230); else { await f; await sleep(120); }
       }
