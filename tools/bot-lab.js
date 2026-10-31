@@ -11,7 +11,7 @@ for (let g = from; g < from + games; g++) {
   if (process.env.LABTURN && g !== +process.env.LABTURN.split(':')[0]) continue;
   Math.random = E.mulberry32(E.hashStr('botlab' + g));   // bots roll Math.random: seed it so a game replays the same
   const roster = Array.from({ length: N }, (_, i) => ({ id: 'p' + i, name: 'Bot' + i, color: E.COLORS[i], faction: facs[(i + g) % facs.length], bot: true, diff: diff.includes(':') ? diff.split(':')[i % 2] : diff }));
-  const { state: s } = E.createGame({ mode: 'domination', mapSize: 'medium', timer: 0, maxRounds: 50, seed: 'lab' + g }, roster);
+  const { state: s } = E.createGame({ mode: 'domination', mapSize: 'medium', timer: 0, maxRounds: +(process.env.LABMAX || 50), seed: 'lab' + g }, roster);
   while (s.phase === 'draft') for (const p of s.players) { const a = draftStep(s, p.id); if (a) E.applyAction(s, p.id, a); }
   const dist = (k, pid) => { let m = 99; for (const q in s.map.tiles) { const t = s.map.tiles[q]; if (t.owner && t.owner !== pid && !E.isAlly(s, pid, t.owner) && E.isLandTile(t)) m = Math.min(m, E.dist(k, q)); } return m; };
   const sieged = {}, kos = []; let actions = 0; const alive = new Set(s.players.map(p => p.id));
