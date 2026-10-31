@@ -1074,10 +1074,13 @@ const Render = (() => {
   }
   // building and point-of-interest badges, every frame on top of the map and its animated borders (and the scenery of
   // the row in front), but under the units. Out of sight they're dimmed, like the land under the fog
+  let badgeList = null, badgeKey = -1;
   function drawBadges() {
     const z = cam.z, sc = S / 34;
-    for (const k of order) {
-      const tile = S_.map.tiles[k], c = tc[k]; if (!c) continue;
+    // only hexes with something to badge (rebuilt when the state changes, not walked hex by hex every frame)
+    if (badgeKey !== stateVer || !badgeList) { badgeKey = stateVer; badgeList = order.filter(k => { const t = S_.map.tiles[k]; return t && (t.struct || t.poi || t.wreck); }); }
+    for (const k of badgeList) {
+      const tile = S_.map.tiles[k], c = tc[k]; if (!c || !tile) continue;
       const poi = tile.fog !== 2 && tile.poi && !(tile.poi === 'fort' && tile.owner) && !c.river;
       const st = tile.struct && tile.struct.type !== 'bridge' && (tile.fog !== 2 || tile.struct.type === 'hq');
       const fire = tile.wreck && !tile.bridge && tile.fog !== 2;

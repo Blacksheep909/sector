@@ -163,7 +163,14 @@
       undoCount = m.undo || 0;
       localDeadline = m.timeLeft ? Date.now() + m.timeLeft : 0; clockPaused = !!m.paused; pausedLeft = m.timeLeft || 0;
       if (!S || S.seed !== m.state.seed) { enterGame(m.state); }
-      else {
+      else if (msgQ.length > 6 && !(m.by === you || m.mine)) {
+        // far behind (a long run at super speed, a slow tab): jump straight to this state instead of playing it out, and
+        // only animate the last few, so switching back to normal speed is normal speed straight away
+        const youBefore = you, mineBefore = S && S.units ? Object.values(S.units).filter(u => u.owner === you).map(u => ({ id: u.id, type: u.type, hex: u.hex })) : [];
+        if (you === youBefore) reportLosses(mineBefore, m.state, m.events || []);
+        applyState(m.state);
+      }
+      else {
         animating = true; fastForward = msgQ.length > 3;
         const youBefore = you, mineBefore = S && S.units ? Object.values(S.units).filter(u => u.owner === you).map(u => ({ id: u.id, type: u.type, hex: u.hex })) : [];
         const gen = menuGen;
