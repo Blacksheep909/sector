@@ -2132,3 +2132,7 @@ body.war-over #dock, body.war-over #endBtn, body.war-over #marketBtn { display: 
 .flip.turning .stage-glow { opacity: 0 !important; transition: none; }
 .flip.turning .cback, .flip.turning .ci, .flip.turning .cfront { box-shadow: none !important; filter: none !important; }
 .flip.turning .ci::before { display: none !important; }
+/* busy player bar: banners keep a dark backing behind the name and numbers, bubbles stay small */
+.pchip[class*="bn-"] > div:not(.av):not(.chipbtns) { background: rgba(8,12,16,.74); border-radius: 6px; padding: 1px 5px; }
+#players.many .bot-say { font-size: 11px; max-width: 170px; padding: 5px 8px; }
+.pchip .ps .mood { margin: 0 0 0 -2px; font-size: 11px; }

@@ -785,7 +785,10 @@
   function sayOn(chip, pid, fresh) {
     const q = saying[pid]; chip.querySelectorAll('.bot-say').forEach(b => b.remove());
     if (!q || q.until < Date.now()) return;
+    { const box = chip.parentElement; if (box && box.getBoundingClientRect().height > chip.getBoundingClientRect().height * 1.6) return; }
     const b = el('div', 'bot-say' + (fresh ? '' : ' stay'), esc(q.text)); b.style.setProperty('--pc', q.color); chip.appendChild(b);
+    // chips on two rows: there's no room for bubbles between them (they'd cover the next row); the chat log has the line
+    requestAnimationFrame(() => { const box = chip.parentElement; if (box && box.getBoundingClientRect().height > chip.getBoundingClientRect().height * 1.6) b.remove(); });   // (laid out by now)
     setTimeout(() => b.classList.add('gone'), Math.max(0, q.until - Date.now() - 400)); setTimeout(() => b.remove(), q.until - Date.now() + 100);
   }
   function showEmote(m) {
@@ -1552,7 +1555,7 @@
       c.style.setProperty('--pc', p.color);
       const extra = S.map.beacon ? ` · ◆${p.koth}/3` : '';
       if (!p.alive) c.style.setProperty('--pc', '#5b6670');
-      c.innerHTML = `<div class="av"><img src="${Art.iconURL('glyph', f ? f.glyph : 'shield', '#0b0f13', 48)}"></div><div><div class="pn">${esc(p.name)}${p.alive ? '' : ' <span class="out">☠ OUT</span>'}${p.team ? ` <span class="teamchip t${p.team}">${'ABCD'[p.team - 1]}</span>` : ''}${p.traitor ? ' <span class="out" title="Broke an alliance: -40% income and no new pacts">🗡 TRAITOR</span>' : ''}${moodTag(p)}</div><div class="ps"><span title="${counts[p.id] || 0} land hexes (what counts to win) + ${seas[p.id] || 0} sea">⬢ <b>${counts[p.id] || 0}</b></span><span>$<b>${p.cash}</b></span><span>🂠 <b>${p.tacticCount ?? p.tactics.length}</b></span>${extra}</div></div>`;
+      c.innerHTML = `<div class="av"><img src="${Art.iconURL('glyph', f ? f.glyph : 'shield', '#0b0f13', 48)}"></div><div><div class="pn">${esc(p.name)}${p.alive ? '' : ' <span class="out">☠ OUT</span>'}${p.team ? ` <span class="teamchip t${p.team}">${'ABCD'[p.team - 1]}</span>` : ''}${p.traitor ? ' <span class="out" title="Broke an alliance: -40% income and no new pacts">🗡 TRAITOR</span>' : ''}</div><div class="ps">${moodTag(p)}<span title="${counts[p.id] || 0} land hexes (what counts to win) + ${seas[p.id] || 0} sea">⬢ <b>${counts[p.id] || 0}</b></span><span>$<b>${p.cash}</b></span><span>🂠 <b>${p.tacticCount ?? p.tactics.length}</b></span>${extra}</div></div>`;
       c.title = f ? f.name + ' · ' + f.perk + ': ' + f.desc : '';
       c.onclick = () => { if (p.hq) Render.focus(p.hq); if (box.classList.contains('many')) { const was = c.classList.contains('open'); box.querySelectorAll('.pchip.open').forEach(x => x.classList.remove('open')); c.classList.toggle('open', !was); } };   // a tap opens TRADE / ALLY in a big war
       if (saying[p.id]) sayOn(c, p.id, false);
