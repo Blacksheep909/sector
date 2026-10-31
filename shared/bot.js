@@ -111,12 +111,15 @@ function planAssault(s, pid, idx, K, strat, mem) {
   for (const st of stacks) for (const t in st.reach) if (st.reach[t].kind === 'attack') (by[t] = by[t] || []).push(st);
   const p = E.player(s, pid);
   const held = besiegedBy(s, pid);
+  const hqOf = o => { const q = E.player(s, o); return q && q.alive && wary(s, pid, o) && q.hq && s.map.tiles[q.hq].owner === o ? q.hq : null; };
   let best = null, bv = 0;
   for (const t in by) {
     const tt = tiles[t], defs = (idx[t] || []).filter(u => u.owner !== pid);
     const isHQ = tt.struct && tt.struct.type === 'hq' && tt.owner !== pid;
     const prize = 6 + stackValue(defs) * 1.2 + (isHQ ? 90 * (1 + 0.5 * (K.lethal || 0)) : 0) + (tt.struct ? 6 : 0) + (tt.res ? 3 : 0) + (!tt.owner && ['village', 'silo'].includes(tt.poi) ? 10 : 0) + (tt.owner && tt.owner === strat.target ? 6 : 0) + (p && p.vengeance && p.vengeance.vs === tt.owner ? 8 : 0)
-      + (held.some(h => E.dist(h, t) === 1) && tt.owner && tt.owner !== pid ? 30 : 0);   // the land round an HQ we're besieging is where its owner musters: take it
+      + (held.some(h => E.dist(h, t) === 1) && tt.owner && tt.owner !== pid ? 30 : 0)
+      // encircle before the kill: every hex of theirs round their HQ is a place they could muster a counterattack from
+      + (tt.owner && tt.owner !== pid && !isHQ && hqOf(tt.owner) && E.dist(hqOf(tt.owner), t) === 1 ? (K.ringW === undefined ? 15 : K.ringW) * (K.lethal || 0) : 0);   // the land round an HQ we're besieging is where its owner musters: take it
     // strongest contributors first; add stacks until the odds are good enough (or we run out of stacks we're allowed to mass)
     // and combined arms: a stack that brings a kind of unit the blow doesn't have yet (troops, armour, air) is worth more
     // a killer bot masses more stacks on an HQ than on anything else
@@ -137,13 +140,14 @@ function planAssault(s, pid, idx, K, strat, mem) {
     }
     if (!calc) continue;
     // our own HQ under siege: any real chance of taking it back beats being knocked out next turn
-    const need = isHQ && t === (p && p.hq) ? 0.15 : isHQ ? K.attack - 0.15 - 0.08 * (K.lethal || 0) : K.attack;
+    const press = tt.owner && tt.owner === strat.target ? (strat.rich || 0) * (K.richW === undefined ? 0.15 : K.richW) * (K.lethal || 0) : 0;
+    const need = isHQ && t === (p && p.hq) ? 0.15 : (isHQ ? K.attack - 0.15 - 0.08 * (K.lethal || 0) : K.attack) - press;
     if (calc.winProb < need) continue;
     const risk = used.reduce((a, u) => a + stackValue(u.units), 0);
     // helicopters that win are left sitting on the hex: count what they'd face there
     const helis = used.some(u => u.units.some(x => E.UNITS[x.type].heli));
     const exposure = helis ? heliDanger(s, pid, idx, t) * 2 * K.heli : 0;
-    const v = calc.winProb * prize - (1 - calc.winProb) * risk * 0.8 - exposure;
+    const v = calc.winProb * prize - (1 - calc.winProb) * risk * 0.8 * (1 - press * 2) - exposure;
     if (v > bv) { bv = v; best = { t, used, calc }; }
   }
   if (!best) return null;
@@ -238,7 +242,9 @@ function strategy(s, pid, idx) {
   }
   const tq = target && E.player(s, target);
   const edge = target ? Math.max(0, Math.min(1, (mine - th[target]) / Math.max(1, mine))) : 0;
-  return { edge, focus, target, goal, seen, danger, hq: tq && tq.alive && tq.hq && tiles[tq.hq] && tiles[tq.hq].owner === target ? tq.hq : null };
+  // out-earning them: a war of attrition we win, so even trades are worth taking (0 at parity, 1 at twice their income)
+  const rich = target ? Math.max(0, Math.min(1, E.computeIncome(s, pid).total / Math.max(1, E.computeIncome(s, target).total) - 1)) : 0;
+  return { edge, rich, focus, target, goal, seen, danger, hq: tq && tq.alive && tq.hq && tiles[tq.hq] && tiles[tq.hq].owner === target ? tq.hq : null };
 }
 
 // experiments only (balance lab): BOTX=noguard,noplan,atk=0.5,… switches parts of the bot off to measure what each is worth
@@ -292,6 +298,8 @@ function botTurn(s, pid, mem) {
   }
   mem.tried = mem.tried || new Set();
   const tryOnce = (act) => { if (act && act.a === 'move') act = keepTogether(act); if (act && act.a === 'build' && (E.buildError(s, pid, act.struct, act.hex) || E.buildCost(s, p, act.struct, act.hex) > p.cash)) return null;   // never propose a build the rules refuse (a river, a full hex) or it can't pay for
+    // money-makers never eat the army's budget: once the war is on, most of each turn's income is kept for troops
+    if (act && act.a === 'build' && ['refinery', 'warehouse', 'depot'].includes(act.struct) && p.cash - E.buildCost(s, p, act.struct, act.hex) < (s.turn.income || 0) * (s.turn.round <= 8 ? 0.2 : PL.build && PL.build.economy ? 0.4 : (K.armyShare === undefined ? 0.8 : K.armyShare))) return null;
     const k = JSON.stringify(act); if (mem.tried.has(k)) return null; mem.tried.add(k); return act; };
   // a carrier doesn't drive off and strand more Grunts than the hex can hold: take them along, or leave the carrier
   const keepTogether = (act) => {
@@ -585,6 +593,7 @@ function botTurn(s, pid, mem) {
     const reach = E.reachable(s, pid, ids, k, idx);
     const carryingAttackOnly = false;
     const friendsHere = d => (idx[d] || []).filter(u => u.owner === pid);
+    const late = Math.max(0, Math.min(1, (s.turn.round - 12) / 18));   // 0 until round 12, 1 from round 30
     const myDefHere = movers.reduce((a, u) => a + E.unitDef(s, u), 0), myAtkHere = movers.reduce((a, u) => a + E.unitAtk(s, u), 0);
     let best = null, bv = 0.5;
     const exposed = tiles[k].owner && tiles[k].owner !== pid && E.isAlly(s, pid, tiles[k].owner) && soonFoe(s, pid, tiles[k].owner);
@@ -650,7 +659,8 @@ function botTurn(s, pid, mem) {
         else if (movers.some(u => u.type === 'carrier') && enemyTiles.length) { const d0 = nearest(k, landFor), d1 = nearest(dest, landFor); v += (Math.abs(d0 - 3) - Math.abs(d1 - 3)) * 2 + (d1 <= 1 ? -6 : 0); }   // a floating airbase stands off the enemy coast, in strike range
         else if (enemyTiles.length) v += (nearest(k, enemyTiles) - nearest(dest, enemyTiles)) * 0.6;
       } else {
-        if (t.owner !== pid) v += t.owner ? 6 + (p.faction === 'ashen' ? 2.5 : 0) : 3;
+        // a war that drags on narrows to the kill: grabbing land off the road to their HQ counts for less
+        if (t.owner !== pid) v += (t.owner ? 6 + (p.faction === 'ashen' ? 2.5 : 0) : 3) * (strat.hq && !seaborne ? 1 - 0.6 * late : 1);
         if (t.poi === 'ruins' || t.poi === 'cache') v += 6;
         if (t.poi === 'fort' && !t.owner) v += 9;   // an abandoned FOB: a free forward base
         if (t.poi === 'relic' && t.owner !== pid) v += 8;
@@ -664,7 +674,7 @@ function botTurn(s, pid, mem) {
         if (strat.goal.length) v += walkGain('goal', strat.goal, k, dest) * 1.1 + walkGain('enemy', enemyTiles, k, dest) * 0.3;
         else if (enemyTiles.length) v += walkGain('enemy', enemyTiles, k, dest) * 0.8;
         if (t.owner && t.owner === strat.target) v += 3;
-        if (strat.hq && K.lethal && !seaborne) v += walkGain('hq', [strat.hq], k, dest) * (0.9 + (K.edgeW === undefined ? 3 : K.edgeW) * (strat.edge || 0)) * K.lethal;   // close on their HQ, not just any of their land (and harder the more we outgun them)
+        if (strat.hq && K.lethal && !seaborne) v += walkGain('hq', [strat.hq], k, dest) * (0.9 + (K.edgeW === undefined ? 3 : K.edgeW) * (strat.edge || 0) + (K.lateW === undefined ? 3 : K.lateW) * late) * K.lethal;   // close on their HQ, not just any of their land (and harder the more we outgun them)
         // combined arms: join a friendly stack that lacks our kind of unit (troops with armour with aircraft), facing the enemy
         if (t.owner === pid && friendsHere(dest).length && E.stackFits(friendsHere(dest), movers) && nearest(dest, enemyTiles) <= nearest(k, enemyTiles)) {
           const have = new Set(friendsHere(dest).filter(u => E.UNITS[u.type].atk > 0 && !E.UNITS[u.type].range).map(u => E.UNITS[u.type].cls));
@@ -765,8 +775,9 @@ function botTurn(s, pid, mem) {
     const spot = supLand.filter(k => !tiles[k].struct && !tiles[k].contam && fromFoe(k) >= 2).sort((a, b) => Math.abs(fromFoe(a) - 3) - Math.abs(fromFoe(b) - 3))[0];   // staging distance, not on the line
     if (spot && enemyTiles.length) { const b_ = tryOnce({ a: 'build', struct: 'depot', hex: spot }); if (b_) return b_; }
   }
-  if (p.cash >= E.structCost(p, 'fob') + 3 && !mem.fobTried && !stuck) {
-    mem.fobTried = true;
+  // FOBs: one a turn, and a second when money is piling up (troops need somewhere forward to deploy)
+  if (p.cash >= E.structCost(p, 'fob') + 3 && (mem.fobTried || 0) < (p.cash >= E.structCost(p, 'fob') * 3 + (s.turn.income || 0) * 0.5 ? 2 : 1) && !stuck) {
+    mem.fobTried = (mem.fobTried || 0) + 1;
     const bases = E.spawnPoints(s, pid);
     const gField = strat.goal.length ? walkField('goal', strat.goal) : null, gBase = gField ? Math.min(99, ...bases.map(b => b in gField ? gField[b] : 99)) : 0;
     let best = null, bv = -1;
@@ -807,9 +818,9 @@ function botTurn(s, pid, mem) {
     // counter what the enemy fields: anti-air against air power, tank hunters against armour, siege against forts
     const mix = (() => {
       const land = mine.filter(u => !E.isSea(u.type) && E.UNITS[u.type].atk > 0 && !E.UNITS[u.type].aa), n = Math.max(1, land.length);
-      const kinds = ['inf', 'veh', 'air'].filter(c => p.arsenal.some(t => E.UNITS[t].cls === c && !E.UNITS[t].range && !E.UNITS[t].aa && E.UNITS[t].atk > 0));
+      const kinds = ['inf', 'veh', 'air'].filter(c => p.arsenal.some(t => E.UNITS[t].cls === c && !E.UNITS[t].range && !E.UNITS[t].aa && E.UNITS[t].atk >= 2));
       const melee = {}, fighters = land.filter(u => !E.UNITS[u.type].range); for (const c of kinds) melee[c] = fighters.filter(u => E.UNITS[u.type].cls === c).length / Math.max(1, fighters.length);
-      return { gun: land.filter(u => E.UNITS[u.type].range).length / n, melee, ideal: 1 / Math.max(1, kinds.length) };
+      return { gun: land.filter(u => E.UNITS[u.type].range).length / n, slow: land.filter(u => E.UNITS[u.type].mv <= 1 && E.UNITS[u.type].cls !== 'air').length / n, melee, ideal: 1 / Math.max(1, kinds.length) };
     })();
     const counter = t => { const d = E.UNITS[t]; let b = 0;
       // anti-air only earns its keep against aircraft: none seen means don't buy it, and don't outnumber them
@@ -827,19 +838,22 @@ function botTurn(s, pid, mem) {
       // a balanced army: guns can't take ground (a gun in close combat is just its crew), so they stay about a third of it at most,
       // and of the troops that do the taking (infantry, armour, aircraft) buy whichever kind we're short of. An attack that
       // brings three kinds gets Combined Arms (up to +2 Mult), and the bot plans its blows around that
-      if (d.range && !d.aa) b -= Math.max(0, mix.gun - (K.gunCap || 0.35)) * 14;
-      else if (!d.aa && d.atk > 0 && mix.melee[d.cls] !== undefined) b += (mix.ideal - mix.melee[d.cls]) * 5;
+      if (d.range && !d.aa) b -= Math.max(0, mix.gun - (K.gunCap || 0.35)) * (K.capSlope || 40);
+      // the heavy tanks crawl a hex a turn: a quarter of the army at most, or the war is over before they reach it
+      if (d.mv <= 1 && d.cls !== 'air') b -= Math.max(0, mix.slow - (K.slowCap || 0.25)) * (K.capSlope || 40);
+      else if (!d.aa && d.atk >= 2 && mix.melee[d.cls] !== undefined) b += (mix.ideal - mix.melee[d.cls]) * 5 * Math.min(1, d.atk / 4);
       // guns need a base near the fighting: without one they'd spend the war walking to it
       if (d.range && !d.aa && !E.isSea(t) && d.cls !== 'air' && !E.spawnPoints(s, pid).some(sp => nearest(sp, enemyTiles) <= d.range + 3)) b -= 2.5;
       return b; };
     // what to buy: early on, punch per dollar; once money is plentiful, punch per slot (a hex only holds 5).
     // Under pressure, sturdiness counts double
     // a long march to the war: slow juggernauts arrive after it's over, so speed counts for more
-    const far = (gf0 => Math.min(99, ...E.spawnPoints(s, pid).map(sp => sp in gf0 ? gf0[sp] : 99)))(walkField('deploy', strat.goal.length ? strat.goal : enemyTiles.length ? enemyTiles : targets)) >= 8;
+    const march = (gf0 => Math.min(99, ...E.spawnPoints(s, pid).map(sp => sp in gf0 ? gf0[sp] : 99)))(walkField('deploy', strat.goal.length ? strat.goal : enemyTiles.length ? enemyTiles : targets));
+    const far = march >= 8, mvW = Math.max(0.4, Math.min(2.2, (march - 2) / 4));   // the further the march, the more speed is worth
     const rich = Math.min(1, (s.turn.income || 0) / 45), pressed = Object.values(mem.threat || {}).reduce((a, v) => Math.max(a, v), 0) > 0;
     const worth = t => { const d = E.UNITS[t], lv = (p.levels[t] || 0), a = d.atk + (d.atk ? lv : 0), df = d.def + lv, c = E.unitCost(p, t);
       const aa = !!d.aa;   // anti-air: only its crew's small arms count against ground, and its range is only for aircraft
-      const power = (aa ? 1 : a) * (pressed ? 0.8 : 1.1) + df * (pressed ? 1.3 : 0.8) + Math.min(d.mv, 5) * (far ? 1 : 0.4) + (d.range && !aa ? 2 : 0);
+      const power = (aa ? 1 : a) * (pressed ? 0.8 : 1.1) + df * (pressed ? 1.3 : 0.8) + Math.min(d.mv, 5) * mvW - (d.mv <= 1 && far && d.cls !== 'air' ? 4 : 0) + (d.range && !aa ? 2 : 0);
       return (power / c) * 3 * (1 - rich) + (power / 4) * rich; };
     const scored = options.map(t => [t, (t === 'ark' ? 9 : K.deploy2 === false ? unitValue(t) / Math.sqrt(E.unitCost(p, t)) + (E.unitCost(p, t) >= 5 ? 0.6 : 0) : worth(t)) + counter(t) + Math.random() * 0.5]).sort((a, b) => b[1] - a[1]);
     const type = scored[0][0];
