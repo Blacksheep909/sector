@@ -10,6 +10,10 @@ Every release, newest first. Each version also has its own post on the [Releases
 - **🌫 Fog of war fixes.** Picking HQs under fog no longer shows the map: the land and its prizes stay unexplored, and only the spots you may pick glow (the map reel shows the map type, not the map). When a commander falls, only the part of their empire you can actually see changes hands on your screen; the rest stays in the fog. (The patch near your border that clears now and then is the Clear Skies weather: +2 sight for that round.)
 - **Quieter Strategic Bombing.** One short line sums up the raid ("3 KILLED · 2 HIT · NO INCOME 2 TURNS") instead of a big banner plus a label on every building hit.
 - **Airbase cap shown.** The Airbase slot in the build bar shows how many you hold ("2/3", red at 3/3), its tip says so, and at the cap a click tells you you have 3/3 and can upgrade one instead.
+- **☢ Fallout means fallout.** Nothing in a nuked or Tsar-bombed zone survives on your screen any more (out of sight included: fallout is news to everyone), and nobody can hold it until it clears: no moving in after a fight, no claiming it on the way past, no bridging it.
+- **↶ Undo is one step.** Ctrl+Z takes back your last move, deploy or build only.
+- **🔥 Burning bridges.** A destroyed bridge is charred piers and a snapped deck sagging into the water, on fire for the round it fell and the next two, then smouldering.
+- **💣 Real bombs.** The Tsar Bomba drifts down under a parachute and the tactical nuke falls as a fat finned bomb, instead of a white rocket (which read as a magic wand). A mythic card turning over no longer flashes a white bar when it's edge-on.
 - **Badges above borders.** Building, HQ and point-of-interest badges (and HQ name tags) are drawn over the animated borders now, not under them.
 - **Fix:** knocking out a commander who was besieging someone else's HQ deleted that HQ, leaving its owner impossible to knock out and the war unable to end.
 

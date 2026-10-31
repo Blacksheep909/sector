@@ -214,6 +214,8 @@ const Cards = (() => {
     }
     el0.classList.remove('charging');
     // 2. the turn: quick to edge-on, swap faces there, then settle face-up with a little overshoot
+    // (glows and shadows off while it turns: edge-on, a 3D glow plane or a big white shadow collapses into a bright bar, the 'wand')
+    el0.classList.add('turning');
     await go([{ transform: `${C} rotateY(180deg) scale(${T.scale - 0.2})` }, { transform: `${C} rotateY(90deg) scale(${T.scale + 0.1})` }], 170, 'cubic-bezier(.5,0,1,.6)');
     el0.classList.add('open');
     { const [x, y] = center(el0); const fl = el('div', 'stage-flash'); fl.style.left = x + 'px'; fl.style.top = y + 'px'; fl.style.setProperty('--sc', T.col); $('#flyLayer').appendChild(fl); setTimeout(() => fl.remove(), 700); }
@@ -221,6 +223,7 @@ const Cards = (() => {
     revealFx(s.front, s.d.rarity, el0);
     if (rk === 4) confetti();
     await go([{ transform: `${C} rotateY(90deg) scale(${T.scale + 0.1})` }, { transform: `${C} rotateY(-12deg) scale(${T.scale + 0.05})`, offset: 0.65 }, { transform: `${C} rotateY(0deg) scale(${T.scale})` }], 420, 'cubic-bezier(.2,.9,.3,1)');
+    el0.classList.remove('turning');
     // 3. the showcase: held big and face-up; a click (or Space) moves on
     el0.classList.add('showing');
     const onClick = e => { e.stopPropagation(); hurry(); };

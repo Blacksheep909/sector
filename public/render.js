@@ -298,12 +298,33 @@ const Render = (() => {
   }
   function missile(a, b, opts = {}) {
     const m = { a: ptOf(a), b: ptOf(b), alt0: opts.alt0 ?? 12, alt1: opts.alt1 ?? 0, loft: opts.loft ?? 18, accel: opts.accel ?? 1.5, t0: t + (opts.delay || 0), dur: opts.dur || 0.55, stop: opts.stopAt || 1, color: opts.color || '#ffffff', size: opts.size || 1, trail: [], boom: opts.boom !== false, shell: !!opts.shell, gone: null };   // shell: a gun or mortar round, no rocket trail
+    m.bomb = !!opts.bomb; m.chute = !!opts.chute;   // a free-fall (or parachute) bomb: a fat finned body, nose down, no rocket trail
     missiles.push(m);
     if (opts.onHit) setTimeout(opts.onHit, Math.max(0, (m.t0 + m.dur * m.stop - t) * 1000));
     return m;
   }
   // where a missile fired with these options will be at fraction p of its flight (to aim interceptors at it)
   function missileAt(a, b, opts = {}, p = 1) { return missilePos({ a: ptOf(a), b: ptOf(b), alt0: opts.alt0 ?? 12, alt1: opts.alt1 ?? 0, loft: opts.loft ?? 18, accel: opts.accel ?? 1.5 }, p); }
+  // a heavy bomb hanging nose-down (origin at its nose), and the parachute that slowed the real Tsar Bomba
+  function bombShape(u, fill, chute) {
+    if (chute) {
+      // shroud lines, then a striped canopy
+      ctx.strokeStyle = 'rgba(230,230,230,.85)'; ctx.lineWidth = 0.7 * u;
+      for (const x of [-11, -5, 5, 11]) { ctx.beginPath(); ctx.moveTo(0, -17 * u); ctx.lineTo(x * u, -30 * u); ctx.stroke(); }
+      ctx.fillStyle = '#0b0f13'; ctx.beginPath(); ctx.ellipse(0, -30 * u, 14 * u, 9 * u, 0, Math.PI, 0); ctx.closePath(); ctx.fill();
+      for (let i = 0; i < 4; i++) {
+        ctx.fillStyle = i % 2 ? '#f2f2f2' : '#e0352b';
+        ctx.beginPath(); ctx.moveTo(0, -30 * u); ctx.ellipse(0, -30 * u, 12.6 * u, 7.8 * u, 0, Math.PI + i * Math.PI / 4, Math.PI + (i + 1) * Math.PI / 4); ctx.closePath(); ctx.fill();
+      }
+    }
+    // tail fins (up top), the body and a nose ring
+    ctx.fillStyle = '#0b0f13'; ctx.fillRect(-4.6 * u, -18.5 * u, 9.2 * u, 4.2 * u);
+    ctx.fillStyle = '#5c646c'; ctx.fillRect(-3.8 * u, -18 * u, 7.6 * u, 3.2 * u);
+    ctx.fillStyle = '#0b0f13'; ctx.beginPath(); ctx.ellipse(0, -8 * u, 4.6 * u, 10 * u, 0, 0, Math.PI * 2); ctx.fill();
+    ctx.fillStyle = fill; ctx.beginPath(); ctx.ellipse(0, -8 * u, 3.6 * u, 9 * u, 0, 0, Math.PI * 2); ctx.fill();
+    ctx.fillStyle = 'rgba(0,0,0,.28)'; ctx.beginPath(); ctx.ellipse(1.4 * u, -8 * u, 1.8 * u, 8.4 * u, 0, 0, Math.PI * 2); ctx.fill();
+    ctx.fillStyle = '#e8c23a'; ctx.fillRect(-3.4 * u, -5 * u, 6.8 * u, 1.6 * u);
+  }
   // a little arrowhead of a missile, facing +x
   function dart(s, fill) {
     ctx.fillStyle = '#0b0f13'; ctx.beginPath(); ctx.moveTo(s * 1.25, 0); ctx.lineTo(-s, -s * 0.42); ctx.lineTo(-s, s * 0.42); ctx.closePath(); ctx.fill();
@@ -316,11 +337,14 @@ const Render = (() => {
       if (p < 0) continue;
       if (!m.gone) {
         const q = Math.min(p, m.stop), [x, y] = missilePos(m, q);
-        if (!m.shell) m.trail.push([x, y, t]);
-        if (!m.shell && Math.random() < 0.7) fx.parts.push({ x: x + (Math.random() - 0.5) * 3, y: y + (Math.random() - 0.5) * 3, vx: (Math.random() - 0.5) * 8, vy: -4 - Math.random() * 6, life: 0, max: 0.9 + Math.random() * 0.5, col: null, smoke: 'rgba(235,240,245,', sa: 0.5, sz: 2.2 + Math.random() * 1.6, g: -6 });
+        if (!m.shell && !m.bomb) m.trail.push([x, y, t]);
+        if (!m.shell && !m.bomb && Math.random() < 0.7) fx.parts.push({ x: x + (Math.random() - 0.5) * 3, y: y + (Math.random() - 0.5) * 3, vx: (Math.random() - 0.5) * 8, vy: -4 - Math.random() * 6, life: 0, max: 0.9 + Math.random() * 0.5, col: null, smoke: 'rgba(235,240,245,', sa: 0.5, sz: 2.2 + Math.random() * 1.6, g: -6 });
         if (p >= m.stop) {
           m.gone = t;
           if (m.boom) { burst([x, y], ['#fff', '#ffd27a', '#ff8a3a', '#9aa4ad'], 16, { speed: 1.1, size: 2.6, up: 40, g: 120 }); ring([x, y], '#fff', 34, 0.35, 3); }
+        } else if (m.bomb) {
+          const [sx, sy] = toScreen(x, y); ctx.save(); ctx.translate(sx, sy); ctx.rotate(Math.sin(t * 2.4) * (m.chute ? 0.14 : 0.04));
+          bombShape(z * m.size, m.color, m.chute); ctx.restore();
         } else if (m.shell) {
           const [sx, sy] = toScreen(x, y); ctx.fillStyle = 'rgba(255,220,150,.35)'; ctx.beginPath(); ctx.arc(sx, sy, 3.6 * z * m.size, 0, Math.PI * 2); ctx.fill();
           ctx.fillStyle = m.color; ctx.beginPath(); ctx.arc(sx, sy, 2.2 * z * m.size, 0, Math.PI * 2); ctx.fill();
@@ -615,13 +639,7 @@ const Render = (() => {
     // bridges and their wreckage (sea and river alike)
     if (tile.bridge) drawBridge(tile, c.q + ',' + c.r, cx, cy, s, z);
     else if ((tile.structs || []).some(x => x.type === 'bridge' && x.lock)) drawBridge(tile, c.q + ',' + c.r, cx, cy, s, z, true);   // still being built
-    else if (tile.wreck) {
-      // the stumps and twisted deck of a destroyed bridge
-      ctx.save(); ctx.fillStyle = '#4a3d2c';
-      for (const ox of [-0.38, 0.32]) { ctx.fillRect(cx + ox * s - 2.5 * z, cy - 4 * z, 5 * z, 8 * z); }
-      ctx.translate(cx, cy); ctx.rotate(0.35); ctx.fillStyle = 'rgba(70,58,42,.85)'; ctx.fillRect(-0.3 * s, -1.5 * z, 0.32 * s, 3 * z); ctx.rotate(-0.8); ctx.fillRect(0.02 * s, -1.5 * z, 0.26 * s, 3 * z);
-      ctx.restore();
-    }
+    else if (tile.wreck) drawWreck(tile, k, cx, cy, s, z);
     // territory borders
     if (tile.owner && c.oc) {
       const nb = E.neighbors(k);
@@ -716,6 +734,67 @@ const Render = (() => {
   }
   // a 2.5D bridge: concrete piers in the water, an asphalt deck with a visible edge, railings, and a steel arch overhead.
   // River bridges run bank to bank (across the flow)
+  // the screen angle of the span a bridge here has (or had): along the same axis drawBridge picks
+  function bridgeAngle(tile, k) {
+    const tiles = S_.map.tiles, bank = n => tiles[n] && E.TERRAIN[tiles[n].t].land && !tiles[n].river;
+    const nb = E.neighbors(k).filter(n => tiles[n] && (tile.river ? bank(n) : E.TERRAIN[tiles[n].t].land));
+    let a = null, b = null, best = -1;
+    for (const p of nb) for (const q of nb) { const d = E.dist(p, q); if (d > best) { best = d; a = p; b = q; } }
+    const [q0, r0] = E.parse(k), axisOf = n => { if (!n) return 0; const [q1, r1] = E.parse(n); const i = E.DIRS.findIndex(d => d[0] === q1 - q0 && d[1] === r1 - r0); return i < 0 ? 0 : i % 3; };
+    let ax = null;
+    if (tile.bridgeRot || !a || !b || best < 2) ax = (axisOf(best >= 2 ? a : null) + (tile.bridgeRot || 0)) % 3;
+    const d = ax !== null ? [E.DIRS[ax][0] - E.DIRS[ax + 3][0], E.DIRS[ax][1] - E.DIRS[ax + 3][1]] : (() => { const [qa, ra] = E.parse(a), [qb, rb] = E.parse(b); return [qb - qa, rb - ra]; })();
+    return Math.atan2(1.5 * d[1] * TILT, SQ3 * (d[0] + d[1] / 2));
+  }
+  // a destroyed bridge: charred piers on both banks and the snapped deck sagging into the water, embers along the breaks
+  // (the fire on top is drawn every frame, in drawBadges)
+  function drawWreck(tile, k, cx, cy, s, z) {
+    const ang = bridgeAngle(tile, k), L = s * 0.86;
+    ctx.save(); ctx.translate(cx, cy); ctx.rotate(ang);
+    // scorched water round the wreck
+    ctx.fillStyle = 'rgba(20,14,10,.35)'; ctx.beginPath(); ctx.ellipse(0, 1 * z, L * 0.62, 7 * z, 0, 0, Math.PI * 2); ctx.fill();
+    for (const side of [-1, 1]) {
+      const px = side * L * 0.5;
+      // the deck half: from the bank down into the water, snapped at the middle
+      ctx.fillStyle = '#2a1d14'; ctx.strokeStyle = '#0b0705'; ctx.lineWidth = 1.2 * z;
+      ctx.beginPath(); ctx.moveTo(px, -3.6 * z); ctx.lineTo(side * L * 0.12, 1.5 * z); ctx.lineTo(side * L * 0.06, 4.2 * z); ctx.lineTo(px, -0.4 * z); ctx.closePath(); ctx.fill(); ctx.stroke();
+      // jagged broken end, glowing
+      ctx.strokeStyle = '#ff7a2a'; ctx.lineWidth = 1.4 * z; ctx.beginPath(); ctx.moveTo(side * L * 0.12, 1.5 * z); ctx.lineTo(side * L * 0.09, 2.6 * z); ctx.lineTo(side * L * 0.11, 3.3 * z); ctx.lineTo(side * L * 0.06, 4.2 * z); ctx.stroke();
+      // charred planks
+      ctx.strokeStyle = 'rgba(0,0,0,.55)'; ctx.lineWidth = 0.9 * z;
+      for (let i = 1; i < 4; i++) { const f = i / 4, x = px + (side * L * 0.12 - px) * f; ctx.beginPath(); ctx.moveTo(x, -3.6 * z + 5.1 * z * f); ctx.lineTo(x, -0.4 * z + 4.6 * z * f); ctx.stroke(); }
+      // the pier: a black post with a burnt, glowing top
+      ctx.fillStyle = '#16100c'; ctx.fillRect(px - 2.6 * z, -6 * z, 5.2 * z, 10 * z);
+      ctx.fillStyle = '#c2461a'; ctx.fillRect(px - 2.6 * z, -6 * z, 5.2 * z, 1.6 * z);
+    }
+    // a few floating timbers
+    ctx.fillStyle = '#21170f';
+    for (const [x, y, r] of [[-0.05, 6, 0.3], [0.18, 4.5, -0.5], [-0.24, 5, 0.9]]) { ctx.save(); ctx.translate(x * L, y * z); ctx.rotate(r); ctx.fillRect(-3 * z, -0.8 * z, 6 * z, 1.6 * z); ctx.restore(); }
+    ctx.restore();
+  }
+  // fire on a freshly wrecked bridge (the round it fell and the next two), then a thin smoulder
+  function wreckFire(tile, k, cx, cy, z) {
+    const s = S * 0.965 * z, ang = bridgeAngle(tile, k), L = s * 0.86, hot = tile.burn && S_.turn && S_.turn.round <= tile.burn;
+    ctx.save(); ctx.translate(cx, cy); ctx.rotate(ang);
+    const spots = hot ? [[-L * 0.1, 1.6, 1], [L * 0.1, 1.6, 1], [-L * 0.5, -6, 0.75], [L * 0.5, -6, 0.75]] : [[-L * 0.5, -6, 0.35], [L * 0.5, -6, 0.35]];
+    for (const [x, y, size] of spots) {
+      ctx.save(); ctx.translate(x, y * z); ctx.rotate(-ang);   // flames stand up, whatever way the bridge ran
+      if (hot) {
+        ctx.globalCompositeOperation = 'lighter';
+        const g = ctx.createRadialGradient(0, -3 * z, 0, 0, -3 * z, 13 * z * size); g.addColorStop(0, 'rgba(255,140,40,.45)'); g.addColorStop(1, 'rgba(255,80,20,0)');
+        ctx.fillStyle = g; ctx.beginPath(); ctx.arc(0, -3 * z, 13 * z * size, 0, Math.PI * 2); ctx.fill();
+        ctx.globalCompositeOperation = 'source-over';
+        for (const [col, w, h, ph] of [['#ff3c14', 4.6, 11, 0], ['#ff8a1e', 3.4, 8.5, 1.7], ['#ffe27a', 1.9, 5.5, 3.1]]) {
+          const fl = 1 + 0.18 * Math.sin(t * 13 + ph + x) + 0.1 * Math.sin(t * 23 + ph * 2), sway = Math.sin(t * 7 + ph + x) * 1.2 * z;
+          const hh = h * z * size * fl, ww = w * z * size;
+          ctx.fillStyle = col; ctx.beginPath(); ctx.moveTo(-ww, 0); ctx.quadraticCurveTo(-ww * 1.1, -hh * 0.45, sway, -hh); ctx.quadraticCurveTo(ww * 1.1, -hh * 0.45, ww, 0); ctx.quadraticCurveTo(0, ww * 0.5, -ww, 0); ctx.fill();
+        }
+      } else { ctx.fillStyle = 'rgba(255,110,40,' + (0.35 + 0.25 * Math.sin(t * 4 + x)) + ')'; ctx.beginPath(); ctx.arc(0, 0, 1.6 * z, 0, Math.PI * 2); ctx.fill(); }
+      ctx.restore();
+    }
+    ctx.restore();
+    if (Math.random() < (hot ? 0.035 : 0.012)) { const c = tc[k]; smoke([c.wx + (Math.random() - 0.5) * 14, c.wy - c.h * (S / 34) - 8], 1, hot ? 'rgba(70,64,60,' : 'rgba(130,128,126,'); }
+  }
   function drawBridge(tile, k, cx, cy, s, z, building) {
     const tiles = S_.map.tiles, bank = n => tiles[n] && E.TERRAIN[tiles[n].t].land && !tiles[n].river;
     const nb = E.neighbors(k).filter(n => tiles[n] && (tile.river ? bank(n) : E.TERRAIN[tiles[n].t].land));
@@ -973,12 +1052,14 @@ const Render = (() => {
       const tile = S_.map.tiles[k], c = tc[k]; if (!c) continue;
       const poi = tile.fog !== 2 && tile.poi && !(tile.poi === 'fort' && tile.owner) && !c.river;
       const st = tile.struct && tile.struct.type !== 'bridge' && (tile.fog !== 2 || tile.struct.type === 'hq');
-      if (!poi && !st) continue;
+      const fire = tile.wreck && !tile.bridge && tile.fog !== 2;
+      if (!poi && !st && !fire) continue;
       let h = c.h * sc; const popT = fx.pops[k];
       if (popT !== undefined) { const p = (t - popT) / 0.35; if (p < 1) h += Math.sin(p * Math.PI) * 10; }
       const [cx, gy] = toScreen(c.wx, c.wy), cy = gy - h * z;
       if (cx < -80 || cx > W + 80 || cy < -120 || gy > H + 120) continue;
       ctx.save(); if (tile.fog === 1) ctx.globalAlpha = 0.62;
+      if (fire && tile.fog !== 1) wreckFire(tile, k, cx, cy, z);
       if (poi) poiBadge(tile, c.v, cx, cy, z);
       if (st) {
         drawStruct(tile, cx, cy, z, k);

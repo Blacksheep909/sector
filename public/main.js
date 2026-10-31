@@ -2971,7 +2971,7 @@
   // a bridge goes into the water and leaves wreckage behind
   function dropBridge(k) {
     const tt = S.map.tiles[k]; if (!tt) return;
-    tt.structs = (tt.structs || []).filter(x => x.type !== 'bridge'); tt.struct = tt.structs[0] || null; tt.bridge = false; tt.owner = null; tt.wreck = true;
+    tt.structs = (tt.structs || []).filter(x => x.type !== 'bridge'); tt.struct = tt.structs[0] || null; tt.bridge = false; tt.owner = null; tt.wreck = true; tt.burn = S.turn.round + 2;
     Render.burst(k, ['#8a7a66', '#5d5144', '#9fe8ff', '#ffffff'], 40, { up: 180, speed: 1.6 }); SFX.boom(0.9); Render.shake(8);
     Render.recolor(); Render.invalidate();
   }
@@ -3116,13 +3116,13 @@
         banner('☢ NUCLEAR LAUNCH DETECTED', who, '#8a9a2c'); SFX.alarm(); await sleep(900);
         // the warhead comes down almost straight out of the sky on a long white trail
         { const [nx, ny] = Render.topOf(ev.target); Render.ring(ev.target, '#d9ff3b', 60, 0.6, 4); SFX.whoosh();
-          Render.missile([nx + 30, ny], ev.target, { alt0: 420, alt1: 0, loft: 0, accel: 2.4, dur: 0.75 * speed(), size: 1.6, color: '#eef2c8', boom: false }); await sleep(750); }
+          Render.missile([nx + 6, ny], ev.target, { alt0: 420, alt1: 0, loft: 0, accel: 2.4, dur: 0.75 * speed(), size: 1.1, color: '#56603f', boom: false, bomb: true }); await sleep(750); }
         Render.flash(1.2, '#ffffff'); SFX.boom(3); Render.shake(40);
         for (let i = 0; i < 4; i++) Render.ring(ev.target, ['#fff', '#ffdd55', '#ff7a2a', '#d9ff3b'][i], 160 + i * 40, 1 + i * 0.3, 8);
         Render.burst(ev.target, ['#fff', '#ffdd55', '#ff7a2a', '#ff3a1a', '#444'], 120, { speed: 3, size: 5, life: 1.4 });
         Render.smoke(ev.target, 40, 'rgba(120,110,90,');
         for (const id of ev.units) delete S.units[id];
-        for (const k of ev.area) { const t = S.map.tiles[k]; if (t && E.isLandTile(t)) { t.owner = null; t.struct = null; t.contam = 4; } }
+        for (const k of ev.area) { const t = S.map.tiles[k]; if (t) { if (t.bridge) dropBridge(k); t.owner = null; t.structs = []; t.struct = null; if (E.isLandTile(t)) t.contam = 4; } }
         Render.recolor(); await sleep(1100); break;
       }
       case 'quarry': {
@@ -3146,7 +3146,7 @@
         // the real one was dropped from a bomber and slowed by a parachute: a heavy bomber passes, the bomb drifts down, then the flash
         { const sp = speed(), [tx, ty] = Render.topOf(ev.target); SFX.jet();
           Render.flyover([ev.target], { shape: 'b52', color: pColor(ev.pid), dur: 2.0 * sp, noBombs: true });
-          Render.missile([tx - 40, ty], ev.target, { alt0: 150, alt1: 0, loft: 0, accel: 0.7, dur: 1.4 * sp, delay: 0.75 * sp, size: 1.9, color: '#f4f4f4', boom: false });
+          Render.missile([tx - 40, ty], ev.target, { alt0: 150, alt1: 0, loft: 0, accel: 0.7, dur: 1.4 * sp, delay: 0.75 * sp, size: 1.25, color: '#4e5a3c', boom: false, bomb: true, chute: true });
           await sleep(2150); }
         Render.flash(1.6, '#ffffff'); SFX.boom(3); later(0.22, () => SFX.boom(2.4)); Render.shake(55);
         for (let i = 0; i < 6; i++) Render.ring(ev.target, ['#fff', '#ffe6a0', '#ffdd55', '#ff7a2a', '#d9ff3b', '#ffffff'][i], 200 + i * 55, 1.1 + i * 0.3, 10);

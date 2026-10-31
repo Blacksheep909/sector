@@ -810,7 +810,7 @@
   // a bridge that's blown up leaves wreckage in the channel (anyone standing on it drowns)
   function wreckBridge(s, k) {
     const t = s.map.tiles[k], b = getS(t, 'bridge'); if (b) removeStruct(t, b);
-    t.bridge = false; t.wreck = true;
+    t.bridge = false; t.wreck = true; t.burn = s.turn ? s.turn.round + 2 : 0;   // it burns for this round and the next two
     if (t.riverBridge || t.river) delete t.riverBridge; else t.owner = null;   // a river hex is still land: only the span is lost
   }
   function canAct(s, u) { const p = player(s, u.owner); return !u.moved && !u.stun && (!u.fresh || (p && p.blitz) || UNITS[u.type].ability === 'blitzer'); }
@@ -858,6 +858,7 @@
     const tiles = s.map.tiles, t = tiles[k];
     sup = sup || supplySet(s, pid);
     if (!t) return 'No such hex';
+    if (t.contam > 0) return 'Fallout zone';
     if (struct === 'bridge' && t.river && isLandTile(t) && !t.bridge) {
       // a river bridge: on your own supplied river hex, so vehicles can cross
       // your own supplied river hex, or an unclaimed one on the edge of your supplied land
@@ -1317,7 +1318,8 @@
   function rollDie(rng) { return 1 + Math.floor(rng() * 6); }
   const weakest = arr => arr.slice().sort((a, b) => UNITS[a.type].cost - UNITS[b.type].cost)[0];
   // who can stand on a hex after winning it: ships at sea, anyone on land, and nobody on foot in an unbridged river
-  function canHold(tile, u) { return isWater(tile) ? isSea(u.type) : isLandTile(tile) && !isSea(u.type) && !(tile.river && !tile.bridge && UNITS[u.type].cls !== 'air'); }
+  // (nobody stays in fallout: a win there wipes out the defenders but the attackers hold back outside it)
+  function canHold(tile, u) { return !(tile.contam > 0) && (isWater(tile) ? isSea(u.type) : isLandTile(tile) && !isSea(u.type) && !(tile.river && !tile.bridge && UNITS[u.type].cls !== 'air')); }
 
   // groups: [{ units, stage, from }] — one group is a normal attack, several is a pincer
   function resolveAssault(s, pid, groups, target, rng, ev) {
@@ -1455,6 +1457,7 @@
   function captureTile(s, k, pid) {
     const t = s.map.tiles[k];
     if (!t || t.t === 'mountain' || t.owner === pid) return false;
+    if (t.contam > 0) return false;   // fallout: nobody holds it until it clears (moving through, encircling, anything)
     if (t.owner && isAlly(s, pid, t.owner)) return false;   // allied land is never taken
     if (t.owner) addMood(s, t.owner, pid, -2);
     const cp = player(s, pid);
@@ -1499,7 +1502,7 @@
       const other = getS(t, 'hq');
       if (t.owner === loser && other && other.owner !== loser && player(s, other.owner) && player(s, other.owner).alive) { delete other.siege; t.owner = other.owner; syncStructs(t); continue; }
       if (t.owner === loser) {
-        const heart = by && dist(k, lp.hq) <= 2;
+        const heart = by && dist(k, lp.hq) <= 2 && !(t.contam > 0);
         if (heart) { t.owner = by; for (const st of structsOf(t)) st.owner = by; }
         else {
           // outside the heartland the empire collapses: land goes neutral, buildings are wrecked (bridges stay, unowned)
@@ -2295,7 +2298,7 @@
       }
       const slow = a.struct === 'fob' || a.struct === 'airbase' || a.struct === 'bridge';   // these take a turn to come online (a bridge opens to traffic next turn)
       addStruct(t, slow ? { type: a.struct, owner: pid, lvl: 1, lock: 1 } : { type: a.struct, owner: pid, lvl: 1 });
-      if (a.struct === 'bridge') { t.owner = pid; delete t.wreck; }   // the span opens on the builder's next turn
+      if (a.struct === 'bridge') { t.owner = pid; delete t.wreck; delete t.burn; }   // the span opens on the builder's next turn
       ev.push({ e: 'build', pid, struct: a.struct, hex: a.hex, lvl: 1, lock: slow ? 1 : 0 });
       return { ok: true, events: ev };
     }
@@ -3007,6 +3010,8 @@
           // a fallen commander's empire collapses, and everyone hears about it: remembered land of theirs shows as neutral
           const m = mem.seen[k], gone = m && m.owner && !(player(s, m.owner) || {}).alive;
           if (m && gone) { m.owner = null; m.structs = m.structs.filter(x => x.type === 'bridge').map(x => ({ ...x, owner: null })); }
+          // fallout is news to everyone: whatever you remember standing there is gone
+          if (m && real.contam > 0 && !real.owner) { m.owner = null; m.structs = []; }
           if (m) { t.owner = m.owner; t.structs = m.structs; t.poi = m.poi; t.gar = m.gar; if (!m.poi) delete t.poi; if (m.ruin) t.ruin = m.ruin; else delete t.ruin; if (m.wreck) t.wreck = true; else delete t.wreck; }
         } else {
           t.fog = 2;

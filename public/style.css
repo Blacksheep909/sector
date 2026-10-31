@@ -2128,3 +2128,7 @@ body.war-over #dock, body.war-over #endBtn, body.war-over #marketBtn { display: 
 /* airbases held, out of the cap (red when full) */
 .slot .cap { position: absolute; top: 2px; right: 4px; font-family: var(--title); font-size: 10px; line-height: 1; padding: 2px 4px; border-radius: 5px; background: #05080b; color: #9fe8ff; border: 1px solid #2a3a48; }
 .slot .cap.full { background: #4a0f14; color: #ff8a8a; border-color: #ff4f5e; }
+/* a showcase card mid-turn: no glow plane or wide shadows (edge-on they read as a glowing white stick) */
+.flip.turning .stage-glow { opacity: 0 !important; transition: none; }
+.flip.turning .cback, .flip.turning .ci, .flip.turning .cfront { box-shadow: none !important; filter: none !important; }
+.flip.turning .ci::before { display: none !important; }

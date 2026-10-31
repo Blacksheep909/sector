@@ -585,7 +585,7 @@ function onMessage(c, m) {
         return false; })();
       if (snap && !scouted && r.events.every(e => ['move', 'deploy', 'build', 'annex', 'bridgeRot'].includes(e.e))) {
         if (undoStack.owner !== actor) { undoStack.length = 0; undoStack.owner = actor; }
-        undoStack.push(snap); if (undoStack.length > 30) undoStack.shift();
+        undoStack.push(snap); if (undoStack.length > 1) undoStack.shift();   // one step back only: your last move, not the whole turn
       } else if (isCur || (m.action || {}).a === 'end') undoStack.length = 0;
       game.v++;
       broadcastState(r.events, actor, m.seq);
