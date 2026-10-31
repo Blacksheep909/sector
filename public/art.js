@@ -1915,87 +1915,193 @@ const Art = (() => {
       shade(c, () => { c.moveTo(-0.76, -0.54); c.quadraticCurveTo(-0.47, -0.61, -0.18, -0.54); c.lineTo(-0.18, -0.52); c.quadraticCurveTo(-0.47, -0.59, -0.76, -0.52); c.closePath(); }, SH2);
     },
   });
-  // ── v7: outlines traced from public-domain recognition silhouettes (US Army, via Wikimedia Commons), nose to the right.
-  // SIL holds SVG path data in the icon box; sil() fills it, and the running gear and shading go on top, clipped to it ──
-  const SIL = {
-    leviathan: 'M-1.050 0.088L-1.014 0.179L-1.014 0.334L-0.991 0.337L-0.987 0.292L-0.944 0.270L-0.856 0.377L-0.816 0.416L0.168 0.435L0.210 0.413L0.375 0.289L0.386 0.267L0.400 0.182L0.427 0.158L0.427 0.128L0.388 0.058L0.366 0.058L0.345 0.079L0.314 0.058L0.289 0.058L0.280 0.070L0.269 0.070L0.163 0.030L0.150 0.018L0.156 0.009L0.208 -0.018L0.589 -0.046L0.656 -0.030L0.726 -0.030L1.041 -0.052L1.050 -0.058L1.050 -0.082L0.994 -0.115L0.300 -0.125L0.204 -0.170L0.091 -0.170L0.066 -0.207L-0.156 -0.185L-0.165 -0.198L-0.177 -0.249L-0.143 -0.280L-0.075 -0.280L-0.075 -0.313L-0.330 -0.313L-0.359 -0.280L-0.386 -0.340L-0.415 -0.340L-0.445 -0.325L-0.476 -0.283L-0.483 -0.231L-0.494 -0.216L-0.629 -0.204L-0.690 -0.210L-0.773 -0.188L-0.854 -0.188L-0.870 -0.125L-0.870 -0.085L-0.859 -0.052L-0.850 -0.046L-0.859 -0.040L-0.982 -0.046L-1.014 -0.064L-1.043 -0.064ZM-0.476 -0.435L-0.478 -0.337L-0.456 -0.334L-0.454 -0.431Z',
-    goliath: 'M1.050 -0.131L0.388 -0.134L0.380 -0.145L0.377 -0.182L0.151 -0.186L0.143 -0.197L0.143 -0.245L0.089 -0.278L0.118 -0.417L0.129 -0.428L0.214 -0.450L0.252 -0.436L0.282 -0.436L0.285 -0.484L0.135 -0.487L0.050 -0.517L0.010 -0.517L-0.001 -0.495L-0.050 -0.498L-0.080 -0.458L-0.078 -0.417L-0.045 -0.381L-0.045 -0.347L-0.053 -0.336L-0.091 -0.340L-0.113 -0.381L-0.203 -0.381L-0.301 -0.311L-0.336 -0.263L-0.519 -0.248L-0.524 -0.256L-0.516 -0.491L-0.522 -0.498L-0.549 -0.498L-0.552 -0.285L-0.560 -0.274L-0.576 -0.274L-0.584 -0.285L-0.584 -0.377L-0.636 -0.381L-0.639 -0.329L-0.631 -0.285L-0.639 -0.274L-0.688 -0.259L-0.693 -0.267L-0.690 -0.340L-0.696 -0.347L-0.723 -0.347L-0.726 -0.245L-0.731 -0.233L-0.780 -0.215L-0.868 -0.219L-0.868 -0.149L-0.876 -0.127L-0.873 -0.086L-0.707 -0.053L-0.707 -0.046L-0.998 -0.035L-1.050 -0.009L-1.050 0.050L-1.036 0.171L-0.968 0.252L-0.963 0.300L-0.786 0.517L0.342 0.513L0.557 0.406L0.661 0.303L0.669 0.222L0.677 0.208L0.737 0.211L0.742 0.204L0.748 0.108L0.731 0.090L0.680 0.061L0.339 0.024L0.325 0.013L0.402 -0.031L1.047 -0.072Z',
-    mauler: 'M-1.050 0.063L-0.996 0.083L-0.969 0.136L-0.935 0.136L-0.927 0.146L-0.925 0.175L-0.886 0.182L-0.839 0.251L-0.668 0.394L0.261 0.410L0.442 0.225L0.455 0.195L0.455 0.076L0.418 0.043L0.361 0.043L0.342 0.000L0.131 -0.013L0.102 -0.040L0.107 -0.053L1.048 -0.046L1.050 -0.126L1.035 -0.132L0.065 -0.139L-0.060 -0.202L-0.065 -0.341L-0.102 -0.337L-0.102 -0.218L-0.109 -0.208L-0.153 -0.208L-0.200 -0.265L-0.207 -0.341L-0.261 -0.341L-0.273 -0.281L-0.283 -0.265L-0.342 -0.271L-0.357 -0.288L-0.383 -0.404L-0.388 -0.410L-0.418 -0.410L-0.440 -0.354L-0.447 -0.394L-0.469 -0.397L-0.479 -0.344L-0.486 -0.334L-0.712 -0.344L-0.722 -0.327L-0.722 -0.294L-0.712 -0.288L-0.550 -0.284L-0.477 -0.265L-0.472 -0.238L-0.482 -0.225L-0.572 -0.222L-0.572 -0.159L-0.521 -0.083L-0.518 -0.069L-0.523 -0.063L-0.952 -0.050L-0.967 0.013L-0.974 0.023L-1.048 0.023Z',
-    stormcrow: 'M-1.000 -0.472L-0.992 -0.422L-0.933 -0.278L-0.942 -0.253L-0.975 -0.253L-0.967 -0.178L-0.862 0.028L-0.871 0.047L-0.917 0.053L-0.912 0.091L-0.875 0.166L-0.883 0.216L-0.842 0.222L-0.808 0.209L-0.800 0.222L-0.825 0.253L-0.825 0.278L-0.812 0.291L-0.592 0.341L-0.579 0.391L-0.592 0.409L-0.617 0.416L-0.625 0.434L-0.625 0.472L-0.608 0.491L-0.592 0.491L-0.575 0.466L-0.575 0.447L-0.496 0.347L-0.408 0.366L-0.050 0.372L0.071 0.397L0.492 0.397L0.504 0.416L0.504 0.453L0.517 0.478L0.554 0.484L0.592 0.416L0.900 0.378L0.963 0.353L1.000 0.309L0.996 0.266L0.967 0.222L0.875 0.153L0.787 0.028L0.754 0.003L0.721 -0.003L0.675 -0.041L0.546 -0.072L0.517 -0.097L0.483 -0.084L0.471 -0.103L0.471 -0.141L0.483 -0.159L0.633 -0.159L0.633 -0.197L0.412 -0.216L0.392 -0.228L0.263 -0.209L0.267 -0.178L0.362 -0.166L0.371 -0.122L0.358 -0.103L0.054 -0.084L0.037 -0.072L0.029 -0.034L-0.058 0.034L-0.537 0.147L-0.613 0.153L-0.633 0.134L-0.833 -0.191L-0.696 -0.322L-0.700 -0.366L-0.725 -0.372L-0.867 -0.253L-0.883 -0.266L-0.892 -0.309L-0.958 -0.478L-0.983 -0.491Z',
-    valkyrie: 'M1.000 0.367L0.988 0.328L0.912 0.320L0.865 0.288L0.749 0.138L0.655 0.130L0.632 0.099L0.608 0.122L0.526 0.122L0.421 0.075L0.374 -0.051L0.368 -0.241L0.310 -0.257L0.287 -0.288L0.316 -0.320L0.801 -0.399L0.801 -0.430L0.292 -0.438L0.222 -0.541L0.175 -0.493L0.158 -0.446L0.105 -0.430L-0.468 -0.438L-0.468 -0.407L-0.064 -0.359L0.129 -0.304L0.140 -0.288L0.146 -0.051L0.129 -0.020L-0.012 0.051L-0.175 0.107L-0.205 0.107L-0.240 0.075L-0.257 0.122L-0.386 0.146L-0.415 0.099L-0.433 0.099L-0.456 0.146L-0.591 0.146L-0.743 0.091L-0.766 0.051L-0.854 -0.257L-0.901 -0.264L-1.000 -0.225L-1.000 0.280L-0.988 0.296L-0.789 0.304L-0.760 0.241L-0.737 0.225L-0.468 0.430L-0.275 0.533L0.789 0.541L0.889 0.509L0.930 0.541L0.988 0.430Z',
-    carrier: 'M-1.050 0.038L-1.050 0.149L-1.039 0.176L-1.039 0.229L-1.023 0.351L-1.032 0.372L-1.032 0.409L-1.026 0.420L0.975 0.420L0.981 0.409L0.981 0.356L0.988 0.319L1.050 0.160L1.050 -0.052L1.037 -0.079L0.986 -0.073L0.878 -0.020L0.749 0.006L0.738 0.017L0.504 0.038L0.497 0.022L0.504 -0.052L0.513 -0.084L0.522 -0.089L0.522 -0.121L0.513 -0.142L0.513 -0.185L0.495 -0.248L0.484 -0.248L0.473 -0.227L0.447 -0.227L0.440 -0.243L0.431 -0.365L0.440 -0.386L0.440 -0.418L0.427 -0.477L0.416 -0.477L0.389 -0.439L0.387 -0.397L0.378 -0.376L0.369 -0.243L0.363 -0.227L0.338 -0.233L0.318 -0.328L0.296 -0.328L0.283 -0.349L0.265 -0.349L0.252 -0.333L0.250 -0.280L0.259 -0.254L0.276 -0.137L0.276 -0.079L0.290 -0.057L0.301 0.022L0.294 0.038L-0.093 0.038L-0.097 0.027L-0.095 -0.020L-0.080 -0.047L-0.075 -0.111L-0.084 -0.121L-0.084 -0.185L-0.088 -0.195L-0.091 -0.264L-0.104 -0.386L-0.104 -0.487L-0.108 -0.493L-0.122 -0.487L-0.122 -0.376L-0.128 -0.360L-0.141 -0.418L-0.175 -0.413L-0.177 -0.323L-0.186 -0.307L-0.186 -0.286L-0.192 -0.270L-0.203 -0.307L-0.239 -0.296L-0.250 -0.270L-0.298 -0.275L-0.314 -0.307L-0.336 -0.307L-0.332 -0.132L-0.318 -0.100L-0.318 -0.015L-0.305 0.006L-0.309 0.038Z',
-    ark: 'M1.050 -0.086L1.039 -0.097L0.807 -0.091L0.780 -0.133L0.765 -0.128L0.763 -0.107L0.754 -0.091L0.715 -0.091L0.709 -0.107L0.709 -0.303L0.673 -0.308L0.668 -0.319L0.670 -0.360L0.648 -0.365L0.637 -0.407L0.623 -0.401L0.612 -0.308L0.500 -0.308L0.493 -0.324L0.493 -0.396L0.486 -0.417L0.486 -0.505L0.511 -0.541L0.511 -0.572L0.486 -0.577L0.482 -0.587L0.486 -0.598L0.486 -0.629L0.468 -0.649L0.459 -0.649L0.448 -0.629L0.448 -0.587L0.441 -0.567L0.441 -0.396L0.430 -0.370L0.430 -0.277L0.423 -0.262L0.329 -0.262L0.313 -0.246L0.307 -0.221L0.289 -0.210L0.282 -0.226L0.282 -0.339L0.275 -0.355L0.275 -0.407L0.286 -0.427L0.286 -0.458L0.219 -0.463L0.212 -0.479L0.212 -0.572L0.206 -0.582L0.212 -0.598L0.212 -0.629L0.201 -0.649L0.201 -0.753L0.188 -0.763L0.176 -0.789L0.167 -0.789L0.152 -0.747L0.138 -0.742L0.138 -0.711L0.156 -0.691L0.156 -0.587L0.149 -0.567L0.149 -0.453L0.143 -0.438L0.113 -0.438L0.100 -0.412L0.100 -0.324L0.082 -0.277L0.064 -0.329L0.064 -0.401L0.060 -0.407L0.044 -0.396L0.044 -0.370L0.030 -0.314L0.012 -0.277L-0.001 -0.277L-0.017 -0.257L-0.100 -0.262L-0.111 -0.252L-0.122 -0.277L-0.185 -0.272L-0.185 -0.117L-0.192 -0.097L-0.192 -0.066L-0.199 -0.050L-0.560 -0.050L-0.572 -0.066L-0.877 -0.066L-0.888 -0.081L-1.041 -0.081L-1.050 -0.071L-1.050 0.053L-1.043 0.074L-1.043 0.141L-1.037 0.162L-1.037 0.229L-1.030 0.250L-1.030 0.343L-1.019 0.368L-1.019 0.415L-1.014 0.420L0.947 0.420L0.967 0.343L0.976 0.332L0.983 0.260L0.996 0.224L1.007 0.131L1.023 0.069L1.032 0.058L1.039 -0.014L1.050 -0.055Z',
-    marlin: 'M-1.050 0.140L-1.050 0.171L-1.015 0.242L-1.010 0.278L-0.986 0.298L-0.939 0.420L1.006 0.420L1.015 0.405L1.050 0.232L1.050 0.201L0.981 0.130L0.661 0.125L0.654 0.105L0.650 0.023L0.643 0.003L0.323 0.003L0.309 -0.038L0.307 -0.114L0.312 -0.124L0.332 -0.129L0.340 -0.175L0.340 -0.221L0.334 -0.241L0.305 -0.236L0.301 -0.246L0.296 -0.317L0.285 -0.353L0.290 -0.399L0.283 -0.419L0.265 -0.439L0.248 -0.434L0.234 -0.383L0.234 -0.348L0.225 -0.297L0.214 -0.053L0.210 -0.043L0.201 -0.053L0.177 -0.053L0.168 -0.043L0.155 -0.053L0.128 -0.048L0.124 -0.078L0.099 -0.083L0.086 -0.043L0.038 -0.038L0.013 -0.058L0.002 -0.099L-0.011 -0.434L0.002 -0.454L0.004 -0.480L0.011 -0.490L0.011 -0.526L0.004 -0.551L-0.009 -0.551L-0.020 -0.521L-0.038 -0.510L-0.042 -0.312L-0.049 -0.297L-0.088 -0.297L-0.095 -0.287L-0.113 -0.088L-0.119 -0.073L-0.188 -0.068L-0.197 -0.058L-0.201 -0.068L-0.219 -0.302L-0.212 -0.322L-0.195 -0.343L-0.192 -0.404L-0.210 -0.409L-0.221 -0.383L-0.225 -0.399L-0.232 -0.505L-0.214 -0.526L-0.214 -0.571L-0.223 -0.612L-0.221 -0.699L-0.228 -0.729L-0.248 -0.760L-0.276 -0.754L-0.294 -0.709L-0.294 -0.648L-0.290 -0.627L-0.294 -0.587L-0.292 -0.485L-0.298 -0.470L-0.329 -0.470L-0.336 -0.460L-0.336 -0.414L-0.303 -0.393L-0.312 -0.297L-0.318 -0.302L-0.318 -0.327L-0.332 -0.348L-0.340 -0.348L-0.354 -0.322L-0.349 -0.236L-0.365 -0.210L-0.369 -0.083L-0.387 -0.053L-0.405 -0.073L-0.422 -0.068L-0.424 -0.002L-0.429 0.008L-0.438 -0.007L-0.453 -0.007L-0.473 0.018L-0.480 0.044L-0.497 0.064L-0.506 0.090L-0.634 0.095L-0.668 0.151L-1.026 0.130Z',
-    bastion: 'M1.050 0.272L1.050 0.195L0.686 0.190L0.679 0.170L0.666 0.067L0.670 0.037L0.668 -0.004L0.650 -0.025L0.583 -0.025L0.572 -0.055L0.561 -0.055L0.543 -0.025L0.537 -0.050L0.519 -0.071L0.519 -0.096L0.510 -0.112L0.497 -0.106L0.486 -0.055L0.468 -0.055L0.461 -0.071L0.463 -0.132L0.454 -0.158L0.446 -0.168L0.421 -0.163L0.417 -0.188L0.406 -0.204L0.383 -0.198L0.379 -0.229L0.361 -0.250L0.321 -0.234L0.303 -0.255L0.279 -0.244L0.252 -0.255L0.239 -0.234L0.221 -0.234L0.214 -0.224L0.206 -0.096L0.199 -0.076L0.148 -0.076L0.141 -0.091L0.117 -0.464L0.117 -0.485L0.123 -0.500L0.123 -0.551L0.112 -0.597L0.117 -0.664L0.108 -0.679L0.090 -0.669L0.092 -0.602L0.077 -0.531L0.077 -0.495L0.083 -0.485L0.061 -0.204L0.052 -0.168L0.046 -0.081L0.037 -0.060L0.012 -0.055L0.003 -0.025L-0.008 -0.055L-0.037 -0.055L-0.050 -0.025L-0.066 -0.025L-0.074 -0.050L-0.119 -0.285L-0.137 -0.301L-0.152 -0.408L-0.183 -0.413L-0.192 -0.393L-0.206 -0.306L-0.212 -0.290L-0.226 -0.285L-0.226 -0.250L-0.219 -0.234L-0.223 -0.209L-0.241 -0.234L-0.257 -0.234L-0.274 -0.204L-0.283 -0.163L-0.299 -0.168L-0.308 -0.152L-0.308 -0.112L-0.314 -0.096L-0.350 -0.091L-0.386 0.139L-0.394 0.159L-0.412 0.159L-0.423 0.134L-0.546 0.134L-0.557 0.164L-0.586 0.164L-0.597 0.144L-0.612 0.144L-0.619 0.129L-0.626 0.067L-0.643 0.062L-0.672 0.083L-0.677 0.129L-0.683 0.144L-1.041 0.139L-1.050 0.164L-1.050 0.200L-0.981 0.251L-0.974 0.292L-0.948 0.297L-0.892 0.415L1.008 0.420L1.030 0.369Z',
-    abyssal: 'M1.050 0.059L1.041 0.037L0.729 0.053L0.715 0.000L0.683 -0.042L0.667 -0.037L0.643 -0.005L0.643 0.048L0.639 0.059L0.417 0.059L0.408 0.043L0.403 -0.026L0.394 -0.042L0.389 -0.085L0.368 -0.117L0.345 -0.101L0.334 -0.042L0.318 -0.032L0.311 -0.048L0.315 -0.138L0.308 -0.154L0.295 -0.154L0.283 -0.191L0.288 -0.276L0.274 -0.297L0.267 -0.398L0.274 -0.451L0.274 -0.510L0.241 -0.515L0.234 -0.531L0.232 -0.568L0.198 -0.574L0.191 -0.590L0.179 -0.712L0.179 -0.781L0.163 -0.791L0.158 -0.786L0.158 -0.563L0.177 -0.499L0.158 -0.313L0.154 -0.207L0.147 -0.196L0.137 -0.239L0.103 -0.234L0.103 -0.175L0.075 -0.133L0.080 -0.058L0.070 -0.016L-0.015 -0.016L-0.024 -0.037L-0.043 -0.335L-0.040 -0.361L-0.017 -0.414L-0.017 -0.552L-0.031 -0.558L-0.036 -0.552L-0.045 -0.446L-0.052 -0.489L-0.061 -0.505L-0.075 -0.499L-0.082 -0.478L-0.082 -0.446L-0.091 -0.420L-0.117 -0.127L-0.126 -0.095L-0.133 -0.111L-0.142 -0.175L-0.149 -0.186L-0.228 -0.186L-0.237 -0.170L-0.248 -0.101L-0.255 -0.090L-0.311 -0.090L-0.315 -0.101L-0.315 -0.138L-0.322 -0.149L-0.338 -0.143L-0.338 -0.101L-0.357 -0.085L-0.560 -0.095L-0.574 -0.079L-0.576 -0.037L-0.583 -0.026L-0.667 -0.021L-0.671 -0.010L-0.667 0.037L-0.669 0.085L-0.678 0.107L-0.759 0.107L-0.773 0.149L-1.050 0.154L-1.050 0.192L-1.025 0.393L-0.969 0.420L0.858 0.420L0.867 0.393L1.048 0.101Z',
-    ravager: 'M-1.000 -0.380L-1.000 -0.346L-0.899 -0.250L-0.894 -0.208L-0.832 -0.036L-0.832 0.153L-0.827 0.162L-0.793 0.162L-0.790 0.111L-0.785 0.103L-0.756 0.162L-0.738 0.178L-0.481 0.237L-0.459 0.250L-0.393 0.258L-0.365 0.275L-0.326 0.275L-0.138 0.321L-0.111 0.338L-0.042 0.355L0.040 0.418L1.000 0.418L0.995 0.384L0.980 0.384L0.946 0.355L0.968 0.313L0.980 0.309L0.978 0.275L0.953 0.271L0.931 0.313L0.914 0.313L0.864 0.279L0.857 0.267L0.857 0.229L0.852 0.220L0.827 0.220L0.807 0.254L0.800 0.241L0.802 0.157L0.793 0.145L0.716 0.132L0.711 0.120L0.719 0.107L0.719 0.073L0.686 0.023L0.558 0.002L0.551 -0.010L0.543 -0.057L0.521 -0.086L0.430 -0.086L0.402 -0.094L0.393 -0.082L0.385 -0.094L0.385 -0.153L0.393 -0.166L0.462 -0.166L0.467 -0.174L0.467 -0.199L0.462 -0.208L0.398 -0.208L0.383 -0.254L0.353 -0.254L0.338 -0.208L0.274 -0.208L0.269 -0.199L0.269 -0.174L0.274 -0.166L0.341 -0.166L0.348 -0.153L0.346 -0.086L0.309 -0.111L0.294 -0.111L0.277 -0.086L0.151 -0.078L0.077 -0.052L0.069 -0.065L0.069 -0.103L0.059 -0.120L0.037 -0.120L0.027 -0.103L0.027 -0.057L0.022 -0.044L0.027 0.010L0.020 0.019L-0.605 0.019L-0.765 -0.233L-0.763 -0.241L-0.743 -0.237L-0.627 -0.355L-0.617 -0.371L-0.622 -0.418L-0.654 -0.418L-0.765 -0.300L-0.783 -0.258L-0.802 -0.288L-0.844 -0.292L-0.975 -0.405L-0.990 -0.405ZM0.519 0.271L0.531 0.283L0.523 0.304L0.511 0.292ZM0.442 0.271L0.454 0.279L0.447 0.304L0.435 0.292ZM0.373 0.271L0.385 0.283L0.378 0.304L0.365 0.292ZM0.301 0.271L0.314 0.283L0.306 0.304L0.294 0.292ZM0.699 0.183L0.706 0.174L0.765 0.174L0.775 0.191L0.775 0.225L0.770 0.233L0.701 0.199Z',
-  };
-  const silCache = {};
-  const silP = id => silCache[id] || (silCache[id] = new Path2D(SIL[id]));
-  // the game's two-tone shading on a traced outline: everything drawn in o.shade() is clipped to the silhouette, so a band,
-  // a row of windows or a stripe only lands where the hull, cabin or superstructure actually is
-  const S_LIGHT = 'rgba(0,0,0,.2)', S_DARK = 'rgba(0,0,0,.5)';
-  function sil(c, id, o = {}) {
-    const p = silP(id); c.fill(p, 'evenodd');
-    c.save(); c.clip(p, 'evenodd');
-    if (o.band) sh(c, () => { c.fillRect(-1.2, o.band[0], 2.4, o.band[1] - o.band[0]); }, S_LIGHT);
-    if (o.wheels) { const { n, x0, x1, y, r } = o.wheels; for (let i = 0; i < n; i++) { const x = x0 + (x1 - x0) * i / (n - 1);
-      sh(c, () => { circ(c, x, y, r); c.fill(); }, S_DARK); circ(c, x, y, r * 0.74); c.fill(); sh(c, () => { circ(c, x, y, r * 0.3); c.fill(); }, S_DARK); } }
-    if (o.shade) o.shade();
-    c.restore();
-  }
-  const darkRect = (c, x, y, w, h) => sh(c, () => { rr(c, x, y, w, h, Math.min(w, h) * 0.3); c.fill(); }, S_DARK);
-  const lightRect = (c, x, y, w, h) => sh(c, () => { c.fillRect(x, y, w, h); }, S_LIGHT);
-  // a warship: the hull side in shadow below the deck edge, a dark boot-top at the waterline, portholes along the hull and
-  // a row of bridge windows across the superstructure
-  function ship(c, id, deck, win) {
-    sil(c, id, { shade: () => {
-      lightRect(c, -1.2, deck + 0.05, 2.4, 0.42 - deck - 0.05);
-      darkRect(c, -1.2, 0.36, 2.4, 0.08);
-      for (let x = -0.8; x < 0.9; x += 0.24) darkRect(c, x, deck + 0.1, 0.06, 0.045);
-      if (win) for (const [x0, x1, y] of win) for (let x = x0; x < x1; x += 0.13) darkRect(c, x, y, 0.07, 0.05);
-    } });
+  // ── v8: drawn in the cards' own style (clean primitives, rounded ends, big simple features, compact and tall), with the
+  // proportions checked against the traced public-domain outlines ──
+  // a track run: the cream track loop with its dark inside, and a row of hubbed road wheels
+  function trackRun(c, x0, x1, y, h, n, r) {
+    rr(c, x0, y, x1 - x0, h, h / 2); c.fill();
+    sh(c, () => { rr(c, x0 + 0.04, y + 0.04, x1 - x0 - 0.08, h - 0.08, h / 2 - 0.04); c.fill(); }, SH2);
+    const pad = h / 2;
+    for (let i = 0; i < n; i++) hub(c, x0 + pad + (x1 - x0 - pad * 2) * i / (n - 1), y + h / 2, r);
   }
   Object.assign(UNIT, {
-    // Leopard 2A7V (traced from the Leopard 2A6)
-    leviathan(c) { sil(c, 'leviathan', { band: [0.24, 0.45], wheels: { n: 7, x0: -0.72, x1: 0.12, y: 0.335, r: 0.075 }, shade: () => { darkRect(c, -0.85, 0.215, 1.15, 0.03); } }); },
-    // M1A1 Abrams (traced from the M1A2 SEP)
-    goliath(c) { sil(c, 'goliath', { band: [0.32, 0.53], wheels: { n: 7, x0: -0.6, x1: 0.36, y: 0.42, r: 0.075 }, shade: () => { darkRect(c, -0.8, 0.3, 1.3, 0.03); } }); },
-    // T-72B3 (traced from the M-84, the Yugoslav T-72)
-    mauler(c) { sil(c, 'mauler', { band: [0.22, 0.42], wheels: { n: 6, x0: -0.56, x1: 0.16, y: 0.315, r: 0.085 }, shade: () => { darkRect(c, -0.75, 0.2, 1.05, 0.03); } }); },
-    // the navy, modern
-    // Queen Elizabeth-class carrier: the ski-jump bow, the long flat deck and the two islands
-    carrier(c) { ship(c, 'carrier', 0.04, [[-0.45, 0.05, -0.12]]); },
-    // HMS Albion, an amphibious transport dock: the high slab sides, the block superstructure, the flight deck aft
-    ark(c) { ship(c, 'ark', -0.07, [[-0.2, 0.65, -0.18]]); },
-    // Horizon-class air-defence destroyer: the EMPAR radar on its tower, the gun forward, the hangar aft
-    marlin(c) { ship(c, 'marlin', 0.13, [[-0.6, 0.4, 0.02]]); },
-    // Aquitaine-class (FREMM): the stealthy faceted superstructure, the pyramid mast, the gun forward
-    bastion(c) { ship(c, 'bastion', 0.14, [[-0.55, 0.45, 0.02]]); },
-    // Admiral Gorshkov: the big Russian frigate, its tall radar tower, the stacks and the 130mm forward
-    abyssal(c) { ship(c, 'abyssal', 0.05, [[-0.6, 0.6, -0.08]]); },
-    // UH-60 Black Hawk: the long cabin, the sloped nose, the engine fairing, the boom up to the canted tail rotor
+    // Leopard 2A7V: long hull, heavy skirts over seven road wheels, the arrowhead wedge armour raking down the turret front,
+    // the long 120mm, the PERI sight on its post and the stowage bin on the bustle
+    leviathan(c) {
+      trackRun(c, -0.9, 0.7, 0.16, 0.34, 7, 0.085);
+      poly(c, [-0.98, 0.22, -0.98, -0.02, -0.88, -0.08, 0.5, -0.08, 0.86, 0.12, 0.74, 0.22]); c.fill();
+      rr(c, -0.94, 0.08, 1.58, 0.16, 0.04); c.fill();
+      shade(c, () => { for (const x of [-0.56, -0.18, 0.2]) rrp(c, x, 0.09, 0.025, 0.14, 0.01); }, SH);
+      poly(c, [-0.86, -0.08, -0.88, -0.4, -0.76, -0.48, -0.06, -0.48, 0.5, -0.22, 0.44, -0.08]); c.fill();
+      shade(c, () => { c.moveTo(-0.06, -0.48); c.lineTo(0.5, -0.22); c.lineTo(0.44, -0.16); c.lineTo(-0.06, -0.38); c.closePath(); }, SH2);   // the wedge
+      rr(c, 0.38, -0.3, 0.64, 0.085, 0.04); c.fill(); rr(c, 0.6, -0.315, 0.09, 0.115, 0.03); c.fill(); rr(c, 0.98, -0.315, 0.07, 0.115, 0.03); c.fill();
+      rr(c, -0.37, -0.6, 0.05, 0.14, 0.02); c.fill(); rr(c, -0.46, -0.7, 0.24, 0.13, 0.05); c.fill();                       // PERI
+      shade(c, () => { rrp(c, -0.3, -0.66, 0.06, 0.05, 0.02); for (const y of [-0.34, -0.26, -0.18]) rrp(c, -0.84, y, 0.2, 0.035, 0.015); }, SH2);
+      rr(c, -0.7, -0.56, 0.2, 0.09, 0.04); c.fill();
+    },
+    // M1A1 Abrams: seven road wheels under the skirts, the long shallow glacis, the low flat slab of a turret with its big
+    // bustle rack, the 120mm, the commander's cupola with its M2 and the gunner's sight box
+    goliath(c) {
+      trackRun(c, -0.92, 0.72, 0.16, 0.34, 7, 0.085);
+      poly(c, [-0.98, 0.22, -0.98, -0.02, -0.88, -0.1, 0.32, -0.12, 0.92, 0.12, 0.76, 0.22]); c.fill();
+      rr(c, -0.95, 0.08, 1.62, 0.16, 0.04); c.fill();
+      shade(c, () => { for (const x of [-0.56, -0.16, 0.24]) rrp(c, x, 0.09, 0.025, 0.14, 0.01); }, SH);
+      poly(c, [-0.74, -0.12, -0.76, -0.4, 0.2, -0.42, 0.48, -0.26, 0.44, -0.14, 0.28, -0.12]); c.fill();
+      shade(c, () => { c.moveTo(0.2, -0.42); c.lineTo(0.48, -0.26); c.lineTo(0.46, -0.21); c.lineTo(0.18, -0.34); c.closePath(); rrp(c, -0.7, -0.24, 0.9, 0.035, 0.015); }, SH2);
+      rr(c, -1.0, -0.38, 0.3, 0.24, 0.04); c.fill(); shade(c, () => { for (const y of [-0.33, -0.25]) rrp(c, -0.96, y, 0.22, 0.04, 0.015); }, SH2);   // bustle rack
+      rr(c, 0.38, -0.31, 0.66, 0.085, 0.04); c.fill(); rr(c, 0.58, -0.325, 0.09, 0.115, 0.03); c.fill();
+      rr(c, -0.46, -0.56, 0.26, 0.16, 0.05); c.fill(); rr(c, -0.24, -0.54, 0.34, 0.045, 0.02); c.fill();                   // cupola + M2
+      rr(c, 0.0, -0.54, 0.17, 0.14, 0.04); c.fill(); shade(c, () => { rrp(c, 0.04, -0.5, 0.09, 0.05, 0.02); }, SH2);
+    },
+    // T-72B3: six big road wheels with a short rubber skirt, a low cast dome of a turret with its brow of reactive armour
+    // bricks, the long 125mm, the snorkel tube across the turret's back and the two fuel drums on the engine deck
+    mauler(c) {
+      trackRun(c, -0.88, 0.7, 0.14, 0.38, 6, 0.11);
+      poly(c, [-0.98, 0.18, -0.98, -0.02, -0.86, -0.06, 0.5, -0.06, 0.9, 0.1, 0.78, 0.18]); c.fill();
+      rr(c, -0.96, 0.08, 1.62, 0.08, 0.03); c.fill();
+      for (const x of [-1.0, -0.82]) { rr(c, x, -0.27, 0.16, 0.21, 0.05); c.fill(); shade(c, () => { rrp(c, x + 0.02, -0.18, 0.12, 0.03, 0.015); }, SH); }   // fuel drums
+      c.beginPath(); c.moveTo(-0.62, -0.06); c.quadraticCurveTo(-0.62, -0.46, -0.2, -0.48); c.lineTo(0.06, -0.48); c.quadraticCurveTo(0.4, -0.44, 0.48, -0.2); c.lineTo(0.48, -0.06); c.closePath(); c.fill();
+      poly(c, [0.0, -0.5, 0.3, -0.45, 0.56, -0.18, 0.48, -0.12, 0.24, -0.34, -0.02, -0.4]); c.fill();                        // ERA brow
+      shade(c, () => { c.moveTo(-0.02, -0.4); c.lineTo(0.24, -0.34); c.lineTo(0.48, -0.12); c.lineTo(0.56, -0.18); c.lineTo(0.53, -0.2); c.lineTo(0.26, -0.39); c.closePath(); }, SH2);
+      rr(c, -0.76, -0.34, 0.4, 0.075, 0.035); c.fill();                                                                     // snorkel
+      rr(c, 0.42, -0.25, 0.64, 0.075, 0.035); c.fill(); for (const x of [0.62, 0.84]) { rr(c, x, -0.265, 0.07, 0.105, 0.03); c.fill(); }
+      rr(c, -0.3, -0.6, 0.2, 0.13, 0.05); c.fill(); rr(c, -0.12, -0.57, 0.3, 0.04, 0.02); c.fill();                        // cupola + Kord
+    },
+    // UH-60 Black Hawk: a long boxy cabin with a sloped nose and big windows, the engine fairing on the roof, a tapering
+    // boom up to the swept tail pylon with its rotor and the stabilator, the main wheels under the cockpit and a tail wheel
     stormcrow(c) {
-      blur(c, () => { rr(c, -0.3, -0.27, 1.25, 0.06, 0.03); c.fill(); });
-      sil(c, 'stormcrow', { band: [0.22, 0.5], shade: () => {
-        sh(c, () => { c.beginPath(); c.moveTo(0.62, 0.0); c.lineTo(0.82, 0.02); c.lineTo(0.96, 0.18); c.lineTo(0.66, 0.18); c.closePath(); c.fill(); }, S_DARK);   // cockpit glass
-        darkRect(c, 0.12, 0.04, 0.12, 0.1); darkRect(c, 0.3, 0.04, 0.12, 0.1);                                                                                   // cabin windows
-      } });
+      blur(c, () => { rr(c, -0.86, -0.66, 1.84, 0.07, 0.035); c.fill(); });
+      rr(c, 0.14, -0.64, 0.08, 0.2, 0.03); c.fill();
+      rr(c, -0.22, -0.5, 0.66, 0.18, 0.09); c.fill();                                                                       // engine fairing
+      c.beginPath(); c.moveTo(-0.4, -0.38); c.lineTo(0.52, -0.38); c.quadraticCurveTo(0.98, -0.34, 1.0, -0.02); c.quadraticCurveTo(1.0, 0.18, 0.78, 0.18); c.lineTo(-0.28, 0.18); c.quadraticCurveTo(-0.46, 0.12, -0.48, -0.08); c.closePath(); c.fill();
+      poly(c, [-0.42, -0.34, -0.92, -0.24, -0.92, -0.14, -0.42, 0.06]); c.fill();                                            // tail boom
+      poly(c, [-0.94, -0.18, -1.04, -0.62, -0.92, -0.64, -0.8, -0.22]); c.fill();                                            // swept pylon
+      blur(c, () => { circ(c, -0.96, -0.5, 0.17); c.fill(); });
+      rr(c, -1.06, -0.24, 0.32, 0.06, 0.03); c.fill();                                                                       // stabilator
+      c.lineWidth = 0.06; c.strokeStyle = c.fillStyle; c.lineCap = 'round'; c.beginPath(); c.moveTo(0.5, 0.16); c.lineTo(0.54, 0.32); c.moveTo(-0.84, -0.14); c.lineTo(-0.86, 0.02); c.stroke();
+      hub(c, 0.54, 0.36, 0.08); hub(c, -0.86, 0.05, 0.05);
+      shade(c, () => {
+        c.moveTo(0.56, -0.34); c.quadraticCurveTo(0.84, -0.3, 0.94, -0.08); c.lineTo(0.58, -0.08); c.closePath();             // cockpit glass
+        rrp(c, -0.06, -0.26, 0.18, 0.16, 0.04); rrp(c, 0.2, -0.26, 0.18, 0.16, 0.04);                                         // cabin windows
+      }, SH2);
+      shade(c, () => { rrp(c, -0.3, 0.06, 1.1, 0.05, 0.025); }, SH);
     },
-    // MV-22 Osprey in helicopter mode: the nacelle stood up on the wing tip with its proprotor, the twin tail
+  });
+  Object.assign(UNIT, {
+    // MV-22 Osprey in helicopter mode: the nacelle stood up on the wing tip with its huge proprotor, the high wing, the
+    // sponsons, the upswept tail with its ramp and the H-tail, the refuelling probe on the nose
     valkyrie(c) {
-      sil(c, 'valkyrie', { band: [0.38, 0.56], shade: () => {
-        sh(c, () => { c.beginPath(); c.moveTo(0.68, 0.14); c.lineTo(0.8, 0.14); c.lineTo(0.94, 0.3); c.lineTo(0.7, 0.3); c.closePath(); c.fill(); }, S_DARK);
-        for (const x of [-0.2, 0.0, 0.42]) darkRect(c, x, 0.2, 0.08, 0.08);
-        lightRect(c, 0.04, -0.5, 0.2, 0.62);                                                                                                                        // the nacelle's shaded side
-      } });
+      blur(c, () => { rr(c, -0.74, -0.78, 1.66, 0.07, 0.035); c.fill(); });
+      c.beginPath(); c.moveTo(-0.62, -0.2); c.lineTo(0.56, -0.2); c.quadraticCurveTo(0.98, -0.16, 1.0, 0.04); c.quadraticCurveTo(0.98, 0.22, 0.7, 0.22); c.lineTo(-0.5, 0.22); c.lineTo(-0.88, -0.04); c.closePath(); c.fill();
+      rr(c, -0.32, 0.1, 0.72, 0.18, 0.09); c.fill();                                                                       // sponson
+      poly(c, [-0.8, -0.12, -0.92, -0.6, -0.76, -0.62, -0.6, -0.16]); c.fill(); rr(c, -1.0, -0.2, 0.46, 0.08, 0.04); c.fill();   // tall fin, tailplane low at its base
+      rr(c, -0.28, -0.32, 0.66, 0.13, 0.06); c.fill();                                                                     // wing
+      rr(c, -0.02, -0.7, 0.24, 0.52, 0.1); c.fill(); circ(c, 0.1, -0.74, 0.07); c.fill();                                  // nacelle + spinner
+      c.lineWidth = 0.045; c.strokeStyle = c.fillStyle; c.lineCap = 'round'; c.beginPath(); c.moveTo(0.7, -0.17); c.lineTo(1.0, -0.3); c.moveTo(0.62, 0.22); c.lineTo(0.64, 0.34); c.moveTo(-0.04, 0.26); c.lineTo(-0.04, 0.36); c.stroke();
+      hub(c, 0.64, 0.38, 0.07); hub(c, -0.04, 0.4, 0.08);
+      shade(c, () => {
+        c.moveTo(0.62, -0.17); c.quadraticCurveTo(0.9, -0.14, 0.96, 0.02); c.lineTo(0.64, 0.02); c.closePath();
+        for (const x of [-0.46, -0.3]) rrp(c, x, -0.1, 0.1, 0.1, 0.03); rrp(c, 0.4, -0.1, 0.1, 0.1, 0.03);
+        rrp(c, 0.03, -0.62, 0.05, 0.4, 0.02);
+      }, SH2);
+      shade(c, () => { rrp(c, -0.5, 0.12, 1.2, 0.05, 0.025); }, SH);
     },
-    // Mi-24P Hind: the stepped tandem canopies, the troop cabin, stub wings, the long boom, five-blade rotor
+    // Mi-24 Hind: the two stepped bubble canopies (gunner low in front, pilot raised behind), the chin gun, the troop cabin
+    // with its windows, stub wings hung with rocket pods, the engine hump, the long boom up to the fin
     ravager(c) {
-      blur(c, () => { rr(c, -0.5, -0.24, 1.5, 0.06, 0.03); c.fill(); });
-      sil(c, 'ravager', { band: [0.24, 0.45], shade: () => {
-        sh(c, () => { circ(c, 0.66, 0.04, 0.07); c.fill(); circ(c, 0.84, 0.14, 0.07); c.fill(); }, S_DARK);   // the two bubble canopies
-      } });
+      blur(c, () => { rr(c, -0.9, -0.64, 1.8, 0.07, 0.035); c.fill(); });
+      rr(c, 0.0, -0.62, 0.08, 0.2, 0.03); c.fill();
+      rr(c, -0.38, -0.48, 0.74, 0.18, 0.09); c.fill();                                                                     // engines
+      c.beginPath(); c.moveTo(-0.5, -0.34); c.lineTo(0.38, -0.34); c.quadraticCurveTo(0.6, -0.32, 0.66, -0.16); c.lineTo(0.9, -0.04); c.quadraticCurveTo(1.02, 0.06, 0.9, 0.16); c.lineTo(-0.36, 0.16); c.quadraticCurveTo(-0.52, 0.1, -0.54, -0.12); c.closePath(); c.fill();
+      circ(c, 0.48, -0.26, 0.13); c.fill(); circ(c, 0.78, -0.06, 0.12); c.fill();                                          // the two canopies
+      circ(c, 0.84, 0.17, 0.07); c.fill(); rr(c, 0.84, 0.14, 0.22, 0.05, 0.025); c.fill();                                 // chin gun
+      poly(c, [-0.5, -0.3, -0.98, -0.22, -0.98, -0.12, -0.48, 0.06]); c.fill();                                            // boom
+      poly(c, [-0.92, -0.16, -1.04, -0.58, -0.92, -0.6, -0.8, -0.2]); c.fill(); blur(c, () => { circ(c, -0.96, -0.42, 0.16); c.fill(); });
+      poly(c, [-0.3, 0.02, 0.3, 0.02, 0.36, 0.1, -0.36, 0.16]); c.fill();                                                  // stub wing
+      rr(c, -0.3, 0.14, 0.28, 0.13, 0.06); c.fill(); rr(c, 0.04, 0.14, 0.26, 0.12, 0.06); c.fill();                       // rocket pods
+      c.lineWidth = 0.05; c.strokeStyle = c.fillStyle; c.lineCap = 'round'; c.beginPath(); c.moveTo(0.6, 0.16); c.lineTo(0.62, 0.32); c.moveTo(-0.44, 0.14); c.lineTo(-0.46, 0.32); c.stroke();
+      hub(c, 0.62, 0.36, 0.07); hub(c, -0.46, 0.36, 0.08);
+      shade(c, () => {
+        c.moveTo(0.58, -0.26); c.arc(0.48, -0.26, 0.09, 0, P * 2); c.moveTo(0.87, -0.06); c.arc(0.78, -0.06, 0.085, 0, P * 2);
+        for (const x of [-0.34, -0.14, 0.06]) rrp(c, x, -0.24, 0.12, 0.11, 0.03);
+        for (const [x, y] of [[-0.26, 0.205], [-0.18, 0.205], [0.08, 0.2], [0.16, 0.2]]) { c.moveTo(x + 0.03, y); c.arc(x, y, 0.03, 0, P * 2); }
+      }, SH2);
+    },
+  });
+  // the fleet: hulls side-on with the waterline at y=0.42, nose to the right. Each hull: a shaded band down the side, a dark
+  // boot-top at the waterline and a row of portholes
+  function hullShade(c, deck, x0 = -0.92, x1 = 0.86, ports = true) {
+    shade(c, () => { rrp(c, x0, deck + 0.16, x1 - x0, 0.42 - deck - 0.16, 0.02); }, 'rgba(0,0,0,.16)');
+    shade(c, () => { rrp(c, x0 + 0.04, 0.34, x1 - x0 - 0.1, 0.07, 0.03); if (ports) for (let x = x0 + 0.12; x < x1 - 0.12; x += 0.22) rrp(c, x, deck + 0.08, 0.07, 0.05, 0.02); }, SH2);
+  }
+  const winRow = (c, x0, x1, y, step = 0.12) => shade(c, () => { for (let x = x0; x < x1; x += step) rrp(c, x, y, 0.07, 0.055, 0.02); }, SH2);
+  // a modern naval gun in its stealthy faceted house, barrel forward
+  function navalGun(c, x, deck, big) {
+    const w = big ? 0.26 : 0.2, h = big ? 0.16 : 0.12;
+    poly(c, [x - w / 2, deck, x - w / 2 + 0.04, deck - h, x + w / 2 - 0.02, deck - h, x + w / 2, deck]); c.fill();
+    rr(c, x + w / 2 - 0.06, deck - h * 0.62, big ? 0.34 : 0.26, 0.045, 0.02); c.fill();
+  }
+  Object.assign(UNIT, {
+    // Queen Elizabeth-class carrier: the long flight deck overhanging the hull, the ski-jump at the bow, the two islands
+    // (the forward one with its mast, the aft one with the big radar), and F-35s parked on deck
+    carrier(c) {
+      poly(c, [-1.04, -0.04, 0.64, -0.04, 1.04, -0.16, 1.0, -0.02, 0.84, 0.42, -0.92, 0.42, -1.0, 0.12]); c.fill();
+      for (const [x, h] of [[0.16, 0.42], [-0.4, 0.36]]) { rr(c, x, -0.04 - h, 0.26, h, 0.04); c.fill(); }
+      poly(c, [0.2, -0.46, 0.24, -0.6, 0.38, -0.6, 0.42, -0.46]); c.fill(); rr(c, 0.29, -0.82, 0.04, 0.24, 0.02); c.fill(); rr(c, 0.22, -0.76, 0.18, 0.04, 0.02); c.fill();   // fore island's mast
+      circ(c, -0.27, -0.48, 0.1); c.fill(); rr(c, -0.29, -0.44, 0.04, 0.06, 0.01); c.fill();                                                                                  // aft island's radar
+      const jet = x => { poly(c, [x - 0.2, -0.04, x + 0.16, -0.04, x + 0.22, -0.09, x + 0.04, -0.11, x - 0.06, -0.17, x - 0.12, -0.17, x - 0.13, -0.1, x - 0.2, -0.1]); c.fill(); poly(c, [x - 0.18, -0.1, x - 0.24, -0.22, x - 0.17, -0.22, x - 0.12, -0.1]); c.fill(); };
+      jet(-0.74); jet(0.66);
+      winRow(c, 0.2, 0.4, -0.38, 0.1); winRow(c, -0.36, -0.16, -0.3, 0.1);
+      hullShade(c, -0.04, -0.94, 0.9, false);
+      shade(c, () => { for (const x of [-0.6, -0.1, 0.4]) rrp(c, x, 0.06, 0.2, 0.12, 0.03); }, SH2);   // hangar openings
+    },
+    // HMS Albion, an amphibious transport dock: a tall slab-sided hull, the big superstructure block forward with its two
+    // masts, the flight deck aft and the stern gate of the well deck
+    ark(c) {
+      poly(c, [-1.02, -0.08, 0.78, -0.08, 1.04, -0.2, 0.92, 0.42, -0.94, 0.42, -1.02, 0.16]); c.fill();
+      rr(c, -0.12, -0.44, 0.78, 0.38, 0.04); c.fill(); poly(c, [0.6, -0.08, 0.6, -0.44, 0.7, -0.36, 0.72, -0.08]); c.fill();
+      poly(c, [0.2, -0.44, 0.24, -0.82, 0.32, -0.82, 0.36, -0.44]); c.fill(); rr(c, 0.18, -0.72, 0.2, 0.04, 0.02); c.fill(); rr(c, 0.26, -0.94, 0.04, 0.14, 0.02); c.fill();
+      poly(c, [-0.06, -0.44, -0.04, -0.66, 0.04, -0.66, 0.06, -0.44]); c.fill();
+      winRow(c, 0.0, 0.62, -0.36);
+      hullShade(c, -0.08);
+      shade(c, () => { rrp(c, -1.0, -0.02, 0.1, 0.34, 0.02); }, SH2);   // the well deck's stern gate
+    },
+    // Horizon-class air-defence destroyer: the tall tower carrying the EMPAR radar dome, the funnel-mast behind it, the
+    // hangar aft, missile cells and the gun forward
+    marlin(c) {
+      poly(c, [-1.02, 0.08, 0.74, 0.08, 1.04, -0.04, 0.92, 0.42, -0.94, 0.42, -1.02, 0.22]); c.fill();
+      rr(c, -0.62, -0.16, 1.02, 0.26, 0.04); c.fill();
+      poly(c, [0.06, -0.16, 0.12, -0.62, 0.3, -0.62, 0.36, -0.16]); c.fill(); circ(c, 0.21, -0.7, 0.11); c.fill();
+      poly(c, [-0.24, -0.16, -0.2, -0.5, -0.06, -0.5, -0.02, -0.16]); c.fill(); rr(c, -0.15, -0.68, 0.04, 0.2, 0.02); c.fill();
+      navalGun(c, 0.64, 0.08);
+      winRow(c, 0.1, 0.34, -0.36, 0.09); winRow(c, -0.52, 0.3, -0.08, 0.14);
+      hullShade(c, 0.08);
+      shade(c, () => { for (const x of [0.4, 0.46]) rrp(c, x, 0.0, 0.04, 0.06, 0.01); c.moveTo(0.3, -0.7); c.arc(0.21, -0.7, 0.07, 0, P * 2); }, SH2);
+    },
+    // Aquitaine-class (FREMM): one stealthy faceted superstructure, the tall pyramid mast on top, the funnel aft, the
+    // Herakles radar block forward and the 76mm on the bow
+    bastion(c) {
+      poly(c, [-1.02, 0.08, 0.74, 0.08, 1.04, -0.04, 0.92, 0.42, -0.94, 0.42, -1.02, 0.22]); c.fill();
+      poly(c, [-0.66, 0.08, -0.58, -0.24, 0.34, -0.24, 0.46, 0.08]); c.fill();
+      poly(c, [-0.04, -0.24, 0.05, -0.9, 0.11, -0.9, 0.2, -0.24]); c.fill(); rr(c, 0.07, -1.0, 0.02, 0.12, 0.01); c.fill();   // pyramid mast
+      poly(c, [0.24, -0.24, 0.28, -0.44, 0.42, -0.44, 0.46, -0.24]); c.fill();
+      poly(c, [-0.42, -0.24, -0.38, -0.46, -0.24, -0.46, -0.2, -0.24]); c.fill();
+      navalGun(c, 0.66, 0.08);
+      winRow(c, 0.26, 0.42, -0.36, 0.08); winRow(c, -0.5, 0.3, -0.14, 0.14);
+      hullShade(c, 0.08);
+      shade(c, () => { c.moveTo(0.11, -0.86); c.lineTo(0.18, -0.3); c.lineTo(0.14, -0.3); c.lineTo(0.09, -0.8); c.closePath(); }, SH);
+    },
+    // Admiral Gorshkov: a long raised-bow hull, the big superstructure, the tall pyramid tower with its radar head, the
+    // aft mast, the 130mm on the foredeck with the missile cells behind it
+    abyssal(c) {
+      poly(c, [-1.02, 0.06, 0.56, 0.06, 1.04, -0.1, 0.88, 0.42, -0.94, 0.42, -1.02, 0.2]); c.fill();
+      rr(c, -0.64, -0.2, 1.0, 0.3, 0.04); c.fill();
+      poly(c, [0.08, -0.2, 0.14, -0.7, 0.28, -0.7, 0.34, -0.2]); c.fill(); rr(c, 0.08, -0.84, 0.26, 0.14, 0.04); c.fill(); rr(c, 0.19, -0.98, 0.04, 0.14, 0.02); c.fill();
+      poly(c, [-0.36, -0.2, -0.32, -0.6, -0.22, -0.6, -0.18, -0.2]); c.fill(); rr(c, -0.29, -0.72, 0.04, 0.14, 0.02); c.fill();
+      navalGun(c, 0.66, 0.0, true);
+      winRow(c, 0.12, 0.32, -0.42, 0.08); winRow(c, -0.56, 0.3, -0.12, 0.13);
+      hullShade(c, 0.06);
+      shade(c, () => { rrp(c, 0.42, -0.04, 0.14, 0.04, 0.01); rrp(c, 0.12, -0.8, 0.18, 0.06, 0.02); }, SH2);
     },
   });
   function cardArt(id) {
