@@ -2,7 +2,21 @@
 
 Every release, newest first. Each version also has its own post on the [Releases page](https://github.com/Blacksheep909/sector/releases).
 
-## v0.13.0
+## v0.13.1
+
+**Alliance wins name everyone, bots fight for their HQ and use Combined Arms, and new icons for the Gepard, M10 Booker, BTR-82A, Bradley and Ohio-class Trident.**
+
+- **🏆 Alliance and team wins name every winner.** The victory screen, the log and the toast read "Alice & Bob won the war together as allies" instead of crediting one player and listing the other underneath.
+- **🛡 Bots fight for their HQ.** When their HQ is under siege they keep mustering the hardest hitters they can afford next to it until the counterattack has good odds, then strike straight away (it used to be 4 Grunts and a shrug, with the rest of the money spent on tanks somewhere else).
+- **⚔ Bots use Combined Arms.** They buy a balanced army (guns stay at most about a third of it, and they buy whichever of infantry, armour and aircraft they're short of), join stacks that lack their kind of unit, and mass mixed blows. Rich bots no longer end up with a wall of rocket artillery that can't take a single hex.
+- **🎯 Bots press the kill.** The more a bot outguns its target, the harder it drives on that target's HQ instead of grabbing land along the way. Once it has an HQ under siege it piles onto it and takes the land round it, where the owner would muster a counterattack. Reserves no longer sit in the rear when the war is across a river: they march to the crossing (infantry ford it, and the bot bridges it).
+- **✈ Aircraft claim the sea.** Planes and helicopters take the sea hex they end their move over (an oil rig included), just like land.
+- **🚁 Helicopters off Carriers.** The Carrier card and the deploy prompt now say so: planes and helicopters alike deploy straight onto a Carrier with room.
+- **Hornet** attack 2 → 1.
+- **UI:** the "Player X's turn" banner sits below the player chips, so it no longer covers the ally and trade menu. A bridge under construction is drawn half-built behind a striped barrier (and its tooltip says it's ready next turn).
+- **🎨 New icons:** Scorpion is a Gepard (twin 35mm and its radars), Hellcat an M10 Booker, Wraith a BTR-82A, Bulwark a Bradley, and the Trident an Ohio-class submarine launching an ICBM.
+
+## v0.13.0
 
 **Five Situation missions with a live enemy, bots that cross rivers, and new art for the tanks, the fleet and the helicopters.**
 

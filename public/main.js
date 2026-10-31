@@ -1421,7 +1421,7 @@
     if (pingArm && k) { send({ t: 'ping', hex: k, kind: pingArm, as: you }); pingArm = null; return; }
     if (mode && mode.type === 'intel') { mode = null; if (k) { SFX.select(); act({ a: 'intel', target: k }).then(ok => ok && toast('🛰 Scouting that area until the end of next round', 'good')); } refreshAll(); return; }
     if (mode && mode.type === 'deploy') {
-      if (!k || !Render.ov.spawn || !Render.ov.spawn.has(k)) { if (!k) cancel(); else { toast(E.isSea(mode.unit) ? 'Launch ships into the sea next to your Port' : 'Deploy at a highlighted HQ / FOB', 'err'); SFX.error(); } return; }
+      if (!k || !Render.ov.spawn || !Render.ov.spawn.has(k)) { if (!k) cancel(); else { toast(E.isSea(mode.unit) ? 'Launch ships into the sea next to your Port' : E.UNITS[mode.unit].cls === 'air' ? 'Deploy at a highlighted HQ / FOB or Carrier' : 'Deploy at a highlighted HQ / FOB', 'err'); SFX.error(); } return; }
       if (!canPlace()) return;
       // fire and forget: you can click again straight away, even while the last drop is still landing
       const unit = mode.unit;
@@ -2077,7 +2077,7 @@
   }
   function renderModeHint() {
     const h = $('#modeHint'); let txt = '';
-    if (mode && mode.type === 'deploy') txt = `Deploy ${E.UNITS[mode.unit].name} — click a glowing ${E.isSea(mode.unit) ? 'sea hex by your Port' : 'HQ / FOB'} · right-click to stop`;
+    if (mode && mode.type === 'deploy') txt = `Deploy ${E.UNITS[mode.unit].name} — click a glowing ${E.isSea(mode.unit) ? 'sea hex by your Port' : E.UNITS[mode.unit].cls === 'air' ? 'HQ / FOB or Carrier' : 'HQ / FOB'} · right-click to stop`;
     else if (mode && mode.type === 'build') txt = mode.struct === 'hq' ? 'Fortify HQ — click your HQ' : `Build or upgrade ${E.STRUCTS[mode.struct].name} — click a glowing hex · right-click to stop`;
     else if (mode && mode.type === 'tactic') { const d = E.TACTICS[mode.id]; txt = d.target === 'heli' && !mode.from ? 'Heli Drop — pick the stack to fly' : ['enemyHand', 'enemyHex'].includes(d.target) ? `${d.name} — press 🎯 TARGET on a rival's name (or click their land) · right-click to cancel` : `${d.name} — pick a target · right-click to cancel`; }
     else if (mode && mode.type === 'intel') txt = `Intel op — click any hex to scout 2 hexes around it ($${E.intelCost(S, you)}) · right-click to cancel`;

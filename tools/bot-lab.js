@@ -2,7 +2,7 @@
 //   node tools/bot-lab.js [games=12] [diff=hard] [players=4]
 // Reports: wars won outright vs run to the round limit, when commanders get knocked out, Arks bought and troops landed
 // from the sea, and where economic buildings go (hexes from the nearest enemy land when built) and how many are lost.
-const E = require('../shared/engine'); const { botStep, draftStep, battlePick } = require('../shared/bot');
+const E = require('../shared/engine'); const { botStep, draftStep, battlePick } = require(process.env.BOTMOD || '../shared/bot');
 const games = +(process.argv[2] || 12), diff = process.argv[3] || 'hard', N = +(process.argv[4] || 4);
 const facs = Object.keys(E.FACTIONS), out = { conquest: 0, timeout: 0, rounds: 0, knockouts: [], arks: 0, landings: 0, econBuilt: 0, econDist: 0, econFront: 0, econLost: 0, hqAttacks: 0, fobDist: 0, fobs: 0, battleCards: 0, hqCards: 0 };
 const ECON = ['warehouse', 'refinery', 'depot'];
@@ -32,6 +32,8 @@ for (let g = 0; g < games; g++) {
       if (a.a === 'deploy' && a.unit === 'ark') out.arks++;
       for (const e of r.events) {
         if (e.e === 'move' && e.pid === p.id) { const from = s.map.tiles[(e.path || [])[0]]; const to = s.map.tiles[(e.path || []).slice(-1)[0]]; if (from && to && E.isWater(from) && E.isLandTile(to) && e.units.some(id => s.units[id] && !E.isSea(s.units[id].type))) out.landings++; }
+        if (e.e === 'siege') out.sieges = (out.sieges || 0) + 1; if (e.e === 'siegeBroken') out.broken = (out.broken || 0) + 1;
+        if (e.e === 'combat' && !e.ranged && e.att) { const c = new Set(e.att.units.filter(t => E.UNITS[t].atk > 0).map(t => E.UNITS[t].cls)).size; out.fights = (out.fights || 0) + 1; out.classes = (out.classes || 0) + c; if (c >= 3) out.ca3 = (out.ca3 || 0) + 1; }
         if (e.e === 'combat' && e.def && e.def.pid && s.map.tiles[e.to] && E.structsOf(s.map.tiles[e.to]).some(x => x.type === 'hq')) out.hqAttacks++;
       }
     }
@@ -48,10 +50,10 @@ for (let g = 0; g < games; g++) {
     if (process.env.LABDBG) { const us = Object.values(s.units).filter(u => u.owner === lead.id && !E.isSea(u.type) && E.UNITS[u.type].cls !== 'air'), rivals = alive.filter(o => o.id !== lead.id);
       const near = u => Math.min(...rivals.map(o => E.dist(u.hex, o.hq))), ds = us.map(near).sort((a, b) => a - b);
       process.stderr.write(`  ${land ? 'LAND' : 'SEA'} stall g${g}: leader ${lead.id} land army ${us.length} (mv ${(us.reduce((a, u) => a + E.UNITS[u.type].mv, 0) / Math.max(1, us.length)).toFixed(1)}) dist to rival HQ median ${ds[ds.length >> 1]} min ${ds[0]} · rivals ` +
-        rivals.map(o => `${o.id} hq★${(E.structsOf(s.map.tiles[o.hq]).find(x => x.type === 'hq') || {}).lvl || 1} on-hq ${Object.values(s.units).filter(u => u.hex === o.hq).length} army ${Object.values(s.units).filter(u => u.owner === o.id).length}`).join(' | ') + '\n'); } }
+        rivals.map(o => `${o.id} hq★${(E.structsOf(s.map.tiles[o.hq]).find(x => x.type === 'hq') || {}).lvl || 1} on-hq ${Object.values(s.units).filter(u => u.hex === o.hq).length} army ${Object.values(s.units).filter(u => u.owner === o.id).length}${E.isAlly(s, lead.id, o.id) ? ' ALLY' : ''}`).join(' | ') + '\n'); } }
   out.rounds += s.turn.round;
   process.stderr.write(`game ${g}: round ${s.turn.round}, ${s.winner ? s.winner.reason : 'unfinished'}, ${s.players.filter(p => p.alive).length} left\n`);
 }
 const ko = out.knockouts.sort((a, b) => a - b);
 console.log(JSON.stringify({ diff, games, wonOutright: out.conquest, ranToLimit: out.timeout, avgRounds: +(out.rounds / games).toFixed(1), knockouts: ko.length, medianKnockoutRound: ko[Math.floor(ko.length / 2)] || null,
-  hqAttacks: out.hqAttacks, arksBought: out.arks, seaLandings: out.landings, econBuilt: out.econBuilt, econAvgHexesFromEnemy: +(out.econDist / Math.max(1, out.econBuilt)).toFixed(2), econOnFront: out.econFront, fobAvgHexesFromEnemy: +(out.fobDist / Math.max(1, out.fobs)).toFixed(2), landStalls: out.landStall || 0, seaStalls: out.seaStall || 0, riverCut: out.riverStall || 0, battleCards: out.battleCards, hqBattleCards: out.hqCards }));
+  hqAttacks: out.hqAttacks, arksBought: out.arks, seaLandings: out.landings, econBuilt: out.econBuilt, econAvgHexesFromEnemy: +(out.econDist / Math.max(1, out.econBuilt)).toFixed(2), econOnFront: out.econFront, fobAvgHexesFromEnemy: +(out.fobDist / Math.max(1, out.fobs)).toFixed(2), landStalls: out.landStall || 0, seaStalls: out.seaStall || 0, riverCut: out.riverStall || 0, battleCards: out.battleCards, hqBattleCards: out.hqCards, sieges: out.sieges || 0, siegesBroken: out.broken || 0, attacks: out.fights || 0, avgClassesPerAttack: +((out.classes || 0) / Math.max(1, out.fights || 0)).toFixed(2), attacks3Classes: out.ca3 || 0 }));
