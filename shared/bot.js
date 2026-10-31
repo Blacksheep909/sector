@@ -829,7 +829,7 @@ function botTurn(s, pid, mem) {
   const keep = Math.min(Math.round((s.turn.income || 0) * 0.5), p.tactics.filter(c => E.TACTICS[c.id].target === 'battle').map(c => E.TACTICS[c.id].cost).sort((a, b) => a - b).slice(0, 2).reduce((a, b) => a + b, 0));
   const options = p.arsenal.filter(t => E.unitCost(p, t) <= p.cash - (t === 'ark' ? 0 : keep) && E.deployHexes(s, pid, t, idx).some(h => !(mem.badHex && mem.badHex.has(h))))
     .filter(t => t !== 'ark' || (navalNeed && myArks < Math.min(6, 1 + Math.floor(landUnits / 8)) && !mine.some(u => u.type === 'ark' && !mine.some(x => x.hex === u.hex && !E.isSea(x.type)))))   // a big army stranded on an island needs a fleet of transports (but not while one waits empty)
-    .filter(t => !E.isSea(t) || t === 'ark' || (t === 'carrier' && !mine.some(u => u.type === 'carrier') && p.arsenal.some(x => E.UNITS[x].cls === 'air')) || (PL.navy ? warships < landUnits * 0.6 && Math.random() < 0.85 : warships < landUnits * (navalNeed ? 0.35 : 0.2) && Math.random() < 0.5)   /* warships can't take a hex: a navy, not the army */);
+    .filter(t => !E.isSea(t) || t === 'ark' || (t === 'carrier' && !mine.some(u => u.type === 'carrier') && p.arsenal.some(x => E.UNITS[x].cls === 'air')) || (PL.navy ? warships < landUnits * 0.6 && Math.random() < 0.85 : warships < landUnits * (stuck || seaborne ? 0.35 : 0.2) && Math.random() < 0.5)   /* warships can't take a hex: a navy, not the army */);
   if (options.length) {
     // counter what the enemy fields: anti-air against air power, tank hunters against armour, siege against forts
     const mix = (() => {
@@ -840,7 +840,7 @@ function botTurn(s, pid, mem) {
     })();
     const counter = t => { const d = E.UNITS[t]; let b = 0;
       // anti-air only earns its keep against aircraft: none seen means don't buy it, and don't outnumber them
-      if (d.aa) { const ownAA = mine.filter(u => E.UNITS[u.type].aa).length; b += !strat.seen.air ? -4 : ownAA >= strat.seen.air * 1.5 ? -2 : Math.min(3, strat.seen.air * 0.6); }
+      if (d.aa) { const ownAA = mine.filter(u => E.UNITS[u.type].aa).length; b += !strat.seen.air ? -4 : ownAA >= strat.seen.air * 1.5 ? -2 : Math.min(3, strat.seen.air * 0.6); b -= Math.max(0, ownAA / Math.max(1, landUnits) - 0.15) * (K.capSlope || 40); }   // (and never more than about a sixth of the army)
       if (d.ability === 'hunter') b += Math.min(1.6, strat.seen.veh * 0.25);
       // a carrier is only worth it with aircraft to fly off it (and pays off most in a war across the sea)
       if (t === 'carrier') b += p.arsenal.some(x => E.UNITS[x].cls === 'air') ? 2 + (navalNeed ? 2 : 0) : -6;
