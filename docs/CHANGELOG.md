@@ -21,6 +21,7 @@ Every release, newest first. Each version also has its own post on the [Releases
 - **🛡 Bots guard their HQ and fight air.** When enemy troops near a bot's HQ could take it, it fills the HQ with its sturdiest defenders before spending on anything else (in testing an attacker's odds dropped from about 66% to 8%). Enemy aircraft gathering near a bot's HQ or base bring anti-air there first, and bots value anti-air cards and units by how much the enemy flies.
 - **Mythic cards are card-sized.** They were drawn shorter than every other card (their body wasn't stretched to the card's full height); fixed everywhere.
 - **Short building tips.** Every building in the build bar now has a one-line description; the full rules stay in How to Play and the card index.
+- **Card skins: store and crates only.** The Locker's ALL CARDS browser is gone and card skins can no longer be bought off rotation: they come from the daily store and from crates.
 - **Badges above borders.** Building, HQ and point-of-interest badges (and HQ name tags) are drawn over the animated borders now, not under them.
 - **Fix:** knocking out a commander who was besieging someone else's HQ deleted that HQ, leaving its owner impossible to knock out and the war unable to end.
 

@@ -107,13 +107,13 @@ const Locker = (() => {
     const grid = el('div', 'lk-grid');
     let items = Object.values(C.ITEMS).filter(i => i.slot === tab);
     if (tab === 'card') {
-      const bar = el('div', 'lk-filter', `<button class="chip${cardFilter === 'owned' ? ' on' : ''}" data-f="owned">MINE</button><button class="chip${cardFilter === 'all' ? ' on' : ''}" data-f="all">ALL CARDS</button><input placeholder="Search a card…" value="${esc(search)}">`);
+      const bar = el('div', 'lk-filter', `<input placeholder="Search a card…" value="${esc(search)}">`);
       bar.querySelectorAll('[data-f]').forEach(b => b.onclick = () => { cardFilter = b.dataset.f; drawLocker(); });
       const inp = bar.querySelector('input'); inp.oninput = () => { search = inp.value; clearTimeout(inp._t); inp._t = setTimeout(() => { drawLocker(); const i2 = $('.lk-filter input'); if (i2) { i2.focus(); i2.setSelectionRange(i2.value.length, i2.value.length); } }, 250); };
       p.appendChild(bar);
       const q = search.trim().toLowerCase();
-      items = items.filter(i => (cardFilter === 'all' || owns(i.id)) && (!q || E.cardDef(i.card).name.toLowerCase().includes(q)));
-      if (cardFilter === 'owned' && !items.length && !q) grid.appendChild(el('div', 'ix-empty', 'No card skins yet. Every card has one at every rarity, from Battle-Worn to a named Mythic. Open <b>crates</b> in the Store to find them, or switch to ALL CARDS to browse and buy one outright.'));
+      items = items.filter(i => owns(i.id) && (!q || E.cardDef(i.card).name.toLowerCase().includes(q)));
+      if (!items.length && !q) grid.appendChild(el('div', 'ix-empty', 'No card skins yet. Every card has one at every rarity, from Battle-Worn to a named Mythic. Open <b>crates</b> in the Store to find them, or look out for one in the daily store.'));
       items = items.slice(0, 90);
     } else items.sort((a, b) => (owns(b.id) - owns(a.id)) || E.RARITY_ORDER.indexOf(a.rarity) - E.RARITY_ORDER.indexOf(b.rarity));
     for (const it of items) grid.appendChild(tile(it, false));

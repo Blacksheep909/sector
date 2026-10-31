@@ -69,6 +69,8 @@ function createProfiles(file, opts = {}) {
     const it = C.ITEMS[itemId];
     if (!it || it.buy === false) return 'That can’t be bought';
     if (p.owned.includes(itemId)) return 'Already yours';
+    // card skins only come from today's store and from crates: no buying them off rotation
+    if (it.slot === 'card' && !C.dailyStore().items.includes(itemId)) return 'Card skins come from the daily store and crates';
     const price = C.priceOf(itemId);
     if (!(price > 0)) return 'That can’t be bought';
     if (p.coins < price) return 'Need ' + price.toLocaleString() + ' Valor';
