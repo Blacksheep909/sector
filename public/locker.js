@@ -207,7 +207,7 @@ const Locker = (() => {
       + `<div class="or-col"><h3>WEEKLY <span class="sub">${wDone}/${wk.length} done</span></h3>${wk.map(row).join('')}`
       + `<div class="or-crate${profile.weeklyCrate ? ' got' : ''}"><div class="or-art or-pack"></div><div class="or-txt"><b>${profile.weeklyCrate ? '✔ Field Pack earned this week' : 'Complete every weekly order'}</b><div class="sub">${profile.weeklyCrate ? (profile.freeCrates ? 'It’s waiting for you in Store → Crates.' : 'New orders arrive next week.') : 'Reward: a free <b>Field Crate</b>, on top of each order’s Valor.'}</div></div>`
       + (profile.freeCrates ? `<button class="btn tiny gold" id="orOpen">OPEN IT</button>` : '') + `</div></div>`
-      + `<div class="sub st-note">Matches pay Valor too: more for winning and fighting well. The more you've earned today (<i class="vm"></i>${profile.earnedToday.toLocaleString()} so far), the less each extra match adds, so play when you like without grinding.</div>`;
+      + `<div class="sub st-note">Matches pay Valor too: more for winning and fighting well.</div>`;
     p.appendChild(obj);
     { const art = obj.querySelector('.or-pack'); if (art) art.appendChild(Crates.pack('field', { hint: ' ' })); }
     const ob = obj.querySelector('#orOpen'); if (ob) ob.onclick = () => { storeTab = 'crates'; show('store'); };
@@ -258,7 +258,7 @@ const Locker = (() => {
   // ── after a game: what you earned ──
   function reward(r) {
     const lines = [];
-    if (r.match) lines.push(`Match · <b><i class="vm"></i>${r.match}</b>` + (r.base > r.match ? ` <span class="sub">(<i class="vm"></i>${r.base} before today's tapering)</span>` : ''));
+    if (r.match) lines.push(`Match · <b><i class="vm"></i>${r.match}</b>`);
     else if (r.why) lines.push(`<span class="sub">${esc(r.why)}</span>`);
     for (const o of r.objectives || []) lines.push(`✔ ${esc(o.text)} · <b><i class="vm"></i>${o.coins}</b>`);
     if (r.crate) lines.push(`🎁 Every weekly order done · <b>free Field Pack</b> <span class="sub">(open it in Store → Packs)</span>`);
