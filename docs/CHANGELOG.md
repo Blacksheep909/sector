@@ -2,8 +2,16 @@
 
 Every release, newest first. Each version also has its own post on the [Releases page](https://github.com/Blacksheep909/sector/releases).
 
-## Unreleased
+## v0.13.0
 
+**Five Situation missions with a live enemy, bots that cross rivers, and new art for the tanks, the fleet and the helicopters.**
+
+- **🎨 New art for the armour, the fleet and the helicopters**, drawn after the real thing in the cards' style:
+  - **Leviathan** is now a Leopard 2A7V, **Goliath** an M1A1 Abrams, **Mauler** a T-72B3 and **Titan** a T-14 Armata.
+  - The **Carrier** is a Ford-class seen from above, with jets on deck. The **Ark** is an amphibious landing ship (HMS Albion).
+  - **Marlin** is a Horizon-class destroyer, **Bastion** a FREMM frigate and **Abyssal** an Admiral Gorshkov. The **Kraken** is a Virginia-class submarine.
+  - The **Stormcrow** is a UH-60 Black Hawk, the **Valkyrie** a V-22 Osprey and the **Ravager** an Mi-24 Hind.
+- **Warships fire missiles:** Marlin, Bastion and Abyssal launch missiles from their vertical cells instead of lobbing shells, and a Kraken attacking a ship sends torpedoes running in.
 - **🎯 Five Situations: missions with a live enemy.** After Endgame come five bigger missions where the enemy is a real bot with income and resupply, so there's no single solution, only a plan: **Breakout** (smash the gate town between your home army and a cut-off division), **Island Chain** (seize a bridgehead and the bunkered town beyond it), **Relief Force** (hold a besieged FOB for seven turns), **Two Fronts** (take a fortress while a second enemy marches on your capital) and **Total War** (knock out a rival on open ground). 25 missions in all.
 - **Covered airspace in the move preview:** hovering (or tapping, or long-pressing on a phone) a hex where your aircraft would stop inside enemy air defence now warns you how many launchers would take a Snap Shot.
 - **Sky Shield** now teaches covered airspace and that anti-air is just 1 chip against ground troops.
