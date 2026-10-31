@@ -2862,11 +2862,10 @@
   }
 
   // economic warfare: show what a strike or shell did to the buildings on a hex
-  function infraHit(k, infra, structs) {
+  function infraHit(k, infra, structs, quiet) {   // quiet: just the blast, no label (a strike over many hexes sums it up once)
     const tt = S.map.tiles[k]; if (tt && structs) { tt.structs = structs; tt.struct = structs.find(x => x.type === 'hq') || structs.find(x => x.type === 'fob') || structs[0] || null; }
-    if (!infra || !infra.length) { Render.float(k, 'NO DAMAGE', '#cfd8df', 16); return; }
-    const txt = infra.map(h => E.STRUCTS[h.type].name.toUpperCase() + (h.to ? ' ' + '★'.repeat(h.from) + '→' + '★'.repeat(h.to) : ' DESTROYED')).join(' · ');
-    Render.float(k, txt, '#ffb03a', 16);
+    if (!infra || !infra.length) { if (!quiet) Render.float(k, 'NO DAMAGE', '#cfd8df', 16); return; }
+    if (!quiet) Render.float(k, infra.map(h => E.STRUCTS[h.type].name.toUpperCase() + (h.to ? ' ' + '★'.repeat(h.from) + '→' + '★'.repeat(h.to) : ' DESTROYED')).join(' · '), '#ffb03a', 16);
     Render.burst(k, ['#ffb03a', '#8a8a8a', '#3a3a3a'], 30, { speed: 1.6, size: 4, up: 140 }); Render.smoke(k, 12, 'rgba(90,85,80,');
     Render.invalidate && Render.invalidate();
   }
@@ -3026,11 +3025,12 @@
         SFX.whoosh(); SFX.alarm();
         Render.flyover(ev.hexes.map(h => h.k).concat([ev.target]), { count: 3, shape: 'b52', spacing: 64, color: pColor(ev.pid), dur: 2.2 * speed(), fall: 0.42 * speed(), onBomb: () => { SFX.boom(0.8); Render.shake(10); } });
         await sleep(1900);
-        for (const h of ev.hexes) { const tt = S.map.tiles[h.k]; if (tt) tt.ruin = 2; if (h.infra.length) infraHit(h.k, h.infra, h.structs); else { Render.burst(h.k, ['#ffb03a', '#5a5a5a'], 14, { up: 90 }); Render.smoke(h.k, 8, 'rgba(70,65,60,'); } }
+        for (const h of ev.hexes) { const tt = S.map.tiles[h.k]; if (tt) tt.ruin = 2; if (h.infra.length) infraHit(h.k, h.infra, h.structs, true); else { Render.burst(h.k, ['#ffb03a', '#5a5a5a'], 14, { up: 90 }); Render.smoke(h.k, 8, 'rgba(70,65,60,'); } }
         Render.recolor(); Render.invalidate();
         for (const k of ev.shot || []) { Render.burst(k, ['#ffb03a', '#fff'], 20, { up: 200 }); Render.float(k, '🛡 SHOT DOWN', '#7ff3ff', 18); }
         { const hit = ev.hexes.reduce((n, h) => n + h.infra.length, 0), kills = (ev.kills || []).length;
-          Render.float(ev.target, [kills ? kills + ' DESTROYED' : '', hit ? hit + ' BUILDING' + (hit > 1 ? 'S' : '') + ' HIT' : '', ev.hexes.length ? ev.hexes.length + ' HEXES PAY NOTHING FOR 2 TURNS' : ''].filter(Boolean).join(' · ') || 'NOTHING HIT', kills ? '#ff4f5e' : '#ff8a5a', kills ? 20 : 18);
+          // one short line for the whole raid (the hexes themselves smoke and go dark)
+          Render.float(ev.target, [kills ? kills + ' KILLED' : '', hit ? hit + ' HIT' : '', ev.hexes.length ? 'NO INCOME 2 TURNS' : ''].filter(Boolean).join(' · ') || 'NOTHING HIT', kills ? '#ff4f5e' : '#ff8a5a', kills ? 15 : 14);
           killUnits(ev.kills || []); }
         for (const k of ev.bridges || []) { dropBridge(k); Render.float(k, 'BRIDGE DESTROYED', '#ff8a5a', 16); }
         await sleep(500); break;
