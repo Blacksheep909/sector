@@ -432,5 +432,16 @@ function crossing(s) {
   s.turn.idx = s.players.indexOf(B); E.startTurn(s, []);
   ok(!A.alive && !Object.values(T).some(t => E.structsOf(t).some(x => x.owner === 'p0')), 'a fallen commander leaves no buildings or mines behind');
 }
+{ // Impossible bots close ranks against the humans: no pact with a human, yes to a fellow bot, and the human is their war
+  const roster = [0, 1, 2, 3].map(i => ({ id: 'p' + i, name: 'P' + i, color: E.COLORS[i], faction: 'iron', bot: i > 0, diff: i > 0 ? 'impossible' : undefined }));
+  const { state: s } = E.createGame({ mode: 'domination', mapSize: 'medium', seed: 'imp1' }, roster);
+  s.phase = 'play';
+  s.allyOffer = { from: 'p0', to: 'p1' };
+  const BOT = require('../shared/bot');
+  ok(BOT.allyReply(s, 'p1').accept === false, 'an Impossible bot turns down a human\'s pact');
+  s.allyOffer = { from: 'p2', to: 'p1' };
+  ok(BOT.allyReply(s, 'p1').accept === true, 'and takes a fellow bot\'s');
+  delete s.allyOffer;
+}
 console.log(fails ? fails + ' FAILED' : 'all passed');
 process.exit(fails ? 1 : 0);
