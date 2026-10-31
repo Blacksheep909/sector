@@ -524,7 +524,7 @@ function botTurn(s, pid, mem) {
   const walkField = (name, list, fordable) => {
     if (walkMaps[name]) return walkMaps[name];
     const f = {}, q = [];
-    for (const k of list) if (tiles[k]) { f[k] = 0; q.push(k); }
+    for (const k of list) if (tiles[k] && E.isLandTile(tiles[k])) { f[k] = 0; q.push(k); }   // (walking routes start and end on land: sea they own is the navy's business)
     for (let i = 0; i < q.length; i++) for (const n of E.neighbors(q[i])) { const t = tiles[n]; if (!t || n in f || !E.isLandTile(t) || t.t === 'mountain' || (t.river && !t.bridge && !fordable)) continue; f[n] = f[q[i]] + 1; q.push(n); }
     return (walkMaps[name] = f);
   };
@@ -532,9 +532,12 @@ function botTurn(s, pid, mem) {
   const walkGain = (name, list, from, to) => { const f = walkField(name, list); if (from in f && to in f) return f[from] - f[to]; const g = walkField(name + '~', list, true); return from in g && to in g ? g[from] - g[to] : nearest(from, list) - nearest(to, list); };
   // overseas: no land route from anything we hold to the war target. That's the Ark's job: load troops and sail at them
   const seaborne = strat.goal.length > 0 && (() => { const f = walkField('goalFord', strat.goal, true); const sp = E.spawnPoints(s, pid); return !(sp.length ? sp : [p.hq]).some(k => k in f); })();   // judged from the bases new troops come from: a lone beachhead doesn't make the war a land war
-  const navalNeed = stuck || seaborne;
+  // troops on land with no route to the war at all (an island we took, say): they need a ride, whatever the rest of the army does
+  const fordable = strat.goal.length ? walkField('goalFord', strat.goal, true) : null, cutOff = h => !!fordable && !(h in fordable);
+  const stranded = fordable ? Object.values(s.units).filter(u => u.owner === pid && !E.isSea(u.type) && E.UNITS[u.type].cls !== 'air' && E.isLandTile(tiles[u.hex]) && cutOff(u.hex)) : [];
+  const navalNeed = stuck || seaborne || stranded.length >= 4;
   const arkHexes = Object.keys(idx).filter(k => E.isWater(tiles[k]) && idx[k].some(u => u.owner === pid && u.type === 'ark' && idx[k].filter(x => x.owner === pid && !E.isSea(x.type)).length < 3));   // room aboard (an Ark carries 3)
-  const landFor = seaborne ? strat.goal : targets;   // where a loaded transport heads
+  const landFor = seaborne || stranded.length >= 4 ? strat.goal : targets;   // where a loaded transport heads
   for (const k in idx) {
     if (mem.skip.has(k)) continue;
     let movers = idx[k].filter(u => u.owner === pid && E.canAct(s, u));
@@ -549,6 +552,7 @@ function botTurn(s, pid, mem) {
         for (const d in r) {
           if (r[d].kind === 'start' || r[d].kind === 'pass' || r[d].kind === 'board' || tiles[d].t === 'water') continue;
           let v = tiles[d].owner === pid ? 0.5 : 5;
+          if (fordable) v += d in fordable ? 3 : -4;   // land where the road to the war goes on, not on another island
           if (r[d].kind === 'attack') { const c = E.combatCalc(s, pid, cargo, E.pathTo(r, d).slice(-2)[0], d, false, idx); if (c.winProb < 0.55) continue; v += 4; }
           if (v > bv) { bv = v; best = d; }
         }
@@ -592,7 +596,7 @@ function botTurn(s, pid, mem) {
     // empty transports wait at the dock for troops
     // empty transports wait at the dock for troops, or (a war overseas) sail to where the army is waiting
     if (fleet && !carrying && movers.every(u => u.type === 'ark')) {
-      const army = navalNeed ? (mem.armyHexes = mem.armyHexes || [...new Set(Object.values(s.units).filter(u => u.owner === pid && !E.isSea(u.type) && E.UNITS[u.type].cls !== 'air' && E.isLandTile(tiles[u.hex])).map(u => u.hex))]) : [];
+      const army = navalNeed ? (mem.armyHexes = mem.armyHexes || [...new Set((seaborne || stuck ? Object.values(s.units).filter(u => u.owner === pid && !E.isSea(u.type) && E.UNITS[u.type].cls !== 'air' && E.isLandTile(tiles[u.hex])) : stranded).map(u => u.hex))]) : [];
       if (army.length && nearest(k, army) > 1) {
         const r = E.reachable(s, pid, ids, k, idx); let to = null, bd = nearest(k, army);
         for (const d in r) if ((r[d].kind === 'move' || r[d].kind === 'capture') && E.isWater(tiles[d])) { const dd = nearest(d, army); if (dd < bd) { bd = dd; to = d; } }
@@ -691,7 +695,7 @@ function botTurn(s, pid, mem) {
           v += new Set(movers.filter(u => E.UNITS[u.type].atk > 0 && !E.UNITS[u.type].range && !have.has(E.UNITS[u.type].cls)).map(u => E.UNITS[u.type].cls)).size * 2.5 * K.combo / 3;
         }
         // overseas war: infantry make for a waiting Ark to be carried across
-        if (seaborne && arkHexes.length && movers.every(u => !E.isSea(u.type) && E.UNITS[u.type].cls !== 'air')) v += (nearest(k, arkHexes) - nearest(dest, arkHexes)) * 2;
+        if ((seaborne || cutOff(k)) && arkHexes.length && movers.every(u => !E.isSea(u.type) && E.UNITS[u.type].cls !== 'air')) v += (nearest(k, arkHexes) - nearest(dest, arkHexes)) * 2;
         // mass up: join a friendly stack on the front line so the next push has the numbers
         if (t.owner === pid && (idx[dest] || []).some(u => u.owner === pid) && E.neighbors(dest).some(n => (idx[n] || []).some(u => wary(s, pid, u.owner)))) v += 2.5;
         if (r.kind === 'move' && t.owner === pid && v < 1 && !exposed) continue;   // a step closer to the front is worth taking
@@ -825,7 +829,7 @@ function botTurn(s, pid, mem) {
   const keep = Math.min(Math.round((s.turn.income || 0) * 0.5), p.tactics.filter(c => E.TACTICS[c.id].target === 'battle').map(c => E.TACTICS[c.id].cost).sort((a, b) => a - b).slice(0, 2).reduce((a, b) => a + b, 0));
   const options = p.arsenal.filter(t => E.unitCost(p, t) <= p.cash - (t === 'ark' ? 0 : keep) && E.deployHexes(s, pid, t, idx).some(h => !(mem.badHex && mem.badHex.has(h))))
     .filter(t => t !== 'ark' || (navalNeed && myArks < Math.min(6, 1 + Math.floor(landUnits / 8)) && !mine.some(u => u.type === 'ark' && !mine.some(x => x.hex === u.hex && !E.isSea(x.type)))))   // a big army stranded on an island needs a fleet of transports (but not while one waits empty)
-    .filter(t => !E.isSea(t) || t === 'ark' || (t === 'carrier' && !mine.some(u => u.type === 'carrier') && p.arsenal.some(x => E.UNITS[x].cls === 'air')) || (PL.navy ? warships < landUnits && Math.random() < 0.85 : warships < landUnits / 2 && Math.random() < 0.5));
+    .filter(t => !E.isSea(t) || t === 'ark' || (t === 'carrier' && !mine.some(u => u.type === 'carrier') && p.arsenal.some(x => E.UNITS[x].cls === 'air')) || (PL.navy ? warships < landUnits * 0.6 && Math.random() < 0.85 : warships < landUnits * (navalNeed ? 0.35 : 0.2) && Math.random() < 0.5)   /* warships can't take a hex: a navy, not the army */);
   if (options.length) {
     // counter what the enemy fields: anti-air against air power, tank hunters against armour, siege against forts
     const mix = (() => {
@@ -876,7 +880,9 @@ function botTurn(s, pid, mem) {
     const gf = walkField('deploy', goal);
     const flier = E.UNITS[type].cls === 'air', gun = E.UNITS[type].range && !E.UNITS[type].aa && !E.isSea(type) && !flier;   // aircraft fly: straight-line distance (and a carrier off the enemy coast is the closest start)
     // guns deploy at the base just behind the front
-    for (const sp of hexes) { const md = (gun ? (d0 => d0 <= 1 ? 50 : Math.max(0, d0 - (E.UNITS[type].range + 1)))(nearest(sp, enemyTiles)) : flier ? nearest(sp, goal) : sp in gf ? gf[sp] : nearest(sp, goal) + 20) - (strat.danger[sp] ? 6 + strat.danger[sp] / 3 : 0); if (md < bd) { bd = md; bs = sp; } }
+    // land troops aren't deployed where they'd be stranded (no route to the war), unless that base is in danger
+    const landish = !flier && !E.isSea(type);
+    for (const sp of hexes) { if (landish && cutOff(sp) && !strat.danger[sp] && hexes.some(h => !cutOff(h))) continue; const md = (gun ? (d0 => d0 <= 1 ? 50 : Math.max(0, d0 - (E.UNITS[type].range + 1)))(nearest(sp, enemyTiles)) : flier ? nearest(sp, goal) : sp in gf ? gf[sp] : nearest(sp, goal) + 20) - (strat.danger[sp] ? 6 + strat.danger[sp] / 3 : 0); if (md < bd) { bd = md; bs = sp; } }
     const a = tryOnce({ a: 'deploy', unit: type, hex: bs, n: mem.deployN = (mem.deployN || 0) + 1 });
     if (a) { delete a.n; return a; }
   }
