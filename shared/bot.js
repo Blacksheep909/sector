@@ -533,11 +533,15 @@ function botTurn(s, pid, mem) {
   // overseas: no land route from anything we hold to the war target. That's the Ark's job: load troops and sail at them
   const seaborne = strat.goal.length > 0 && (() => { const f = walkField('goalFord', strat.goal, true); const sp = E.spawnPoints(s, pid); return !(sp.length ? sp : [p.hq]).some(k => k in f); })();   // judged from the bases new troops come from: a lone beachhead doesn't make the war a land war
   // troops on land with no route to the war at all (an island we took, say): they need a ride, whatever the rest of the army does
+  // the kill decides it: when their HQ sits on land none of our bases can walk (or ford) to, it's a war across the sea,
+  // however much of their other land we can reach
+  const hqFord = strat.hq ? walkField('hqFord', [strat.hq], true) : null;
+  const hqSea = !!hqFord && !seaborne && !(E.spawnPoints(s, pid).length ? E.spawnPoints(s, pid) : [p.hq]).some(k => k in hqFord);
   const fordable = strat.goal.length ? walkField('goalFord', strat.goal, true) : null, cutOff = h => !!fordable && !(h in fordable);
   const stranded = fordable ? Object.values(s.units).filter(u => u.owner === pid && !E.isSea(u.type) && E.UNITS[u.type].cls !== 'air' && E.isLandTile(tiles[u.hex]) && cutOff(u.hex)) : [];
-  const navalNeed = stuck || seaborne || stranded.length >= 4;
+  const navalNeed = stuck || seaborne || hqSea || stranded.length >= 4;
   const arkHexes = Object.keys(idx).filter(k => E.isWater(tiles[k]) && idx[k].some(u => u.owner === pid && u.type === 'ark' && idx[k].filter(x => x.owner === pid && !E.isSea(x.type)).length < 3));   // room aboard (an Ark carries 3)
-  const landFor = seaborne || stranded.length >= 4 ? strat.goal : targets;   // where a loaded transport heads
+  const landFor = hqSea ? strat.goal.filter(k => k in hqFord).concat(strat.hq) : seaborne || stranded.length >= 4 ? strat.goal : targets;   // where a loaded transport heads
   for (const k in idx) {
     if (mem.skip.has(k)) continue;
     let movers = idx[k].filter(u => u.owner === pid && E.canAct(s, u));
@@ -829,7 +833,7 @@ function botTurn(s, pid, mem) {
   const keep = Math.min(Math.round((s.turn.income || 0) * 0.5), p.tactics.filter(c => E.TACTICS[c.id].target === 'battle').map(c => E.TACTICS[c.id].cost).sort((a, b) => a - b).slice(0, 2).reduce((a, b) => a + b, 0));
   const options = p.arsenal.filter(t => E.unitCost(p, t) <= p.cash - (t === 'ark' ? 0 : keep) && E.deployHexes(s, pid, t, idx).some(h => !(mem.badHex && mem.badHex.has(h))))
     .filter(t => t !== 'ark' || (navalNeed && myArks < Math.min(6, 1 + Math.floor(landUnits / 8)) && !mine.some(u => u.type === 'ark' && !mine.some(x => x.hex === u.hex && !E.isSea(x.type)))))   // a big army stranded on an island needs a fleet of transports (but not while one waits empty)
-    .filter(t => !E.isSea(t) || t === 'ark' || (t === 'carrier' && !mine.some(u => u.type === 'carrier') && p.arsenal.some(x => E.UNITS[x].cls === 'air')) || (PL.navy ? warships < landUnits * 0.6 && Math.random() < 0.85 : warships < landUnits * (stuck || seaborne ? 0.35 : 0.2) && Math.random() < 0.5)   /* warships can't take a hex: a navy, not the army */);
+    .filter(t => !E.isSea(t) || t === 'ark' || (t === 'carrier' && !mine.some(u => u.type === 'carrier') && p.arsenal.some(x => E.UNITS[x].cls === 'air')) || (PL.navy ? warships < landUnits * 0.6 && Math.random() < 0.85 : warships < landUnits * (stuck || seaborne || hqSea ? 0.35 : 0.2) && Math.random() < 0.5)   /* warships can't take a hex: a navy, not the army */);
   if (options.length) {
     // counter what the enemy fields: anti-air against air power, tank hunters against armour, siege against forts
     const mix = (() => {
