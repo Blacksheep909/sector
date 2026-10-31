@@ -836,6 +836,7 @@
     const out = []; let sup = null;
     for (const k in s.map.tiles) {
       const t = s.map.tiles[k], h = getS(t, 'hq'), f = getS(t, 'fob');
+      if (t.contam > 0) continue;   // nothing deploys into fallout (a base caught in it is out of action until it clears)
       // team games: a teammate's finished FOB takes your reinforcements too
       if (t.owner !== pid) { if (f && !f.lock && f.owner === t.owner && teammate(s, pid, t.owner)) out.push(k); continue; }
       if ((h && h.owner === pid && !h.siege) || (f && f.owner === pid && !f.lock)) out.push(k);   // a cut-off FOB still takes reinforcements

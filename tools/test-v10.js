@@ -404,5 +404,21 @@ function crossing(s) {
   E.annex(s, 'p0', []);
   ok(T[c].owner === 'p0' && E.neighbors(c).filter(n => n !== lake).every(n => T[n].owner === 'p0'), 'a pocket with a lake in it is annexed (the ship on the lake doesn\'t stop it)');
 }
+{ // a FOB caught in a nuke: gone, the hex unowned fallout, and it's no deploy point (nobody can deploy there)
+  const roster = [0, 1].map(i => ({ id: 'p' + i, name: 'P' + i, color: E.COLORS[i], faction: 'iron' }));
+  const { state: s } = E.createGame({ mode: 'domination', mapSize: 'medium', seed: 'nk2' }, roster);
+  s.phase = 'play'; const T = s.map.tiles, A = E.player(s, 'p0'), B = E.player(s, 'p1');
+  for (const id in s.units) delete s.units[id];
+  const k = Object.keys(T).find(h => E.isLandTile(T[h]) && T[h].t !== 'mountain' && !T[h].river && !(T[h].structs || []).length && E.dist(h, B.hq) >= 4 && E.dist(h, A.hq) >= 5 && E.dist(h, A.hq) <= 7);
+  T[k].owner = 'p1'; T[k].structs = [{ type: 'fob', owner: 'p1', lvl: 1 }]; T[k].struct = T[k].structs[0];
+  for (const n of E.line(A.hq, k)) if (E.isLandTile(T[n]) && !(T[n].structs || []).length) T[n].owner = 'p0';   // a corridor so p0 can reach it
+  T[k].owner = 'p1';
+  A.cash = 50; A.tactics = [{ id: 'nuke', uid: 77 }];
+  s.turn.idx = s.players.indexOf(A); s.turn.stage = 'act';
+  const r = E.applyAction(s, 'p0', { a: 'tactic', uid: 77, target: k });
+  ok(r.ok, 'the nuke lands' + (r.ok ? '' : ': ' + r.err));
+  ok(!(T[k].structs || []).length && !T[k].owner && T[k].contam > 0, 'the FOB is gone and the hex is unowned fallout');
+  ok(!E.spawnPoints(s, 'p1').includes(k) && !E.deployHexes(s, 'p1', 'grunt').includes(k), 'and it is no deploy point');
+}
 console.log(fails ? fails + ' FAILED' : 'all passed');
 process.exit(fails ? 1 : 0);
