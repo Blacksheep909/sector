@@ -1046,7 +1046,7 @@ body.planning #hexPanel { max-height: calc(100vh - 34vh - 200px); }
 
 /* ── mythic rarity: white-hot pearl with a fluorescent rainbow edge (transform-only animation, cheap on the GPU) ── */
 .r-mythic, .card.r-mythic, .slot.r-mythic, .flip.r-mythic, .intel .ic.r-mythic { --rc: #f4fbff; }
-.card.r-mythic .ci, .r-mythic .ci { position: relative; background: linear-gradient(160deg, #ffffff, #e9f3ff 40%, #f6ecff 70%, #eafff6); box-shadow: 0 6px 0 #000, inset 0 0 0 3px #fff, 0 0 26px rgba(255,255,255,.85), 0 0 46px rgba(170,220,255,.5); color: #142030; }
+.card.r-mythic .ci, .r-mythic .ci { background: linear-gradient(160deg, #ffffff, #e9f3ff 40%, #f6ecff 70%, #eafff6); box-shadow: 0 6px 0 #000, inset 0 0 0 3px #fff, 0 0 26px rgba(255,255,255,.85), 0 0 46px rgba(170,220,255,.5); color: #142030; }
 .card.r-mythic .ci::before, .slot.r-mythic::before, .flip.open.r-mythic .cfront .ci::before { content: ''; position: absolute; inset: -3px; border-radius: inherit; padding: 3px; pointer-events: none; z-index: 2;
   background: linear-gradient(90deg, #ff4fd8, #ffe14f, #4fffb0, #4fd2ff, #b04fff, #ff4fd8); background-size: 200% 100%;
   -webkit-mask: linear-gradient(#000 0 0) content-box, linear-gradient(#000 0 0); -webkit-mask-composite: xor; mask-composite: exclude; filter: saturate(1.4) brightness(1.15); animation: mythEdge 2.4s linear infinite; }

@@ -1776,7 +1776,7 @@
     for (const st of E.structsOf(t)) {
       const sd = E.STRUCTS[st.type], L = st.lvl || 1;
       const flags = (st.siege ? ' <span class="hp-tag cut">UNDER SIEGE</span>' : '') + (st.lock ? ' <span class="hp-tag">Online next turn</span>' : '');
-      h += `<div class="urow" style="cursor:default"><img src="${Art.iconURL('struct', st.type)}"><div class="un">${sd.name} <span class="gold">${'★'.repeat(L)}</span>${flags}<div class="st">${sd.desc}${E.UPGRADABLE.includes(st.type) && L < E.MAX_SLVL && t.owner === you && st.owner === you ? '<br><b class="gold">Upgrade: $' + E.buildCost(ds, ds.players.find(p => p.id === you), st.type, k) + '</b> (build it again here)' : ''}</div></div></div>`;
+      h += `<div class="urow" style="cursor:default"><img src="${Art.iconURL('struct', st.type)}"><div class="un">${sd.name} <span class="gold">${'★'.repeat(L)}</span>${flags}<div class="st">${(sd.short || sd.desc)}${E.UPGRADABLE.includes(st.type) && L < E.MAX_SLVL && t.owner === you && st.owner === you ? '<br><b class="gold">Upgrade: $' + E.buildCost(ds, ds.players.find(p => p.id === you), st.type, k) + '</b> (build it again here)' : ''}</div></div></div>`;
     }
     if (t.bridge && t.owner === you && canCommand() && (isMyTurn() || planning())) h += `<button class="btn tiny blue hp-rot" id="hpRotate" title="Turn the bridge to face another way (free)">↻ ROTATE BRIDGE · R</button>`;
     if (t.owner === you && !t.bridge && E.structsOf(t).length < E.MAX_STRUCTS && canCommand()) h += `<div class="hp-sec">${E.MAX_STRUCTS - E.structsOf(t).length} building slot${E.MAX_STRUCTS - E.structsOf(t).length === 1 ? '' : 's'} free on this hex</div>`;
@@ -1878,9 +1878,9 @@
   function showSlotTip(slot, kind, id) {
     const tip = $('#slotTip'); tip.innerHTML = '';
     const d = E.STRUCTS[id], me = myP();
-    const cap = id === 'airbase' && me ? `<span class="tip-up"${airbasesOf(S, me.id) >= E.MAX_AIRBASES ? ' style="color:#ff6a6a"' : ''}>You hold ${airbasesOf(S, me.id)}/${E.MAX_AIRBASES} airbases (${E.MAX_AIRBASES} at most)</span>` : '';
-    const up = E.UPGRADABLE.includes(id) ? `<span class="tip-up">Build on one you already own to upgrade it: ★★ $${me ? E.structCost(me, id, 2) : '?'} · ★★★ $${me ? E.structCost(me, id, 3) : '?'}</span>` : '';
-    tip.innerHTML = `<div class="btip"><img src="${Art.iconURL('struct', id, '#fff', 96)}"><b>${id === 'hq' ? 'Fortify HQ' : d.name} <span class="gold">$${me ? (id === 'hq' ? E.buildCost(S, me, 'hq', me.hq) : E.structCost(me, id)) : d.cost}</span></b><span>${d.desc}</span>${up}${cap}</div>`;
+    const cap = id === 'airbase' && me ? `<span class="tip-up"${airbasesOf(S, me.id) >= E.MAX_AIRBASES ? ' style="color:#ff6a6a"' : ''}>You hold ${airbasesOf(S, me.id)}/${E.MAX_AIRBASES} airbases</span>` : '';
+    const up = E.UPGRADABLE.includes(id) ? `<span class="tip-up">Upgrade one you own: ★★ $${me ? E.structCost(me, id, 2) : '?'} · ★★★ $${me ? E.structCost(me, id, 3) : '?'}</span>` : '';
+    tip.innerHTML = `<div class="btip"><img src="${Art.iconURL('struct', id, '#fff', 96)}"><b>${id === 'hq' ? 'Fortify HQ' : d.name} <span class="gold">$${me ? (id === 'hq' ? E.buildCost(S, me, 'hq', me.hq) : E.structCost(me, id)) : d.cost}</span></b><span>${d.short || d.desc}</span>${up}${cap}</div>`;
     const r = slot.getBoundingClientRect();
     const hz = parseFloat(getComputedStyle($('#hud')).getPropertyValue('--hz')) || 1;   // it lives in the HUD, which is scaled by --hz
     tip.style.left = (r.left + r.width / 2) / hz + 'px'; tip.style.top = (r.top - 12) / hz + 'px';
