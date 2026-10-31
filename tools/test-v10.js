@@ -391,5 +391,18 @@ function crossing(s) {
   s.units.sub.hex = ring1;
   ok(!!E.view(s, 'p0').units.sub, 'right next to it, you see it');
 }
+{ // encirclement: a small lake inside the pocket (even with a ship on it) doesn't stop the annex; open sea still does
+  const roster = [0, 1].map(i => ({ id: 'p' + i, name: 'P' + i, color: E.COLORS[i], faction: 'iron' }));
+  const { state: s } = E.createGame({ mode: 'domination', mapSize: 'large', seed: 'lake1', mapType: 'pangaea' }, roster);
+  s.phase = 'play'; const T = s.map.tiles; for (const id in s.units) delete s.units[id];
+  for (const k in T) { T[k].owner = null; T[k].structs = []; T[k].struct = null; }
+  const c = Object.keys(T).find(k => E.area(k, 3).length === 37 && E.area(k, 2).every(n => T[n] && E.isLandTile(T[n]) && T[n].t !== 'mountain' && !T[n].river));
+  const lake = E.neighbors(c)[0];
+  for (const n of E.area(c, 2)) T[n].owner = E.dist(n, c) === 2 ? 'p0' : 'p1';
+  T[lake].t = 'water'; T[lake].owner = null;
+  s.units.sh = { id: 'sh', owner: 'p1', type: 'marlin', hex: lake, moved: false, fresh: false, stun: 0, mvBonus: 0 };
+  E.annex(s, 'p0', []);
+  ok(T[c].owner === 'p0' && E.neighbors(c).filter(n => n !== lake).every(n => T[n].owner === 'p0'), 'a pocket with a lake in it is annexed (the ship on the lake doesn\'t stop it)');
+}
 console.log(fails ? fails + ' FAILED' : 'all passed');
 process.exit(fails ? 1 : 0);

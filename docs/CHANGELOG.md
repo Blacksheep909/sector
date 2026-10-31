@@ -24,6 +24,9 @@ Every release, newest first. Each version also has its own post on the [Releases
 - **Card skins: store and crates only.** The Locker's ALL CARDS browser is gone and card skins can no longer be bought off rotation: they come from the daily store and from crates.
 - **🎴 Better packs.** Packs look like real printed foil now (brand strip, printed frame, crinkle and gloss, crimped seals, a barcode) and sway so the shine moves across them. The light that pours out when you tear one no longer shows as a hard-edged box.
 - **Better kamikaze drones.** A proper loitering munition now: cropped delta wing with winglets, a round fuselage with a banded warhead, and a pusher prop spinning at the tail.
+- **Encirclement fixes.** The map's edge and your own sea now count as walls when you surround a pocket, and a small lake inside a pocket (even with a ship on it) no longer stops it being annexed. Open sea still keeps a pocket open.
+- **No more lag after super speed.** When the client falls far behind (a long run at super speed, a background tab) it jumps to the latest state and only plays out the last few turns.
+- **Chat folds away.** A button on the chat bar hides the log and chat (remembered; unread chat counts up on it; T opens it again).
 - **Badges above borders.** Building, HQ and point-of-interest badges (and HQ name tags) are drawn over the animated borders now, not under them.
 - **Fix:** knocking out a commander who was besieging someone else's HQ deleted that HQ, leaving its owner impossible to knock out and the war unable to end.
 

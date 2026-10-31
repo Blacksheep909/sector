@@ -2072,15 +2072,22 @@
       const t = tiles[k];
       if (seen.has(k) || !isLandTile(t) || t.owner === pid) continue;
       const comp = [k]; seen.add(k);
-      let enclosed = true, touches = false;
+      let enclosed = true, touches = false, lake = 0; const wet = new Set();
       for (let i = 0; i < comp.length; i++) for (const n of neighbors(comp[i])) {
         const nt = tiles[n];
-        if (!nt) { enclosed = false; continue; }
+        if (!nt) continue;   // the map's edge walls a pocket in like your own border does
         if (nt.t === 'mountain') continue;
-        if (isWater(nt)) { enclosed = false; continue; }
+        if (isWater(nt)) {
+          if (nt.owner === pid) { touches = true; continue; }   // your own sea walls it in
+          // a small lake inside the pocket is part of it; open sea (more than 12 hexes of it) isn't a wall
+          if (!wet.has(n)) { wet.add(n); comp.push(n); if (++lake > 12) enclosed = false; }
+          continue;
+        }
         if (nt.owner === pid) { touches = true; continue; }
         if (!seen.has(n)) { seen.add(n); comp.push(n); }
       }
+      if (!enclosed) continue;
+      const water = comp.filter(c => isWater(tiles[c])); comp.splice(0, comp.length, ...comp.filter(c => !isWater(tiles[c])));   // only the land changes hands (and a ship in the lake doesn't stop it)
       // a pocket walled in only by mountains belongs to nobody: you have to actually hold ground around it
       if (!enclosed || !touches || comp.length > 10) continue;
       if (comp.some(c => (idx[c] || []).some(u => u.owner !== pid))) continue;
@@ -3059,7 +3066,7 @@
   return {
     DIRS, key, parse, dist, neighbors, area, line, mulberry32, hashStr, THEMES, ARCHETYPES, relink,
     POI, WEATHER, isAlly, teammate, recordHistory, RARITY, RARITY_ORDER, CRATES, DROP_TIERS, SCRAP_VALUE, DECK_MAX, MAX_LEVEL, TERRAIN, DIFFICULTY, UNITS, TACTICS, STRUCTS, BUILD_ORDER, UPGRADABLE, MAX_SLVL, FACTIONS, ROLL_BASE, COLORS, TEAM_COLORS, TEAM_NAMES, teamColor, MAX_STACK, GRUNT_STACK, stackFits, CLASS_NAME, cardDef,
-    BATTLE_MAX, cardFee, turnOdds, marketPrice, MARKET_UNLOCK, AIRBASE_CARDS, MAX_AIRBASES, SUBS, subSpotted, cacheCard, scenarioCheck, assaultPlan, openBattle, closeBattle, battleOdds, battleHand, battleCard, INTEL_COST, intelCost, overwatchTriggers, overwatchFire, attackTarget, ECON, infraValue, econOf, AIR_STRIKES, airDefenders, interceptChance, generateMap, createGame, applyAction, spawnChoices, visionOf, startTurn, endTurn, simulateTurnStart, view, drawCards,
+    BATTLE_MAX, cardFee, turnOdds, marketPrice, MARKET_UNLOCK, AIRBASE_CARDS, MAX_AIRBASES, SUBS, subSpotted, annex, cacheCard, scenarioCheck, assaultPlan, openBattle, closeBattle, battleOdds, battleHand, battleCard, INTEL_COST, intelCost, overwatchTriggers, overwatchFire, attackTarget, ECON, infraValue, econOf, AIR_STRIKES, airDefenders, interceptChance, generateMap, createGame, applyAction, spawnChoices, visionOf, startTurn, endTurn, simulateTurnStart, view, drawCards,
     player, current, buildIndex, canAct, moveAllow, ownedTiles, ownedLand, spawnPoints, musterHexes, supplySet, computeIncome, levelOf, unitAtk, unitDef,
     aaZone, aaReach, payout: scaled, blocOf, blocCap, blocTooBig, riders, tsarArea, moodOf, addMood, threatOf, rerollCost, bountyValue, reachable, pathTo, rangedTargets, deployHexes, buildHexes, buildError, isSea, isWater, isCoastal, movers, combatCalc, tacticTargets, unitCost, structCost, buildCost, structsOf, MAX_STRUCTS, conquestTarget, isLandTile, aaCovered,
   };

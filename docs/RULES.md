@@ -306,7 +306,7 @@ When a siege knocks a commander out, **their old HQ becomes your FOB**: a deploy
 
 ## Encirclement
 
-If your territory completely surrounds a land pocket of 10 hexes or fewer, the pocket is **annexed** automatically. This works on neutral land, and on enemy hexes with no troops and no HQ, FOB or Port. Mountains count as walls, but the pocket must touch your land somewhere: a hex ringed only by mountains belongs to nobody.
+If your territory completely surrounds a land pocket of 10 hexes or fewer, the pocket is **annexed** automatically. This works on neutral land, and on enemy hexes with no troops and no HQ, FOB or Port. The map's edge and your own sea count as walls too, and a small lake inside the pocket is part of it (open sea isn't a wall). Mountains count as walls, but the pocket must touch your land somewhere: a hex ringed only by mountains belongs to nobody.
 
 The same goes for water: a pocket of 12 or fewer sea hexes walled in by your coast and your own sea, with no enemy ships inside, becomes yours.
 
