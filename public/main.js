@@ -767,6 +767,13 @@
   function pushAlert(text, hex) { alerts.unshift({ text, hex, t: Date.now() }); alerts.length = Math.min(alerts.length, 4); renderWait(); }
   // map pings and taunts
   let pingArm = null;
+  // the chat and log fold away to a single button (remembered); while folded, new chat lines count up on it
+  { const lb = $('#logBox'), fb = $('#logFold');
+    const fold = on => { lb.classList.toggle('folded', on); fb.textContent = on ? '💬' : '▾'; fb.title = on ? 'Show the chat and log' : 'Hide the chat and log'; if (!on) { fb.dataset.n = ''; $('#log').scrollTop = $('#log').scrollHeight; } try { localStorage.setItem('sector.logFolded', on ? '1' : ''); } catch (e) {} };
+    let was = false; try { was = localStorage.getItem('sector.logFolded') === '1'; } catch (e) {}
+    fold(was);
+    fb.onclick = () => { fold(!lb.classList.contains('folded')); SFX.click(); };
+    window.__logFold = fold; }
   $('#pingBar').querySelectorAll('[data-ping]').forEach(b => b.onclick = () => { pingArm = b.dataset.ping; toast('Click a hex to ping it'); SFX.click(); });
   $('#pingBar').querySelectorAll('[data-emote]').forEach(b => b.onclick = () => { send({ t: 'emote', emote: b.dataset.emote, as: you }); SFX.click(); });
   function showPing(m) {
@@ -1191,7 +1198,7 @@
       } else if (!overlay && !isMyTurn()) $('#chatIn').focus();
       e.preventDefault();
     }
-    if (e.key.toLowerCase() === 't' && S) { $('#chatIn').focus(); e.preventDefault(); }
+    if (e.key.toLowerCase() === 't' && S) { if ($('#logBox').classList.contains('folded') && window.__logFold) window.__logFold(false); $('#chatIn').focus(); e.preventDefault(); }
     if (e.key.toLowerCase() === 'f' && myP()) Render.focus(myP().hq);
     // O: put the selected stack on overwatch
     if (e.key.toLowerCase() === 'r' && !e.ctrlKey && sel && (isMyTurn() || planning()) && rotateBridge(sel.hex)) { e.preventDefault(); return; }
@@ -3388,6 +3395,7 @@
   function addLog(html, cls = '') {
     const box = $('#log'), atEnd = box.scrollHeight - box.scrollTop - box.clientHeight < 24;
     const l = el('div', 'lg ' + cls, html); box.appendChild(l);
+    { const lb = $('#logBox'), fb = $('#logFold'); if (lb && fb && lb.classList.contains('folded') && /\bchat\b/.test(cls)) fb.dataset.n = String((+fb.dataset.n || 0) + 1); }
     while (box.children.length > 80) box.firstChild.remove();
     if (atEnd) box.scrollTop = box.scrollHeight;   // follow the newest line, unless you've scrolled up to read
   }

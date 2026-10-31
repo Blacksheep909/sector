@@ -2160,4 +2160,7 @@ body.war-over #dock, body.war-over #endBtn, body.war-over #marketBtn { display: 
 .pack .pk-crimp.b { height: 16px; background: repeating-linear-gradient(90deg, rgba(0,0,0,.28) 0 1px, rgba(255,255,255,.22) 1px 2px, transparent 2px 4px), linear-gradient(180deg, rgba(0,0,0,.2), rgba(255,255,255,.1)); z-index: 2; }
 .pack .pk-top i { background: repeating-linear-gradient(90deg, rgba(0,0,0,.22) 0 1px, rgba(255,255,255,.25) 1px 2px, transparent 2px 4px), linear-gradient(180deg, var(--f0), var(--f1) 70%, var(--f2)) !important; }
 .pack .pk-sheen { z-index: 2; mix-blend-mode: soft-light; }
-
+/* the chat/log folds away to one button */
+#logFold { position: relative; font-weight: 900; }
+#logFold[data-n]:not([data-n=""])::after { content: attr(data-n); position: absolute; top: -6px; right: -6px; min-width: 16px; height: 16px; padding: 0 4px; border-radius: 8px; background: #ff4f5e; color: #fff; font: 800 10px/16px var(--ui); text-align: center; }
+#logBox.folded #log, #logBox.folded #chatIn, #logBox.folded #pingBar > :not(#logFold) { display: none !important; }
