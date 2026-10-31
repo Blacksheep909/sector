@@ -62,7 +62,7 @@ const SKILL = {
   easy: { attack: 0.52, combo: 1, guard: 0.35, noise: 2.2, idle: 0.15, tactics: 0.5, heli: 0.4, lethal: 0.2 },
   medium: { attack: 0.58, combo: 2, guard: 0.7, noise: 1.1, idle: 0.05, tactics: 0.8, heli: 0.75, lethal: 0.6 },
   hard: { attack: 0.6, combo: 3, guard: 1, noise: 0.4, idle: 0, tactics: 1, heli: 1, lethal: 1 },
-  impossible: { attack: 0.58, combo: 4, guard: 1.1, noise: 0.05, idle: 0, tactics: 1, heli: 1, lethal: 1.6, hunt: 1 },
+  impossible: { attack: 0.6, combo: 3, guard: 1, noise: 0.15, idle: 0, tactics: 1, heli: 1, lethal: 1.4 },
 };
 
 // an ally about to stop being one: a break has been announced (by either side), or the pact is in its last round and they
@@ -214,7 +214,7 @@ function strategy(s, pid, idx) {
   const border = {};
   for (const k in tiles) if (tiles[k].owner === pid) for (const n of E.neighbors(k)) { const o = tiles[n] && tiles[n].owner; if (o && o !== pid) border[o] = (border[o] || 0) + 1; }
   const top = Math.max(0, ...Object.values(th));
-  const sk = SKILL[p.diff] || SKILL.medium, lethal = sk.lethal || 0;
+  const lethal = (SKILL[p.diff] || SKILL.medium).lethal || 0;
   const myLand = Object.keys(tiles).filter(k => tiles[k].owner === pid);
   const reachHQ = q => { if (!q.hq || !tiles[q.hq]) return 99; let m = 99; for (const k of myLand) { const d = E.dist(k, q.hq); if (d < m) m = d; } return m; };
   let focus = null, fv = -1e9;
@@ -227,8 +227,6 @@ function strategy(s, pid, idx) {
     if (p.vengeance && p.vengeance.vs === q.id) v += 40;                      // pay the traitor back
     if (th[q.id] > mine * 1.3 && th[q.id] === top) v += 18;                   // gang up on the runaway leader
     if (!border[q.id]) v -= 10;
-    // Impossible bots read the room: the humans are the real threat, so they make the humans their war
-    if (sk.hunt && !q.bot) v += 26 * sk.hunt;
     if (v > fv) { fv = v; focus = q.id; }
   }
   if (bm.plot && (s.turn.round - bm.plot.since > 6 || !E.isAlly(s, pid, bm.plot.vs))) delete bm.plot;
@@ -934,12 +932,6 @@ function threats(s, pid) {
   const out = {}; for (const p of s.players) if (p.alive && p.id !== pid) out[p.id] = E.threatOf(s, p.id);
   return out;
 }
-// an Impossible bot plays bots-against-humans: true while it shares the board with at least one human and one other bot
-function huntsHumans(s, p) {
-  if (!p || !(SKILL[p.diff] || {}).hunt) return false;
-  const alive = s.players.filter(q => q.alive && q.id !== p.id);
-  return alive.some(q => !q.bot) && alive.some(q => q.bot);
-}
 function leaderOf(th, except) { let best = null; for (const id in th) if (id !== except && (!best || th[id] > th[best])) best = id; return best; }
 function allyReply(s, pid) {
   const o = s.allyOffer; if (!o || o.to !== pid) return null;
@@ -947,9 +939,6 @@ function allyReply(s, pid) {
   if (alive.length <= 2) return { a: 'allyReply', accept: false };
   const mood = E.moodOf(s, pid, o.from), th = threats(s, pid), mine = E.threatOf(s, pid);
   const lead = leaderOf(th, o.from), from = th[o.from] || 0;
-  // Impossible bots don't make deals with humans while other bots are still in it; they close ranks with the bots instead
-  const me = E.player(s, pid), fromP = E.player(s, o.from);
-  if (huntsHumans(s, me)) return { a: 'allyReply', accept: !!(fromP && fromP.bot) && mood > -30 };
   // worth it when someone else is the real danger, and we don't hate the one asking
   const danger = lead && th[lead] > Math.max(mine, from) * 1.15;
   const notTheBully = from < Math.max(mine, th[lead] || 0) * 1.25;
@@ -1003,12 +992,6 @@ function diplomacy(s, pid, mem) {
     // 4. endgame: with only this ally left besides us, someone has to win outright (shared wins are for the meek)
     const lastTwo = alive.length === 2 && ruthless >= 1 && mine > th[o] * 1.15;
     const held = s.turn.round - (x.since || 0);   // pacts younger than 3 rounds are honoured
-    const hunt = huntsHumans(s, p), op = E.player(s, o);
-    if (hunt && op && !op.bot && !runaway) return { a: 'allyBreak', with: o };   // a human ally is a rival in waiting
-    if (hunt && op && op.bot) {
-      if (x.until && x.until - s.turn.round <= 2 && !(x.renew && x.renew[pid]) && E.blocOf(s, pid).size <= E.blocCap(s)) return { a: 'allyRenew', with: o };
-      continue;   // the bots hold together until the humans are gone
-    }
     // renewal: in the pact's last 2 rounds, keep it if it still pays (a shared enemy, no plot against them, no grudge)
     if (x.until && x.until - s.turn.round <= 2 && !(x.renew && x.renew[pid])) {
       const bm = botMem(s, pid), plotting = bm.plot && bm.plot.vs === o;
@@ -1024,18 +1007,6 @@ function diplomacy(s, pid, mem) {
   }
   if (alive.length <= 2 || p.traitor || s.allyOffer || pacts.length >= 2 || s.turn.round < (pl.diplo ? 2 : 4)) return null;
   if ((mem.offered || 0) > 0 || (p._offerRound && s.turn.round - p._offerRound < 3)) return null;
-  if (huntsHumans(s, p)) {
-    // reach out to a fellow bot (the strongest one not yet with us) to fight the humans together
-    let pick = null, pv = -1e9;
-    for (const q of alive) {
-      if (q.id === pid || !q.bot || q.traitor || E.isAlly(s, pid, q.id) || E.blocTooBig(s, pid, q.id) || E.moodOf(s, pid, q.id) < -30) continue;
-      const v = (th[q.id] || 0) + E.moodOf(s, pid, q.id) * 0.2;
-      if (v > pv) { pv = v; pick = q.id; }
-    }
-    if (!pick) return null;
-    mem.offered = 1; p._offerRound = s.turn.round;
-    return { a: 'allyOffer', to: pick };
-  }
   if (!lead || th[lead] < mine * (pl.diplo ? 0.9 : 1.25)) return null;
   // ask the friendliest commander who isn't the leader and isn't already on our side
   let best = null, bm = -31;

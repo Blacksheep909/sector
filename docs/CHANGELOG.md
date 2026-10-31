@@ -4,7 +4,6 @@ Every release, newest first. Each version also has its own post on the [Releases
 
 ## Unreleased
 
-- **💀 Impossible bots gang up on you.** With at least one human and two or more bots in a war, Impossible bots make the humans their main target, turn down every pact a human offers (and break any they had), ally with each other instead and stay loyal until the humans are out. They also earn more (1.7× income, up from 1.5×), mass bigger attacks, guard harder and make fewer sloppy moves. In 24 test wars, a Hard-level stand-in player went from winning 2 and outlasting the bots in 4, to winning none and being knocked out every time.
 - **🗺 Map badges on top.** Building and point-of-interest badges are drawn after every hex, so a house, tree or ridge on the row in front no longer cuts them off. Units stay above everything.
 - **🃏 Hover a stack, see its cards.** The hex tooltip shows the units there as their actual cards (one per type, with a count) instead of small text rows.
 - **🤖 Bots finish their wars.** In the bot lab (4 hard bots, 50-round cap), wars that ran out of time dropped from about half to under 1 in 10. Bots keep most of each turn's income for troops instead of economy buildings, keep slow heavy tanks, guns and anti-air to a sensible share of the army, move fast units out ahead of slow ones, don't let a gun battery block a narrow pass, bridge rivers on the way to the target's HQ, ferry troops stranded on islands (and stop deploying where troops can't reach the war), and take the ground round an enemy HQ before going for it.
@@ -46,8 +45,7 @@ Every release, newest first. Each version also has its own post on the [Releases
 - **UI:** the "Player X's turn" banner sits below the player chips, so it no longer covers the ally and trade menu. A bridge under construction is drawn half-built behind a striped barrier (and its tooltip says it's ready next turn).
 - **🎨 New icons:** Scorpion is a Gepard (twin 35mm and its radars), Hellcat an M10 Booker, Wraith a BTR-82A, Bulwark a Bradley, and the Trident an Ohio-class submarine launching an ICBM.
 
-## v0.13.0
-
+## v0.13.0
 
 **Five Situation missions with a live enemy, bots that cross rivers, and new art for the tanks, the fleet and the helicopters.**
 

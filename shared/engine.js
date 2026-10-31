@@ -252,7 +252,7 @@
     easy: { name: 'Easy', income: 0.75 },
     medium: { name: 'Medium', income: 0.9 },
     hard: { name: 'Hard', income: 1.1 },
-    impossible: { name: 'Impossible', income: 1.7 },
+    impossible: { name: 'Impossible', income: 1.5 },
   };
   const POI = {
     ruins: { name: 'Ruins', desc: 'First unit to arrive loots $4–10.' },
