@@ -557,6 +557,15 @@ function botTurn(s, pid, mem) {
       movers = movers.filter(u => E.isSea(u.type));
       if (!movers.length) { mem.skip.add(k); continue; }
     }
+    // out of contact, a mixed stack doesn't crawl at its slowest: the faster units (and the troops, ahead of the guns) go on,
+    // and the rest move as their own group when the loop comes back to this hex
+    let split = false;
+    if (!atSea && movers.length > 1 && !movers.some(u => E.isSea(u.type) || E.UNITS[u.type].lift) && !enemyNear(k, 2) && !(mem.split = mem.split || new Set()).has(k)) {
+      const sp = u => E.moveAllow(s, u), lo = Math.min(...movers.map(sp)), gun = u => E.UNITS[u.type].range && !isAA(u);
+      let lead = movers.filter(u => sp(u) > lo);
+      if (!lead.length && movers.some(gun) && movers.some(u => !gun(u))) lead = movers.filter(u => !gun(u));
+      if (lead.length && lead.length < movers.length) { movers = lead; split = true; mem.split.add(k); }
+    }
     // keep a garrison at HQ when threatened
     if (k === p.hq && enemyNear(k, 4)) {
       const all = idx[k].filter(u => u.owner === pid);
@@ -570,7 +579,8 @@ function botTurn(s, pid, mem) {
     const guns = !movers.some(u => E.isSea(u.type)) && movers.every(u => E.UNITS[u.type].range && !isAA(u));
     const gunRange = guns ? Math.min(...movers.map(u => E.UNITS[u.type].range)) : 0;
     // a gun battery already in range (but not in contact) holds and shoots next turn
-    if (guns && foeDist(k) >= 2 && foeDist(k) <= gunRange) { mem.skip.add(k); continue; }
+    // (only with something to shoot at: a battery idling in a narrow pass blocks the whole army behind it)
+    if (guns && foeDist(k) >= 2 && foeDist(k) <= gunRange && E.rangedTargets(s, pid, movers.map(u => u.id), k, idx).length) { mem.skip.add(k); continue; }
     const airCover = !movers.some(u => E.isSea(u.type)) && movers.every(isAA);
     const reachAA = airCover ? Math.max(...movers.map(u => E.aaReach(u))) : 0;
     const myStacks = airCover ? (mem.myStacks = mem.myStacks || [...new Set(Object.values(s.units).filter(u => u.owner === pid && !isAA(u) && !E.isSea(u.type)).map(u => u.hex))].concat(E.spawnPoints(s, pid))) : null;
@@ -696,7 +706,7 @@ function botTurn(s, pid, mem) {
       v += Math.random() * K.noise;
       if (v > bv) { bv = v; best = dest; }
     }
-    mem.skip.add(k);
+    if (!split) mem.skip.add(k);
     if (Math.random() < K.idle) continue;
     if (best) { const a = tryOnce({ a: 'move', from: k, units: ids, to: best }); if (a) return a; }
   }
@@ -707,10 +717,12 @@ function botTurn(s, pid, mem) {
     const spots = E.buildHexes(s, pid, 'bridge');
     if (spots.length) { const b_ = tryOnce({ a: 'build', struct: 'bridge', hex: spots.sort((a, b) => nearest(a, targets) - nearest(b, targets))[0] }); if (b_) return b_; }
   }
-  // a river between our bases and the war: bridge it where the crossing is shortest (one at a time: it takes a turn to build)
-  if (strat.goal.length && !seaborne && !mem.crossTried && p.cash >= E.structCost(p, 'bridge') + 2 && !Object.values(tiles).some(t => t.river && E.structsOf(t).some(x => x.type === 'bridge' && x.owner === pid && x.lock))) {
+  // a river between our army and the war's target (its HQ, or its land): bridge it where the crossing is shortest
+  // (one at a time, as it takes a turn to build, unless money is no object)
+  if (strat.goal.length && !seaborne && !mem.crossTried && p.cash >= E.structCost(p, 'bridge') + 2 && (p.cash >= E.structCost(p, 'bridge') * 3 + (s.turn.income || 0) * 0.3 || !Object.values(tiles).some(t => t.river && E.structsOf(t).some(x => x.type === 'bridge' && x.owner === pid && x.lock)))) {
     mem.crossTried = true;
-    const sp = E.spawnPoints(s, pid), home = walkField('home', sp.length ? sp : [p.hq]), there = walkField('goal', strat.goal);
+    const sp = E.spawnPoints(s, pid), army = [...new Set(Object.values(s.units).filter(u => u.owner === pid && !E.isSea(u.type) && E.UNITS[u.type].cls !== 'air' && E.isLandTile(tiles[u.hex])).map(u => u.hex))];
+    const home = walkField('home+', (sp.length ? sp : [p.hq]).concat(army)), there = walkField(strat.hq ? 'hqDry' : 'goal', strat.hq ? [strat.hq] : strat.goal);
     if (!Object.keys(home).some(k => k in there)) {
       let best = null, bv = 1e9;
       for (const k of E.buildHexes(s, pid, 'bridge')) { if (!tiles[k].river) continue; const ns = E.neighbors(k), a = Math.min(...ns.map(n => n in home ? home[n] : 1e3)), b = Math.min(...ns.map(n => n in there ? there[n] : 1e3)); const v = a >= 1e3 ? 1e9 : a + (b >= 1e3 ? 60 + nearest(k, strat.goal) : b); if (v < bv) { bv = v; best = k; } }
