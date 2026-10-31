@@ -1495,6 +1495,9 @@
     for (const k in s.map.tiles) {
       const t = s.map.tiles[k];
       for (const st of structsOf(t).slice()) if (st.type === 'hq' && st.owner === loser) removeStruct(t, st);
+      // someone else's HQ the loser was besieging: the siege dies with them, and the hex goes back to its owner
+      const other = getS(t, 'hq');
+      if (t.owner === loser && other && other.owner !== loser && player(s, other.owner) && player(s, other.owner).alive) { delete other.siege; t.owner = other.owner; syncStructs(t); continue; }
       if (t.owner === loser) {
         const heart = by && dist(k, lp.hq) <= 2;
         if (heart) { t.owner = by; for (const st of structsOf(t)) st.owner = by; }
@@ -1922,6 +1925,8 @@
   function checkWin(s, ev) {
     if (s.phase !== 'play') return;
     if (s.scenario) { scenarioCheck(s, ev); if (s.phase !== 'play') return; }
+    // a commander whose HQ is gone altogether (not under siege: gone) is out of the war
+    if (!s.scenario) for (const p of s.players) if (p.alive && p.hq && s.map.tiles[p.hq] && !structsOf(s.map.tiles[p.hq]).some(x => x.type === 'hq' && x.owner === p.id)) eliminate(s, p.id, null, ev);
     const alive = s.players.filter(p => p.alive);
     if (alive.length === 1) return declareWin(s, alive[0].id, 'is the last commander standing', ev);
     // everyone left standing is allied with everyone else: they win together

@@ -357,5 +357,26 @@ function crossing(s) {
   r = E.applyAction(s2, 'A', { a: 'move', from: M2[0], units: ['p'], to: M2[3] });
   ok(r.ok && !r.events.some(e => e.e === 'combat'), 'stealth bombers are not engaged');
 }
+{ // a commander knocked out while besieging someone else's HQ: that HQ survives, and the siege ends
+  const roster = [0, 1, 2].map(i => ({ id: 'p' + i, name: 'P' + i, color: E.COLORS[i], faction: 'iron' }));
+  const { state: s } = E.createGame({ mode: 'domination', mapSize: 'medium', seed: 'sg1' }, roster);
+  s.phase = 'play'; const T = s.map.tiles, [A, B, C] = ['p0', 'p1', 'p2'].map(id => E.player(s, id));
+  const hqOf = p => E.structsOf(T[p.hq]).find(x => x.type === 'hq');
+  for (const id in s.units) delete s.units[id];
+  T[C.hq].owner = 'p0'; hqOf(C).siege = { by: 'p0' };                       // p0 is besieging p2
+  T[A.hq].owner = 'p1'; hqOf(A).siege = { by: 'p1' };                       // and p1 is besieging p0, holding it
+  s.units.x = { id: 'x', owner: 'p1', type: 'grunt', hex: A.hq, moved: false, fresh: false, stun: 0, mvBonus: 0 };
+  s.turn.idx = s.players.indexOf(B); const ev = []; E.startTurn(s, ev);
+  ok(!A.alive, 'p0 falls to the siege');
+  ok(C.alive && hqOf(C) && hqOf(C).owner === 'p2' && !hqOf(C).siege && T[C.hq].owner === 'p2', "p2's HQ survives p0's fall, its siege over and the hex back in p2's hands");
+}
+{ // and a commander whose HQ is gone altogether is out
+  const roster = [0, 1, 2].map(i => ({ id: 'p' + i, name: 'P' + i, color: E.COLORS[i], faction: 'iron' }));
+  const { state: s } = E.createGame({ mode: 'domination', mapSize: 'medium' }, roster);
+  s.phase = 'play'; const T = s.map.tiles, C = E.player(s, 'p2');
+  T[C.hq].structs = []; T[C.hq].struct = null; T[C.hq].owner = null;
+  s.turn.idx = s.players.findIndex(p => p.id !== 'p2'); E.startTurn(s, []);
+  ok(!C.alive, 'a commander with no HQ left is knocked out');
+}
 console.log(fails ? fails + ' FAILED' : 'all passed');
 process.exit(fails ? 1 : 0);
