@@ -501,7 +501,7 @@
       id: 'relief', name: 'Relief Force', tier: 'Situation', technique: 'Holding a besieged base while a relief column breaks through',
       brief: 'The town of Ostrava is surrounded. Its garrison has to hold for seven turns, and the relief column must not arrive too late.',
       turns: 7, live: true,
-      players: { A: { name: 'You', cash: 8, arsenal: ['grunt', 'mauler', 'lancer'] }, B: { name: 'Siege Corps', ai: 'bot', diff: 'medium', cash: 6, arsenal: ['grunt', 'mauler', 'thumper'] } },
+      players: { A: { name: 'You', cash: 11, arsenal: ['grunt', 'mauler', 'lancer'] }, B: { name: 'Siege Corps', ai: 'bot', diff: 'medium', cash: 6, arsenal: ['grunt', 'mauler', 'thumper'] } },
       map: [
         '~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~',
         '~ .A .A .A . f . .B .B .B .B hB ~ ~',
