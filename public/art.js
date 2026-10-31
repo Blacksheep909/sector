@@ -2104,6 +2104,123 @@ const Art = (() => {
       shade(c, () => { rrp(c, 0.42, -0.04, 0.14, 0.04, 0.01); rrp(c, 0.12, -0.8, 0.18, 0.06, 0.02); }, SH2);
     },
   });
+  // ── v9: real proportions (long, low tanks and ships), still drawn in the cards' style ──
+  Object.assign(UNIT, {
+    // Leopard 2A7V: a long, low hull with heavy skirts over seven road wheels, the turret's arrowhead wedge raking down to
+    // the long 120mm, the PERI sight up on the roof and the stowage basket on the bustle
+    leviathan(c) {
+      c.save(); c.translate(0, -0.1);
+      trackRun(c, -0.9, 0.42, 0.24, 0.22, 7, 0.065);
+      poly(c, [-1.0, 0.0, 0.08, 0.0, 0.44, 0.19, 0.4, 0.3, -0.93, 0.3, -1.0, 0.2]); c.fill();
+      shade(c, () => { rrp(c, -0.98, 0.14, 1.36, 0.16, 0.02); }, SH); shade(c, () => { for (const x of [-0.6, -0.24, 0.1]) rrp(c, x, 0.12, 0.02, 0.18, 0.01); }, SH2);
+      poly(c, [-0.86, 0.0, -0.88, -0.13, -0.82, -0.17, 0.06, -0.17, 0.46, -0.05, 0.42, 0.0]); c.fill();
+      shade(c, () => { c.moveTo(0.06, -0.17); c.lineTo(0.46, -0.05); c.lineTo(0.42, -0.01); c.lineTo(0.05, -0.1); c.closePath(); for (const y of [-0.12, -0.06]) rrp(c, -0.85, y, 0.16, 0.025, 0.01); }, SH2);
+      rr(c, 0.34, -0.075, 0.68, 0.06, 0.03); c.fill(); rr(c, 0.58, -0.087, 0.08, 0.085, 0.02); c.fill(); rr(c, 0.98, -0.087, 0.06, 0.085, 0.02); c.fill();
+      rr(c, -0.33, -0.25, 0.04, 0.09, 0.01); c.fill(); rr(c, -0.4, -0.31, 0.18, 0.08, 0.03); c.fill(); shade(c, () => { rrp(c, -0.35, -0.29, 0.06, 0.035, 0.01); }, SH2);
+      rr(c, -0.66, -0.22, 0.16, 0.06, 0.03); c.fill(); rr(c, -0.08, -0.23, 0.13, 0.07, 0.02); c.fill();
+      c.restore();
+    },
+    // M1A1 Abrams: seven road wheels under the skirts, the long shallow glacis, a low flat slab of a turret with its big
+    // bustle rack, the 120mm, the commander's cupola with its M2 and the gunner's sight
+    goliath(c) {
+      c.save(); c.translate(0, -0.12);
+      trackRun(c, -0.88, 0.5, 0.28, 0.22, 7, 0.068);
+      poly(c, [-1.0, 0.03, 0.18, 0.03, 0.7, 0.18, 0.66, 0.34, -0.94, 0.34, -1.0, 0.2]); c.fill();
+      shade(c, () => { rrp(c, -0.98, 0.18, 1.62, 0.16, 0.02); }, SH); shade(c, () => { for (const x of [-0.56, -0.16, 0.24]) rrp(c, x, 0.16, 0.02, 0.18, 0.01); }, SH2);
+      poly(c, [-0.8, 0.03, -0.82, -0.11, 0.28, -0.13, 0.44, -0.06, 0.42, 0.0, 0.32, 0.03]); c.fill();
+      shade(c, () => { c.moveTo(0.28, -0.13); c.lineTo(0.44, -0.06); c.lineTo(0.43, -0.03); c.lineTo(0.27, -0.08); c.closePath(); rrp(c, -0.76, -0.04, 1.0, 0.025, 0.01); }, SH2);
+      rr(c, -1.02, -0.11, 0.24, 0.13, 0.02); c.fill(); shade(c, () => { for (const y of [-0.08, -0.03]) rrp(c, -0.99, y, 0.18, 0.025, 0.01); }, SH2);
+      rr(c, 0.36, -0.08, 0.68, 0.062, 0.03); c.fill(); rr(c, 0.56, -0.092, 0.08, 0.086, 0.02); c.fill();
+      rr(c, -0.42, -0.23, 0.18, 0.11, 0.04); c.fill(); rr(c, -0.26, -0.22, 0.3, 0.035, 0.015); c.fill();
+      rr(c, -0.02, -0.22, 0.14, 0.1, 0.03); c.fill(); shade(c, () => { rrp(c, 0.01, -0.2, 0.07, 0.04, 0.01); }, SH2);
+      c.restore();
+    },
+    // T-72B3: six big road wheels with the return rollers above, a short rubber skirt, a low cast dome of a turret with its
+    // brow of reactive armour, the long 125mm, the snorkel on the turret's back and the two fuel drums on the engine deck
+    mauler(c) {
+      c.save(); c.translate(0, -0.08);
+      trackRun(c, -0.84, 0.42, 0.2, 0.26, 6, 0.085);
+      for (let i = 0; i < 3; i++) { circ(c, -0.5 + i * 0.38, 0.235, 0.028); c.fill(); }
+      poly(c, [-1.0, 0.0, 0.1, 0.0, 0.46, 0.18, 0.42, 0.24, -0.92, 0.24, -1.0, 0.12]); c.fill();
+      shade(c, () => { rrp(c, -0.98, 0.12, 1.38, 0.12, 0.02); }, SH);
+      for (const x of [-1.02, -0.87]) { rr(c, x, -0.14, 0.13, 0.15, 0.04); c.fill(); shade(c, () => { rrp(c, x + 0.02, -0.08, 0.09, 0.025, 0.01); }, SH); }
+      c.beginPath(); c.moveTo(-0.52, 0.0); c.quadraticCurveTo(-0.5, -0.22, -0.18, -0.23); c.lineTo(0.0, -0.23); c.quadraticCurveTo(0.2, -0.2, 0.24, -0.06); c.lineTo(0.26, 0.0); c.closePath(); c.fill();
+      poly(c, [-0.02, -0.25, 0.16, -0.21, 0.32, -0.05, 0.27, 0.0, 0.13, -0.11, -0.03, -0.17]); c.fill();
+      shade(c, () => { c.moveTo(-0.03, -0.17); c.lineTo(0.13, -0.11); c.lineTo(0.27, 0.0); c.lineTo(0.32, -0.05); c.lineTo(0.29, -0.06); c.lineTo(0.15, -0.16); c.closePath(); }, SH2);
+      rr(c, -0.62, -0.17, 0.28, 0.05, 0.025); c.fill();
+      rr(c, 0.2, -0.07, 0.86, 0.055, 0.027); c.fill(); for (const x of [0.46, 0.68]) { rr(c, x, -0.08, 0.06, 0.08, 0.02); c.fill(); }
+      rr(c, -0.26, -0.33, 0.16, 0.1, 0.04); c.fill(); rr(c, -0.12, -0.31, 0.26, 0.03, 0.015); c.fill();
+      c.restore();
+    },
+    // Virginia-class attack submarine: a long round hull, the sail set well forward with its masts, the cross of control
+    // fins at the stern and the pump-jet shroud
+    kraken(c) {
+      c.beginPath(); c.moveTo(-0.7, 0.0); c.lineTo(0.76, 0.0); c.quadraticCurveTo(1.0, 0.01, 1.0, 0.13); c.quadraticCurveTo(1.0, 0.25, 0.76, 0.26); c.lineTo(-0.7, 0.26); c.quadraticCurveTo(-0.84, 0.22, -0.9, 0.13); c.quadraticCurveTo(-0.84, 0.04, -0.7, 0.0); c.closePath(); c.fill();
+      rr(c, -1.02, 0.06, 0.16, 0.14, 0.04); c.fill();                                                                     // pump-jet
+      poly(c, [-0.86, 0.04, -0.96, -0.12, -0.86, -0.12, -0.76, 0.02]); c.fill(); poly(c, [-0.86, 0.22, -0.96, 0.38, -0.86, 0.38, -0.76, 0.24]); c.fill();   // rudders
+      c.beginPath(); c.moveTo(0.16, 0.01); c.lineTo(0.2, -0.28); c.quadraticCurveTo(0.28, -0.33, 0.46, -0.3); c.lineTo(0.52, 0.01); c.closePath(); c.fill();   // sail
+      rr(c, 0.26, -0.42, 0.035, 0.16, 0.01); c.fill(); rr(c, 0.36, -0.38, 0.03, 0.12, 0.01); c.fill();
+      shade(c, () => { rrp(c, -0.86, 0.14, 1.8, 0.12, 0.06); }, SH); shade(c, () => { rrp(c, 0.22, -0.24, 0.2, 0.04, 0.02); rrp(c, -0.98, 0.08, 0.06, 0.1, 0.02); }, SH2);
+    },
+    // Horizon-class air-defence destroyer: a long, low hull with a raked bow, the gun on the foredeck, the tall forward mast
+    // with the EMPAR radar dome, the two funnels, the hangar and flight deck aft
+    marlin(c) {
+      poly(c, [-1.0, 0.18, 0.6, 0.18, 0.6, 0.14, 1.04, 0.12, 0.92, 0.4, -0.98, 0.4]); c.fill();
+      poly(c, [-0.62, 0.18, -0.62, 0.02, 0.18, 0.02, 0.18, -0.06, 0.5, -0.06, 0.54, 0.18]); c.fill();                    // hangar + superstructure
+      poly(c, [0.2, -0.06, 0.24, -0.52, 0.34, -0.52, 0.38, -0.06]); c.fill(); circ(c, 0.29, -0.58, 0.07); c.fill(); rr(c, 0.28, -0.72, 0.02, 0.1, 0.01); c.fill();   // EMPAR mast
+      poly(c, [-0.04, 0.02, -0.01, -0.3, 0.07, -0.3, 0.1, 0.02]); c.fill();                                                // forward funnel
+      poly(c, [-0.32, 0.02, -0.29, -0.22, -0.21, -0.22, -0.18, 0.02]); c.fill();                                           // aft funnel
+      navalGun(c, 0.78, 0.14);
+      shade(c, () => { rrp(c, -0.96, 0.27, 1.9, 0.13, 0.02); }, SH);
+      shade(c, () => { rrp(c, -0.96, 0.34, 1.88, 0.05, 0.02); for (let x = 0.22; x < 0.5; x += 0.09) rrp(c, x, -0.03, 0.05, 0.04, 0.01); rrp(c, -0.58, 0.06, 0.24, 0.1, 0.02); c.moveTo(0.35, -0.58); c.arc(0.29, -0.58, 0.045, 0, P * 2); }, SH2);
+    },
+    // Aquitaine-class (FREMM): a long hull, one smooth stealthy superstructure running most of its length, the tall pyramid
+    // mast, the smaller radar pyramid on the bridge, the funnel block, hangar and flight deck aft, the 76mm on the bow
+    bastion(c) {
+      poly(c, [-1.0, 0.18, 0.62, 0.18, 1.04, 0.1, 0.92, 0.4, -0.98, 0.4]); c.fill();
+      poly(c, [-0.66, 0.18, -0.62, -0.02, 0.36, -0.02, 0.46, 0.18]); c.fill();
+      poly(c, [-0.02, -0.02, 0.06, -0.78, 0.1, -0.78, 0.18, -0.02]); c.fill(); rr(c, 0.075, -0.92, 0.015, 0.16, 0.007); c.fill();   // pyramid mast
+      poly(c, [0.22, -0.02, 0.26, -0.24, 0.36, -0.24, 0.4, -0.02]); c.fill();                                              // bridge radar
+      poly(c, [-0.36, -0.02, -0.32, -0.2, -0.16, -0.2, -0.12, -0.02]); c.fill();                                            // funnel block
+      navalGun(c, 0.7, 0.16);
+      shade(c, () => { rrp(c, -0.96, 0.27, 1.9, 0.13, 0.02); c.moveTo(0.1, -0.74); c.lineTo(0.18, -0.02); c.lineTo(0.13, -0.02); c.lineTo(0.09, -0.6); c.closePath(); }, SH);
+      shade(c, () => { rrp(c, -0.96, 0.34, 1.88, 0.05, 0.02); for (let x = 0.24; x < 0.4; x += 0.06) rrp(c, x, -0.18, 0.035, 0.035, 0.01); rrp(c, -0.62, 0.06, 0.22, 0.1, 0.02); }, SH2);
+    },
+    // Admiral Gorshkov: a long hull with a raised forecastle, the big superstructure, the tall tower carrying the radar
+    // head, the second mast aft, the 130mm on the foredeck with its missile cells behind
+    abyssal(c) {
+      poly(c, [-1.0, 0.16, 0.36, 0.16, 0.36, 0.1, 1.04, 0.02, 0.9, 0.4, -0.98, 0.4]); c.fill();
+      poly(c, [-0.6, 0.16, -0.6, -0.04, 0.3, -0.04, 0.34, 0.1]); c.fill();
+      poly(c, [0.06, -0.04, 0.1, -0.56, 0.22, -0.56, 0.26, -0.04]); c.fill(); rr(c, 0.06, -0.68, 0.2, 0.12, 0.03); c.fill(); rr(c, 0.15, -0.82, 0.02, 0.14, 0.01); c.fill();
+      poly(c, [-0.3, -0.04, -0.26, -0.42, -0.2, -0.42, -0.16, -0.04]); c.fill(); rr(c, -0.24, -0.54, 0.015, 0.12, 0.007); c.fill();
+      navalGun(c, 0.7, 0.05, true);
+      shade(c, () => { rrp(c, -0.96, 0.27, 1.9, 0.13, 0.02); }, SH);
+      shade(c, () => { rrp(c, -0.96, 0.34, 1.86, 0.05, 0.02); rrp(c, 0.42, 0.02, 0.14, 0.035, 0.01); rrp(c, 0.09, -0.64, 0.14, 0.05, 0.02); for (let x = -0.5; x < 0.06; x += 0.12) rrp(c, x, 0.0, 0.06, 0.04, 0.01); }, SH2);
+    },
+    // Ford-class carrier from above, angled across the card: one flight deck with the angled landing strip swelling out to
+    // port, the island on the starboard edge, the catapult tracks on the bow, and jets parked on deck
+    carrier(c) {
+      c.save(); c.rotate(-0.5); c.scale(1.04, 1.4);
+      const deck = new Path2D();
+      [[-0.98, -0.12], [-0.62, -0.2], [-0.12, -0.34], [0.12, -0.32], [0.2, -0.18], [0.62, -0.16], [0.92, -0.07], [1.0, 0.0], [0.92, 0.07], [0.62, 0.15], [-0.98, 0.15]].forEach(([x, y], k) => k ? deck.lineTo(x, y) : deck.moveTo(x, y)); deck.closePath();
+      c.fill(deck);
+      rr(c, -0.22, 0.09, 0.26, 0.14, 0.04); c.fill(); shade(c, () => { rrp(c, -0.18, 0.12, 0.18, 0.08, 0.02); }, SH2);        // island
+      c.save(); c.clip(deck);
+      shade(c, () => { c.moveTo(-0.98, -0.07); c.lineTo(0.1, -0.31); c.lineTo(0.12, -0.26); c.lineTo(-0.98, -0.02); c.closePath(); }, SH);   // angled landing strip
+      const jet = (x, y, r, k = 1) => { c.save(); c.translate(x, y); c.rotate(r); c.scale(k, k / 1.4 * 1.04);
+        c.moveTo(0.16, 0); c.lineTo(0.04, -0.035); c.lineTo(-0.02, -0.13); c.lineTo(-0.07, -0.13); c.lineTo(-0.06, -0.035); c.lineTo(-0.11, -0.035); c.lineTo(-0.15, -0.08); c.lineTo(-0.17, -0.08);
+        c.lineTo(-0.16, 0); c.lineTo(-0.17, 0.08); c.lineTo(-0.15, 0.08); c.lineTo(-0.11, 0.035); c.lineTo(-0.06, 0.035); c.lineTo(-0.07, 0.13); c.lineTo(-0.02, 0.13); c.lineTo(0.04, 0.035); c.closePath(); c.restore(); };
+      shade(c, () => {
+        for (const y of [-0.06, 0.06]) rrp(c, 0.36, y - 0.008, 0.46, 0.016, 0.008);                                        // catapults
+        jet(0.66, -0.06, 0); jet(0.66, 0.06, 0);
+        jet(-0.8, 0.06, 0.5); jet(-0.56, 0.06, 0.5); jet(0.3, 0.07, 0.5);
+        jet(-0.38, -0.17, -0.22);
+      }, SH2);
+      c.restore(); c.restore();
+    },
+  });
+  // warships are long and low: stretch the three surface combatants a little along their length
+  for (const id of ['marlin', 'bastion', 'abyssal']) { const f = UNIT[id]; UNIT[id] = c => { c.save(); c.translate(0, 0.08); c.scale(1.05, 0.8); f(c); c.restore(); }; }
   function cardArt(id) {
     const k = 'card' + id; if (cache[k]) return cache[k];
     const E = SectorEngine, d = E.cardDef(id), pal = PAL[d.rarity] || PAL.common;
