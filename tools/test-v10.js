@@ -420,5 +420,17 @@ function crossing(s) {
   ok(!(T[k].structs || []).length && !T[k].owner && T[k].contam > 0, 'the FOB is gone and the hex is unowned fallout');
   ok(!E.spawnPoints(s, 'p1').includes(k) && !E.deployHexes(s, 'p1', 'grunt').includes(k), 'and it is no deploy point');
 }
+{ // a fallen commander leaves nothing behind: a minefield of theirs on sea someone else holds goes too
+  const roster = [0, 1, 2].map(i => ({ id: 'p' + i, name: 'P' + i, color: E.COLORS[i], faction: 'iron' }));
+  const { state: s } = E.createGame({ mode: 'domination', mapSize: 'medium', seed: 'mn1' }, roster);
+  s.phase = 'play'; const T = s.map.tiles, [A, B, C] = ['p0', 'p1', 'p2'].map(id => E.player(s, id));
+  for (const id in s.units) delete s.units[id];
+  const w = Object.keys(T).find(k => T[k].t === 'water' && E.dist(k, A.hq) > 3);
+  T[w].owner = 'p2'; T[w].structs = [{ type: 'mine', owner: 'p0', lvl: 1 }]; T[w].struct = T[w].structs[0];
+  const hq = E.structsOf(T[A.hq]).find(x => x.type === 'hq'); T[A.hq].owner = 'p1'; hq.siege = { by: 'p1' };
+  s.units.x = { id: 'x', owner: 'p1', type: 'grunt', hex: A.hq, moved: false, fresh: false, stun: 0, mvBonus: 0 };
+  s.turn.idx = s.players.indexOf(B); E.startTurn(s, []);
+  ok(!A.alive && !Object.values(T).some(t => E.structsOf(t).some(x => x.owner === 'p0')), 'a fallen commander leaves no buildings or mines behind');
+}
 console.log(fails ? fails + ' FAILED' : 'all passed');
 process.exit(fails ? 1 : 0);

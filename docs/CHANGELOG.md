@@ -27,6 +27,7 @@ Every release, newest first. Each version also has its own post on the [Releases
 - **Encirclement fixes.** The map's edge and your own sea now count as walls when you surround a pocket, and a small lake inside a pocket (even with a ship on it) no longer stops it being annexed. Open sea still keeps a pocket open.
 - **No more lag after super speed.** When the client falls far behind (a long run at super speed, a background tab) it jumps to the latest state and only plays out the last few turns.
 - **Chat folds away.** A button on the chat bar hides the log and chat (remembered; unread chat counts up on it; T opens it again).
+- **The fallen leave nothing behind.** A knocked-out commander's minefields and buildings outside their own land (a minefield on sea someone else holds, say) are cleared with them. And nothing deploys into fallout: a base caught in a nuke is out of action until it clears.
 - **Badges above borders.** Building, HQ and point-of-interest badges (and HQ name tags) are drawn over the animated borders now, not under them.
 - **Fix:** knocking out a commander who was besieging someone else's HQ deleted that HQ, leaving its owner impossible to knock out and the war unable to end.
 

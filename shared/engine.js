@@ -1513,6 +1513,14 @@
         syncStructs(t); hexes.push(k);
       }
     }
+    // anything of theirs left standing outside their own land (a minefield on sea someone else now holds, a bunker on lost
+    // ground) goes with them; bridges stay, unowned
+    for (const k in s.map.tiles) {
+      const t = s.map.tiles[k], mine = structsOf(t).filter(st => st.owner === loser);
+      if (!mine.length) continue;
+      t.structs = structsOf(t).filter(st => st.owner !== loser || st.type === 'bridge'); for (const st of t.structs) if (st.owner === loser) st.owner = null;
+      syncStructs(t);
+    }
     // the fallen capital becomes the conqueror's forward base: a deploy point right where they broke through
     const cap = lp.hq && s.map.tiles[lp.hq];
     if (by && cap && cap.owner === by && !getS(cap, 'fob') && structsOf(cap).length < MAX_STRUCTS) addStruct(cap, { type: 'fob', owner: by, lvl: 1 });
