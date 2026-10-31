@@ -3026,6 +3026,10 @@
       const hide = o => o && o !== pid && !isAlly(s, pid, o);
       for (const k in c.map.tiles) { const t = c.map.tiles[k]; if (hide(t.owner)) { t.owner = null; t.structs = structsOf(t).filter(x => !hide(x.owner)); t.struct = t.structs[0] || null; } }
       for (const id in c.units) if (hide(c.units[id].owner)) delete c.units[id];
+      // the land itself is unexplored too: no terrain, no prizes, nothing but the glowing spots you may pick
+      // (and, once you've picked, the ground round your own HQ)
+      const mine = new Set(); const pl0 = s.players.find(q => q.id === pid); if (pl0 && pl0.hq) for (const a of area(pl0.hq, 1)) mine.add(a);
+      for (const k in c.map.tiles) { if (mine.has(k)) continue; const t = c.map.tiles[k]; t.fog = 2; t.owner = null; t.structs = []; t.struct = null; delete t.poi; delete t.gar; delete t.fish; delete t.river; delete t.flow; delete t.ruin; delete t.wreck; t.res = false; t.contam = 0; t.smoke = null; t.bridge = false; }
       c.fogSpawn = true;
     }
     // teammates see each other's hands (to plan together); nobody else's

@@ -302,6 +302,9 @@ function filterEvents(events, pid) {
     const myLand = new Set(Object.keys(game.map.tiles).filter(k => game.map.tiles[k].owner === pid));
     const nearMe = k => k && E.area(k, 2).some(a => myLand.has(a));
     const radar = [];
+    // a commander knocked out: only the part of their empire you can see changes hands on your screen (the rest of it,
+    // and who took it, stays in the fog). A copy per viewer: every client is sent the same event objects
+    out = out.map(e => { if (e.e !== 'eliminate') return e; const hexes = (e.hexes || []).filter(k => vis.has(k)); return { ...e, hexes, taken: (e.taken || []).filter(k => vis.has(k)), hq: vis.has(e.hq) ? e.hq : hexes[0] || null }; });
     out = out.filter(e => {
       if (mine(e)) return true;
       if (e.e === 'move') { const seen = (e.path || []).some(k => vis.has(k)); if (!seen && e.path && nearMe(e.path[e.path.length - 1])) radar.push({ e: 'radar', hex: e.path[e.path.length - 1] }); return seen; }

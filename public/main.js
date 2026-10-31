@@ -3250,7 +3250,7 @@
     const strip = box.querySelector('.mr-strip'), cells = [], land = 22;
     for (let i = 0; i < 28; i++) {
       const a = i === land ? arch : archs[(i * 5 + Math.floor(Math.random() * 6)) % archs.length];
-      const cell = el('div', 'mr-cell', `<img src="${i === land ? mapThumb(state.map.tiles, 150, 96, state.map.theme) : archThumb(a, n)}" alt=""><span>${ARCH_NAME[a].toUpperCase()}</span>`);
+      const cell = el('div', 'mr-cell', `<img src="${i === land && !state.fogSpawn && !state.fogOn ? mapThumb(state.map.tiles, 150, 96, state.map.theme) : archThumb(a, n)}" alt=""><span>${ARCH_NAME[a].toUpperCase()}</span>`);
       strip.appendChild(cell); cells.push(cell);
     }
     await sleep(60);

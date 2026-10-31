@@ -24,8 +24,7 @@ const Render = (() => {
 
   let cv, ctx, W = 0, H = 0, DPR = 1;
   const late = [];
-  // building and point-of-interest badges: drawn once every hex is down, so the scenery of the row in front never covers them
-  const icons = [];
+
   let layerCost = 0, menuKey = '';
   let lc = null, lctx = null, layerKey = '', layerT = -1, stateVer = 0, fadeUntil = 0;   // cached terrain layer
   // the layer is drawn with a margin around the screen at one camera (lcam), then slid and scaled while you pan and zoom
@@ -609,7 +608,6 @@ const Render = (() => {
       const d = 0.5 + 0.5 * Math.sin(tv * 0.3 + c.q * 0.7 + c.r * 0.5);
       ctx.fillStyle = `rgba(120,135,150,${0.06 + d * 0.05})`;
       ctx.beginPath(); ctx.ellipse(cx + (c.v - 0.5) * 10 * z, cy - 1 * z, s * 0.6, s * 0.2, 0, 0, Math.PI * 2); ctx.fill();
-      if (tile.struct && tile.struct.type === 'hq') icons.push(() => drawStruct(tile, cx, cy, z, k));
       return;
     }
     if (c.river) drawRiver(k, tile, cx, cy, z, s); else decorate(tile, c, cx, cy, s, z);
@@ -654,8 +652,6 @@ const Render = (() => {
       }
     }
     if (tile.struct && tile.struct.type !== 'bridge') {
-      const extra = (tile.structs || []).filter(st => st !== tile.struct && st.type !== tile.struct.type);
-      icons.push(() => { drawStruct(tile, cx, cy, z, k); extra.forEach((st, i) => drawMini(st, cx - 16 * z + i * 32 * z, cy + 7 * z, z)); });
       const h = (tile.structs || []).find(st => st.type === 'hq');
       if (h && h.siege) {
         const pulse = 0.5 + 0.5 * Math.sin(tv * 8);
@@ -943,19 +939,6 @@ const Render = (() => {
       ctx.fillStyle = '#9ffcf2'; ctx.beginPath(); ctx.moveTo(x, y - 9 * z); ctx.lineTo(x + 4.5 * z, y); ctx.lineTo(x, y + 4 * z); ctx.lineTo(x - 4.5 * z, y); ctx.fill();
       ctx.fillStyle = '#34c7c0'; ctx.beginPath(); ctx.moveTo(x, y - 9 * z); ctx.lineTo(x + 4.5 * z, y); ctx.lineTo(x, y + 4 * z); ctx.fill();
     }
-    if (tile.poi && !(tile.poi === 'fort' && tile.owner)) icons.push(() => {
-      const bob = Math.sin(tv * 2 + v * 6) * 1.6 * z, x = cx, y = cy - 14 * z + bob, col = POI_COL[tile.poi];
-      const pulse = (tile.poi === 'relic' || tile.poi === 'cache' || tile.poi === 'ruins') ? 0.5 + 0.5 * Math.sin(tv * 3 + v * 5) : 0.3;
-      ctx.fillStyle = 'rgba(0,0,0,.35)'; ctx.beginPath(); ctx.ellipse(x, cy + 2 * z, 8 * z, 3 * z, 0, 0, Math.PI * 2); ctx.fill();
-      ctx.globalAlpha = 0.18 + pulse * 0.22; ctx.fillStyle = col; ctx.beginPath(); ctx.arc(x, y, (12.5 + pulse * 2.5) * z, 0, Math.PI * 2); ctx.fill(); ctx.globalAlpha = 1;
-      ctx.fillStyle = '#121820'; ctx.beginPath(); ctx.arc(x, y, 9.5 * z, 0, Math.PI * 2); ctx.fill();
-      ctx.strokeStyle = col; ctx.lineWidth = 2 * z; ctx.beginPath(); ctx.arc(x, y, 9.5 * z, 0, Math.PI * 2); ctx.stroke();
-      Art.drawIcon(ctx, 'poi', tile.poi, x, y, 6 * z, col);
-      if (tile.gar && !tile.owner) {
-        const lvl = tile.gar <= 4 ? 1 : tile.gar <= 7 ? 2 : 3;
-        for (let i = 0; i < 3; i++) { const px = x + (i - 1) * 5 * z, py = y + 13 * z; ctx.fillStyle = i < lvl ? '#ff6a4a' : 'rgba(0,0,0,.55)'; ctx.strokeStyle = '#0b0f13'; ctx.lineWidth = 1.2 * z; ctx.beginPath(); ctx.arc(px, py, 2.1 * z, 0, Math.PI * 2); ctx.fill(); ctx.stroke(); }
-      }
-    });
     if (tile.contam) {
       const a = 0.4 + 0.3 * Math.sin(tv * 3 + v * 9);
       ctx.save(); ctx.globalAlpha = a; Art.drawIcon(ctx, 'tactic', 'nuke', cx, cy, 9 * z, '#d9ff3b'); ctx.restore();
@@ -968,6 +951,43 @@ const Render = (() => {
     }
   }
 
+  // a point of interest's badge: a bobbing disc with its icon (and a neutral site's garrison pips)
+  function poiBadge(tile, v, cx, cy, z) {
+      const bob = Math.sin(tv * 2 + v * 6) * 1.6 * z, x = cx, y = cy - 14 * z + bob, col = POI_COL[tile.poi];
+      const pulse = (tile.poi === 'relic' || tile.poi === 'cache' || tile.poi === 'ruins') ? 0.5 + 0.5 * Math.sin(tv * 3 + v * 5) : 0.3;
+      ctx.fillStyle = 'rgba(0,0,0,.35)'; ctx.beginPath(); ctx.ellipse(x, cy + 2 * z, 8 * z, 3 * z, 0, 0, Math.PI * 2); ctx.fill();
+      ctx.globalAlpha = 0.18 + pulse * 0.22; ctx.fillStyle = col; ctx.beginPath(); ctx.arc(x, y, (12.5 + pulse * 2.5) * z, 0, Math.PI * 2); ctx.fill(); ctx.globalAlpha = 1;
+      ctx.fillStyle = '#121820'; ctx.beginPath(); ctx.arc(x, y, 9.5 * z, 0, Math.PI * 2); ctx.fill();
+      ctx.strokeStyle = col; ctx.lineWidth = 2 * z; ctx.beginPath(); ctx.arc(x, y, 9.5 * z, 0, Math.PI * 2); ctx.stroke();
+      Art.drawIcon(ctx, 'poi', tile.poi, x, y, 6 * z, col);
+      if (tile.gar && !tile.owner) {
+        const lvl = tile.gar <= 4 ? 1 : tile.gar <= 7 ? 2 : 3;
+        for (let i = 0; i < 3; i++) { const px = x + (i - 1) * 5 * z, py = y + 13 * z; ctx.fillStyle = i < lvl ? '#ff6a4a' : 'rgba(0,0,0,.55)'; ctx.strokeStyle = '#0b0f13'; ctx.lineWidth = 1.2 * z; ctx.beginPath(); ctx.arc(px, py, 2.1 * z, 0, Math.PI * 2); ctx.fill(); ctx.stroke(); }
+      }
+  }
+  // building and point-of-interest badges, every frame on top of the map and its animated borders (and the scenery of
+  // the row in front), but under the units. Out of sight they're dimmed, like the land under the fog
+  function drawBadges() {
+    const z = cam.z, sc = S / 34;
+    for (const k of order) {
+      const tile = S_.map.tiles[k], c = tc[k]; if (!c) continue;
+      const poi = tile.fog !== 2 && tile.poi && !(tile.poi === 'fort' && tile.owner) && !c.river;
+      const st = tile.struct && tile.struct.type !== 'bridge' && (tile.fog !== 2 || tile.struct.type === 'hq');
+      if (!poi && !st) continue;
+      let h = c.h * sc; const popT = fx.pops[k];
+      if (popT !== undefined) { const p = (t - popT) / 0.35; if (p < 1) h += Math.sin(p * Math.PI) * 10; }
+      const [cx, gy] = toScreen(c.wx, c.wy), cy = gy - h * z;
+      if (cx < -80 || cx > W + 80 || cy < -120 || gy > H + 120) continue;
+      ctx.save(); if (tile.fog === 1) ctx.globalAlpha = 0.62;
+      if (poi) poiBadge(tile, c.v, cx, cy, z);
+      if (st) {
+        drawStruct(tile, cx, cy, z, k);
+        if (tile.fog !== 2) (tile.structs || []).filter(x => x !== tile.struct && x.type !== tile.struct.type).forEach((x, i) => drawMini(x, cx - 16 * z + i * 32 * z, cy + 7 * z, z));
+      }
+      ctx.restore();
+    }
+    for (const f of late) f(); late.length = 0;
+  }
   function drawMini(st, x, y, z) {
     const p = S_.players.find(pl => pl.id === st.owner);
     ctx.save(); ctx.translate(x, y);
@@ -1040,7 +1060,7 @@ const Render = (() => {
       for (let i = 6; i >= 0; i--) ctx.lineTo(fx0 + i * 2.6 * z, fy + 3 * z + Math.sin(tv * 6 + i * 0.9) * 1.6 * z);
       ctx.fill();
     }
-    if (type === 'refinery' && Math.random() < 0.04) smoke([world(k).wx + 4, world(k).wy - world(k).h - 22], 1, 'rgba(180,180,180,');
+    if (type === 'refinery' && Math.random() < 0.01) smoke([world(k).wx + 4, world(k).wy - world(k).h - 22], 1, 'rgba(180,180,180,');
   }
 
   // ── units ──
@@ -1410,7 +1430,6 @@ const Render = (() => {
       ctx.clearRect(0, 0, W, H);   // just the map: the sea background is drawn on the screen itself, every frame
       for (const k of order) drawTile(k, 'base');
       drawAuras(true);   // their soft glow is baked in here; the moving parts are drawn every frame
-      for (const f of icons) f(); icons.length = 0;
       if (S_.fogOn) for (const k of order) if (S_.map.tiles[k].fog === 1) drawFog(k);
       // labels go on top of every tile, so taller neighbours never cut them off
       for (const f of late) f(); late.length = 0;
@@ -1426,6 +1445,7 @@ const Render = (() => {
     ctx.translate(sx, sy);
     drawWaterGlints();
     drawAuras();
+    drawBadges();
     const p1 = performance.now();
     for (const k of order) if (hasOverlay(k)) drawTile(k, 'overlay');
     for (const pa of ov.planArrows) drawPath(pa.path, pa.color, true, 0.85);

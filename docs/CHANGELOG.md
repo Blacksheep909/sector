@@ -7,6 +7,8 @@ Every release, newest first. Each version also has its own post on the [Releases
 - **🗺 Map badges on top.** Building and point-of-interest badges are drawn after every hex, so a house, tree or ridge on the row in front no longer cuts them off. Units stay above everything.
 - **🃏 Hover a stack, see its cards.** The hex tooltip shows the units there as their actual cards (one per type, with a count) instead of small text rows.
 - **🤖 Bots finish their wars.** In the bot lab (4 hard bots, 50-round cap), wars that ran out of time dropped from about half to under 1 in 10. Bots keep most of each turn's income for troops instead of economy buildings, keep slow heavy tanks, guns and anti-air to a sensible share of the army, move fast units out ahead of slow ones, don't let a gun battery block a narrow pass, bridge rivers on the way to the target's HQ, ferry troops stranded on islands (and stop deploying where troops can't reach the war), and take the ground round an enemy HQ before going for it.
+- **🌫 Fog of war fixes.** Picking HQs under fog no longer shows the map: the land and its prizes stay unexplored, and only the spots you may pick glow (the map reel shows the map type, not the map). When a commander falls, only the part of their empire you can actually see changes hands on your screen; the rest stays in the fog. (The patch near your border that clears now and then is the Clear Skies weather: +2 sight for that round.)
+- **Badges above borders.** Building, HQ and point-of-interest badges (and HQ name tags) are drawn over the animated borders now, not under them.
 - **Fix:** knocking out a commander who was besieging someone else's HQ deleted that HQ, leaving its owner impossible to knock out and the war unable to end.
 
 ## v0.13.1
