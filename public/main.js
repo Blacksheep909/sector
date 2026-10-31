@@ -2135,18 +2135,18 @@
     const sites = new Set(cover).size;
     return `<div class="tip-aa"><b>🎯 COVERED AIRSPACE</b><div class="sub">${cover.length} launcher${cover.length > 1 ? 's' : ''} from ${sites} site${sites > 1 ? 's' : ''} ${cover.length > 1 ? 'take' : 'takes'} a Snap Shot (−1 Mult) at your aircraft if they stop here.</div></div>`;
   }
-  // hover intel: the actual unit cards sitting on a hex
+  // hover intel: the actual unit cards sitting on a hex, as the cards themselves (one per type, with a count)
   function intel(ds, k) {
     const units = Object.values(ds.units).filter(u => u.hex === k);
     if (!units.length) return '';
     const by = {};
     for (const u of units) { const key = u.type; (by[key] || (by[key] = [])).push(u); }
     const owner = ds.players.find(p => p.id === units[0].owner);
-    let h = `<div class="intel">`;
+    let h = `<div class="intel cards">`;
     for (const type in by) {
-      const d = E.UNITS[type], lv = owner && owner.levels ? owner.levels[type] || 0 : 0, n = by[type].length;
-      const flags = by[type].some(u => u.stun) ? ' <span class="frz">FROZEN</span>' : '';
-      h += `<div class="ic r-${d.rarity}"><img src="${Art.cardArt(type)}"><div><b>${n > 1 ? n + '× ' : ''}${d.name}</b>${lv ? ' <span class="gold">' + '★'.repeat(lv) + '</span>' : ''}${flags}<div class="ic-s"><span class="a">⚔ ${d.atk + (d.atk ? lv : 0)}</span><span class="d">⛨ ${d.def + lv}</span><span>➜ ${d.mv}</span>${d.range ? '<span>◎ ' + d.range + '</span>' : ''}</div><div class="ic-r" style="color:${E.RARITY[d.rarity].color}">${E.RARITY[d.rarity].name} ${E.CLASS_NAME[d.cls]}</div></div></div>`;
+      const lv = owner && owner.levels ? owner.levels[type] || 0 : 0, n = by[type].length;
+      const c = cardEl(type, { mini: true, level: lv, count: n > 1 ? n : 0, variant: owner && owner.id === you ? undefined : 0, tag: by[type].some(u => u.stun) ? 'FROZEN' : '' });
+      h += c.outerHTML;
     }
     return h + '</div>';
   }

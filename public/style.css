@@ -2117,3 +2117,11 @@ body.reeling #map { visibility: hidden; }
 body.war-over #dock, body.war-over #endBtn, body.war-over #marketBtn { display: none !important; }
 #tooltip .tip-aa{margin-top:6px;padding:5px 7px;border-radius:6px;background:rgba(255,70,80,.14);border-left:3px solid #ff4f5e}
 #tooltip .tip-aa b{color:#ff8a8f;font-size:11px;letter-spacing:.06em}
+/* hover intel: the stack's own cards, small and still */
+.intel.cards { display: flex; flex-wrap: wrap; gap: 6px; margin-top: 6px; max-width: 290px; }
+.intel.cards .card { width: 68px; height: 97px; animation: none; cursor: default; transition: none; }
+.intel.cards .card .ci { padding: 3px; border-radius: 8px; }
+.intel.cards .card .c-name { font-size: 9px; margin-top: 2px; }
+.intel.cards .card .c-cost { font-size: 10px; padding: 0 3px; }
+.intel.cards .card .c-stats { transform: scale(.82); transform-origin: center bottom; }
+.intel.cards .card .count { width: 20px; height: 20px; font-size: 11px; left: -4px; bottom: -4px; }
