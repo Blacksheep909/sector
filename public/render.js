@@ -402,16 +402,31 @@ const Render = (() => {
   }
   function droneAt(d, p) { const [x, y, h] = dronePos(d, p); return [x, y - h]; }
   // the drone from above: a delta wing with canards and a pusher prop disc, facing +x
+  // a loitering munition seen from above (nose along +x): a cropped delta wing with upright winglets, a round fuselage
+  // with a banded warhead, and a pusher prop spinning at the tail. With no ink it's just the silhouette (for its shadow)
   function deltaWing(s, fill, ink) {
     const P = pts => { ctx.beginPath(); pts.forEach(([x, y], i) => i ? ctx.lineTo(x * s, y * s) : ctx.moveTo(x * s, y * s)); ctx.closePath(); };
-    const body = () => P([[1.0, 0], [0.55, -0.12], [-0.55, -0.92], [-0.78, -0.92], [-0.62, -0.1], [-0.82, -0.06], [-0.82, 0.06], [-0.62, 0.1], [-0.78, 0.92], [-0.55, 0.92], [0.55, 0.12]]);
-    if (ink) { ctx.strokeStyle = ink; ctx.lineWidth = Math.max(1.5, s * 0.16); ctx.lineJoin = 'round'; body(); ctx.stroke(); }
-    ctx.fillStyle = fill; body(); ctx.fill();
-    if (ink) {
-      ctx.fillStyle = 'rgba(255,255,255,.3)'; P([[0.95, 0], [0.5, -0.06], [-0.6, -0.05], [-0.6, 0.02], [0.5, 0.03]]); ctx.fill();
-      ctx.fillStyle = '#ffcf5a'; ctx.beginPath(); ctx.arc(0.78 * s, 0, 0.09 * s, 0, Math.PI * 2); ctx.fill();   // warhead seeker
-      ctx.strokeStyle = 'rgba(30,36,42,.55)'; ctx.lineWidth = Math.max(1, s * 0.08); ctx.beginPath(); ctx.moveTo(-0.9 * s, -0.32 * s); ctx.lineTo(-0.9 * s, 0.32 * s); ctx.stroke();   // spinning prop
-    }
+    const wing = () => P([[0.42, -0.1], [-0.62, -0.98], [-0.86, -0.98], [-0.78, -0.12], [-0.78, 0.12], [-0.86, 0.98], [-0.62, 0.98], [0.42, 0.1]]);
+    const hull = () => { ctx.beginPath(); ctx.moveTo(1.08 * s, 0); ctx.quadraticCurveTo(1.0 * s, -0.15 * s, 0.7 * s, -0.15 * s); ctx.lineTo(-0.86 * s, -0.12 * s); ctx.lineTo(-0.86 * s, 0.12 * s); ctx.lineTo(0.7 * s, 0.15 * s); ctx.quadraticCurveTo(1.0 * s, 0.15 * s, 1.08 * s, 0); ctx.closePath(); };
+    if (!ink) { ctx.fillStyle = fill; wing(); ctx.fill(); hull(); ctx.fill(); return; }
+    ctx.lineJoin = 'round'; ctx.strokeStyle = ink; ctx.lineWidth = Math.max(1.4, s * 0.12);
+    wing(); ctx.stroke(); hull(); ctx.stroke();
+    ctx.fillStyle = fill; wing(); ctx.fill();
+    // wing shading and panel lines
+    ctx.fillStyle = 'rgba(0,0,0,.18)'; P([[0.2, 0.1], [-0.62, 0.98], [-0.86, 0.98], [-0.78, 0.12]]); ctx.fill();
+    ctx.strokeStyle = 'rgba(0,0,0,.28)'; ctx.lineWidth = Math.max(0.8, s * 0.05);
+    for (const y of [-1, 1]) { ctx.beginPath(); ctx.moveTo(0.05 * s, 0.22 * y * s); ctx.lineTo(-0.7 * s, 0.86 * y * s); ctx.stroke(); }
+    // winglets at the tips (stood up, so they read as dark bars from above)
+    ctx.fillStyle = ink; for (const y of [-1, 1]) ctx.fillRect(-0.88 * s, (y > 0 ? 0.9 : -1.04) * s, 0.3 * s, 0.14 * s);
+    // the fuselage, its warhead band and seeker
+    ctx.fillStyle = '#c9cdc4'; hull(); ctx.fill();
+    ctx.fillStyle = 'rgba(0,0,0,.2)'; ctx.fillRect(-0.86 * s, 0.02 * s, 1.56 * s, 0.11 * s);
+    ctx.fillStyle = '#c43a2f'; ctx.fillRect(0.62 * s, -0.15 * s, 0.1 * s, 0.3 * s);
+    ctx.fillStyle = '#20262c'; ctx.beginPath(); ctx.arc(0.98 * s, 0, 0.06 * s, 0, Math.PI * 2); ctx.fill();
+    // the pusher prop: a blurred disc with two blades whipping round
+    ctx.fillStyle = 'rgba(30,36,42,.28)'; ctx.beginPath(); ctx.ellipse(-0.95 * s, 0, 0.07 * s, 0.34 * s, 0, 0, Math.PI * 2); ctx.fill();
+    const a = t * 40; ctx.strokeStyle = 'rgba(25,30,36,.85)'; ctx.lineWidth = Math.max(1, s * 0.07);
+    ctx.beginPath(); ctx.moveTo(-0.95 * s, Math.sin(a) * 0.34 * s); ctx.lineTo(-0.95 * s, -Math.sin(a) * 0.34 * s); ctx.stroke();
   }
   function drawDrones() {
     const z = cam.z;
@@ -428,10 +443,10 @@ const Render = (() => {
       const [sx, sy] = toScreen(gx, gy - h), [ox, oy] = toScreen(ax, ay - ah), head = Math.atan2(sy - oy, sx - ox);
       const [hx, hy] = toScreen(gx, gy), [hx0, hy0] = toScreen(ax, ay), gh = Math.atan2(hy - hy0, hx - hx0);
       // shadow on the ground, the faint exhaust behind it, then the drone itself (it grows as it dives at the camera)
-      ctx.save(); ctx.translate(hx, hy); ctx.rotate(gh); ctx.scale(1, 0.5); ctx.globalAlpha = 0.28; deltaWing(13 * z, '#000', null); ctx.restore();
+      ctx.save(); ctx.translate(hx, hy); ctx.rotate(gh); ctx.scale(1, 0.5); ctx.globalAlpha = 0.28; deltaWing(15 * z, '#000', null); ctx.restore();
       if (Math.random() < 0.5) fx.parts.push({ x: gx, y: gy - h, vx: 0, vy: -3, life: 0, max: 0.6, col: null, smoke: 'rgba(200,200,200,', sz: 2.5, g: -4 });
       const grow = 1 + Math.max(0, (p - 0.62) / 0.38) * 0.35;
-      ctx.save(); ctx.translate(sx, sy); ctx.rotate(head); deltaWing(14 * z * grow, d.color, '#0b0f13'); ctx.restore();
+      ctx.save(); ctx.translate(sx, sy); ctx.rotate(head + Math.sin(t * 9 + d.t0) * 0.04); deltaWing(17 * z * grow, d.color, '#0b0f13'); ctx.restore();
     }
   }
   function drawAir() {
