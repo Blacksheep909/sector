@@ -22,6 +22,7 @@ Every release, newest first. Each version also has its own post on the [Releases
 - **Mythic cards are card-sized.** They were drawn shorter than every other card (their body wasn't stretched to the card's full height); fixed everywhere.
 - **Short building tips.** Every building in the build bar now has a one-line description; the full rules stay in How to Play and the card index.
 - **Card skins: store and crates only.** The Locker's ALL CARDS browser is gone and card skins can no longer be bought off rotation: they come from the daily store and from crates.
+- **🎴 Better packs.** Packs look like real printed foil now (brand strip, printed frame, crinkle and gloss, crimped seals, a barcode) and sway so the shine moves across them. The light that pours out when you tear one no longer shows as a hard-edged box.
 - **Badges above borders.** Building, HQ and point-of-interest badges (and HQ name tags) are drawn over the animated borders now, not under them.
 - **Fix:** knocking out a commander who was besieging someone else's HQ deleted that HQ, leaving its owner impossible to knock out and the war unable to end.
 

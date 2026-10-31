@@ -92,7 +92,7 @@ const Crates = (() => {
     p.style.setProperty('--f0', P.foil[0]); p.style.setProperty('--f1', P.foil[1]); p.style.setProperty('--f2', P.foil[2]); p.style.setProperty('--ink', P.ink);
     // the body (crimped along the bottom), then the top strip in slices so it can peel away as it's torn
     p.innerHTML = `<div class="pk-glow"></div><div class="pk-body" style="clip-path:polygon(0 0,100% 0,${zig(16, 'calc(100% - 7px)', '100%').split(',').reverse().join(',')})">
-        <div class="pk-crimp b"></div><div class="pk-sheen"></div>
+        <div class="pk-crimp b"></div><div class="pk-sheen"></div><div class="pk-frame"></div><div class="pk-brand">SECTOR</div><div class="pk-line">COLLECTIBLE · CARD SKINS</div><div class="pk-bar"></div>
         <div class="pk-mark"><svg viewBox="0 0 60 60"><path d="M30 4l22 12.7v26.6L30 56 8 43.3V16.7z" fill="none" stroke="currentColor" stroke-width="4"/><path d="M30 17l11 6.4v12.7L30 42.5 19 36.1V23.4z" fill="currentColor"/></svg></div>
         <div class="pk-name">${esc(opts.name || P.name)}</div><div class="pk-sub">${esc(opts.sub || P.sub)}</div>
         ${opts.count ? `<div class="pk-count">${opts.count} CARD${opts.count > 1 ? 'S' : ''}</div>` : ''}

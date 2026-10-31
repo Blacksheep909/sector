@@ -2080,7 +2080,7 @@ body.reeling #map { visibility: hidden; }
 .pack .pk-leak { position: absolute; left: 0; top: 30px; height: 8px; width: 0; border-radius: 4px; background: var(--lc); box-shadow: 0 0 12px 4px var(--lc), 0 0 40px 10px var(--lc); opacity: .95; }
 .pack .pk-glow { position: absolute; left: 50%; top: 34px; width: 520px; height: 520px; transform: translate(-50%, -100%) scale(calc(.3 + var(--tear) * .7)); opacity: calc(var(--tear) * .65); pointer-events: none;
   background: conic-gradient(from 180deg at 50% 100%, transparent 0 60deg, var(--lc) 75deg, transparent 90deg, var(--lc) 105deg, transparent 120deg, var(--lc) 135deg, transparent 150deg, var(--lc) 165deg, transparent 180deg, var(--lc) 195deg, transparent 210deg, var(--lc) 225deg, transparent 240deg, var(--lc) 255deg, transparent 270deg, var(--lc) 285deg, transparent 300deg);
-  -webkit-mask: radial-gradient(circle at 50% 100%, #000 0, #000 30%, transparent 70%); mask: radial-gradient(circle at 50% 100%, #000 0, #000 30%, transparent 70%); filter: blur(2px); }
+  -webkit-mask: radial-gradient(closest-side at 50% 100%, #000 0, #000 35%, transparent 100%); mask: radial-gradient(closest-side at 50% 100%, #000 0, #000 35%, transparent 100%); filter: blur(2px); }   /* (fades out inside its own box: no hard rectangle) */
 .pack .pk-hint { position: absolute; left: 50%; top: -34px; transform: translateX(-50%); white-space: nowrap; font: 800 12px var(--ui); letter-spacing: 2px; color: #fff; text-shadow: 0 2px 4px #000; animation: pkHint 1.4s ease-in-out infinite; }
 @keyframes pkHint { 50% { opacity: .45; } }
 .pack.tearing .pk-hint, .pack.torn-open .pk-hint { display: none; }
@@ -2136,3 +2136,28 @@ body.war-over #dock, body.war-over #endBtn, body.war-over #marketBtn { display: 
 .pchip[class*="bn-"] > div:not(.av):not(.chipbtns) { background: rgba(8,12,16,.74); border-radius: 6px; padding: 1px 5px; }
 #players.many .bot-say { font-size: 11px; max-width: 170px; padding: 5px 8px; }
 .pchip .ps .mood { margin: 0 0 0 -2px; font-size: 11px; }
+/* ── packs, printed and sealed: brand strip, an inset printed frame, foil crinkle and gloss, pillowed edges, a barcode,
+   crimp ridges on both seals, and a slow sway so the shine moves across the foil ── */
+.pack { transform-style: preserve-3d; }
+.pack:not(.tearing):not(.torn-open):not(.gone) .pk-body, .pack:not(.tearing):not(.torn-open) .pk-top { animation: pkSway 5s ease-in-out infinite; }
+@keyframes pkSway { 0%, 100% { transform: rotateY(-7deg) rotateX(2deg); } 50% { transform: rotateY(7deg) rotateX(-1deg); } }
+.pack .pk-body::after { content: ''; position: absolute; inset: 0; pointer-events: none; z-index: 1;
+  background:
+    repeating-linear-gradient(90deg, rgba(255,255,255,.07) 0 1px, transparent 1px 7px, rgba(0,0,0,.05) 7px 8px, transparent 8px 13px),
+    linear-gradient(90deg, rgba(0,0,0,.42), rgba(0,0,0,.08) 9%, transparent 16%, transparent 84%, rgba(0,0,0,.08) 91%, rgba(0,0,0,.42)),
+    radial-gradient(90% 45% at 28% 18%, rgba(255,255,255,.38), transparent 60%),
+    linear-gradient(180deg, rgba(255,255,255,.18), transparent 22%, transparent 78%, rgba(0,0,0,.25)); }
+.pack .pk-frame { position: absolute; inset: 30px 14px 40px; border: 2px solid currentColor; border-radius: 10px; opacity: .55; z-index: 1;
+  box-shadow: inset 0 0 0 4px rgba(255,255,255,.08), 0 0 0 4px rgba(0,0,0,.08); }
+.pack .pk-frame::before, .pack .pk-frame::after { content: ''; position: absolute; left: 50%; width: 34%; height: 2px; background: currentColor; transform: translateX(-50%); }
+.pack .pk-frame::before { top: 9px; } .pack .pk-frame::after { bottom: 9px; }
+.pack .pk-brand { position: absolute; left: 0; right: 0; top: 8px; text-align: center; font: 900 13px/1 var(--title); letter-spacing: 6px; z-index: 2; opacity: .9; }
+.pack .pk-mark, .pack .pk-name, .pack .pk-sub, .pack .pk-count { z-index: 2; }
+.pack .pk-line { position: absolute; left: 0; right: 0; bottom: 30px; text-align: center; font: 800 8px var(--ui); letter-spacing: 2.5px; z-index: 2; opacity: .75; }
+.pack .pk-count { bottom: 48px; }
+.pack .pk-bar { position: absolute; left: 18px; bottom: 9px; width: 54px; height: 16px; z-index: 2; opacity: .7;
+  background: repeating-linear-gradient(90deg, currentColor 0 1px, transparent 1px 3px, currentColor 3px 5px, transparent 5px 6px, currentColor 6px 7px, transparent 7px 9px); }
+.pack .pk-crimp.b { height: 16px; background: repeating-linear-gradient(90deg, rgba(0,0,0,.28) 0 1px, rgba(255,255,255,.22) 1px 2px, transparent 2px 4px), linear-gradient(180deg, rgba(0,0,0,.2), rgba(255,255,255,.1)); z-index: 2; }
+.pack .pk-top i { background: repeating-linear-gradient(90deg, rgba(0,0,0,.22) 0 1px, rgba(255,255,255,.25) 1px 2px, transparent 2px 4px), linear-gradient(180deg, var(--f0), var(--f1) 70%, var(--f2)) !important; }
+.pack .pk-sheen { z-index: 2; mix-blend-mode: soft-light; }
+

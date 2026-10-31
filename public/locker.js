@@ -186,7 +186,7 @@ const Locker = (() => {
       row.appendChild(t);
     }
     p.appendChild(row);
-    p.appendChild(el('div', 'sub st-note', 'Every card has a skin at every rarity, Battle-Worn up to a named Mythic. Packs are the cheap way to find them; a few rotate through today’s shop, and any of them can be bought outright from the Locker. A duplicate pays back 30% of its value. Finish every weekly order for a free Field Crate.'));
+    p.appendChild(el('div', 'sub st-note', 'Every card has a skin at every rarity, Battle-Worn up to a named Mythic. Packs are the cheap way to find them; a few rotate through today’s shop, and that’s the only other way to get them. A duplicate pays back 30% of its value. Finish every weekly order for a free Field Crate.'));
   }
   function openCrate(id, btn) {
     const free = id === 'field' && profile.freeCrates > 0;
