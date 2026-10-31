@@ -2928,14 +2928,15 @@
         for (let i = 0; i < 2; i++) { const p = jit(10); Render.missile(from, p, { shell: true, loft: 160, accel: 1, dur: 0.8 * sp, delay: (d0 + i * 0.2) * sp, color: '#2b3036', boom: false, onHit: () => dirt(p) }); at(i * 0.2, () => { SFX.shot(); Render.smoke(from, 4, 'rgba(210,210,210,'); }); }
         end = Math.max(end, d0 + 1.0);
       } else if (kind === 'shipMissile') {
-        // vertical launch: each missile bursts up out of its cell in a cloud of exhaust, tips over and runs in low and fast
+        // a warship's cruise missiles: a ripple out of the launch cells, each one up on its booster, over onto the deck of
+        // the sea, skimming in low and popping up at the last moment to dive on the target
         const n = Math.min(3, Math.max(1, types.filter(ut => fireKind(ut) === 'shipMissile').length + 1));
         for (let i = 0; i < n; i++) {
-          const p = jit(14);
-          Render.missile(from, p, { alt0: 22, alt1: 4, loft: 70, accel: 1.25, dur: (0.75 + i * 0.05) * sp, delay: (d0 + i * 0.22) * sp, size: 1.1, color: '#f2efe6', boom: false, onHit: () => { Render.burst(p, ['#fff', '#ffd27a', '#ff5a2a'], 26, { speed: 1.4, up: 110 }); Render.smoke(p, 8, 'rgba(90,80,70,'); SFX.boom(0.9); Render.shake(6); } });
-          at(i * 0.22, () => { SFX.whoosh(); Render.smoke(from, 8, 'rgba(235,232,226,'); Render.burst(from, ['#fff3c4', '#ffd27a', '#ff8a3a'], 14, { up: 140, speed: 0.9 }); });
+          const p = jit(14), dl = d0 + i * 0.32;
+          Render.missile(from, p, { vls: true, dur: (1.25 + i * 0.06) * sp, delay: dl * sp, size: 1, color: '#e9ecef', boom: false, onHit: () => { Render.burst(p, ['#fff', '#ffd27a', '#ff5a2a', '#5a5a5a'], 30, { speed: 1.5, up: 120 }); Render.ring(p, '#ffd27a', 40, 0.4, 3); Render.smoke(p, 6, 'rgba(70,66,62,'); SFX.boom(0.6); } });
+          at(i * 0.32, () => { SFX.whoosh(); Render.smoke(from, 6, 'rgba(235,232,226,'); Render.burst(from, ['#fff3c4', '#ffd27a', '#ff8a3a'], 10, { up: 160, speed: 0.6 }); });
         }
-        end = Math.max(end, d0 + 0.8 + n * 0.22);
+        end = Math.max(end, d0 + 1.35 + n * 0.32);
       } else if (kind === 'naval') {
         // warship guns: a muzzle flash, shells on a flat arc
         for (let i = 0; i < 2; i++) { const p = jit(12); Render.missile(from, p, { shell: true, loft: 60, accel: 1, dur: 0.5 * sp, delay: (d0 + i * 0.16) * sp, color: '#2b3036', boom: false, onHit: () => dirt(p) }); at(i * 0.16, () => { SFX.shot(); Render.burst(from, ['#fff2a8', '#ffb03a'], 10, { up: 30, speed: 0.9 }); Render.smoke(from, 5, 'rgba(200,200,200,'); }); }

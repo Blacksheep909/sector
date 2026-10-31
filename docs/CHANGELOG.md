@@ -16,6 +16,7 @@ Every release, newest first. Each version also has its own post on the [Releases
 - **💣 Real bombs.** The Tsar Bomba drifts down under a parachute and the tactical nuke falls as a fat finned bomb, instead of a white rocket (which read as a magic wand). A mythic card turning over no longer flashes a white bar when it's edge-on.
 - **🌊 Silent subs.** Under fog of war an enemy Kraken or Trident only shows up when one of your units is right next to it.
 - **Abyssal** movement 3 → 2.
+- **🚀 Naval missiles.** Warship missiles now ripple out of the launch cells: each goes straight up on its booster, pitches over, skims in low over the water throwing spray, then pops up and dives onto the target.
 - **Badges above borders.** Building, HQ and point-of-interest badges (and HQ name tags) are drawn over the animated borders now, not under them.
 - **Fix:** knocking out a commander who was besieging someone else's HQ deleted that HQ, leaving its owner impossible to knock out and the war unable to end.
 

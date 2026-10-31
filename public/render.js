@@ -293,15 +293,25 @@ const Render = (() => {
   const missiles = [];
   const ptOf = k => Array.isArray(k) ? k : topOf(k);
   function missilePos(m, p) {
+    if (m.vls) return vlsPos(m, p);
     const e = Math.pow(p, m.accel), [ax, ay] = m.a, [bx, by] = m.b;
     return [ax + (bx - ax) * e, ay + (by - ay) * e - (m.alt0 + (m.alt1 - m.alt0) * e + Math.sin(Math.PI * e) * m.loft)];
   }
   function missile(a, b, opts = {}) {
     const m = { a: ptOf(a), b: ptOf(b), alt0: opts.alt0 ?? 12, alt1: opts.alt1 ?? 0, loft: opts.loft ?? 18, accel: opts.accel ?? 1.5, t0: t + (opts.delay || 0), dur: opts.dur || 0.55, stop: opts.stopAt || 1, color: opts.color || '#ffffff', size: opts.size || 1, trail: [], boom: opts.boom !== false, shell: !!opts.shell, gone: null };   // shell: a gun or mortar round, no rocket trail
-    m.bomb = !!opts.bomb; m.chute = !!opts.chute;   // a free-fall (or parachute) bomb: a fat finned body, nose down, no rocket trail
+    m.bomb = !!opts.bomb; m.chute = !!opts.chute; m.vls = !!opts.vls;   // a free-fall (or parachute) bomb: a fat finned body, nose down, no rocket trail
     missiles.push(m);
     if (opts.onHit) setTimeout(opts.onHit, Math.max(0, (m.t0 + m.dur * m.stop - t) * 1000));
     return m;
+  }
+  // a warship's cruise missile: straight up out of its launch cell, pitch over, skim low over the water, then pop up and
+  // dive onto the target
+  function vlsPos(m, p) {
+    const [ax, ay] = m.a, [bx, by] = m.b, ease = x => x * x * (3 - 2 * x);
+    if (p < 0.2) { const q = p / 0.2; return [ax, ay - (6 + 64 * ease(q))]; }   // the boost: up out of the cell
+    if (p < 0.34) { const q = (p - 0.2) / 0.14, f = 0.08 * ease(q); return [ax + (bx - ax) * f, ay + (by - ay) * f - (70 - 58 * ease(q))]; }   // pitch over, drop to the waves
+    if (p < 0.84) { const q = (p - 0.34) / 0.5, f = 0.08 + 0.74 * q; return [ax + (bx - ax) * f, ay + (by - ay) * f - (12 + Math.sin(q * 30) * 0.8)]; }   // skim
+    const q = (p - 0.84) / 0.16, f = 0.82 + 0.18 * q; return [ax + (bx - ax) * f, ay + (by - ay) * f - (12 + Math.sin(q * Math.PI) * 26 * (1 - q) + 0)];   // pop up and dive
   }
   // where a missile fired with these options will be at fraction p of its flight (to aim interceptors at it)
   function missileAt(a, b, opts = {}, p = 1) { return missilePos({ a: ptOf(a), b: ptOf(b), alt0: opts.alt0 ?? 12, alt1: opts.alt1 ?? 0, loft: opts.loft ?? 18, accel: opts.accel ?? 1.5 }, p); }
@@ -352,7 +362,10 @@ const Render = (() => {
           // the dart, nose along its flight on screen, with a hot exhaust
           const [px, py] = missilePos(m, Math.max(0, q - 0.03)), [sx, sy] = toScreen(x, y), [ox, oy] = toScreen(px, py), head = Math.atan2(sy - oy, sx - ox);
           ctx.save(); ctx.translate(sx, sy); ctx.rotate(head);
-          ctx.fillStyle = 'rgba(255,190,90,.85)'; ctx.beginPath(); ctx.ellipse(-6 * z * m.size, 0, 4 * z * m.size, 2 * z * m.size, 0, 0, Math.PI * 2); ctx.fill();
+          const boost = m.vls && q < 0.22 ? 2.2 : 1;   // the launch booster burns long and bright
+          ctx.fillStyle = 'rgba(255,190,90,.85)'; ctx.beginPath(); ctx.ellipse(-6 * z * m.size * boost, 0, 4 * z * m.size * boost, 2 * z * m.size * (boost > 1 ? 1.4 : 1), 0, 0, Math.PI * 2); ctx.fill();
+          if (boost > 1) { ctx.fillStyle = 'rgba(255,250,220,.95)'; ctx.beginPath(); ctx.ellipse(-4 * z * m.size, 0, 2.6 * z * m.size, 1.2 * z * m.size, 0, 0, Math.PI * 2); ctx.fill(); }
+          if (m.vls && q > 0.34 && q < 0.84 && Math.random() < 0.5) fx.parts.push({ x: x, y: y + 11, vx: (Math.random() - 0.5) * 20, vy: -10 - Math.random() * 14, life: 0, max: 0.5, col: '#d2ebf5', sz: 1.6, g: 40 });   // spray off the wave tops
           dart(4.2 * z * m.size, m.color); ctx.restore();
         }
       }
