@@ -2040,6 +2040,7 @@
     if (!c) { pill.hidden = true; document.title = 'SECTOR'; return; }
     pill.hidden = false;
     pill.style.setProperty('--pc', c.color);
+    { const pb = $('#players').getBoundingClientRect(); pill.style.top = Math.max(74, Math.round(pb.bottom + 8)) + 'px'; }   // always below the commanders' chips (their TRADE / ALLY buttons stay clickable)
     pill.className = mine ? 'mine' : '';
     const order = S.players.filter(p => p.alive), i = order.findIndex(p => p.id === c.id);
     const next = order[(i + 1) % order.length];
@@ -2121,7 +2122,7 @@
       const units = Object.values(ds.units).filter(u => u.hex === k);
       if (!units.length && !t.struct && !t.res && !t.owner && !aaWarn) return hideTip();
       if (t.fog === 2) html = '<b>Unexplored</b>'; else html = `<b style="color:${t.owner ? pColor(t.owner) : '#fff'}">${t.owner ? esc(pName(t.owner)) : 'Unclaimed'}</b> · ${t.bridge ? 'Bridge' : t.contam ? 'Fallout' : E.TERRAIN[t.t].name}` + (t.res ? ` · <span style="color:#9ffcf2">${E.isWater(t) ? 'Oil rig' : 'Resource'} +$2</span>` : '') + (t.fish ? ' · <span style="color:#9ffcf2">Fishing grounds +$1</span>' : '') + (t.poi && E.POI[t.poi] && !(t.poi === 'fort' && t.owner) ? ` · <span style="color:var(--gold)">${E.POI[t.poi].name}</span>` : '');
-      if (!t.bridge) for (const st of E.structsOf(t)) html += `<div class="tip-struct"><img src="${Art.iconURL('struct', st.type, '#fff', 40)}">${E.STRUCTS[st.type].name} <span class="gold">${'★'.repeat(st.lvl || 1)}</span>${st.siege ? ' <b style="color:#ff6a4a">UNDER SIEGE</b>' : ''}</div>`;
+      if (!t.bridge) for (const st of E.structsOf(t)) html += `<div class="tip-struct"><img src="${Art.iconURL('struct', st.type, '#fff', 40)}">${E.STRUCTS[st.type].name} <span class="gold">${'★'.repeat(st.lvl || 1)}</span>${st.siege ? ' <b style="color:#ff6a4a">UNDER SIEGE</b>' : ''}${st.lock ? ' <span style="color:#ffc53d">· ready next turn</span>' : ''}</div>`;
       html += intel(ds, k);
     }
     tip.innerHTML = html + aaWarn; tip.hidden = false;
@@ -3192,8 +3193,7 @@
     mine ? SFX.win() : SFX.lose();
     const counts = {}; for (const k in S.map.tiles) { const o = S.map.tiles[k].owner; if (o) counts[o] = (counts[o] || 0) + 1; }
     const rows = S.players.slice().sort((a, b) => (counts[b.id] || 0) - (counts[a.id] || 0)).map(p => `<tr><td style="color:${p.color}">■ ${esc(p.name)}</td><td>${E.FACTIONS[p.faction] ? E.FACTIONS[p.faction].name : ''}</td><td>${counts[p.id] || 0}</td><td>${p.stats.captured}</td><td>${p.stats.kills}</td><td>${p.stats.lost}</td></tr>`).join('');
-    v.innerHTML = `<div class="vic panel" style="padding:30px 40px"><h1 style="color:${wp.color};text-shadow:0 6px 0 #000">${mine ? 'VICTORY' : myP() ? 'DEFEAT' : 'GAME OVER'}</h1><div class="why"><b style="color:${wp.color}">${esc(wp.name)}</b> ${esc(w.reason)}</div>
-      ${winners.length > 1 ? `<div class="why">🤝 ${winners.map(id => `<b style="color:${pColor(id)}">${esc(pName(id))}</b>`).join(' & ')}</div>` : ''}
+    v.innerHTML = `<div class="vic panel" style="padding:30px 40px"><h1 style="color:${wp.color};text-shadow:0 6px 0 #000">${mine ? 'VICTORY' : myP() ? 'DEFEAT' : 'GAME OVER'}</h1><div class="why">${winners.length > 1 ? '🤝 ' : ''}${winners.map(id => `<b style="color:${pColor(id)}">${esc(pName(id))}</b>`).join(' & ')} ${esc(w.reason)}</div>
       <div class="power"><div class="wr-tabs"><h3>WAR REPORT</h3><button class="on" data-wr="power">Balance of power</button><button data-wr="heat">Battle heatmap</button><button data-wr="flips">Land swings</button><button data-wr="inc">Economy</button><button data-wr="army">Armies</button><button data-wr="awards">Awards</button></div>
         <div class="wr-pane" data-p="power"><canvas id="powerChart" width="1240" height="400"></canvas><div id="powerNotes"></div></div>
         <div class="wr-pane" data-p="heat" hidden><canvas id="heatChart" width="1240" height="520"></canvas><div class="wr-cap">Every battle, airstrike and bombardment, glowing hotter where more units fell.</div></div>

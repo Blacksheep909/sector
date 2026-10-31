@@ -16,7 +16,7 @@ Unit cards are permanent unlocks: deploy as many as you can afford.
 | **Barracuda** | Naval | Common | $4 | 3 | 2 | 4 | – | Fast gunboat. Claims sea lanes, raids coasts. |
 | **Stinger** | Anti-air | Common | $3 | 1 | 1 | 2 | 1 | MANPADS team. Fires at aircraft 1 hex away (+3 Chips vs air), and on its own at any that stop next to it. 25% to down air strikes on its hex. Weak vs ground troops. |
 | **Corpsman** | Infantry | Common | $3 | 1 | 3 | 2 | – | Medic squad. Its stack never suffers pyrrhic losses. |
-| **Hornet** | Air | Common | $4 | 2 | 1 | 4 | – | Scout drone. Flies over mountains and water and sees 3 hexes around it. |
+| **Hornet** | Air | Common | $4 | 1 | 1 | 4 | – | Scout drone. Flies over mountains and water and sees 3 hexes around it. |
 | **Jackal** | Vehicle | Uncommon | $3 | 3 | 2 | 4 | – | Light patrol truck with a heavy machine gun. Cheap, quick, hits above its weight. |
 | **Coyote** | Vehicle | Uncommon | $4 | 2 | 2 | 4 | – | Scout truck with a sensor mast. Sees 2 hexes further in the fog of war. |
 | **Lancer** | Infantry | Uncommon | $5 | 3 | 2 | 2 | – | Tank Hunter: +3 Chips when fighting vehicles. |

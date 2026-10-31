@@ -750,19 +750,15 @@ const Render = (() => {
       const p1 = at(t, -0.75, waterH), p2 = at(t, 0.75, waterH), q1 = at(t, -0.75, deckH - thick), q2 = at(t, 0.75, deckH - thick);
       poly([p1, p2, q2, q1], '#8d8a83'); poly([p1, [p1[0] + 2 * z, p1[1]], [q1[0] + 2 * z, q1[1]], q1], 'rgba(0,0,0,.25)');
     }
-    // under construction: the piers are in and half the deck reaches out from the near bank; open to traffic next turn
+    // under construction: the piers are in, half the deck reaches out from the near bank (the rest a faint ghost of what's
+    // coming) and a striped barrier closes the open end. Open to traffic next turn (the hex tooltip says so)
     if (building) {
+      ctx.save(); ctx.globalAlpha *= 0.32; poly([at(0.5, -1, deckH), at(1, -1, deckH), at(1, 1, deckH), at(0.5, 1, deckH)], '#4a4d52'); ctx.restore();
+      const front = at(0, 1, deckH)[1] > at(0, -1, deckH)[1] ? 1 : -1;
+      poly([at(0, front, deckH), at(0.5, front, deckH), at(0.5, front, deckH - thick), at(0, front, deckH - thick)], '#5f5b55');
       poly([at(0, -1, deckH), at(0.5, -1, deckH), at(0.5, 1, deckH), at(0, 1, deckH)], '#4a4d52');
-      ctx.strokeStyle = 'rgba(255,197,61,.9)'; ctx.lineWidth = 1.4 * z; ctx.setLineDash([4 * z, 3 * z]);
-      { const q = [at(0.5, -1, deckH), at(1, -1, deckH), at(1, 1, deckH), at(0.5, 1, deckH)]; ctx.beginPath(); q.forEach((p, i) => i ? ctx.lineTo(p[0], p[1]) : ctx.moveTo(p[0], p[1])); ctx.closePath(); ctx.stroke(); }
-      ctx.setLineDash([]); ctx.restore();
-      if (z > 0.55) late.push(() => {
-        const label = 'NEXT TURN', [x, y] = at(0.5, 0, deckH);
-        ctx.font = `800 ${7 * Math.min(1.25, Math.max(0.85, z))}px "Chakra Petch",sans-serif`; ctx.textAlign = 'center'; ctx.textBaseline = 'middle';
-        const w = ctx.measureText(label).width + 10 * z, ly = y + 13 * z;
-        ctx.fillStyle = '#1d1404'; ctx.beginPath(); ctx.roundRect ? ctx.roundRect(x - w / 2, ly - 6 * z, w, 12 * z, 4 * z) : ctx.rect(x - w / 2, ly - 6 * z, w, 12 * z); ctx.fill();
-        ctx.strokeStyle = '#ffc53d'; ctx.lineWidth = 1.5 * z; ctx.stroke(); ctx.fillStyle = '#ffc53d'; ctx.fillText(label, x, ly + 0.5 * z);
-      });
+      for (let i = 0; i < 4; i++) { const s0 = -1 + i * 0.5, s1 = s0 + 0.5; poly([at(0.47, s0, deckH + 3), at(0.53, s0, deckH + 3), at(0.53, s1, deckH + 3), at(0.47, s1, deckH + 3)], i % 2 ? '#1d1d1d' : '#ffc53d'); }
+      ctx.restore();
       return;
     }
     // deck: the near edge face, then the road surface

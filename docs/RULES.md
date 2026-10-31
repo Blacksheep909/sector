@@ -242,7 +242,7 @@ Units with a range stat fire instead of moving.
 
 ## The sea
 
-- **Sea control.** Ships claim every sea hex they sail through. Owned sea pays income, carries supply, and holds **offshore oil rigs** worth $2 each. A **helicopter** (Wren, Ravager, Banshee, Stormcrow, Mule or Valkyrie) that lands on an oil rig claims it too.
+- **Sea control.** Ships claim every sea hex they sail through. Owned sea pays income, carries supply, and holds **offshore oil rigs** worth $2 each. **Aircraft** claim the sea hex they end their move over (an oil rig included), like they take land they land on; flying *over* the sea claims nothing.
 - **Ports** are built on coastal hexes. They launch ships into the adjacent sea and act as a supply source. Each Port also earns from **shipping lanes**: $1 per 4 of your sea hexes connected to it, up to $5.
 - **Treasure islands.** Small islands away from the HQs carry ruins, caches, villages and often a relic. Sail an Ark over, or fly in.
 - **Naval gunfire.** Each of your warships next to a land hex being fought over adds +2 chips to your side, up to 3 ships. That works whether you're attacking or defending. Ships that aren't in the fight themselves still help, so a fleet off the coast backs up your land war.

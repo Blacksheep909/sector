@@ -145,7 +145,7 @@ function crossing(s) {
   p.cash = 50; const r = E.applyAction(s, 'A', { a: 'tactic', uid: c.uid, target: k });
   ok(r.ok && s.log.some(l => /Orbital Strike came from a resupply pick \(round \d+\)/.test(l)), 'playing it logs where it came from');
 }
-{ // a helicopter that lands on an oil rig claims it; a jet flying over doesn't
+{ // a helicopter that lands on an oil rig claims it; so does any aircraft ending its move over the sea
   const s = board({ seed: 'rig1' }), T = s.map.tiles;
   const land = Object.keys(T).find(k => T[k].t === 'plains' && !T[k].river && E.neighbors(k).some(n => T[n] && E.isWater(T[n]) && !T[n].river));
   const rig = E.neighbors(land).find(n => T[n] && E.isWater(T[n]) && !T[n].river);
@@ -157,7 +157,7 @@ function crossing(s) {
   const s2 = board({ seed: 'rig1' }), T2 = s2.map.tiles; T2[land].owner = 'A'; T2[rig].res = true; T2[rig].owner = 'B';
   put(s2, 'j', 'seraph', land);
   E.applyAction(s2, 'A', { a: 'move', units: ['j'], from: land, to: rig });
-  ok(T2[rig].owner === 'B', 'a gunship plane does not');
+  ok(T2[rig].owner === 'A', 'so does a plane ending its move there');
 }
 { // team games: deploy at a teammate's FOB, launch from their Port, see their hand, pass cash and cards
   const roster = [0, 1, 2, 3].map(i => ({ id: 'p' + i, name: 'P' + i, color: E.COLORS[i], faction: 'iron', team: 1 + (i % 2) }));

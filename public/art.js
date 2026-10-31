@@ -1927,6 +1927,83 @@ const Art = (() => {
       });
     },
   });
+  // ── v12: the rest of the armour and the missile sub, in the same style as the tanks ──
+  Object.assign(UNIT, {
+    // Gepard: a Leopard 1 hull on seven road wheels, a big box turret with the twin 35mm Oerlikons on its cheeks (long
+    // barrels with muzzle brakes), the round tracking radar on the turret front and the curved search radar on its mast
+    scorpion(c) {
+      c.save(); c.scale(1.02, 1.25); c.translate(0, 0.04);
+      tankTrack(c, -0.9, 0.44, 0.09, 0.27, 7, 0.056, -0.72, 0.26, 0.205);
+      poly(c, [-0.98, -0.02, 0.12, -0.02, 0.5, 0.08, 0.48, 0.115, -0.96, 0.115]); c.fill();
+      poly(c, [-0.62, -0.04, -0.62, -0.22, -0.56, -0.27, 0.06, -0.27, 0.14, -0.18, 0.14, -0.04]); c.fill();
+      rr(c, -0.14, -0.21, 0.36, 0.09, 0.025); c.fill(); rr(c, 0.2, -0.185, 0.72, 0.03, 0.015); c.fill(); rr(c, 0.88, -0.198, 0.06, 0.056, 0.012); c.fill();
+      rr(c, 0.2, -0.115, 0.66, 0.03, 0.015); c.fill(); rr(c, 0.82, -0.128, 0.06, 0.056, 0.012); c.fill(); circ(c, 0.12, -0.33, 0.07); c.fill();
+      c.beginPath(); c.ellipse(0.17, -0.16, 0.035, 0.085, 0, 0, P * 2); c.fill();
+      rr(c, -0.47, -0.37, 0.035, 0.12, 0.012); c.fill();
+      c.beginPath(); c.moveTo(-0.72, -0.39); c.quadraticCurveTo(-0.46, -0.45, -0.2, -0.39); c.lineTo(-0.21, -0.35); c.quadraticCurveTo(-0.46, -0.41, -0.71, -0.35); c.closePath(); c.fill();
+      seam(c, [-0.97, -0.02, 0.12, -0.02, 0.49, 0.08]); seam(c, [-0.95, 0.115, 0.46, 0.115]);
+      shade(c, () => { c.moveTo(0.19, -0.16); c.ellipse(0.17, -0.16, 0.017, 0.05, 0, 0, P * 2); rrp(c, -0.1, -0.175, 0.28, 0.02, 0.01); }, SH2);
+      c.restore();
+    },
+    // M10 Booker: a tall ASCOD hull on seven road wheels, an Abrams-style turret with its bustle, the 105mm with its fume
+    // extractor, the remote weapon station and the commander's sight. It's fast: speed lines behind
+    hellcat(c) {
+      c.strokeStyle = c.fillStyle; c.save(); c.globalAlpha *= 0.5; for (const [y, l] of [[-0.2, 0.36], [0.0, 0.5], [0.18, 0.3]]) line(c, 0.05, [-1.1, y, -1.1 + l * 0.5, y]); c.restore();
+      c.save(); c.scale(1.0, 1.25); c.translate(0.04, 0.04);
+      tankTrack(c, -0.86, 0.42, 0.09, 0.27, 7, 0.054, -0.69, 0.25, 0.205);
+      poly(c, [-0.94, -0.1, 0.08, -0.1, 0.48, 0.06, 0.46, 0.115, -0.92, 0.115]); c.fill();
+      poly(c, [-0.6, -0.11, -0.62, -0.25, 0.12, -0.27, 0.3, -0.18, 0.28, -0.11]); c.fill(); rr(c, -0.84, -0.24, 0.24, 0.12, 0.02); c.fill();
+      rr(c, 0.24, -0.205, 0.68, 0.034, 0.017); c.fill(); rr(c, 0.52, -0.218, 0.11, 0.06, 0.02); c.fill();
+      rr(c, -0.32, -0.36, 0.13, 0.09, 0.02); c.fill(); rr(c, -0.2, -0.335, 0.2, 0.018, 0.009); c.fill(); rr(c, 0.0, -0.34, 0.08, 0.07, 0.015); c.fill();
+      seam(c, [-0.93, -0.105, 0.08, -0.105, 0.47, 0.06]); seam(c, [-0.91, 0.115, 0.45, 0.115]);
+      shade(c, () => { c.moveTo(0.12, -0.27); c.lineTo(0.3, -0.18); c.lineTo(0.29, -0.155); c.lineTo(0.11, -0.23); c.closePath(); for (const y of [-0.21, -0.16]) rrp(c, -0.82, y, 0.2, 0.018, 0.008); }, SH2);
+      c.restore();
+    },
+    // BTR-82A: a boat-shaped 8x8 on four big wheels a side with the gap between the middle axles, the side door in it, a
+    // small turret set forward with the long 30mm cannon, and the trim vane folded on the nose
+    wraith(c) {
+      c.save(); c.scale(1.0, 1.3);
+      poly(c, [-0.96, 0.1, -0.96, -0.1, -0.82, -0.15, 0.24, -0.15, 0.62, 0.0, 0.7, 0.05, 0.56, 0.13, -0.88, 0.13]); c.fill();
+      for (const x of [-0.66, -0.4, 0.06, 0.32]) { circ(c, x, 0.17, 0.095); c.fill(); sh(c, () => { c.lineWidth = 0.012; c.beginPath(); c.arc(x, 0.17, 0.088, 0, P * 2); c.stroke(); circ(c, x, 0.17, 0.035); c.fill(); }, SH2); }
+      poly(c, [-0.04, -0.15, 0.0, -0.26, 0.2, -0.26, 0.26, -0.15]); c.fill();
+      rr(c, 0.22, -0.228, 0.72, 0.024, 0.012); c.fill(); rr(c, 0.22, -0.236, 0.12, 0.04, 0.012); c.fill();
+      rr(c, -0.7, -0.19, 0.14, 0.05, 0.02); c.fill(); rr(c, -0.42, -0.19, 0.12, 0.05, 0.02); c.fill();
+      shade(c, () => { rrp(c, -0.21, -0.08, 0.13, 0.17, 0.02); c.moveTo(0.3, -0.12); c.lineTo(0.6, 0.0); c.lineTo(0.58, 0.02); c.lineTo(0.28, -0.1); c.closePath(); }, SH2);
+      shade(c, () => { rrp(c, -0.94, 0.02, 1.52, 0.08, 0.02); }, SH);
+      c.restore();
+    },
+    // M2 Bradley: a tall, slab-sided hull with a two-stage nose and rows of armour tiles on its sides, six road wheels, the
+    // turret offset to one side with its long thin 25mm, the TOW missile box folded on its flank and the commander's sight
+    bulwark(c) {
+      c.save(); c.scale(1.0, 1.15); c.translate(0, 0.02);
+      tankTrack(c, -0.9, 0.42, 0.11, 0.29, 6, 0.06, -0.72, 0.25, 0.225);
+      poly(c, [-0.96, 0.135, -0.96, -0.2, 0.12, -0.2, 0.34, -0.1, 0.52, 0.06, 0.5, 0.135]); c.fill();
+      poly(c, [-0.34, -0.2, -0.32, -0.34, 0.06, -0.34, 0.14, -0.26, 0.12, -0.2]); c.fill();
+      rr(c, 0.1, -0.31, 0.68, 0.024, 0.012); c.fill(); rr(c, 0.1, -0.318, 0.1, 0.04, 0.012); c.fill();
+      rr(c, -0.56, -0.38, 0.26, 0.12, 0.02); c.fill(); rr(c, -0.12, -0.42, 0.09, 0.08, 0.015); c.fill();
+      shade(c, () => { for (let i = 0; i < 5; i++) for (const y of [-0.17, -0.06]) rrp(c, -0.9 + i * 0.2, y, 0.17, 0.09, 0.012); }, SH);
+      shade(c, () => { rrp(c, -0.54, -0.35, 0.22, 0.018, 0.008); rrp(c, -0.54, -0.31, 0.22, 0.018, 0.008); }, SH2);
+      seam(c, [-0.95, 0.135, 0.49, 0.135]);
+      c.restore();
+    },
+    // Ohio-class ballistic missile submarine: the long hull with the missile deck humped behind the sail, the planes on the
+    // sail, the cross of fins at the stern, and an ICBM just leaving its tube in a column of fire and smoke
+    trident(c) {
+      c.save(); c.translate(0, 0.16);
+      c.beginPath(); c.moveTo(-0.74, 0.0); c.lineTo(0.78, 0.0); c.quadraticCurveTo(1.0, 0.01, 1.0, 0.12); c.quadraticCurveTo(1.0, 0.23, 0.78, 0.24); c.lineTo(-0.74, 0.24); c.quadraticCurveTo(-0.86, 0.2, -0.92, 0.12); c.quadraticCurveTo(-0.86, 0.04, -0.74, 0.0); c.closePath(); c.fill();
+      rr(c, -0.5, -0.05, 0.84, 0.08, 0.04); c.fill();                                                                         // missile deck
+      poly(c, [-0.86, 0.04, -0.96, -0.12, -0.86, -0.12, -0.76, 0.02]); c.fill(); poly(c, [-0.86, 0.2, -0.96, 0.36, -0.86, 0.36, -0.76, 0.22]); c.fill();
+      c.beginPath(); c.moveTo(0.42, 0.01); c.lineTo(0.46, -0.24); c.quadraticCurveTo(0.53, -0.28, 0.68, -0.25); c.lineTo(0.72, 0.01); c.closePath(); c.fill();   // sail
+      rr(c, 0.36, -0.17, 0.42, 0.035, 0.017); c.fill();                                                                     // sail planes
+      blur(c, () => { c.beginPath(); c.ellipse(0.0, -0.1, 0.13, 0.07, 0, 0, P * 2); c.fill(); c.beginPath(); c.ellipse(-0.06, -0.06, 0.11, 0.05, 0, 0, P * 2); c.fill(); });
+      rr(c, -0.03, -0.92, 0.07, 0.64, 0.03); c.fill(); poly(c, [-0.03, -0.92, 0.005, -1.02, 0.04, -0.92]); c.fill();           // the ICBM
+      poly(c, [-0.06, -0.3, -0.03, -0.38, 0.04, -0.38, 0.07, -0.3]); c.fill();
+      blur(c, () => { poly(c, [-0.04, -0.28, 0.05, -0.28, 0.005, -0.12]); c.fill(); });
+      shade(c, () => { rrp(c, -0.86, 0.13, 1.8, 0.11, 0.055); }, SH);
+      shade(c, () => { rrp(c, -0.02, -0.7, 0.05, 0.02, 0.01); rrp(c, 0.47, -0.2, 0.2, 0.035, 0.017); for (let x = -0.42; x < 0.3; x += 0.12) rrp(c, x, -0.035, 0.06, 0.03, 0.01); }, SH2);
+      c.restore();
+    },
+  });
   // warships are long and low: stretch the three surface combatants a little along their length
   for (const id of ['marlin', 'bastion', 'abyssal']) { const f = UNIT[id]; UNIT[id] = c => { c.save(); c.translate(0, 0.08); c.scale(1.05, 0.8); f(c); c.restore(); }; }
   function cardArt(id) {

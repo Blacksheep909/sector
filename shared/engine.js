@@ -131,7 +131,7 @@
     sapper: { name: 'Sapper', cls: 'inf', cost: 4, atk: 2, def: 2, mv: 2, rarity: 'uncommon', ability: 'sapper', short: 'Demolitions: +3 Chips attacking buildings.', desc: 'Demolitions: +3 Chips attacking a hex with buildings.' },
     scorpion: { name: 'Scorpion', cls: 'veh', cost: 5, atk: 2, def: 1, mv: 3, range: 2, rarity: 'uncommon', ability: 'aa', aa: 4, short: '+4 vs air; guards the air 1 hex out. Downs 35% of strikes.', desc: 'Self-propelled AA gun. Fires at aircraft 2 hexes away (+4 Chips vs air), and on its own at any that stop within 1. Downs 35% of air strikes within 1. Weak vs ground troops.' },
     bulwark: { name: 'Bulwark', cls: 'veh', cost: 6, atk: 3, def: 5, mv: 3, rarity: 'uncommon', lift: 4, short: 'APC. Holds the line; carries 4 Grunts at its speed.', desc: 'Armoured personnel carrier. Holds the line, and carries up to 4 Grunts with it at its own speed.' },
-    hornet: { name: 'Hornet', cls: 'air', cost: 4, atk: 2, def: 1, mv: 4, rarity: 'common', short: 'Scout drone. Flies over anything; sees 3 hexes.', desc: 'Scout drone. Flies over mountains and water and sees 3 hexes around it.' },
+    hornet: { name: 'Hornet', cls: 'air', cost: 4, atk: 1, def: 1, mv: 4, rarity: 'common', short: 'Scout drone. Flies over anything; sees 3 hexes.', desc: 'Scout drone. Flies over mountains and water and sees 3 hexes around it.' },
     mauler: { name: 'Mauler', cls: 'veh', cost: 6, atk: 5, def: 4, mv: 2, rarity: 'uncommon', desc: 'Main battle tank.' },
     ark: { name: 'Ark', cls: 'sea', cost: 4, atk: 0, def: 3, mv: 4, rarity: 'uncommon', ability: 'transport', desc: 'Landing ship. Carries up to 3 land units across the sea.' },
     marlin: { name: 'Marlin', cls: 'sea', cost: 7, atk: 5, def: 4, mv: 4, range: 2, rarity: 'rare', desc: 'Destroyer. Missiles hit coasts and ships 2 hexes away.' },
@@ -1116,7 +1116,7 @@
         else if (enemy) { if (!canFight) continue; kind = 'attack'; }
         else if (land && !t.owner && GARRISONED.includes(t.poi)) { if (!canFight) continue; kind = 'attack'; }
         else if (land && t.owner && t.owner !== pid && !allyLand) { const h = getS(t, 'hq'), bk = getS(t, 'bunker'); kind = (h && h.owner === t.owner) || (bk && bk.owner === t.owner) ? (canFight ? 'attack' : null) : 'capture'; }
-        else if (!land && t.res && units.every(isHeli) && t.owner !== pid && !allyLand && stackFits(occ, group)) kind = 'capture';   // a helicopter lands on an oil rig and takes it
+        else if (!land && allAir && t.owner && t.owner !== pid && !allyLand && stackFits(occ, group)) kind = 'capture';   // aircraft take the sea they end their move over (an oil rig included)
         else kind = (land || allAir) && !t.contam && stackFits(occ, group) ? 'move' : 'pass';   // aircraft may loiter over water (troops aboard stay aboard)
         if (!kind || (kind === 'capture' && t.contam)) continue;
         if (carrying && kind === 'attack' && isWater(s.map.tiles[cur])) continue;   // troops can't jump out over the sea
@@ -1761,7 +1761,7 @@
           if (s.settings.teams === 'on') {
             const by = {}; for (const p of s.players.filter(p => p.alive)) by[p.team] = (by[p.team] || 0) + ownedLand(s, p.id).length;
             const tm = Object.keys(by).sort((a, b) => by[b] - by[a])[0], mates = s.players.filter(p => p.alive && String(p.team) === tm);
-            declareWin(s, mates[0].id, 'and their team held the most territory when time ran out', ev); s.winner.pids = mates.map(p => p.id); return;
+            return declareWin(s, mates[0].id, 'held the most territory as a team when time ran out', ev, mates.map(p => p.id));
           }
           const best = s.players.filter(p => p.alive).map(p => [p, ownedLand(s, p.id).length]).sort((a, b) => b[1] - a[1])[0];
           return declareWin(s, best[0].id, 'held the most territory when time ran out', ev);
@@ -1888,12 +1888,15 @@
     pushLog(s, '🗡 ' + p.name + ' is breaking the alliance with ' + player(s, a.with).name + '. It ends at the start of their next turn: troops still in the other side\'s land will be lost.');
     return { ok: true, events: ev };
   }
-  function declareWin(s, pid, reason, ev) {
+  // pids: everyone who shares the win (a team or an alliance); the reason reads after all their names
+  function declareWin(s, pid, reason, ev, pids) {
     recordHistory(s);
     s.phase = 'over'; s.winner = { pid, reason };
-    const p = player(s, pid);
-    ev.push({ e: 'win', pid, reason });
-    pushLog(s, '🏆 ' + (p ? p.name : '?') + ' ' + reason + '!');
+    if (pids && pids.length > 1) s.winner.pids = pids;
+    const names = (pids && pids.length > 1 ? pids : [pid]).map(id => { const p = player(s, id); return p ? p.name : '?'; });
+    const who = names.length > 1 ? names.slice(0, -1).join(', ') + ' & ' + names[names.length - 1] : names[0];
+    ev.push({ e: 'win', pid, pids: s.winner.pids, reason });
+    pushLog(s, '🏆 ' + who + ' ' + reason + '!');
   }
   // scenarios (puzzles): each has a goal and a number of turns to reach it
   // goal: { type: 'capture', hexes } take and hold every listed hex · { type: 'destroy' } wipe out every enemy unit
@@ -1923,15 +1926,13 @@
     if (alive.length === 1) return declareWin(s, alive[0].id, 'is the last commander standing', ev);
     // everyone left standing is allied with everyone else: they win together
     if (alive.length > 1 && alive.every(a => alive.every(b => a === b || isAlly(s, a.id, b.id)))) {
-      declareWin(s, alive[0].id, s.settings.teams === 'on' ? 'and their team won the war' : 'and allies won the war together', ev);
-      s.winner.pids = alive.map(p => p.id);
-      return;
+      return declareWin(s, alive[0].id, s.settings.teams === 'on' ? 'won the war as a team' : 'won the war together as allies', ev, alive.map(p => p.id));
     }
     if (s.settings.mode === 'conquest' || s.settings.mode === 'worldwar') {
       const need = conquestTarget(s);
       if (s.settings.teams === 'on') {
         const byTeam = {}; for (const p of alive) byTeam[p.team] = (byTeam[p.team] || 0) + ownedLand(s, p.id).length;
-        for (const tm in byTeam) if (byTeam[tm] >= need) { const mates = alive.filter(p => String(p.team) === tm); declareWin(s, mates[0].id, 'and their team conquered ' + need + ' hexes', ev); s.winner.pids = mates.map(p => p.id); return; }
+        for (const tm in byTeam) if (byTeam[tm] >= need) { const mates = alive.filter(p => String(p.team) === tm); return declareWin(s, mates[0].id, 'conquered ' + need + ' hexes as a team', ev, mates.map(p => p.id)); }
       } else {
         for (const p of alive) if (ownedLand(s, p.id).length >= need) return declareWin(s, p.id, 'conquered ' + need + ' hexes', ev);
         // allies who are all allied with each other count their land together, and win together
@@ -1940,7 +1941,7 @@
           for (const q of alive) if (q !== p && bloc.every(b => isAlly(s, b.id, q.id))) bloc.push(q);
           if (bloc.length < 2) continue;
           const land = bloc.reduce((n, b) => n + ownedLand(s, b.id).length, 0);
-          if (land >= need) { declareWin(s, p.id, 'and their allies conquered ' + need + ' hexes together', ev); s.winner.pids = bloc.map(b => b.id); return; }
+          if (land >= need) return declareWin(s, p.id, 'conquered ' + need + ' hexes together as allies', ev, bloc.map(b => b.id));
         }
       }
     }
@@ -2347,8 +2348,8 @@
         cargo.forEach(u => { u.hex = a.to; });
         const t = tiles[a.to];
         const navy = fleet.every(u => isSea(u.type));
-        const rig = !navy && isWater(t) && t.res && fleet.every(isHeli);   // a helicopter landing on an oil rig claims it
-        if (c.dest.kind !== 'board' && (navy || rig ? isWater(t) : isLandTile(t)) && captureTile(s, a.to, pid)) caps.push(a.to);
+        const air = !navy && fleet.every(u => UNITS[u.type].cls === 'air');   // aircraft claim the hex they end over, land or sea
+        if (c.dest.kind !== 'board' && (navy ? isWater(t) : air ? isWater(t) || isLandTile(t) : isLandTile(t)) && captureTile(s, a.to, pid)) caps.push(a.to);
         ev.push({ e: 'move', pid, units: fleet.concat(cargo).map(u => u.id), path: c.path, captures: caps });
         lootPath(s, pid, c.path, ev, rng);
         aaPassive(s, pid, a.to, fleet.concat(cargo), rng, ev);
