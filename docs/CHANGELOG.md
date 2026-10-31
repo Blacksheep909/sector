@@ -18,6 +18,7 @@ Every release, newest first. Each version also has its own post on the [Releases
 - **Abyssal** movement 3 → 2.
 - **🚀 Naval missiles.** Warship missiles now ripple out of the launch cells: each goes straight up on its booster, pitches over, skims in low over the water throwing spray, then pops up and dives onto the target.
 - **Tidier player bar.** The bot mood face sits with the numbers, banner cosmetics keep a dark backing behind the name and stats, and when the chips wrap onto two rows bot chatter stays in the chat log instead of covering the second row.
+- **🛡 Bots guard their HQ and fight air.** When enemy troops near a bot's HQ could take it, it fills the HQ with its sturdiest defenders before spending on anything else (in testing an attacker's odds dropped from about 66% to 8%). Enemy aircraft gathering near a bot's HQ or base bring anti-air there first, and bots value anti-air cards and units by how much the enemy flies.
 - **Badges above borders.** Building, HQ and point-of-interest badges (and HQ name tags) are drawn over the animated borders now, not under them.
 - **Fix:** knocking out a commander who was besieging someone else's HQ deleted that HQ, leaving its owner impossible to knock out and the war unable to end.
 

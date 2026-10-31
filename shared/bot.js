@@ -22,6 +22,9 @@ function cardScore(s, p, id) {
     // a war across the sea: no land route to any rival HQ. Then a transport is the card that wins it
     if (s.phase === 'play' && overseas(s, p.id)) { if (id === 'ark') v = p.arsenal.includes('ark') ? 4 : 14; else if (d.cls === 'sea') v *= 1.3; }
     const taste = (playOf(p).cls || {})[d.cls]; if (taste) v *= 1 + taste * 0.25;
+    // anti-air: worth a lot when rivals fly and we have none, little when nobody does
+    if (E.UNITS[id].aa && s.phase === 'play') { const air = Object.values(s.units).filter(u => u.owner !== p.id && !E.isAlly(s, p.id, u.owner) && E.UNITS[u.type].cls === 'air').length, have = p.arsenal.some(t => E.UNITS[t].aa);
+      v *= air >= 3 ? (have ? 1.3 : 2.6) : air ? 1.1 : 0.7; }
   } else v *= 0.85 * (playOf(p).tactics || 1);
   return v;
 }
@@ -336,6 +339,36 @@ function botTurn(s, pid, mem) {
         }
       }
     } }
+  // 0¼. HQ in danger: enemy troops close enough to take it with real odds. Fill the HQ hex with the sturdiest defenders we
+  // can afford (one at a time, re-checking the odds) before money goes anywhere else
+  if ((mem.hqGuard || 0) < 6 && p.hq && tiles[p.hq] && tiles[p.hq].owner === pid && !E.musterHexes(s, pid).length) {
+    const near = {};
+    for (const id in s.units) { const u = s.units[id], d = E.UNITS[u.type]; if (!wary(s, pid, u.owner) || d.atk <= 0 || d.range || E.isSea(u.type) || E.dist(u.hex, p.hq) > (d.cls === 'air' ? 4 : 2)) continue; (near[u.owner] = near[u.owner] || []).push(u); }
+    let risk = 0;
+    for (const o in near) { const g = near[o]; const c = E.combatCalc(s, o, g, [...new Set(g.map(u => u.hex))], p.hq, false, idx); if (c.winProb > risk) risk = c.winProb; }
+    if (risk > (K.hqRisk === undefined ? 0.3 : K.hqRisk)) {
+      const defs = p.arsenal.filter(t => !E.isSea(t) && E.unitCost(p, t) <= p.cash && E.UNITS[t].def > 0).sort((a, b) => (E.UNITS[b].def + E.UNITS[b].atk * 0.3) / Math.sqrt(E.unitCost(p, b)) - (E.UNITS[a].def + E.UNITS[a].atk * 0.3) / Math.sqrt(E.unitCost(p, a)));
+      for (const t of defs) if (E.deployHexes(s, pid, t, idx).includes(p.hq)) { mem.hqGuard = (mem.hqGuard || 0) + 1; return { a: 'deploy', unit: t, hex: p.hq }; }
+    }
+  }
+  // 0½. air raid: enemy aircraft gathering near our HQ or a base, and not enough anti-air there to meet them. Air defence
+  // goes in at that base first (one launcher for every two aircraft), before money goes anywhere else
+  if ((mem.airDef || 0) < 4 && !K.noAirRaid) {
+    const bases = E.spawnPoints(s, pid);
+    let worst = null, wv = 0;
+    for (const b of bases) {
+      let air = 0, aa = 0;
+      for (const id in s.units) { const u = s.units[id], d = E.UNITS[u.type];
+        if (wary(s, pid, u.owner) && d.cls === 'air' && d.ability !== 'stealth' && E.dist(u.hex, b) <= 4) air++;
+        if (u.owner === pid && d.aa && E.dist(u.hex, b) <= 2) aa++; }
+      const need = Math.ceil(air / 2) - aa;
+      if (air >= 2 && need > 0 && need + air * 0.1 > wv) { wv = need + air * 0.1; worst = b; }
+    }
+    if (worst) {
+      const aaTypes = p.arsenal.filter(t => E.UNITS[t].aa && !E.isSea(t) && E.unitCost(p, t) <= p.cash).sort((a, b) => (E.UNITS[b].aa + E.UNITS[b].def) / E.unitCost(p, b) - (E.UNITS[a].aa + E.UNITS[a].def) / E.unitCost(p, a));
+      for (const t of aaTypes) { const h = E.deployHexes(s, pid, t, idx); const spot = h.includes(worst) ? worst : h.filter(k => E.dist(k, worst) <= 2)[0]; if (spot) { mem.airDef = (mem.airDef || 0) + 1; return { a: 'deploy', unit: t, hex: spot }; } }
+    }
+  }
   // 0a. an ally on the way out: get every stack out of their land first (the pact's end kills whatever is still inside),
   // home if it can reach, else any land that isn't theirs, nearest our HQ
   for (const k in idx) {
@@ -844,7 +877,7 @@ function botTurn(s, pid, mem) {
     })();
     const counter = t => { const d = E.UNITS[t]; let b = 0;
       // anti-air only earns its keep against aircraft: none seen means don't buy it, and don't outnumber them
-      if (d.aa) { const ownAA = mine.filter(u => E.UNITS[u.type].aa).length; b += !strat.seen.air ? -4 : ownAA >= strat.seen.air * 1.5 ? -2 : Math.min(3, strat.seen.air * 0.6); b -= Math.max(0, ownAA / Math.max(1, landUnits) - 0.15) * (K.capSlope || 40); }   // (and never more than about a sixth of the army)
+      if (d.aa) { const ownAA = mine.filter(u => E.UNITS[u.type].aa).length; if (K.aaOld) { b += !strat.seen.air ? -4 : ownAA >= strat.seen.air * 1.5 ? -2 : Math.min(3, strat.seen.air * 0.6); b -= Math.max(0, ownAA / Math.max(1, landUnits) - 0.15) * (K.capSlope || 40); } else { b += !strat.seen.air ? -4 : ownAA >= strat.seen.air * 1.2 ? -2 : Math.min(5, 1 + strat.seen.air * 0.8); b -= Math.max(0, ownAA / Math.max(1, landUnits) - Math.min(0.4, 0.15 + strat.seen.air / Math.max(1, landUnits))) * (K.capSlope || 40); } }   // (a share of the army that grows with the enemy's air power)
       if (d.ability === 'hunter') b += Math.min(1.6, strat.seen.veh * 0.25);
       // a carrier is only worth it with aircraft to fly off it (and pays off most in a war across the sea)
       if (t === 'carrier') b += p.arsenal.some(x => E.UNITS[x].cls === 'air') ? 2 + (navalNeed ? 2 : 0) : -6;
