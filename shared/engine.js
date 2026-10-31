@@ -160,7 +160,7 @@
     carrier: { name: 'Carrier', cls: 'sea', cost: 13, atk: 2, def: 2, mv: 1, rarity: 'legendary', ability: 'carrier', short: 'Floating airbase. Holds 4 planes or helis.', desc: 'Floating airbase: deploy planes and helicopters onto it and fly them off it. Holds 4.' },
     oracle: { name: 'Oracle', cls: 'art', cost: 11, atk: 8, def: 2, mv: 2, range: 4, rarity: 'legendary', ability: 'orbital', short: 'Satellite-guided missiles. Fires over mountains.', desc: 'Satellite-guided missile launcher. Range 4, fires over mountains.' },
     trident: { name: 'Trident', cls: 'sea', cost: 16, atk: 10, def: 4, mv: 3, range: 4, rarity: 'legendary', ability: 'ballistic', short: 'Missile sub. Fires over mountains; a hit kills 1 extra.', desc: 'Missile submarine. Fires at any troops or buildings within 4, over mountains; a hit kills one extra unit. Only Sentinel and Grumble batteries can intercept it.' },
-    abyssal: { name: 'Abyssal', cls: 'sea', cost: 15, atk: 12, def: 10, mv: 3, range: 4, rarity: 'legendary', ability: 'juggernaut', short: 'Heavy warship. Range 4; no pyrrhic losses.', desc: 'Heavy missile warship. Range 4. Never suffers pyrrhic losses.' },
+    abyssal: { name: 'Abyssal', cls: 'sea', cost: 15, atk: 12, def: 10, mv: 2, range: 4, rarity: 'legendary', ability: 'juggernaut', short: 'Heavy warship. Range 4; no pyrrhic losses.', desc: 'Heavy missile warship. Range 4. Never suffers pyrrhic losses.' },
   };
 
   // target: none | ownHex | ownStack | spawn | enemyUnits | heli | enemyStruct | area | nuke | mutiny
@@ -2988,6 +2988,12 @@
     }
     return vis;
   }
+  // submarines run silent: under fog an enemy sub only shows up within 1 hex of your (or a teammate's) units
+  const SUBS = ['kraken', 'trident'];
+  function subSpotted(s, pid, hex) {
+    for (const id in s.units) { const u = s.units[id]; if ((u.owner === pid || teammate(s, pid, u.owner)) && dist(u.hex, hex) <= 1) return true; }
+    return false;
+  }
   // what a client may see
   function view(s, pid, mem) {
     const c = JSON.parse(JSON.stringify(s));
@@ -3001,7 +3007,7 @@
       for (const k of vis) { const t0 = s.map.tiles[k]; if (!t0) continue; mem.explored.add(k); mem.seen[k] = { owner: t0.owner, structs: JSON.parse(JSON.stringify(structsOf(t0))), poi: t0.poi, gar: t0.gar, ruin: t0.ruin || 0, wreck: !!t0.wreck }; }
       // a bunker line (★★ and up) is a big earthwork: you can see it from next door, so the odds you're shown count it
       for (const k of vis) for (const n of neighbors(k)) { const t0 = s.map.tiles[n], b0 = t0 && !vis.has(n) && getS(t0, 'bunker'); if (b0 && slvlOf(b0) >= 2) { mem.explored.add(n); mem.seen[n] = { ...(mem.seen[n] || {}), owner: t0.owner, structs: JSON.parse(JSON.stringify(structsOf(t0))), poi: t0.poi, gar: t0.gar }; } }
-      for (const id in c.units) { const u = c.units[id]; if (u.owner !== pid && !teammate(s, pid, u.owner) && !vis.has(u.hex)) delete c.units[id]; }
+      for (const id in c.units) { const u = c.units[id]; if (u.owner !== pid && !teammate(s, pid, u.owner) && (!vis.has(u.hex) || (SUBS.includes(u.type) && !subSpotted(s, pid, u.hex)))) delete c.units[id]; }
       for (const k in c.map.tiles) {
         if (vis.has(k)) continue;
         const t = c.map.tiles[k], real = s.map.tiles[k], hq = getS(real, 'hq');
@@ -3053,7 +3059,7 @@
   return {
     DIRS, key, parse, dist, neighbors, area, line, mulberry32, hashStr, THEMES, ARCHETYPES, relink,
     POI, WEATHER, isAlly, teammate, recordHistory, RARITY, RARITY_ORDER, CRATES, DROP_TIERS, SCRAP_VALUE, DECK_MAX, MAX_LEVEL, TERRAIN, DIFFICULTY, UNITS, TACTICS, STRUCTS, BUILD_ORDER, UPGRADABLE, MAX_SLVL, FACTIONS, ROLL_BASE, COLORS, TEAM_COLORS, TEAM_NAMES, teamColor, MAX_STACK, GRUNT_STACK, stackFits, CLASS_NAME, cardDef,
-    BATTLE_MAX, cardFee, turnOdds, marketPrice, MARKET_UNLOCK, AIRBASE_CARDS, MAX_AIRBASES, cacheCard, scenarioCheck, assaultPlan, openBattle, closeBattle, battleOdds, battleHand, battleCard, INTEL_COST, intelCost, overwatchTriggers, overwatchFire, attackTarget, ECON, infraValue, econOf, AIR_STRIKES, airDefenders, interceptChance, generateMap, createGame, applyAction, spawnChoices, visionOf, startTurn, endTurn, simulateTurnStart, view, drawCards,
+    BATTLE_MAX, cardFee, turnOdds, marketPrice, MARKET_UNLOCK, AIRBASE_CARDS, MAX_AIRBASES, SUBS, subSpotted, cacheCard, scenarioCheck, assaultPlan, openBattle, closeBattle, battleOdds, battleHand, battleCard, INTEL_COST, intelCost, overwatchTriggers, overwatchFire, attackTarget, ECON, infraValue, econOf, AIR_STRIKES, airDefenders, interceptChance, generateMap, createGame, applyAction, spawnChoices, visionOf, startTurn, endTurn, simulateTurnStart, view, drawCards,
     player, current, buildIndex, canAct, moveAllow, ownedTiles, ownedLand, spawnPoints, musterHexes, supplySet, computeIncome, levelOf, unitAtk, unitDef,
     aaZone, aaReach, payout: scaled, blocOf, blocCap, blocTooBig, riders, tsarArea, moodOf, addMood, threatOf, rerollCost, bountyValue, reachable, pathTo, rangedTargets, deployHexes, buildHexes, buildError, isSea, isWater, isCoastal, movers, combatCalc, tacticTargets, unitCost, structCost, buildCost, structsOf, MAX_STRUCTS, conquestTarget, isLandTile, aaCovered,
   };

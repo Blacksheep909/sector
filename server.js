@@ -307,7 +307,7 @@ function filterEvents(events, pid) {
     out = out.map(e => { if (e.e !== 'eliminate') return e; const hexes = (e.hexes || []).filter(k => vis.has(k)); return { ...e, hexes, taken: (e.taken || []).filter(k => vis.has(k)), hq: vis.has(e.hq) ? e.hq : hexes[0] || null }; });
     out = out.filter(e => {
       if (mine(e)) return true;
-      if (e.e === 'move') { const seen = (e.path || []).some(k => vis.has(k)); if (!seen && e.path && nearMe(e.path[e.path.length - 1])) radar.push({ e: 'radar', hex: e.path[e.path.length - 1] }); return seen; }
+      if (e.e === 'move') { const subs = (e.units || []).length && e.units.every(id => game.units[id] && E.SUBS.includes(game.units[id].type)); const seen = (e.path || []).some(k => vis.has(k) && (!subs || E.subSpotted(game, pid, k))); if (!seen && e.path && nearMe(e.path[e.path.length - 1])) radar.push({ e: 'radar', hex: e.path[e.path.length - 1] }); return seen; }
       if (e.e === 'combat') return vis.has(e.to) || (e.def && e.def.pid === pid);
       if (e.e === 'deploy' || e.e === 'build' || e.e === 'loot') return vis.has(e.hex);
       if (e.e === 'advance') return vis.has(e.to);

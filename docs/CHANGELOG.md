@@ -14,6 +14,8 @@ Every release, newest first. Each version also has its own post on the [Releases
 - **↶ Undo is one step.** Ctrl+Z takes back your last move, deploy or build only.
 - **🔥 Burning bridges.** A destroyed bridge is charred piers and a snapped deck sagging into the water, on fire for the round it fell and the next two, then smouldering.
 - **💣 Real bombs.** The Tsar Bomba drifts down under a parachute and the tactical nuke falls as a fat finned bomb, instead of a white rocket (which read as a magic wand). A mythic card turning over no longer flashes a white bar when it's edge-on.
+- **🌊 Silent subs.** Under fog of war an enemy Kraken or Trident only shows up when one of your units is right next to it.
+- **Abyssal** movement 3 → 2.
 - **Badges above borders.** Building, HQ and point-of-interest badges (and HQ name tags) are drawn over the animated borders now, not under them.
 - **Fix:** knocking out a commander who was besieging someone else's HQ deleted that HQ, leaving its owner impossible to knock out and the war unable to end.
 

@@ -51,7 +51,7 @@ Unit cards are permanent unlocks: deploy as many as you can afford.
 | **Carrier** | Naval | Legendary | $13 | 2 | 2 | 1 | – | Floating airbase: deploy planes and helicopters onto it and fly them off it. Holds 4. |
 | **Oracle** | Artillery | Legendary | $11 | 8 | 2 | 2 | 4 | Satellite-guided missile launcher. Range 4, fires over mountains. |
 | **Trident** | Naval | Legendary | $16 | 10 | 4 | 3 | 4 | Missile submarine. Fires at any troops or buildings within 4, over mountains; a hit kills one extra unit. Only Sentinel and Grumble batteries can intercept it. |
-| **Abyssal** | Naval | Legendary | $15 | 12 | 10 | 3 | 4 | Heavy missile warship. Range 4. Never suffers pyrrhic losses. |
+| **Abyssal** | Naval | Legendary | $15 | 12 | 10 | 2 | 4 | Heavy missile warship. Range 4. Never suffers pyrrhic losses. |
 
 ## Tactics
 

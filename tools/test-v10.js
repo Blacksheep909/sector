@@ -378,5 +378,18 @@ function crossing(s) {
   s.turn.idx = s.players.findIndex(p => p.id !== 'p2'); E.startTurn(s, []);
   ok(!C.alive, 'a commander with no HQ left is knocked out');
 }
+{ // submarines run silent: under fog, an enemy sub shows only right next to one of your units
+  const roster = [0, 1].map(i => ({ id: 'p' + i, name: 'P' + i, color: E.COLORS[i], faction: 'iron' }));
+  const { state: s } = E.createGame({ mode: 'domination', mapSize: 'medium', seed: 'sub1', fog: 'on' }, roster);
+  s.phase = 'play'; const T = s.map.tiles;
+  for (const id in s.units) delete s.units[id];
+  const sea = Object.keys(T).filter(k => T[k].t === 'water');
+  const a = sea.find(k => E.area(k, 2).filter(n => T[n] && T[n].t === 'water').length >= 15), ring2 = E.area(a, 2).find(n => T[n] && T[n].t === 'water' && E.dist(a, n) === 2), ring1 = E.neighbors(a).find(n => T[n] && T[n].t === 'water');
+  const put = (id, type, hex, o) => s.units[id] = { id, owner: o, type, hex, moved: false, fresh: false, stun: 0, mvBonus: 0 };
+  put('me', 'marlin', a, 'p0'); put('sub', 'kraken', ring2, 'p1');
+  ok(!E.view(s, 'p0').units.sub, 'an enemy sub 2 hexes off stays hidden');
+  s.units.sub.hex = ring1;
+  ok(!!E.view(s, 'p0').units.sub, 'right next to it, you see it');
+}
 console.log(fails ? fails + ' FAILED' : 'all passed');
 process.exit(fails ? 1 : 0);
