@@ -2125,3 +2125,6 @@ body.war-over #dock, body.war-over #endBtn, body.war-over #marketBtn { display: 
 .intel.cards .card .c-cost { font-size: 10px; padding: 0 3px; }
 .intel.cards .card .c-stats { transform: scale(.82); transform-origin: center bottom; }
 .intel.cards .card .count { width: 20px; height: 20px; font-size: 11px; left: -4px; bottom: -4px; }
+/* airbases held, out of the cap (red when full) */
+.slot .cap { position: absolute; top: 2px; right: 4px; font-family: var(--title); font-size: 10px; line-height: 1; padding: 2px 4px; border-radius: 5px; background: #05080b; color: #9fe8ff; border: 1px solid #2a3a48; }
+.slot .cap.full { background: #4a0f14; color: #ff8a8a; border-color: #ff4f5e; }

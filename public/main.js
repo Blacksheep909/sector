@@ -1811,6 +1811,8 @@
     if (!me || !me.alive) return { units: [], builds: [] };
     return { me, ds, units: me.arsenal.slice(0, 10), builds: E.BUILD_ORDER };
   }
+  // airbases you hold (they're capped): the build bar and its tip show it as n/3
+  const airbasesOf = (ds, pid) => Object.values(ds.map.tiles).filter(t => E.structsOf(t).some(x => x.type === 'airbase' && x.owner === pid)).length;
   function buildSlot(id, key, me) {
     const ds = dispState();
     const spots = E.buildHexes(ds, you, id);
@@ -1820,6 +1822,7 @@
     const s = el('div', 'slot k-build');
     s.dataset.kind = 'build'; s.dataset.id = id;
     s.innerHTML = `<span class="sk">${key.toUpperCase()}</span><img src="${Art.iconURL('struct', id, '#1b1712', 72)}"><span class="bname${name.length > 8 ? ' long' : ''}">${name}</span><span class="sc">$${cost}</span>` + (ups.length && id !== 'hq' ? `<span class="up" title="${ups.length} can be upgraded">▲${ups.length}</span>` : '');
+    if (id === 'airbase') { const n = airbasesOf(ds, you); s.insertAdjacentHTML('beforeend', `<span class="cap${n >= E.MAX_AIRBASES ? ' full' : ''}" title="Airbases you hold (${E.MAX_AIRBASES} at most)">${n}/${E.MAX_AIRBASES}</span>`); }
     if (me.cash < cost) s.classList.add('poor');
     if (!spots.length) s.classList.add('nowhere');
     if (mode && mode.type === 'build' && mode.struct === id) s.classList.add('on');
@@ -1872,8 +1875,9 @@
   function showSlotTip(slot, kind, id) {
     const tip = $('#slotTip'); tip.innerHTML = '';
     const d = E.STRUCTS[id], me = myP();
+    const cap = id === 'airbase' && me ? `<span class="tip-up"${airbasesOf(S, me.id) >= E.MAX_AIRBASES ? ' style="color:#ff6a6a"' : ''}>You hold ${airbasesOf(S, me.id)}/${E.MAX_AIRBASES} airbases (${E.MAX_AIRBASES} at most)</span>` : '';
     const up = E.UPGRADABLE.includes(id) ? `<span class="tip-up">Build on one you already own to upgrade it: ★★ $${me ? E.structCost(me, id, 2) : '?'} · ★★★ $${me ? E.structCost(me, id, 3) : '?'}</span>` : '';
-    tip.innerHTML = `<div class="btip"><img src="${Art.iconURL('struct', id, '#fff', 96)}"><b>${id === 'hq' ? 'Fortify HQ' : d.name} <span class="gold">$${me ? (id === 'hq' ? E.buildCost(S, me, 'hq', me.hq) : E.structCost(me, id)) : d.cost}</span></b><span>${d.desc}</span>${up}</div>`;
+    tip.innerHTML = `<div class="btip"><img src="${Art.iconURL('struct', id, '#fff', 96)}"><b>${id === 'hq' ? 'Fortify HQ' : d.name} <span class="gold">$${me ? (id === 'hq' ? E.buildCost(S, me, 'hq', me.hq) : E.structCost(me, id)) : d.cost}</span></b><span>${d.desc}</span>${up}${cap}</div>`;
     const r = slot.getBoundingClientRect();
     const hz = parseFloat(getComputedStyle($('#hud')).getPropertyValue('--hz')) || 1;   // it lives in the HUD, which is scaled by --hz
     tip.style.left = (r.left + r.width / 2) / hz + 'px'; tip.style.top = (r.top - 12) / hz + 'px';
@@ -1905,7 +1909,9 @@
       const cost = id === 'hq' ? E.buildCost(ds, me, 'hq', me.hq) : E.structCost(me, id);
       if (mode && mode.type === 'build' && mode.struct === id) { mode = null; refreshAll(); return; }
       if (!E.buildHexes(ds, you, id).some(k => me.cash >= E.buildCost(ds, me, id, k)) && E.buildHexes(ds, you, id).length) { toast('Need $' + cost, 'err'); SFX.error(); shakeSlot(kind, id); return; }
+      if (id === 'airbase' && airbasesOf(ds, you) >= E.MAX_AIRBASES && !E.buildHexes(ds, you, id).length) { toast(`You have ${E.MAX_AIRBASES}/${E.MAX_AIRBASES} airbases, the most allowed (and they're all fully upgraded)`, 'err'); SFX.error(); shakeSlot(kind, id); return; }
       if (!E.buildHexes(ds, you, id).length) { toast(id === 'hq' ? 'Your HQ is fully fortified' : id === 'port' ? 'No free coastal hex in supply' : id === 'bridge' ? 'No 1-hex sea gap next to your supplied land' : 'Nowhere to build that', 'err'); SFX.error(); shakeSlot(kind, id); return; }
+      if (id === 'airbase' && airbasesOf(ds, you) >= E.MAX_AIRBASES) toast(`You have ${E.MAX_AIRBASES}/${E.MAX_AIRBASES} airbases, the most allowed: click one of yours to upgrade it`);
       mode = { type: 'build', struct: id };
     }
     sel = null; SFX.select(); refreshAll();
