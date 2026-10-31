@@ -2635,6 +2635,7 @@
           if (ev.overwatch) { Render.float(ev.from, '🎯 OVERWATCH', '#ffc53d', 18); }
           if (ev.aaPassive) { Render.float(ev.from, '🎯 AIR DEFENCE', '#ff8a96', 18); if (ev.passengers) later(1.2, () => Render.float(ev.to, '−' + ev.passengers + ' GRUNTS ABOARD', '#ff5a64', 15)); }
           if (ev.ranged) await fireFx(ev.att.units, ev.from, ev.to);
+          else if ((ev.att.units || []).includes('kraken') && S.map.tiles[ev.to] && E.isWater(S.map.tiles[ev.to])) await torpedoFx((ev.stages || [])[0] || ev.from, ev.to);
           // the dice tray is for fights a human is in: bot-vs-bot (or bot-vs-garrison) plays a quick clash on the map.
           // A 95%+ fight that went the expected way skips the dice and the long animation too
           // at max speed nothing waits on the dice tray either
@@ -2871,7 +2872,7 @@
   // effects on the render clock run in seconds; this keeps their timers in step with the game speed, like sleep()
   const later = (sec, f) => setTimeout(f, sec * 1000 * speed());
   // ranged fire, drawn per weapon: every kind of gun in the firing group shows its own shot, launched together
-  const FIRE_ORDER = ['direct', 'naval', 'mortar', 'rockets', 'mlrs', 'aa', 'ballistic', 'sub'];
+  const FIRE_ORDER = ['direct', 'naval', 'shipMissile', 'mortar', 'rockets', 'mlrs', 'aa', 'ballistic', 'sub'];
   function fireKind(type) {
     const d = E.UNITS[type] || {};
     if (type === 'trident') return 'sub';
@@ -2880,7 +2881,7 @@
     if (d.ability === 'salvo') return 'mlrs';
     if (type === 'basilisk') return 'rockets';
     if (d.cls === 'art') return 'mortar';
-    if (d.cls === 'sea' && d.range) return 'naval';
+    if (d.cls === 'sea' && d.range) return ['marlin', 'bastion', 'abyssal'].includes(type) ? 'shipMissile' : 'naval';   // modern warships fire missiles from their launch cells
     return 'direct';   // overwatch: rifles and tank guns on a watching stack
   }
   async function fireFx(types, from, to) {
@@ -2920,6 +2921,15 @@
         // mortar: rounds lobbed high, a thump at the tube and dirt where they land
         for (let i = 0; i < 2; i++) { const p = jit(10); Render.missile(from, p, { shell: true, loft: 160, accel: 1, dur: 0.8 * sp, delay: (d0 + i * 0.2) * sp, color: '#2b3036', boom: false, onHit: () => dirt(p) }); at(i * 0.2, () => { SFX.shot(); Render.smoke(from, 4, 'rgba(210,210,210,'); }); }
         end = Math.max(end, d0 + 1.0);
+      } else if (kind === 'shipMissile') {
+        // vertical launch: each missile bursts up out of its cell in a cloud of exhaust, tips over and runs in low and fast
+        const n = Math.min(3, Math.max(1, types.filter(ut => fireKind(ut) === 'shipMissile').length + 1));
+        for (let i = 0; i < n; i++) {
+          const p = jit(14);
+          Render.missile(from, p, { alt0: 22, alt1: 4, loft: 70, accel: 1.25, dur: (0.75 + i * 0.05) * sp, delay: (d0 + i * 0.22) * sp, size: 1.1, color: '#f2efe6', boom: false, onHit: () => { Render.burst(p, ['#fff', '#ffd27a', '#ff5a2a'], 26, { speed: 1.4, up: 110 }); Render.smoke(p, 8, 'rgba(90,80,70,'); SFX.boom(0.9); Render.shake(6); } });
+          at(i * 0.22, () => { SFX.whoosh(); Render.smoke(from, 8, 'rgba(235,232,226,'); Render.burst(from, ['#fff3c4', '#ffd27a', '#ff8a3a'], 14, { up: 140, speed: 0.9 }); });
+        }
+        end = Math.max(end, d0 + 0.8 + n * 0.22);
       } else if (kind === 'naval') {
         // warship guns: a muzzle flash, shells on a flat arc
         for (let i = 0; i < 2; i++) { const p = jit(12); Render.missile(from, p, { shell: true, loft: 60, accel: 1, dur: 0.5 * sp, delay: (d0 + i * 0.16) * sp, color: '#2b3036', boom: false, onHit: () => dirt(p) }); at(i * 0.16, () => { SFX.shot(); Render.burst(from, ['#fff2a8', '#ffb03a'], 10, { up: 30, speed: 0.9 }); Render.smoke(from, 5, 'rgba(200,200,200,'); }); }
@@ -2932,6 +2942,14 @@
       }
     });
     await sleep(end * 1000 + 120);
+  }
+  // a submarine's torpedoes: two wakes running in flat along the water, then the hit throws up a column of spray
+  async function torpedoFx(from, to) {
+    if (!from || !to) return;
+    const sp = speed();
+    for (let i = 0; i < 2; i++) Render.missile(from, to, { alt0: 0, alt1: 0, loft: 0, accel: 1, dur: 0.7 * sp, delay: i * 0.15 * sp, size: 0.7, color: '#d8f4ff', boom: false, onHit: i ? null : () => { Render.burst(to, ['#fff', '#d8f4ff', '#9fd8ff'], 34, { up: 160, speed: 1.2 }); SFX.boom(1); Render.shake(8); } });
+    SFX.whoosh();
+    await sleep(0.85 * sp * 1000);
   }
   // air defence fire: tracer bursts climbing from each defender toward the target
   // anti-air: each battery looses a missile, straight and fast with a white smoke trail, timed to meet `at`
