@@ -4,6 +4,11 @@ Every release, newest first. Each version also has its own post on the [Releases
 
 ## Unreleased
 
+- **🎯 Bots earn what you earn.** No difficulty gets extra (or less) money any more: Easy used to make 75% of normal income and Impossible 150%. Difficulty is now only how well a bot plays.
+- **⚔ Bots counterattack.** Every bot keeps track of the land you took from it last turn. A stack that pushes into its territory, sits on ground it just lost or is hemmed in on most sides, and has little of its own army behind it becomes a top target. The bot masses an extra stack on it and will take slightly worse odds to destroy it. Harder bots counter more ruthlessly.
+- **🛡 The Iron Covenant digs in.** Iron bots attack less readily and guard their front harder, then hit back half again as hard when someone over-commits against them.
+- **🧠 Bots think about the counterattack before they attack.** Before taking a hex, Medium and up weigh what enemy troops could reach it next turn against what would be left holding it. Hard and Impossible weigh this most, so they're less likely to win a hex and lose the stack on it a turn later.
+- **Total War mission** retuned for the full-income enemy: one more Grunt in your HQ, and the enemy starts with one Grunt fewer and no Mauler.
 - **🗺 Map badges on top.** Building and point-of-interest badges are drawn after every hex, so a house, tree or ridge on the row in front no longer cuts them off. Units stay above everything.
 - **🃏 Hover a stack, see its cards.** The hex tooltip shows the units there as their actual cards (one per type, with a count) instead of small text rows.
 - **🤖 Bots finish their wars.** In the bot lab (4 hard bots, 50-round cap), wars that ran out of time dropped from about half to under 1 in 10. Bots keep most of each turn's income for troops instead of economy buildings, keep slow heavy tanks, guns and anti-air to a sensible share of the army, move fast units out ahead of slow ones, don't let a gun battery block a narrow pass, bridge rivers on the way to the target's HQ, ferry troops stranded on islands (and stop deploying where troops can't reach the war), and take the ground round an enemy HQ before going for it.
@@ -45,7 +50,8 @@ Every release, newest first. Each version also has its own post on the [Releases
 - **UI:** the "Player X's turn" banner sits below the player chips, so it no longer covers the ally and trade menu. A bridge under construction is drawn half-built behind a striped barrier (and its tooltip says it's ready next turn).
 - **🎨 New icons:** Scorpion is a Gepard (twin 35mm and its radars), Hellcat an M10 Booker, Wraith a BTR-82A, Bulwark a Bradley, and the Trident an Ohio-class submarine launching an ICBM.
 
-## v0.13.0
+## v0.13.0
+
 
 **Five Situation missions with a live enemy, bots that cross rivers, and new art for the tanks, the fleet and the helicopters.**
 

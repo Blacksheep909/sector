@@ -432,5 +432,12 @@ function crossing(s) {
   s.turn.idx = s.players.indexOf(B); E.startTurn(s, []);
   ok(!A.alive && !Object.values(T).some(t => E.structsOf(t).some(x => x.owner === 'p0')), 'a fallen commander leaves no buildings or mines behind');
 }
+{ // no difficulty earns extra money: an Impossible bot makes exactly what a human would on the same land
+  const roster = [0, 1].map(i => ({ id: 'p' + i, name: 'P' + i, color: E.COLORS[i], faction: 'iron', bot: i === 1, diff: i === 1 ? 'impossible' : undefined }));
+  const { state: s } = E.createGame({ mode: 'domination', mapSize: 'medium', seed: 'inc1' }, roster);
+  const B = E.player(s, 'p1'), asBot = E.computeIncome(s, 'p1').total;
+  B.bot = false; const asHuman = E.computeIncome(s, 'p1').total; B.bot = true;
+  ok(asBot === asHuman && asBot > 3, 'an Impossible bot earns what a human would ($' + asBot + ' vs $' + asHuman + ')');
+}
 console.log(fails ? fails + ' FAILED' : 'all passed');
 process.exit(fails ? 1 : 0);

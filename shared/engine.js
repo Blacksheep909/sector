@@ -249,10 +249,11 @@
   };
 
   const DIFFICULTY = {
-    easy: { name: 'Easy', income: 0.75 },
-    medium: { name: 'Medium', income: 0.9 },
-    hard: { name: 'Hard', income: 1.1 },
-    impossible: { name: 'Impossible', income: 1.5 },
+    // bots earn exactly what a human would: difficulty is how well they play, never extra money
+    easy: { name: 'Easy' },
+    medium: { name: 'Medium' },
+    hard: { name: 'Hard' },
+    impossible: { name: 'Impossible' },
   };
   const POI = {
     ruins: { name: 'Ruins', desc: 'First unit to arrive loots $4–10.' },
@@ -969,7 +970,7 @@
     const base = 3, fromHex = Math.floor(hexes / 3), fromSea = Math.floor(sea / 4), fromRes = res * 2 * rush;
     fish *= rush;
     const fromRiver = Math.floor(river / 3);
-    const p = player(s, pid), d = p && p.bot && DIFFICULTY[p.diff];
+    const p = player(s, pid);
     // Verdant's Deep Roots: +$1 a turn for every building it owns on its own land (bridges aside)
     let roots = 0;
     if (p && p.faction === 'verdant') for (const k in s.map.tiles) { const t = s.map.tiles[k]; if (t.owner === pid) roots += structsOf(t).filter(x => x.owner === pid && x.type !== 'bridge').length; }
@@ -984,8 +985,7 @@
     if (s.settings && s.settings.mode === 'worldwar') total = Math.round(total * 1.25);   // war economy
     const traitor = p && p.traitor ? -Math.ceil(total * 0.4) : 0;
     total += traitor;
-    const bonus = d ? Math.round(total * d.income) - total : 0;
-    total += bonus;
+    const bonus = 0;
     return { total, base, fromHex, fromSea, fromRes, ref, trade, ware, taper, cap: taper_, poi, fish, lanes, fromRiver, river, pact, traitor, bonus, roots, hexes, sea, cut, ruined, res };
   }
   function nearOwned(s, pid, k, r) {

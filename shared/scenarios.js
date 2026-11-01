@@ -562,8 +562,8 @@
       structs: { hq: [['A', 'hq', 2]], fwd: [['A', 'fob']], bhq: [['B', 'hq']] },
       res: ['n1'],
       units: {
-        hq: [['A', 'grunt', 2]], m1: [['A', 'grunt', 3], ['A', 'mauler', 2]], m2: [['A', 'grunt', 3], ['A', 'jackal', 2]],
-        n1: [['B', 'grunt', 2], ['B', 'mauler', 1]], s1: [['B', 'grunt', 2]], bhq: [['B', 'grunt', 2]],
+        hq: [['A', 'grunt', 3]], m1: [['A', 'grunt', 3], ['A', 'mauler', 2]], m2: [['A', 'grunt', 3], ['A', 'jackal', 2]],
+        n1: [['B', 'grunt', 3]], s1: [['B', 'grunt', 1]], bhq: [['B', 'grunt', 2]],
       },
       goal: { type: 'eliminate' },
       intro: '**Situation.** A live enemy, real income and resupply, fourteen turns. A strip of open ground between you, and a resource node on their side. **Take their HQ and the war is won.** Your forward FOB is a second deploy point. Grab land early for income, then build the army that breaks their HQ.',

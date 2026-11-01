@@ -57,12 +57,15 @@ function choosePick(s, p, cards) {
 // attack: odds needed to commit · combo: stacks it will mass into one blow · guard: how hard it holds the front
 // noise/idle: how sloppy its moves are · heli: how carefully it flies helicopters
 // lethal: how hard it goes for the kill (picks on a weakened rival, marches on their HQ, masses more and takes closer odds there)
-// Easy still plays a real game (it attacks, masses a little, defends a little) — it just makes more mistakes
+// punish: how hard it hits enemy stacks that pushed into its land (the counterattack) · expo: how carefully it weighs the
+// counterattack it would face itself after a win (does the stack survive their next turn?)
+// Easy still plays a real game (it attacks, masses a little, defends a little) — it just makes more mistakes.
+// No difficulty earns extra money: harder bots are harder because they play better
 const SKILL = {
-  easy: { attack: 0.52, combo: 1, guard: 0.35, noise: 2.2, idle: 0.15, tactics: 0.5, heli: 0.4, lethal: 0.2 },
-  medium: { attack: 0.58, combo: 2, guard: 0.7, noise: 1.1, idle: 0.05, tactics: 0.8, heli: 0.75, lethal: 0.6 },
-  hard: { attack: 0.6, combo: 3, guard: 1, noise: 0.4, idle: 0, tactics: 1, heli: 1, lethal: 1 },
-  impossible: { attack: 0.6, combo: 3, guard: 1, noise: 0.15, idle: 0, tactics: 1, heli: 1, lethal: 1.4 },
+  easy: { attack: 0.52, combo: 1, guard: 0.35, noise: 2.2, idle: 0.15, tactics: 0.5, heli: 0.4, lethal: 0.2, punish: 0.6, expo: 0 },
+  medium: { attack: 0.58, combo: 2, guard: 0.7, noise: 1.1, idle: 0.05, tactics: 0.8, heli: 0.75, lethal: 0.6, punish: 0.8, expo: 0.4 },
+  hard: { attack: 0.6, combo: 3, guard: 1, noise: 0.4, idle: 0, tactics: 1, heli: 1, lethal: 1, punish: 1, expo: 0.8 },
+  impossible: { attack: 0.6, combo: 3, guard: 1, noise: 0.15, idle: 0, tactics: 1, heli: 1, lethal: 1.4, punish: 1.3, expo: 1.2 },
 };
 
 // an ally about to stop being one: a break has been announced (by either side), or the pact is in its last round and they
@@ -119,14 +122,30 @@ function planAssault(s, pid, idx, K, strat, mem) {
   for (const t in by) {
     const tt = tiles[t], defs = (idx[t] || []).filter(u => u.owner !== pid);
     const isHQ = tt.struct && tt.struct.type === 'hq' && tt.owner !== pid;
-    const prize = 6 + stackValue(defs) * 1.2 + (isHQ ? 90 * (1 + 0.5 * (K.lethal || 0)) : 0) + (tt.struct ? 6 : 0) + (tt.res ? 3 : 0) + (!tt.owner && ['village', 'silo'].includes(tt.poi) ? 10 : 0) + (tt.owner && tt.owner === strat.target ? 6 : 0) + (p && p.vengeance && p.vengeance.vs === tt.owner ? 8 : 0)
+    let prize = 6 + stackValue(defs) * 1.2 + (isHQ ? 90 * (1 + 0.5 * (K.lethal || 0)) : 0) + (tt.struct ? 6 : 0) + (tt.res ? 3 : 0) + (!tt.owner && ['village', 'silo'].includes(tt.poi) ? 10 : 0) + (tt.owner && tt.owner === strat.target ? 6 : 0) + (p && p.vengeance && p.vengeance.vs === tt.owner ? 8 : 0)
       + (held.some(h => E.dist(h, t) === 1) && tt.owner && tt.owner !== pid ? 30 : 0)
       // encircle before the kill: every hex of theirs round their HQ is a place they could muster a counterattack from
       + (tt.owner && tt.owner !== pid && !isHQ && hqOf(tt.owner) && E.dist(hqOf(tt.owner), t) === 1 ? (K.ringW === undefined ? 15 : K.ringW) * (K.lethal || 0) : 0);   // the land round an HQ we're besieging is where its owner musters: take it
     // strongest contributors first; add stacks until the odds are good enough (or we run out of stacks we're allowed to mass)
     // and combined arms: a stack that brings a kind of unit the blow doesn't have yet (troops, armour, air) is worth more
     // a killer bot masses more stacks on an HQ than on anything else
-    const maxCombo = K.combo + (isHQ ? Math.round(2 * (K.lethal || 0)) : 0);
+    // the counterattack: an enemy stack that pushed into our land (onto a hex it just took from us, or one we hem in on most
+    // sides) is out on a limb, away from its own support. That's the moment to hit it with everything: worth more, and
+    // worth taking at slightly worse odds
+    let overext = 0;
+    const foes = defs.filter(u => wary(s, pid, u.owner));
+    if (foes.length && tt.owner && tt.owner !== pid && !isHQ) {
+      const ours = E.neighbors(t).filter(n => tiles[n] && tiles[n].owner === pid).length;
+      overext = (strat.lost && strat.lost[t] ? 1 : 0) + (ours >= 4 ? 0.7 : ours >= 3 ? 0.4 : 0);
+      if (overext) {
+        // how much of their own army still stands behind it
+        let back = 0; for (const a of E.area(t, 2)) if (a !== t) for (const u of idx[a] || []) if (u.owner === tt.owner) back += E.unitAtk(s, u);
+        const alone = Math.max(0.3, 1 - back / Math.max(1, stackValue(foes) * 2));
+        overext *= alone * (K.punish === undefined ? 1 : K.punish);
+      }
+    }
+    prize += overext * (stackValue(foes) * 1.5 + 10);
+    const maxCombo = K.combo + (isHQ ? Math.round(2 * (K.lethal || 0)) : 0) + (overext >= 0.8 ? 1 : 0);
     const list = by[t].slice().sort((a, b) => stackValue(b.units) - stackValue(a.units)).slice(0, Math.max(5, maxCombo + 1));
     const used = [], kinds = new Set();
     const kindsOf = st => st.units.filter(u => E.UNITS[u.type].atk > 0).map(u => E.UNITS[u.type].cls);
@@ -144,13 +163,28 @@ function planAssault(s, pid, idx, K, strat, mem) {
     if (!calc) continue;
     // our own HQ under siege: any real chance of taking it back beats being knocked out next turn
     const press = tt.owner && tt.owner === strat.target ? (strat.rich || 0) * (K.richW === undefined ? 0.15 : K.richW) * (K.lethal || 0) : 0;
-    const need = isHQ && t === (p && p.hq) ? 0.15 : (isHQ ? K.attack - 0.15 - 0.08 * (K.lethal || 0) : K.attack) - press;
+    const need = isHQ && t === (p && p.hq) ? 0.15 : (isHQ ? K.attack - 0.15 - 0.08 * (K.lethal || 0) : K.attack) - press - Math.min(0.1, overext * 0.07);
     if (calc.winProb < need) continue;
     const risk = used.reduce((a, u) => a + stackValue(u.units), 0);
     // helicopters that win are left sitting on the hex: count what they'd face there
     const helis = used.some(u => u.units.some(x => E.UNITS[x.type].heli));
     const exposure = helis ? heliDanger(s, pid, idx, t) * 2 * K.heli : 0;
-    const v = calc.winProb * prize - (1 - calc.winProb) * risk * 0.8 * (1 - press * 2) - exposure;
+    // and our own over-extension: after the win the stack sits on that hex, in reach of whatever they have nearby.
+    // A good commander doesn't win a hex only to lose the stack on it next turn
+    let counter = 0;
+    if (K.expo && !(isHQ && t === (p && p.hq))) {
+      let hit = 0;
+      for (const a of E.area(t, 3)) if (a !== t) for (const u of idx[a] || []) {
+        if (!wary(s, pid, u.owner) || E.isSea(u.type) || !(E.UNITS[u.type].atk > 0)) continue;
+        const d = E.dist(a, t); if (d > Math.max(1, E.UNITS[u.type].range || E.moveAllow(s, u))) continue;
+        hit += E.unitAtk(s, u) * (d <= 1 ? 1 : 0.7);
+      }
+      if (hit) {
+        const hold = used.reduce((a, u) => a + u.units.reduce((b, x) => b + E.unitDef(s, x), 0), 0) * 0.75 + (tt.struct && ['bunker', 'fob'].includes(tt.struct.type) ? 3 : 0);
+        counter = calc.winProb * (hit / (hit + hold * 1.4 + 1)) * risk * 0.7 * K.expo * (isHQ ? 0.4 : 1);
+      }
+    }
+    const v = calc.winProb * prize - (1 - calc.winProb) * risk * 0.8 * (1 - press * 2) - exposure - counter;
     if (v > bv) { bv = v; best = { t, used, calc }; }
   }
   if (!best) return null;
@@ -216,6 +250,13 @@ function strategy(s, pid, idx) {
   const top = Math.max(0, ...Object.values(th));
   const lethal = (SKILL[p.diff] || SKILL.medium).lethal || 0;
   const myLand = Object.keys(tiles).filter(k => tiles[k].owner === pid);
+  // land the enemy took from us since our last turn: whoever is standing on it now pushed in, and is the counterattack's target
+  bm.lost = bm.lost || {};
+  if (bm.ownAt !== s.turn.round) {
+    for (const k of bm.own || []) { const o = tiles[k] && tiles[k].owner; if (o && o !== pid) bm.lost[k] = s.turn.round; }
+    bm.own = myLand; bm.ownAt = s.turn.round;
+  }
+  for (const k in bm.lost) if (s.turn.round - bm.lost[k] > 3 || !tiles[k] || tiles[k].owner === pid) delete bm.lost[k];
   const reachHQ = q => { if (!q.hq || !tiles[q.hq]) return 99; let m = 99; for (const k of myLand) { const d = E.dist(k, q.hq); if (d < m) m = d; } return m; };
   let focus = null, fv = -1e9;
   for (const q of rivals) {
@@ -247,7 +288,7 @@ function strategy(s, pid, idx) {
   const edge = target ? Math.max(0, Math.min(1, (mine - th[target]) / Math.max(1, mine))) : 0;
   // out-earning them: a war of attrition we win, so even trades are worth taking (0 at parity, 1 at twice their income)
   const rich = target ? Math.max(0, Math.min(1, E.computeIncome(s, pid).total / Math.max(1, E.computeIncome(s, target).total) - 1)) : 0;
-  return { edge, rich, focus, target, goal, seen, danger, hq: tq && tq.alive && tq.hq && tiles[tq.hq] && tiles[tq.hq].owner === target ? tq.hq : null };
+  return { edge, rich, focus, target, goal, seen, danger, lost: bm.lost, hq: tq && tq.alive && tq.hq && tiles[tq.hq] && tiles[tq.hq].owner === target ? tq.hq : null };
 }
 
 // experiments only (balance lab): BOTX=noguard,noplan,atk=0.5,… switches parts of the bot off to measure what each is worth
@@ -279,12 +320,14 @@ function botTurn(s, pid, mem) {
   if (p.persona) {
     K = { ...K, attack: K.attack + (PL.attack || 0) + (PL.late && s.turn.round < PL.late ? 0.05 : 0), guard: K.guard * (PL.guard || 1), tactics: Math.min(1, K.tactics * (PL.tactics || 1)), heli: Math.min(1.3, K.heli * (PL.heli || 1)), noise: K.noise + (PL.noise || 0) };
   }
-  if (BOTX.length) { K = { ...K }; for (const x of BOTX) { const [k, v] = x.split('='); if (v !== undefined) K[k] = +v; else K[k] = true; } }
+  // the Iron Covenant defends on +1 Chip a unit: it digs in, picks its fights, and makes anyone who comes at it pay
+  if (p.faction === 'iron') K = { ...K, attack: K.attack + 0.04, guard: Math.min(1.3, K.guard * 1.25), punish: (K.punish === undefined ? 1 : K.punish) * 1.5 };
+  if (BOTX.length) { K = { ...K }; for (const x of BOTX) { let [k, v] = x.split('='); if (k.includes('.')) { const [d, kk] = k.split('.'); if (d !== p.diff) continue; k = kk; } if (v !== undefined) K[k] = +v; else K[k] = true; } }
   if (s.turn.stage === 'choose') {
     const c = choosePick(s, p, s.turn.offer);
     // what the card costs in income this turn (about half early on, much less of a big economy)
     const fee = c ? E.cardFee(s.turn.income, s.turn.offer[c.idx]) : 0;
-    const threshold = 2.4 + Math.min(fee / 5, 1.2 + fee / 20) - (s.turn.round <= 3 ? 0.6 : 0) + (PL.income || 0);
+    const threshold = 2.4 + Math.min(fee / 5, 1.2 + fee / 20) - (s.turn.round <= 3 ? 0.6 : 0) + (PL.income || 0) + (K.cardBar || 0);
     if (c && !c.scrap && c.value >= threshold) return { a: 'choose', pick: 'card', idx: c.idx, replace: c.replace };
     return { a: 'choose', pick: 'income' };
   }
@@ -302,7 +345,7 @@ function botTurn(s, pid, mem) {
   mem.tried = mem.tried || new Set();
   const tryOnce = (act) => { if (act && act.a === 'move') act = keepTogether(act); if (act && act.a === 'build' && (E.buildError(s, pid, act.struct, act.hex) || E.buildCost(s, p, act.struct, act.hex) > p.cash)) return null;   // never propose a build the rules refuse (a river, a full hex) or it can't pay for
     // money-makers never eat the army's budget: once the war is on, most of each turn's income is kept for troops
-    if (act && act.a === 'build' && ['refinery', 'warehouse', 'depot'].includes(act.struct) && p.cash - E.buildCost(s, p, act.struct, act.hex) < (s.turn.income || 0) * (s.turn.round <= 8 ? 0.2 : PL.build && PL.build.economy ? 0.4 : (K.armyShare === undefined ? 0.8 : K.armyShare))) return null;
+    if (act && act.a === 'build' && ['refinery', 'warehouse', 'depot'].includes(act.struct) && p.cash - E.buildCost(s, p, act.struct, act.hex) < (s.turn.income || 0) * (s.turn.round <= (K.ecoUntil || 8) ? 0.2 : PL.build && PL.build.economy ? 0.4 : (K.armyShare === undefined ? 0.8 : K.armyShare))) return null;
     const k = JSON.stringify(act); if (mem.tried.has(k)) return null; mem.tried.add(k); return act; };
   // a carrier doesn't drive off and strand more Grunts than the hex can hold: take them along, or leave the carrier
   const keepTogether = (act) => {
