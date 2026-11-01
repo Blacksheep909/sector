@@ -100,8 +100,8 @@ function choosePick(s, p, cards) {
 const SKILL = {
   easy: { attack: 0.52, combo: 1, guard: 0.35, noise: 2.2, idle: 0.15, tactics: 0.5, heli: 0.4, lethal: 0.2, punish: 0.6, expo: 0, hqRisk: 0.6 },
   medium: { attack: 0.58, combo: 2, guard: 0.7, noise: 1.1, idle: 0.05, tactics: 0.8, heli: 0.75, lethal: 0.6, punish: 0.8, expo: 0.4, hqRisk: 0.4, fobRisk: 0.6, opening: 0.5 },
-  hard: { attack: 0.6, combo: 3, guard: 1, noise: 0.4, idle: 0, tactics: 1, heli: 1, lethal: 1, punish: 1, expo: 0.8, hqRisk: 0.25, fobRisk: 0.45, hqLook: 1.5, opening: 1, pressW: 1.5, rally: 1.5, rallyDeploy: 0.6, rallyWeak: 0.4 },
-  impossible: { attack: 0.6, combo: 3, guard: 1, noise: 0.15, idle: 0, tactics: 1, heli: 1, lethal: 1.4, punish: 1.3, expo: 1.2, hqRisk: 0.15, fobRisk: 0.35, hqLook: 2, opening: 1.3, pressW: 3, rally: 3, rallyDeploy: 1, rallyWeak: 0.6 },
+  hard: { attack: 0.6, combo: 3, guard: 1, noise: 0.4, idle: 0, tactics: 1, heli: 1, lethal: 1, punish: 1, expo: 0.8, hqRisk: 0.25, fobRisk: 0.45, hqLook: 1.5, opening: 1, pressW: 1.5, rally: 1.5, rallyDeploy: 0.6, rallyWeak: 0.4, prey: 0.5 },
+  impossible: { attack: 0.6, combo: 3, guard: 1, noise: 0.4, idle: 0, tactics: 1, heli: 1, lethal: 1, punish: 1, expo: 0.8, hqRisk: 0.25, fobRisk: 0.45, hqLook: 1.5, opening: 1.3, pressW: 3, rally: 3, rallyDeploy: 1, rallyWeak: 0.6, prey: 1 },
 };
 
 // an ally about to stop being one: a break has been announced (by either side), or the pact is in its last round and they
@@ -367,7 +367,8 @@ function strategy(s, pid, idx, K) {
     let v = (border[q.id] || 0) * 1.2 + (mine - th[q.id]) * 0.15 - E.moodOf(s, pid, q.id) * 0.08;
     // the kill: a rival that's fallen well behind us, with its HQ within striking distance, is worth finishing off
     if (lethal) { const weak = Math.max(0, 1 - th[q.id] / Math.max(1, mine)); v += weak * 16 * lethal + Math.max(0, 8 - reachHQ(q)) * 1.5 * lethal; }
-    if (pl.prey && border[q.id]) v += (mine - th[q.id]) * 0.2 * pl.prey;          // a Warlord picks on the weakest neighbour
+    if (pl.prey && border[q.id]) v += (mine - th[q.id]) * 0.2 * pl.prey;
+    if (K.prey && border[q.id]) v += (mine - th[q.id]) * 0.2 * K.prey;   // (a difficulty can pick on the weakest neighbour too)
     if (pl.grudge) v -= Math.min(0, E.moodOf(s, pid, q.id)) * 0.5 * pl.grudge;    // an Avenger hunts whoever hurt it
     if (p.vengeance && p.vengeance.vs === q.id) v += 40;                      // pay the traitor back
     if (th[q.id] > mine * 1.3 && th[q.id] === top) v += 18;                   // gang up on the runaway leader
