@@ -2078,7 +2078,12 @@ body.war-over #dock, body.war-over #endBtn, body.war-over #marketBtn { display: 
 #tooltip .tip-aa{margin-top:6px;padding:5px 7px;border-radius:6px;background:rgba(255,70,80,.14);border-left:3px solid #ff4f5e}
 #tooltip .tip-aa b{color:#ff8a8f;font-size:11px;letter-spacing:.06em}
 /* hover intel: the stack's own cards, small and still */
-.intel.cards { display: flex; flex-wrap: wrap; gap: 6px; margin-top: 6px; max-width: 290px; }
+.intel.cards { display: flex; flex-direction: row; align-items: flex-start; flex-wrap: nowrap; gap: 0; margin-top: 8px; padding: 2px 4px 4px 6px; }
+/* the stack's cards side by side like a hand: each overlaps the one before, fanned a touch */
+.intel.cards .card + .card { margin-left: -16px; }
+.intel.cards .card { box-shadow: -3px 0 6px rgba(0,0,0,.55); }
+.intel.cards .card:nth-child(odd) { transform: rotate(-2deg); } .intel.cards .card:nth-child(even) { transform: rotate(2deg) translateY(2px); }
+#tooltip:has(.intel.cards) { max-width: none; width: max-content; }
 .intel.cards .card { width: 68px; height: 97px; animation: none; cursor: default; transition: none; }
 .intel.cards .card .ci { padding: 3px; border-radius: 8px; }
 .intel.cards .card .c-name { font-size: 9px; margin-top: 2px; }
