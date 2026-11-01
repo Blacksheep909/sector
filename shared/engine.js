@@ -249,11 +249,11 @@
   };
 
   const DIFFICULTY = {
-    // bots earn exactly what a human would: difficulty is how well they play, never extra money
-    easy: { name: 'Easy' },
-    medium: { name: 'Medium' },
-    hard: { name: 'Hard' },
-    impossible: { name: 'Impossible' },
+    // income by difficulty: easier bots earn less than a human would, harder ones more
+    easy: { name: 'Easy', income: 0.75 },
+    medium: { name: 'Medium', income: 0.9 },
+    hard: { name: 'Hard', income: 1.1 },
+    impossible: { name: 'Impossible', income: 1.5 },
   };
   const POI = {
     ruins: { name: 'Ruins', desc: 'First unit to arrive loots $4–10.' },
@@ -987,7 +987,9 @@
     if (s.settings && s.settings.mode === 'worldwar') total = Math.round(total * 1.25);   // war economy
     const traitor = p && p.traitor ? -Math.ceil(total * 0.4) : 0;
     total += traitor;
-    const bonus = 0;
+    const d = p && p.bot && DIFFICULTY[p.diff];
+    const bonus = d && d.income ? Math.round(total * d.income) - total : 0;
+    total += bonus;
     return { total, base, fromHex, fromSea, fromRes, ref, trade, ware, taper, cap: taper_, poi, fish, lanes, fromRiver, river, pact, traitor, bonus, roots, hexes, sea, cut, ruined, res };
   }
   function nearOwned(s, pid, k, r) {
