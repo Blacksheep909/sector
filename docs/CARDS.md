@@ -82,16 +82,16 @@ Single-use cards from your hand.
 | **Quarry Blast** | Rare | $3 | Blast a mountain within 3 of your land, and the mountain behind it, down into Highlands: a 2-hex pass. |
 | **War Bonds** | Rare | $0 | Gain $1 for every 2 hexes you own. |
 | **Blitz Doctrine** | Rare | $3 | This turn: all units +1 move, fresh units may act. |
-| **Supply Drop** | Rare | $0 | Spin the reel for a card pack (60% Standard · 32% Gilded · 8% Mythic), then keep 1 of 3 cards. |
+| **Supply Drop** | Rare | $0 | Open a Standard card pack, then keep 1 of its 3 cards. |
 | **Cruise Missile** | Epic | $5 | A missile at any hex within 8 of your land, over mountains: kills the strongest unit on a 2+ (and the next strongest too on a 5+), or destroys a building outright. |
 | **Spy Ring** | Epic | $3 | Steal a random card a rival has earned (a tactic or a unit, never their starting cards). They will not forgive you easily. |
 | **EMP Burst** | Epic | $4 | Enemy units in a 1-hex radius are frozen for their next turn. |
-| **Supply Drop** | Epic | $0 | Spin the reel for a card pack (15% Standard · 55% Gilded · 30% Mythic), then keep 1 of 3 cards. |
+| **Supply Drop** | Epic | $0 | Open a Gilded card pack, then keep 1 of its 3 cards. |
 | **Bunker Buster** | Epic | $6 | Enemy hex within 5 of your land: knocks 2 levels off its Bunker, FOB or Mines (HQ to ★ at most) and kills up to 2 units. |
 | **Carpet Bombing** | Epic | $7 | Bomb a hex and its neighbours: each enemy unit there has a 50% chance to be destroyed. |
 | **Orbital Strike** | Epic | $8 | Erase every enemy unit on one hex within 6 of your land. Air defence can't stop it. |
 | **Tactical Nuke** | Legendary | $10 | Erase everything in a 1-hex radius. Leaves a fallout zone for 4 rounds. |
-| **Supply Drop** | Legendary | $0 | Spin the reel for a card pack (35% Gilded · 65% Mythic), then keep 1 of 3 cards. |
+| **Supply Drop** | Legendary | $0 | Open a Mythic card pack, then keep 1 of its 3 cards. |
 | **Mutiny** | Legendary | $6 | An enemy stack (≤3) bordering your land defects to you. |
 | **Tsar Bomba** | Mythic | $14 | Erase everything in a 9-hex blast. Fallout for 5 rounds. HQs survive; their troops do not. |
 | **Regime Change** | Mythic | $10 | An enemy hex within 4 and their land around it flip to you (not HQs). Their troops there join you. |

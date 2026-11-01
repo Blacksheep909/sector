@@ -92,17 +92,11 @@ Legendaries and Mythics are unique: only one copy exists until it's spent or its
 
 **Rerolls** at resupply cost a quarter of your income (min $2), and each further reroll that turn costs that much again. **Bounty** pays a fifth of your income (min $2) per enemy unit you destroy.
 
-### Supply Drops: the slot machine
+### Supply Drops
 
-**Supply Drop** is a tactic card in three rarities. Playing one spins a reel for a crate tier. The card's rarity sets the odds:
+**Supply Drop** is a tactic card in three rarities, and its rarity is the card pack you get: a **Rare** drop is a **Standard** pack, an **Epic** drop a **Gilded** pack, a **Legendary** drop a **Mythic** pack.
 
-| Supply Drop | Standard | Gilded | Mythic |
-|---|---|---|---|
-| Rare | 60% | 32% | 8% |
-| Epic | 15% | 55% | 30% |
-| Legendary | 0% | 35% | 65% |
-
-A card pack of that tier drops in: tear it open along the top (drag across the seam, or click and it tears itself) and light the colour of the best card inside pours out, then it deals 3 cards with that tier's odds. Keep one, or scrap them all for $2 (more as your income grows: scrap value, ruins loot and maxed-card payouts all scale with a tenth of your income).
+The pack drops in: tear it open along the top (drag across the seam) and light the colour of the best card inside pours out, then it deals 3 cards with that tier's odds. Keep one, or scrap them all for $2 (more as your income grows: scrap value, ruins loot and maxed-card payouts all scale with a tenth of your income).
 
 | Pack | Common | Uncommon | Rare | Epic | Legendary |
 |---|---|---|---|---|---|

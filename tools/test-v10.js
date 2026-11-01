@@ -585,5 +585,17 @@ function crossing(s) {
     ok(teams ? tg.includes(target) : !tg.includes(target), teams ? 'in teams, an air strike reaches from your teammate\'s land' : 'without teams, it reaches only from your own land');
   }
 }
+{ // a Supply Drop's rarity is its pack: Rare → Standard, Epic → Gilded, Legendary → Mythic, every time
+  const roster = [0, 1].map(i => ({ id: 'p' + i, name: 'P' + i, color: E.COLORS[i], faction: 'iron' }));
+  let bad = 0;
+  for (const [id, tier] of [['drop_rare', 'standard'], ['drop_epic', 'gilded'], ['drop_legendary', 'mythic']]) for (let i = 0; i < 15; i++) {
+    const { state: s } = E.createGame({ mode: 'domination', mapSize: 'small', seed: 'sd' + id + i }, roster);
+    s.phase = 'play'; const A = E.player(s, 'p0'); s.turn.idx = s.players.indexOf(A); s.turn.stage = 'act';
+    A.tactics = [{ id, uid: 600 + i }];
+    const r = E.applyAction(s, 'p0', { a: 'tactic', uid: 600 + i });
+    if (!r.ok || !s.turn.crate || s.turn.crate.tier !== tier) bad++;
+  }
+  ok(!bad, 'a Supply Drop always opens the pack of its rarity (45 drops)');
+}
 console.log(fails ? fails + ' FAILED' : 'all passed');
 process.exit(fails ? 1 : 0);

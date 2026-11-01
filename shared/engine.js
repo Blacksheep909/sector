@@ -83,7 +83,8 @@
     mythic: { name: 'Mythic Crate', odds: { common: 0, uncommon: 6, rare: 29, epic: 36, legendary: 25, mythic: 4 } },
   };
   // reel odds per Supply Drop rarity (standard / gilded / mythic)
-  const DROP_TIERS = { drop_rare: { standard: 60, gilded: 32, mythic: 8 }, drop_epic: { standard: 15, gilded: 55, mythic: 30 }, drop_legendary: { standard: 0, gilded: 35, mythic: 65 } };
+  // a Supply Drop's rarity is its pack: Rare → Standard, Epic → Gilded, Legendary → Mythic (no spin)
+  const DROP_TIERS = { drop_rare: { standard: 100, gilded: 0, mythic: 0 }, drop_epic: { standard: 0, gilded: 100, mythic: 0 }, drop_legendary: { standard: 0, gilded: 0, mythic: 100 } };
   const TURN_ODDS = { common: 45, uncommon: 30, rare: 16, epic: 7, legendary: 2, mythic: 0.5 };
   // a big economy flips better cards: from $30 a turn the odds slide toward the rarer end, all the way by $150
   const LATE_ODDS = { common: 12, uncommon: 22, rare: 32, epic: 22, legendary: 9, mythic: 3 };
@@ -191,14 +192,14 @@
     spy: { name: 'Spy Ring', rarity: 'epic', cost: 3, target: 'enemyHand', short: 'Steal a random card a rival has earned. They won\'t forgive you.', desc: 'Steal a random card a rival has earned (a tactic or a unit, never their starting cards). They will not forgive you easily.' },
     bonds: { name: 'War Bonds', rarity: 'rare', cost: 0, target: 'none', desc: 'Gain $1 for every 2 hexes you own.' },
     blitz: { name: 'Blitz Doctrine', rarity: 'rare', cost: 3, target: 'none', desc: 'This turn: all units +1 move, fresh units may act.' },
-    drop_rare: { name: 'Supply Drop', rarity: 'rare', cost: 0, target: 'none', desc: 'Spin the reel for a card pack (60% Standard · 32% Gilded · 8% Mythic), then keep 1 of 3 cards.' },
+    drop_rare: { name: 'Supply Drop', rarity: 'rare', cost: 0, target: 'none', desc: 'Open a Standard card pack, then keep 1 of its 3 cards.' },
     emp: { name: 'EMP Burst', rarity: 'epic', cost: 4, target: 'area', range: 5, desc: 'Enemy units in a 1-hex radius are frozen for their next turn.' },
-    drop_epic: { name: 'Supply Drop', rarity: 'epic', cost: 0, target: 'none', desc: 'Spin the reel for a card pack (15% Standard · 55% Gilded · 30% Mythic), then keep 1 of 3 cards.' },
+    drop_epic: { name: 'Supply Drop', rarity: 'epic', cost: 0, target: 'none', desc: 'Open a Gilded card pack, then keep 1 of its 3 cards.' },
     buster: { name: 'Bunker Buster', rarity: 'epic', cost: 6, target: 'buster', range: 5, short: 'Hex within 5: 2 levels off its Bunker, FOB or Mines, and kills up to 2.', desc: 'Enemy hex within 5 of your land: knocks 2 levels off its Bunker, FOB or Mines (HQ to ★ at most) and kills up to 2 units.' },
     carpet: { name: 'Carpet Bombing', rarity: 'epic', cost: 7, target: 'area', range: 4, desc: 'Bomb a hex and its neighbours: each enemy unit there has a 50% chance to be destroyed.' },
     orbital: { name: 'Orbital Strike', rarity: 'epic', cost: 8, target: 'orbital', range: 6, desc: 'Erase every enemy unit on one hex within 6 of your land. Air defence can\'t stop it.' },
     nuke: { name: 'Tactical Nuke', rarity: 'legendary', cost: 10, target: 'nuke', range: 6, desc: 'Erase everything in a 1-hex radius. Leaves a fallout zone for 4 rounds.' },
-    drop_legendary: { name: 'Supply Drop', rarity: 'legendary', cost: 0, target: 'none', desc: 'Spin the reel for a card pack (35% Gilded · 65% Mythic), then keep 1 of 3 cards.' },
+    drop_legendary: { name: 'Supply Drop', rarity: 'legendary', cost: 0, target: 'none', desc: 'Open a Mythic card pack, then keep 1 of its 3 cards.' },
     mutiny: { name: 'Mutiny', rarity: 'legendary', cost: 6, target: 'mutiny', desc: 'An enemy stack (≤3) bordering your land defects to you.' },
     tsar: { name: 'Tsar Bomba', rarity: 'mythic', cost: 14, target: 'tsar', range: 7, desc: 'Erase everything in a 9-hex blast. Fallout for 5 rounds. HQs survive; their troops do not.' },
     regime: { name: 'Regime Change', rarity: 'mythic', cost: 10, target: 'regime', range: 4, desc: 'An enemy hex within 4 and their land around it flip to you (not HQs). Their troops there join you.' },

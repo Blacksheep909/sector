@@ -407,41 +407,7 @@ const Cards = (() => {
     box.appendChild(title);
     const T = crate.tier, glowCol = { standard: '#bfe6ff', gilded: '#ffd76a', mythic: '#e3a2ff' }[T] || '#fff';
     const fast = () => Cards.fast, wait = ms => sleep(fast() ? ms * 0.3 : ms);
-    // 1. the reel: one smooth ease-out on the browser's own frame clock, then a short settle onto the winning crate
-    const odds = E.DROP_TIERS[ctx.crate.source] || E.DROP_TIERS.drop_rare;
-    const luckBar = el('div', 'luck', `<span style="color:${E.RARITY[dropR].color}">${E.RARITY[dropR].name.toUpperCase()} DROP</span><b>Standard ${odds.standard}% · <i style="color:#ffc53d;font-style:normal">Gilded ${odds.gilded}%</i> · <i style="color:#e0a0ff;font-style:normal">Mythic ${odds.mythic}%</i></b>`);
-    box.appendChild(luckBar);
-    const reel = el('div', 'sd-reel'), strip = el('div', 'sd-strip');
-    const tiers = [], landAt = 38;
-    for (let i = 0; i < 46; i++) { const r = Math.random() * 100; tiers.push(r < Math.max(10, odds.mythic) ? 'mythic' : r < Math.max(10, odds.mythic) + Math.max(25, odds.gilded) ? 'gilded' : 'standard'); }
-    tiers[landAt] = T;
-    for (const t of tiers) strip.appendChild(el('div', 'sd-cell sd-' + t, `<i></i><span>${t.toUpperCase()}</span>`));
-    reel.append(strip, el('div', 'sd-mark'));
-    box.appendChild(reel);
-    await new Promise(r => requestAnimationFrame(r));
-    const cell = strip.children[0].offsetWidth, mid = reel.clientWidth / 2;
-    const exact = landAt * cell + cell / 2 - mid, overshoot = exact + (Math.random() - 0.5) * cell * 0.55;
-    const dur = T === 'standard' ? 1700 : T === 'gilded' ? 2300 : 3000;
-    let last = -1;
-    const run = (from, to, ms, ease) => new Promise(res => {
-      const t0 = performance.now();
-      const step = now => {
-        const p = Math.min(1, (now - t0) / (fast() ? ms * 0.2 : ms)), x = from + (to - from) * ease(p);
-        strip.style.transform = `translate3d(${-x}px,0,0)`;
-        const i = Math.floor((x + mid) / cell); if (i !== last) { last = i; SFX.chip(i % 10); }
-        if (p < 1 && document.contains(strip)) requestAnimationFrame(step); else res();
-      };
-      requestAnimationFrame(step);
-    });
-    await run(0, overshoot, dur, p => 1 - Math.pow(1 - p, 5));
-    await run(overshoot, exact, 260, p => p * p * (3 - 2 * p));
-    const won = strip.children[landAt]; won.classList.add('won');
-    SFX.victoryHit(); Render.shake(T === 'mythic' ? 16 : T === 'gilded' ? 8 : 3);
-    if (T !== 'standard') { const [x, y] = center(won); rays(x, y, TIER_COL[T], 1400, T === 'mythic', T === 'mythic' ? 'myth' : ''); burstAt(x, y, [TIER_COL[T], '#fff'], T === 'mythic' ? 70 : 30, 260); }
-    await wait(520);
-    // 2. the card pack drops in as the reel clears away: no empty beat in between
-    reel.classList.add('sd-out'); luckBar.classList.add('sd-out');
-    setTimeout(() => { reel.remove(); luckBar.remove(); }, 350);
+    // 1. the pack of the drop's tier drops straight in (a Rare drop is a Standard pack, Epic a Gilded one, Legendary a Mythic one)
     const sun = el('div', 'sd-sun'); sun.style.setProperty('--tc', glowCol); box.appendChild(sun);
     const stage = el('div', 'sd-packstage'); box.appendChild(stage);
     const pk = Crates.pack(T, { count: crate.cards.length }); pk.classList.add('drop-in'); stage.appendChild(pk);
@@ -450,6 +416,7 @@ const Cards = (() => {
     await wait(380);
     { const r = pk.getBoundingClientRect(); burstAt(r.left + r.width / 2, r.bottom - 6, ['#b8a68a', '#8c7b62', '#d9cbb2'], 18, 120, 7); }
     SFX.deploy(); Render.shake(T === 'mythic' ? 10 : T === 'gilded' ? 7 : 4);
+    if (T !== 'standard') { const [x, y] = center(pk); rays(x, y, TIER_COL[T], 1400, T === 'mythic', T === 'mythic' ? 'myth' : ''); burstAt(x, y, [TIER_COL[T], '#fff'], T === 'mythic' ? 60 : 26, 240); }   // a Gilded or Mythic pack lands in a burst of its light
     // 3. tear it open along the top: the light that pours out is the colour of the best card inside
     const best = crate.cards.reduce((b, id) => Math.max(b, E.RARITY_ORDER.indexOf(E.cardDef(id).rarity)), 0), lc = E.RARITY[E.RARITY_ORDER[best]].color;
     const [mx, my] = await Crates.tear(pk, { col: lc, autoAfter: fast() ? 60 : 20000 });
