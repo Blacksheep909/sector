@@ -659,7 +659,7 @@
     const parts = [];
     const recent = alerts.filter(a => Date.now() - a.t < 90000);
     if (recent.length) parts.push(`<div class="wb-h">⚠ ALERTS</div>` + recent.map((a, i) => `<div class="wb-row wb-alert"><span>${esc(a.text)}</span>${a.hex ? `<button class="btn tiny" data-look="${i}">LOOK</button>` : ''}</div>`).join(''));
-    if (me.nextOffer && me.nextOffer.length) parts.push(`<div class="wb-h">🎴 NEXT RESUPPLY</div><div class="wb-row"><button class="btn tiny" id="prepBtn">${me.prePick ? '✔ ' + (me.prePick.pick === 'income' ? 'Full income' : esc(E.cardDef(me.nextOffer[me.prePick.idx]).name)) + ' · change' : 'Pick it now'}</button></div>`);
+    if (false && me.nextOffer && me.nextOffer.length) parts.push(`<div class="wb-h">🎴 NEXT RESUPPLY</div><div class="wb-row"><button class="btn tiny" id="prepBtn">${me.prePick ? '✔ ' + (me.prePick.pick === 'income' ? 'Full income' : esc(E.cardDef(me.nextOffer[me.prePick.idx]).name)) + ' · change' : 'Pick it now'}</button></div>`);
     if (S.fogOn) { const ic = E.intelCost(S, you); parts.push(`<div class="wb-h">🛰 INTEL</div><div class="wb-row"><button class="btn tiny" id="intelBtn"${me.cash < ic ? ' disabled' : ''}>Scout through the fog · $${ic} (I)</button>${me.cash < ic ? `<span class="sub">you have $${me.cash} until your turn</span>` : ''}</div>`); }
     box.hidden = !parts.length; box.innerHTML = parts.join('');
     const pb = $('#prepBtn'); if (pb) pb.onclick = openPrep;

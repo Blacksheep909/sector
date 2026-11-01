@@ -368,7 +368,6 @@ Any time, click **TRADE** under a rival's name. You can offer cash and tactic ca
 
 You're never just watching:
 - **Battle cards.** When an enemy attacks you, see **Battle cards** below: you get a few seconds to throw cards into the fight before the dice roll.
-- **Next resupply.** Your next resupply is dealt when your turn ends. Pick a card or full income from the panel while you wait, and your next turn starts straight in the action.
 - **Diplomacy and trades** work any time, not just on your turn.
 - **Intel ops** (fog of war): a quarter of your income (at least $2) to scout a 2-hex area anywhere until the end of next round, twice per round (`I`).
 - **Pings and emotes** from the bar above the chat.

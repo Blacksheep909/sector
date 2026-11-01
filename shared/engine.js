@@ -714,7 +714,8 @@
     t.owner = pl.id; delete t.poi; delete t.river; addStruct(t, { type: 'hq', owner: pl.id, lvl: 1 });   // an HQ stands on dry land
     for (const n of neighbors(hq)) { const nt = state.map.tiles[n]; if (nt && TERRAIN[nt.t].land && !nt.owner && !GARRISONED.includes(nt.poi)) nt.owner = pl.id; }
     if (pl.faction === 'verdant') {
-      const spot = neighbors(hq).find(n => state.map.tiles[n] && state.map.tiles[n].owner === pl.id && !structsOf(state.map.tiles[n]).length);
+      // (on dry, buildable ground: never in a river or on a mountain)
+      const spot = neighbors(hq).find(n => { const nt = state.map.tiles[n]; return nt && nt.owner === pl.id && isLandTile(nt) && !nt.river && nt.t !== 'mountain' && !structsOf(nt).length; });
       if (spot) addStruct(state.map.tiles[spot], { type: 'bunker', owner: pl.id, lvl: 2 });
     }
     // World War: a bigger opening territory and a starting army, so the huge map gets going fast
@@ -1711,8 +1712,8 @@
       s.turn.stage = 'choose';
       s.turn.offer = p.nextOffer && p.nextOffer.length ? p.nextOffer.slice() : drawCards(s, p, 3, turnOdds(s.turn.income), rng);
       if (!preview) delete p.nextOffer;
-      // picked ahead of time while waiting: apply it straight away
-      const pre = p.prePick; if (!preview) delete p.prePick;
+      // (picking the next resupply ahead of time is gone: it could pay out twice. An old save's pick is just dropped)
+      const pre = null; if (!preview) delete p.prePick;
       if (pre && !preview) {
         if (pre.pick === 'income') { p.cash += s.turn.income; ev.push({ e: 'income', pid: p.id, amount: s.turn.income, hq: p.hq }); s.turn.offer = []; s.turn.stage = 'act'; }
         else if (s.turn.offer[pre.idx] && !grantCard(s, p, s.turn.offer[pre.idx], pre.replace, ev, 'a resupply pick')) {
@@ -2510,7 +2511,7 @@
         // on the HQ hex the card fortifies the HQ itself (nothing else is built there)
         if (hq && hq.owner === pid) { if (slvlOf(hq) >= MAX_SLVL) return 'Your HQ is already fully fortified'; hq.lvl = slvlOf(hq) + 1; ev.push({ ...base, lvl: hq.lvl }); break; }
         if (bk) { if (slvlOf(bk) >= MAX_SLVL) return 'That Bunker is already ★★★'; bk.lvl = slvlOf(bk) + 1; }
-        else { if (structsOf(t).length >= MAX_STRUCTS || getS(t, 'bridge') || !isLandTile(t)) return 'No room for a Bunker there'; addStruct(t, { type: 'bunker', owner: pid, lvl: 1 }); }
+        else { if (structsOf(t).length >= MAX_STRUCTS || getS(t, 'bridge') || !isLandTile(t)) return 'No room for a Bunker there'; if (t.river && !t.bridge) return 'Nothing can be built in a river (bridge it first)'; addStruct(t, { type: 'bunker', owner: pid, lvl: 1 }); }
         ev.push({ ...base, lvl: slvlOf(getS(t, 'bunker')) }); break;
       }
       case 'embargo': { const o = player(s, tiles[a.target].owner); o.embargo = 2; if (s.trade && (s.trade.from === o.id || s.trade.to === o.id)) s.trade = null; ev.push({ ...base, victim: o.id }); pushLog(s, '⛔ ' + p.name + ' placed ' + o.name + ' under embargo.'); break; }
@@ -2835,6 +2836,7 @@
   // resupply prep: your next resupply is dealt when your turn ends, so you can pick from it while you wait
   function prePick(s, p, a, ev) {
     const fail = err => ({ ok: false, err, events: [] });
+    return fail('Pick your resupply at the start of your turn');
     if (current(s).id === p.id && s.turn.stage !== 'end') return fail('Pick from your resupply now');
     if (!p.nextOffer || !p.nextOffer.length) return fail('No resupply dealt yet');
     if (a.pick === 'income') p.prePick = { pick: 'income' };

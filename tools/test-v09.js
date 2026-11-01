@@ -24,14 +24,14 @@ const idle = (s, pid) => s.players.find(p => p.id !== pid && p.id !== me(s).id) 
   const s = game(); for (let i = 0; i < 20; i++) endTurn(s);
   ok(!s.drops && s.players.every(p => !p.snap), 'no supply drops land and no quick decisions pop up');
 }
-{ // resupply prep: the next offer is dealt when your turn ends, and a pre-pick applies at your next turn start
+{ // the early resupply pick is gone (it could pay twice): your next turn starts at the resupply, and income is paid once
   const s = game(); const p0 = me(s); E.applyAction(s, p0.id, { a: 'choose', pick: 'income' }); E.applyAction(s, p0.id, { a: 'end' });
-  ok(p0.nextOffer && p0.nextOffer.length === 3, 'next resupply is dealt as your turn ends');
-  const r = E.applyAction(s, p0.id, { a: 'prepick', pick: 'income' });
-  ok(r.ok, 'you can pick it while others play');
+  ok(!E.applyAction(s, p0.id, { a: 'prepick', pick: 'income' }).ok, 'picking the next resupply ahead of time is refused');
   const cash = p0.cash;
   while (me(s).id !== p0.id) endTurn(s);
-  ok(s.turn.stage === 'act' && p0.cash > cash, 'the pre-pick is applied at turn start (straight to acting)');
+  ok(s.turn.stage === 'choose' && p0.cash === cash, 'the next turn starts at the resupply, nothing paid yet');
+  const inc = s.turn.income; E.applyAction(s, p0.id, { a: 'choose', pick: 'income' });
+  ok(p0.cash === cash + inc && !E.applyAction(s, p0.id, { a: 'choose', pick: 'income' }).ok, 'income is paid once, and a second pick is refused');
   const v = E.view(s, 'p1'); ok(!v.players.find(p => p.id === p0.id).nextOffer, 'rivals cannot see your next resupply');
 }
 { // intel ops reveal fog

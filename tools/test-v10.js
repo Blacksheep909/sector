@@ -510,5 +510,18 @@ function crossing(s) {
   ok(raid && raid.pick === 'card' && offer[raid.idx] === 'skyguard', 'with the enemy flying and no anti-air in the deck, a bot takes the anti-air card (' + JSON.stringify(raid) + '; with no aircraft about: ' + JSON.stringify(calm) + ')');
   ok(!(calm && calm.pick === 'card' && offer[calm.idx] === 'skyguard'), 'and with nobody flying it does not');
 }
+{ // nothing is built in a river: not the Verdant starting Bunker, not a Fortify card
+  let bad = 0;
+  for (let g = 0; g < 40; g++) { const roster = [0, 1, 2, 3].map(i => ({ id: 'p' + i, name: 'P' + i, color: E.COLORS[i], faction: 'verdant' })); const { state: s } = E.createGame({ mode: 'domination', mapSize: 'small', seed: 'vb' + g }, roster);
+    for (const k in s.map.tiles) { const t = s.map.tiles[k]; if (t.river && !t.bridge && E.structsOf(t).some(x => x.type === 'bunker')) bad++; } }
+  ok(!bad, 'no Verdant starting Bunker in a river (40 maps)');
+  const roster = [0, 1].map(i => ({ id: 'p' + i, name: 'P' + i, color: E.COLORS[i], faction: 'iron' }));
+  const { state: s } = E.createGame({ mode: 'domination', mapSize: 'medium', seed: 'fr1' }, roster);
+  s.phase = 'play'; const A = E.player(s, 'p0'), T = s.map.tiles;
+  const k = Object.keys(T).find(h => T[h].river && !T[h].bridge && E.isLandTile(T[h]) && !(T[h].structs || []).length);
+  if (k) { T[k].owner = 'p0'; A.tactics = [{ id: 'fortify', uid: 91 }]; A.cash = 50; s.turn.idx = s.players.indexOf(A); s.turn.stage = 'act';
+    const r = E.applyAction(s, 'p0', { a: 'tactic', uid: 91, target: k });
+    ok(!r.ok && !E.structsOf(T[k]).some(x => x.type === 'bunker'), 'a Fortify card can\'t put a Bunker in a river (' + (r.err || 'played') + ')'); }
+}
 console.log(fails ? fails + ' FAILED' : 'all passed');
 process.exit(fails ? 1 : 0);
