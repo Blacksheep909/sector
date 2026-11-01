@@ -2237,3 +2237,5 @@ body.war-over #dock, body.war-over #endBtn, body.war-over #marketBtn { display: 
 .pack .pk-ribbon { top: 186px; z-index: 5; } .pack .pk-sub { top: 225px; z-index: 5; color: #fff; text-shadow: 0 1px 2px #000; opacity: 1; }
 .pack .pk-promise, .pack .pk-count, .pack .pk-bar { z-index: 5; }
 .pack .pk-bar { color: #fff; opacity: .55; }
+/* a unit on sale (Arms Fair, a faction perk): the price shows it */
+.card.sale .c-cost { background: linear-gradient(180deg, #5df09a, #2faa62) !important; color: #06210f !important; box-shadow: 0 0 8px rgba(93,240,154,.7); }

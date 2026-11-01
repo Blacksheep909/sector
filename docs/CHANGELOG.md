@@ -4,6 +4,7 @@ Every release, newest first. Each version also has its own post on the [Releases
 
 ## Unreleased
 
+- **Discounted units say so.** When a unit costs less than its card's price (the Arms Fair world event takes $1 off every unit for the round; Volt's aircraft and Ashen's Skitters are $1 cheaper), its price on the deck bar turns green and its tooltip says why. The deck bar also refreshes when the world event changes, so a price can't stay stale.
 - **The opening draft is units only.** No tactic cards in the three opening picks: everyone starts the war with an army plan, and tactics come from resupplies, crates and the black market.
 - **Hard and Impossible bots keep the pressure on.** Stacks that aren't in a fight close on the nearest enemy land, so the army stays at the front with fights to pick from. In the bot lab, Impossible's army more than 4 hexes from any enemy fell from 29% to 20%, attacks rose from 0.41 to 0.50 a turn, and stacks walking back and forth dropped by a quarter.
 - **Bots take the sure kill.** A bot's worry about the counterattack could talk it out of a fight it was certain to win (a 100% attack scored below zero). A near-certain win is now never called off for that.

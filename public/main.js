@@ -1858,7 +1858,7 @@
     const counts = {}; for (const u of Object.values(ds.units)) if (u.owner === you) counts[u.type] = (counts[u.type] || 0) + 1;
     // tactic cards with nothing to aim at right now are greyed out, and say so (instead of an error when you click them)
     const noTarget = new Set(me.tactics.filter(c => { const d = E.TACTICS[c.id]; return d && !['none', 'battle'].includes(d.target) && !E.tacticTargets(ds, you, c.id).length; }).map(c => c.uid));
-    const sig = JSON.stringify([units, me.levels, me.cash, mode && { ...mode, el: null }, counts, me.tactics.map(c => c.uid), canCommand(), [...noTarget]]);
+    const sig = JSON.stringify([units, me.levels, me.cash, me.wx, me.faction, mode && { ...mode, el: null }, counts, me.tactics.map(c => c.uid), canCommand(), [...noTarget]]);
     if (sig === hotbarSig) return; hotbarSig = sig;
     const prevIds = new Set([...hu.children].map(c => c.dataset.id));
     hu.innerHTML = ''; hb.innerHTML = '';
@@ -1867,6 +1867,8 @@
       const cost = E.unitCost(me, id);
       const c = cardEl(id, { mini: true, cost, level: me.levels[id] || 0, key: UNIT_KEYS[i], count: counts[id] });
       c.dataset.kind = 'unit';
+      // a price below the card's own is explained right on it (the Arms Fair world event, or a faction perk)
+      if (cost < E.UNITS[id].cost) { c.classList.add('sale'); c.title = `$${cost} (normally $${E.UNITS[id].cost}): ` + (me.wx === 'armsfair' ? 'Arms Fair, all units $1 less this round' : 'your faction perk'); }
       if (me.cash < cost) c.classList.add('poor');
       if (mode && mode.type === 'deploy' && mode.unit === id) c.classList.add('active');
       if (prevIds.size && !prevIds.has(id)) c.classList.add('new');
