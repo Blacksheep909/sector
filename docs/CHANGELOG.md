@@ -4,6 +4,7 @@ Every release, newest first. Each version also has its own post on the [Releases
 
 ## Unreleased
 
+- **Fix: "Need $51" when you had $51.** With no free hex for a new Airbase (or any building), the only builds on offer were upgrades of ones you own, which cost more, but the error quoted the new-building price. It now says there's no room for a new one and what upgrading costs.
 - **Teams: card ranges reach from your teammate's land.** Air strikes, missiles, nukes and every other card with a range measured from "your land" now count your teammates' land too.
 - **Impossible no longer over-guards.** Its extra-cautious HQ and FOB guard (and twitchier fight settings) kept so many troops home that Impossible lost to Hard 29–51 at equal income. It now guards like Hard and adds a stronger rally, faster opening and a taste for the weakest neighbour (level with Hard bot-against-bot).
 - **Fix: units snapping back after an attack.** When a won attack brought more units than fit on the captured hex (5, or units that can't stand there), the extras jumped back to wherever they started the move, however far away. They now stay on the hex they attacked from, if it's yours with room for them.

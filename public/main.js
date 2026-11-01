@@ -1929,7 +1929,13 @@
     } else {
       const cost = id === 'hq' ? E.buildCost(ds, me, 'hq', me.hq) : E.structCost(me, id);
       if (mode && mode.type === 'build' && mode.struct === id) { mode = null; refreshAll(); return; }
-      if (!E.buildHexes(ds, you, id).some(k => me.cash >= E.buildCost(ds, me, id, k)) && E.buildHexes(ds, you, id).length) { toast('Need $' + cost, 'err'); SFX.error(); shakeSlot(kind, id); return; }
+      { // can't afford anywhere: name the cheapest thing actually on offer (with no room for a new one, that's an upgrade, which costs more)
+        const hx = E.buildHexes(ds, you, id), cheap = hx.length ? Math.min(...hx.map(k => E.buildCost(ds, me, id, k))) : 0;
+        if (hx.length && me.cash < cheap) {
+          const fresh = hx.some(k => !E.structsOf(ds.map.tiles[k]).some(x => x.type === id && x.owner === you));
+          toast(fresh ? 'Need $' + cheap : `No room for a new ${E.STRUCTS[id].name} here: upgrading one of yours costs $${cheap}`, 'err'); SFX.error(); shakeSlot(kind, id); return;
+        }
+      }
       if (id === 'airbase' && airbasesOf(ds, you) >= E.MAX_AIRBASES && !E.buildHexes(ds, you, id).length) { toast(`You have ${E.MAX_AIRBASES}/${E.MAX_AIRBASES} airbases, the most allowed (and they're all fully upgraded)`, 'err'); SFX.error(); shakeSlot(kind, id); return; }
       if (!E.buildHexes(ds, you, id).length) { toast(id === 'hq' ? 'Your HQ is fully fortified' : id === 'port' ? 'No free coastal hex in supply' : id === 'bridge' ? 'No 1-hex sea gap next to your supplied land' : 'Nowhere to build that', 'err'); SFX.error(); shakeSlot(kind, id); return; }
       if (id === 'airbase' && airbasesOf(ds, you) >= E.MAX_AIRBASES) toast(`You have ${E.MAX_AIRBASES}/${E.MAX_AIRBASES} airbases, the most allowed: click one of yours to upgrade it`);
