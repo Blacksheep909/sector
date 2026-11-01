@@ -2,6 +2,10 @@
 
 Every release, newest first. Each version also has its own post on the [Releases page](https://github.com/Blacksheep909/sector/releases).
 
+## Unreleased
+
+- **A bigger tear strip.** The top seal of a pack is a third taller, so it's easy to grab and drag along; the TEAR tag is gone (the perforation and notch show where to tear).
+
 ## v0.13.3
 
 **Packs you tear open by hand, booster-pack art, bots that open fast, rally to one front and want the cards they need, a units-only opening draft, teams that share supply and card range, and a run of fixes.**

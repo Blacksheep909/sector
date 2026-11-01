@@ -117,7 +117,7 @@ const Crates = (() => {
         <div class="pk-bar"></div><div class="pk-side l"></div><div class="pk-side r"></div><div class="pk-crimp b"></div>
         <div class="pk-pillow"></div><div class="pk-spec"></div><div class="pk-sheen"></div><div class="pk-rag" style="clip-path:${rag()}"></div>
       </div>
-      <div class="pk-top">${slices}<div class="pk-perf"></div><div class="pk-notch"></div><div class="pk-tab">TEAR ▸</div></div>
+      <div class="pk-top">${slices}<div class="pk-perf"></div><div class="pk-notch"></div></div>
       <div class="pk-leak"></div><div class="pk-flecks"></div><div class="pk-hint">${opts.hint || 'GRAB THE TOP AND DRAG TO TEAR'}</div>`;
     tilt(p);
     return p;
@@ -161,7 +161,7 @@ const Crates = (() => {
           slices[i].style.transformOrigin = `${pivot.toFixed(1)}px 100%`; slices[i].style.transform = `rotate(${ang.toFixed(1)}deg)`; slices[i].classList.add('torn');
         }
         leak.style.width = (front * 100) + '%'; ragEl.style.setProperty('--w', (front * 100) + '%'); p.style.setProperty('--tear', front.toFixed(3));
-        tab.style.left = `calc(${(front * 100).toFixed(1)}% - 4px)`;
+        if (tab) tab.style.left = `calc(${(front * 100).toFixed(1)}% - 4px)`;
       };
       const step = now => {
         const dt = Math.min(0.05, (now - lastT) / 1000); lastT = now;
@@ -194,7 +194,7 @@ const Crates = (() => {
         if (q.y > 0.3) { p.classList.remove('nudge'); void p.offsetWidth; p.classList.add('nudge'); return; }   // not the strip: a wiggle points at it
         dragging = true; moved = 0; downX = q.x; p.setPointerCapture && p.setPointerCapture(e.pointerId); p.classList.add('tearing'); target = Math.max(target, front + 0.02); lift = 0; start();
       };
-      p.onpointermove = e => { if (!dragging) return; const q = at(e); moved = Math.max(moved, Math.abs(q.x - downX)); target = Math.max(target, Math.min(1.05, q.x)); lift = Math.min(0, q.py - 20); };
+      p.onpointermove = e => { if (!dragging) return; const q = at(e); moved = Math.max(moved, Math.abs(q.x - downX)); target = Math.max(target, Math.min(1.05, q.x)); lift = Math.min(0, q.py - 28); };
       p.onpointerup = p.onpointercancel = () => {
         if (!dragging) return; dragging = false; lift = 0;
         if (moved < 0.04) target = Math.max(target, front + 0.14);   // a click: a small bite

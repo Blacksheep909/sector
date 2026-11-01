@@ -2107,8 +2107,8 @@ body.war-over #dock, body.war-over #endBtn, body.war-over #marketBtn { display: 
 #logBox.folded #log, #logBox.folded #chatIn, #logBox.folded #pingBar > :not(#logFold) { display: none !important; }
 
 /* ── card packs: a printed foil pack you tear open by hand ── */
-.pack { position: relative; width: 210px; height: 316px; --tear: 0; --lc: #fff; --shake: 0px; user-select: none; -webkit-user-select: none; touch-action: none; filter: drop-shadow(0 22px 26px rgba(0,0,0,.6)); transform-style: preserve-3d; }
-.pack .pk-body { position: absolute; inset: 40px 0 0; border-radius: 3px 3px 0 0; overflow: hidden; color: var(--ink); transform: translateX(var(--shake));
+.pack { position: relative; width: 210px; height: 330px; --tear: 0; --lc: #fff; --shake: 0px; user-select: none; -webkit-user-select: none; touch-action: none; filter: drop-shadow(0 22px 26px rgba(0,0,0,.6)); transform-style: preserve-3d; }
+.pack .pk-body { position: absolute; inset: 54px 0 0; border-radius: 3px 3px 0 0; overflow: hidden; color: var(--ink); transform: translateX(var(--shake));
   background: linear-gradient(160deg, var(--f0) 0%, var(--f1) 36%, var(--f2) 74%, var(--f1) 100%); }
 .pack { --mx: 0; --my: 0; perspective: 900px; }
 .pack .pk-body, .pack .pk-top { transform: rotateY(calc(var(--mx) * 16deg)) rotateX(calc(var(--my) * -11deg)) translateX(var(--shake)); transform-origin: 50% 60%; }
@@ -2152,7 +2152,7 @@ body.war-over #dock, body.war-over #endBtn, body.war-over #marketBtn { display: 
 .pack .pk-sheen { position: absolute; inset: -20%; z-index: 4; pointer-events: none; mix-blend-mode: soft-light; background: linear-gradient(105deg, transparent 40%, rgba(255,255,255,.7) 50%, transparent 60%); animation: pkSheen 3.6s ease-in-out infinite; }
 @keyframes pkSheen { 0% { transform: translateX(-60%); } 60%, 100% { transform: translateX(60%); } }
 /* the top seal: one printed strip in slivers (so it tears where you drag), a perforation, a notch and a TEAR tab */
-.pack .pk-top { position: absolute; left: 0; right: 0; top: 0; height: 42px; z-index: 5; cursor: grab; }
+.pack .pk-top { position: absolute; left: 0; right: 0; top: 0; height: 56px; z-index: 5; cursor: grab; }
 .pack.tearing .pk-top { cursor: grabbing; }
 .pack .pk-top i { position: absolute; top: 0; bottom: 0; width: calc(100% / 42 + .6px); left: calc(-1 * var(--x)); transform-origin: 0 100%; will-change: transform;
   background: repeating-linear-gradient(90deg, rgba(0,0,0,.12) 0 1px, rgba(255,255,255,.14) 1px 2px, transparent 2px 6px), linear-gradient(180deg, rgba(255,255,255,.35), transparent 30%, rgba(0,0,0,.15)), linear-gradient(180deg, var(--f0), var(--f1) 65%, var(--f2));
@@ -2165,11 +2165,11 @@ body.war-over #dock, body.war-over #endBtn, body.war-over #marketBtn { display: 
 .pack.tearing .pk-tab { animation: none; } .pack.torn-open .pk-tab { opacity: 0; transition: opacity .2s; }
 /* torn: the ragged edge, light through the gap, flecks of foil */
 .pack .pk-rag { position: absolute; left: 0; top: -2px; height: 12px; width: var(--w, 0%); z-index: 4; background: linear-gradient(180deg, #fff, rgba(255,255,255,.55)); opacity: .9; }
-.pack .pk-leak { position: absolute; left: 0; top: 36px; height: 9px; width: 0; z-index: 4; border-radius: 4px; background: var(--lc); box-shadow: 0 0 12px 4px var(--lc), 0 0 46px 14px var(--lc); opacity: .95; pointer-events: none; }
-.pack .pk-flecks { position: absolute; left: 0; right: 0; top: 34px; height: 0; z-index: 7; pointer-events: none; }
+.pack .pk-leak { position: absolute; left: 0; top: 50px; height: 9px; width: 0; z-index: 4; border-radius: 4px; background: var(--lc); box-shadow: 0 0 12px 4px var(--lc), 0 0 46px 14px var(--lc); opacity: .95; pointer-events: none; }
+.pack .pk-flecks { position: absolute; left: 0; right: 0; top: 48px; height: 0; z-index: 7; pointer-events: none; }
 .pack .pk-flecks b { position: absolute; top: 0; width: 5px; height: 3px; background: linear-gradient(90deg, var(--f0), #fff); border-radius: 1px; animation: pkFleck .7s ease-out forwards; }
 @keyframes pkFleck { to { transform: translate(var(--dx), var(--dy)) rotate(var(--r)); opacity: 0; } }
-.pack .pk-glow { position: absolute; left: 50%; top: 40px; width: 520px; height: 520px; transform: translate(-50%, -100%) scale(calc(.3 + var(--tear) * .7)); opacity: calc(var(--tear) * .7); pointer-events: none;
+.pack .pk-glow { position: absolute; left: 50%; top: 54px; width: 520px; height: 520px; transform: translate(-50%, -100%) scale(calc(.3 + var(--tear) * .7)); opacity: calc(var(--tear) * .7); pointer-events: none;
   background: conic-gradient(from 180deg at 50% 100%, transparent 0 60deg, var(--lc) 75deg, transparent 90deg, var(--lc) 105deg, transparent 120deg, var(--lc) 135deg, transparent 150deg, var(--lc) 165deg, transparent 180deg, var(--lc) 195deg, transparent 210deg, var(--lc) 225deg, transparent 240deg, var(--lc) 255deg, transparent 270deg, var(--lc) 285deg, transparent 300deg);
   -webkit-mask: radial-gradient(closest-side at 50% 100%, #000 0, #000 35%, transparent 100%); mask: radial-gradient(closest-side at 50% 100%, #000 0, #000 35%, transparent 100%); filter: blur(2px); }
 .pack .pk-hint { position: absolute; left: 50%; top: -40px; transform: translateX(-50%); white-space: nowrap; font: 800 12px var(--ui); letter-spacing: 2px; color: #fff; text-shadow: 0 2px 4px #000; animation: pkHint 1.4s ease-in-out infinite; }
@@ -2239,3 +2239,4 @@ body.war-over #dock, body.war-over #endBtn, body.war-over #marketBtn { display: 
 .pack .pk-bar { color: #fff; opacity: .55; }
 /* a unit on sale (Arms Fair, a faction perk): the price shows it */
 .card.sale .c-cost { background: linear-gradient(180deg, #5df09a, #2faa62) !important; color: #06210f !important; box-shadow: 0 0 8px rgba(93,240,154,.7); }
+.pack .pk-tab { display: none; }   /* (no TEAR tag: the perforation and the notch say where to tear) */
