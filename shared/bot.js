@@ -281,6 +281,7 @@ function planAssault(s, pid, idx, K, strat, mem, topN) {
       if (hit) {
         const hold = used.reduce((a, u) => a + u.units.reduce((b, x) => b + E.unitDef(s, x), 0), 0) * 0.75 + (tt.struct && ['bunker', 'fob'].includes(tt.struct.type) ? 3 : 0);
         counter = calc.winProb * (hit / (hit + hold * 1.4 + 1)) * risk * 0.7 * K.expo * (isHQ ? 0.4 : 1);
+        if (calc.winProb >= 0.8) counter = Math.min(counter, prize * 0.45);   // a near-sure kill is never called off for fear of the reply: destroying them is half the answer to it
       }
     }
     const v = calc.winProb * prize - (1 - calc.winProb) * risk * 0.8 * (1 - press * 2) - exposure - counter;
