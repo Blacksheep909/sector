@@ -11,6 +11,40 @@ function unitValue(type) { const d = E.UNITS[type]; return d.atk + d.def + d.mv 
 function stackValue(units) { return units.reduce((a, u) => a + unitValue(u.type), 0); }
 
 const RAR = { common: 1, uncommon: 2, rare: 3.2, epic: 4.6, legendary: 6.5, mythic: 9 };
+// ── what the deck needs: read the enemy's army (what we can see of it) against what our deck can field ──
+// Each role gets a want: big when the enemy fields something we have no answer to (aircraft and no anti-air, armour and
+// no tank hunter, forts and no siege gun), or when they've left a gap we can exploit (no anti-air: our aircraft rule the
+// sky), and below zero for a role that's no use against this enemy (anti-air when nobody flies)
+function roleOf(type) {
+  const d = E.UNITS[type]; if (!d) return null;
+  if (d.aa) return 'aa';
+  if (d.ability === 'hunter') return 'hunter';
+  if (['siege', 'titan', 'ballistic', 'salvo'].includes(d.ability)) return 'siege';
+  if (d.cls === 'sea') return 'sea';
+  if (d.cls === 'air') return 'air';
+  if (d.range) return 'gun';
+  if (d.mv >= 4) return 'fast';
+  return d.cls;
+}
+function deckNeeds(s, p) {
+  const key = (s.turn ? s.turn.round : 'x') + ':' + p.arsenal.join(',') + ':' + Object.keys(s.units).length, memo = (deckNeeds.memo = deckNeeds.memo || new WeakMap());
+  const m = memo.get(s) || {}; if (m[p.id] && m[p.id].key === key) return m[p.id].v;
+  const foe = { air: 0, veh: 0, inf: 0, aa: 0, all: 0, forts: 0 };
+  for (const id in s.units) { const u = s.units[id]; if (!u.owner || u.owner === p.id || E.isAlly(s, p.id, u.owner) || E.isSea(u.type)) continue; const d = E.UNITS[u.type]; foe.all++; if (d.cls === 'air') foe.air++; else if (d.cls === 'veh') foe.veh++; else if (d.cls === 'inf') foe.inf++; if (d.aa) foe.aa++; }
+  for (const k in s.map.tiles) { const t = s.map.tiles[k]; if (t.owner && t.owner !== p.id && !E.isAlly(s, p.id, t.owner)) for (const x of E.structsOf(t)) if (['bunker', 'hq', 'fob'].includes(x.type)) foe.forts += x.type === 'bunker' ? 1 : 0.5; }
+  const have = r => p.arsenal.some(t => roleOf(t) === r);
+  const early = !s.turn || s.turn.round < 8;
+  const v = {
+    aa: foe.air >= 3 ? (have('aa') ? 0.3 : 2) : foe.air >= 1 ? (have('aa') ? 0 : 0.6) : (early ? -0.2 : -0.6),
+    hunter: foe.veh >= 4 ? (have('hunter') ? 0.2 : 1) : 0,
+    siege: foe.forts >= 3 ? (have('siege') ? 0.2 : 0.8) : 0,
+    air: foe.all >= 4 && foe.aa === 0 ? (have('air') ? 0.4 : 1) : foe.aa >= 3 ? -0.4 : 0,
+    gun: foe.inf >= 6 && !have('gun') ? 0.5 : 0,
+    fast: early && !have('fast') ? 0.6 : 0,
+  };
+  m[p.id] = { key, v }; memo.set(s, m);
+  return v;
+}
 // how much a card is worth to this player right now
 function cardScore(s, p, id) {
   const d = E.cardDef(id);
@@ -23,8 +57,10 @@ function cardScore(s, p, id) {
     if (s.phase === 'play' && overseas(s, p.id)) { if (id === 'ark') v = p.arsenal.includes('ark') ? 4 : 14; else if (d.cls === 'sea') v *= 1.3; }
     const taste = (playOf(p).cls || {})[d.cls]; if (taste) v *= 1 + taste * 0.25;
     // anti-air: worth a lot when rivals fly and we have none, little when nobody does
-    if (E.UNITS[id].aa && s.phase === 'play') { const air = Object.values(s.units).filter(u => u.owner !== p.id && !E.isAlly(s, p.id, u.owner) && E.UNITS[u.type].cls === 'air').length, have = p.arsenal.some(t => E.UNITS[t].aa);
-      v *= air >= 3 ? (have ? 1.3 : 2.6) : air ? 1.1 : 0.7; }
+    if (s.phase === 'play') {
+      if (s._oldNeeds || (p.labK && p.labK.oldNeeds)) { if (E.UNITS[id].aa) { const air = Object.values(s.units).filter(u => u.owner !== p.id && !E.isAlly(s, p.id, u.owner) && E.UNITS[u.type].cls === 'air').length, have = p.arsenal.some(t => E.UNITS[t].aa); v *= air >= 3 ? (have ? 1.3 : 2.6) : air ? 1.1 : 0.7; } }
+      else { const need = deckNeeds(s, p)[roleOf(id)] || 0; if (!p.arsenal.includes(id)) v *= Math.max(0.35, 1 + need * 0.8); else if (need > 0) v *= 1 + need * 0.3; }   // what we lack against this enemy, we want
+    }
   } else v *= 0.85 * (playOf(p).tactics || 1);
   return v;
 }
@@ -159,7 +195,8 @@ function heliDanger(s, pid, idx, k) {
 }
 
 // ── the assault planner: every attack on the board, with up to K.combo stacks massed into one blow ──
-function planAssault(s, pid, idx, K, strat, mem) {
+function planAssault(s, pid, idx, K, strat, mem, topN) {
+  const all = [];
   const tiles = s.map.tiles, stacks = [], keep = K.oldhq ? new Set() : baseGuard(s, pid, idx, K, mem).keep;
   for (const k in idx) {
     if (mem.skip && mem.skip.has(k)) continue;
@@ -247,8 +284,11 @@ function planAssault(s, pid, idx, K, strat, mem) {
       }
     }
     const v = calc.winProb * prize - (1 - calc.winProb) * risk * 0.8 * (1 - press * 2) - exposure - counter;
+    if (topN && v > 0) all.push({ t, used, calc, v });
     if (v > bv) { bv = v; best = { t, used, calc }; }
   }
+  const toAct = b => b.used.length === 1 ? { a: 'move', from: b.used[0].k, units: b.used[0].units.map(u => u.id), to: b.t } : { a: 'assault', to: b.t, groups: b.used.map(u => ({ from: u.k, units: u.units.map(x => x.id) })) };
+  if (topN) return all.sort((a, b) => b.v - a.v).slice(0, topN).map(b => ({ act: toAct(b), b }));
   if (!best) return null;
   for (const u of best.used) mem.skip && mem.skip.add(u.k);
   if (best.used.length === 1) return { a: 'move', from: best.used[0].k, units: best.used[0].units.map(u => u.id), to: best.t };
@@ -361,6 +401,112 @@ function strategy(s, pid, idx, K) {
 
 // experiments only (balance lab): BOTX=noguard,noplan,atk=0.5,… switches parts of the bot off to measure what each is worth
 const BOTX = (typeof process !== 'undefined' && process.env && process.env.BOTX || '').split(',').filter(Boolean);
+// ── look-ahead: a portfolio of whole-turn plans, each tried on a copy of the board ──
+// Each plan is the same bot with its priorities shifted (all-in strike, careful, build up, go for the kill, punish). For each,
+// we play our turn with it and everyone else's turn after it (as bots, on a copy, with the same dice for every plan so
+// the comparison is fair), then score the position we're left in when our next turn comes round. The best plan runs
+// for real. This is what stops the bot walking into a counterattack it could have seen coming, or missing the turn
+// where everything should go in
+const PLANS = {
+  base: {},
+  allin: { attack: 0.4, comboD: 3, noguard: true, expo: 0, lethalM: 1.5 },
+  hold: { attack: 0.85, guard: 1.3, expoM: 2 },
+  build: { attack: 0.8, armyShare: 0.3, ecoUntil: 99 },
+  kill: { lethalM: 3, ringW: 0, attackD: -0.05 },
+  punish: { punishM: 2.5, attackD: 0.05 },
+  careful: { expoM: 2.5, attackD: 0.05 },
+};
+function planK(K, name) {
+  const c = PLANS[name]; if (!c) return K;
+  const o = { ...K };
+  if (c.attackD) o.attack = K.attack + c.attackD;
+  if (c.comboD) o.combo = K.combo + c.comboD;
+  if (c.lethalM) o.lethal = (K.lethal || 0.5) * c.lethalM;
+  if (c.expoM) o.expo = (K.expo || 0.5) * c.expoM;
+  if (c.punishM) o.punish = (K.punish === undefined ? 1 : K.punish) * c.punishM;
+  for (const k of ['attack', 'guard', 'armyShare', 'ecoUntil', 'ringW', 'noguard', 'expo']) if (c[k] !== undefined) o[k] = c[k];
+  return o;
+}
+// how good a position is for pid: the log-odds that pid wins from here, from a model fitted on thousands of logged
+// positions from bot wars (who went on to win, against how they stood that round). What it learned: army and income
+// against the strongest rival matter most, then income against the field and land; FOBs help, a hoard of unspent cash
+// doesn't, and the more rivals, the longer the odds. Losing the HQ is added on top: the data rarely sees it, as it ends wars
+const VW = [-0.095, 0.82, 0.582, 1.027, 0.067, 0.603, -0.171, 0.043, 0.196, -0.579];
+function standing(s, id) {
+  const q = E.player(s, id); let army = 0;
+  for (const uid in s.units) { const u = s.units[uid]; if (u.owner === id) army += E.unitAtk(s, u) + E.unitDef(s, u); }
+  let fobs = 0; for (const k in s.map.tiles) { const t = s.map.tiles[k]; if (t.owner === id && E.structsOf(t).some(x => x.type === 'fob' && x.owner === id)) fobs++; }
+  return { inc: E.computeIncome(s, id).total, army, land: E.ownedLand(s, id).length, cash: Math.max(0, q.cash), hq: q.hq && s.map.tiles[q.hq] && s.map.tiles[q.hq].owner === id ? 1 : 0, fobs };
+}
+function evalPos(s, pid) {
+  const p = E.player(s, pid); if (!p || !p.alive) return -50;
+  if (s.winner) return (s.winner.pids || [s.winner.pid]).includes(pid) ? 50 : -50;
+  const me = standing(s, pid), o = s.players.filter(q => q.alive && q.id !== pid && !E.isAlly(s, pid, q.id)).map(q => standing(s, q.id));
+  if (!o.length) return 50;
+  const L = x => Math.log(Math.max(0.5, x)), top = k => Math.max(0.5, ...o.map(v => v[k])), mean = k => Math.max(0.5, o.reduce((a, v) => a + v[k], 0) / o.length);
+  const x = [1, L(me.inc) - L(top('inc')), L(me.inc) - L(mean('inc')), L(me.army) - L(top('army')), L(me.army) - L(mean('army')), L(me.land) - L(top('land')), L(me.cash + 1) - L(mean('cash') + 1), me.hq, me.fobs - o.reduce((a, v) => a + v.fobs, 0) / o.length, Math.log(o.length)];
+  return x.reduce((a, v, i) => a + v * VW[i], 0) - (me.hq ? 0 : 3);
+}
+function simTurn(c, id, plan) {
+  const m = { sim: true, diplo: true, plan }; let k = 0;
+  while (c.phase === 'play' && E.current(c).id === id) {
+    let a = botStep(c, id, m); if (++k > 90) a = { a: 'end' };
+    const r = E.applyAction(c, id, a || { a: 'end' }, Math.random);
+    if (!r.ok) { const r2 = E.applyAction(c, id, c.turn.stage === 'choose' ? { a: 'choose', pick: 'income' } : { a: 'end' }, Math.random); if (!r2.ok) break; }
+  }
+}
+function searchAttack(s, pid, K, acts) {
+  const real = Math.random, runs = K.search | 0 || 2, seed = E.hashStr(pid + ':' + s.turn.round + ':' + Object.keys(s.units).length);
+  const opts = acts.concat([null]), score = opts.map(() => 0);
+  try {
+    for (let r = 0; r < runs; r++) for (let o = 0; o < opts.length; o++) {
+      Math.random = E.mulberry32(seed + r * 7919);
+      const c = JSON.parse(JSON.stringify(s));
+      c.settings = { ...c.settings, fog: 'off' }; c._sim = true;
+      for (const q of c.players) { if (!q.bot) { q.bot = true; q.diff = 'hard'; } if (q.id !== pid) delete q.labK; }
+      delete c.allyOffer; delete c.trade;
+      const m = { sim: true, diplo: true };
+      if (opts[o]) { const rr = E.applyAction(c, pid, opts[o], Math.random); if (!rr.ok) { score[o] = -1e9; continue; } } else m.noAssault = true;
+      // finish our turn, then everyone else's
+      let k = 0; while (c.phase === 'play' && E.current(c).id === pid) { let a = botStep(c, pid, m); if (++k > 90) a = { a: 'end' }; const rr = E.applyAction(c, pid, a || { a: 'end' }, Math.random); if (!rr.ok) { if (!E.applyAction(c, pid, { a: 'end' }, Math.random).ok) break; } }
+      for (let g = 0; g < c.players.length + 1 && c.phase === 'play' && E.current(c).id !== pid; g++) simTurn(c, E.current(c).id, null);
+      score[o] += evalPos(c, pid) / runs;
+    }
+  } catch (e) { Math.random = real; return acts[0]; }
+  Math.random = real;
+  let best = 0; for (let o = 1; o < opts.length; o++) if (score[o] > score[best] + 0.02) best = o;
+  if (typeof process !== 'undefined' && process.env && process.env.PLANLOG) console.error('atk', pid, 'r' + s.turn.round, best, score.map(v => +v.toFixed(2)).join(' '));
+  return opts[best];
+}
+function choosePlan(s, pid, K) {
+  const names = Object.keys(PLANS), runs = K.plan | 0 || 1, real = Math.random;
+  const seed = E.hashStr(pid + ':' + s.turn.round);
+  const score = {};
+  try {
+    for (const name of names) {
+      let tot = 0;
+      for (let r = 0; r < runs; r++) {
+        Math.random = E.mulberry32(seed + r * 7919);   // the same dice for every plan
+        const c = JSON.parse(JSON.stringify(s));
+        c.settings = { ...c.settings, fog: 'off' }; c._sim = true;
+        for (const q of c.players) { if (!q.bot) { q.bot = true; q.diff = 'hard'; } if (q.id !== pid) delete q.labK; }   // everyone else plays as a sound bot
+        delete c.allyOffer; delete c.trade;
+        simTurn(c, pid, name);
+        for (let h = 0; h < (K.planH || 1); h++) {
+          if (h) simTurn(c, pid, 'base');   // (later rounds: we play on as normal)
+          for (let g = 0; g < c.players.length + 1 && c.phase === 'play' && E.current(c).id !== pid; g++) simTurn(c, E.current(c).id, null);
+        }
+        tot += evalPos(c, pid);
+      }
+      score[name] = tot / runs;
+    }
+  } catch (e) { Math.random = real; return null; }
+  Math.random = real;
+  let best = 'base'; for (const n of names) if (score[n] > score[best] + 0.02) best = n;   // (a plan has to be clearly better to beat the plain one)
+  if (typeof process !== 'undefined' && process.env && process.env.PLANLOG) console.error('plan', pid, 'r' + s.turn.round, best, JSON.stringify(Object.fromEntries(Object.entries(score).map(([k, v]) => [k, +v.toFixed(2)]))));
+  return best;
+}
+
 // fog of war: a bot sees what a player in its seat would, its own fogged view with what it has explored and last seen
 // there, and decides from that. Its orders still run against the real board (a hidden army it walks into is an ambush)
 const fogMems = new WeakMap();
@@ -391,6 +537,10 @@ function botTurn(s, pid, mem) {
   // the Iron Covenant defends on +1 Chip a unit: it digs in, picks its fights, and makes anyone who comes at it pay
   if (p.faction === 'iron') K = { ...K, attack: K.attack + 0.04, guard: Math.min(1.3, K.guard * 1.25), punish: (K.punish === undefined ? 1 : K.punish) * 1.5 };
   if (BOTX.length) { K = { ...K }; for (const x of BOTX) { let [k, v] = x.split('='); if (k.includes('.')) { const [d, kk] = k.split('.'); if (d !== p.diff) continue; k = kk; } if (v !== undefined) K[k] = +v; else K[k] = true; } }
+  if (p.labK) K = { ...K, ...p.labK };   // (bot lab: one side's settings, without touching its difficulty)
+  // look-ahead: once per turn, try each whole-turn plan on a copy of the board, play the round out, keep the best
+  if (K.plan && !mem.sim && s.turn.stage === 'act' && !mem.planDone) { mem.planDone = true; mem.plan = choosePlan(s, pid, K); }
+  if (mem.plan) K = planK(K, mem.plan);
   if (s.turn.stage === 'choose') {
     const c = choosePick(s, p, s.turn.offer);
     // what the card costs in income this turn (about half early on, much less of a big economy)
@@ -644,7 +794,17 @@ function botTurn(s, pid, mem) {
   mem.skip = mem.skip || new Set();
   // 3c. attacks: the planner picks the best one on the board, massing stacks into pincers when one isn't enough
   if (!mem.noAssault && !K.noplan) {
-    const a = planAssault(s, pid, idx, K, strat, mem);
+    let a;
+    if (K.search && !mem.sim) {
+      // look-ahead on the attack itself: the best few blows on the board, and holding off, each played out on a copy
+      // (the rest of our turn, then everyone else's) and judged by the odds of winning from where it leaves us
+      const top = planAssault(s, pid, idx, K, strat, mem, 3);
+      if (top.length) {
+        const pick = searchAttack(s, pid, K, top.map(x => x.act));
+        if (pick === null) { mem.noAssault = true; a = null; }
+        else { a = pick; const b = top.find(x => x.act === pick).b; for (const u of b.used) mem.skip.add(u.k); }
+      } else a = null;
+    } else a = planAssault(s, pid, idx, K, strat, mem);
     if (a) { const t = tryOnce(a); if (t) return t; }
     else mem.noAssault = true;
   }

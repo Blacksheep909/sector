@@ -496,5 +496,19 @@ function crossing(s) {
   const BOT = require('../shared/bot'), a = BOT.botStep(s, 'p1', {});
   ok(a && (a.a === 'move' || a.a === 'assault') && a.to === fob, 'a bot strikes back at the FOB taken off it first (' + JSON.stringify(a) + ')');
 }
+{ // cards a bot wants: no anti-air in the deck and the enemy flying, it takes the anti-air over a comparable fighter
+  const roster = [0, 1].map(i => ({ id: 'p' + i, name: 'P' + i, color: E.COLORS[i], faction: 'iron', bot: i === 1, diff: i === 1 ? 'hard' : undefined }));
+  const { state: s } = E.createGame({ mode: 'domination', mapSize: 'medium', seed: 'cw1' }, roster);
+  s.phase = 'play'; const B = E.player(s, 'p1'), A = E.player(s, 'p0');
+  B.arsenal = ['grunt', 'mauler']; s.turn.round = 9;
+  const BOT = require('../shared/bot');
+  const offer = ['wraith', 'skyguard'];   // both rare: an 8-wheeled IFV, or anti-air
+  const choose = () => { s.turn.idx = s.players.indexOf(B); s.turn.stage = 'choose'; s.turn.offer = offer.slice(); s.turn.income = 20; return BOT.botStep(s, 'p1', {}); };
+  const calm = choose();
+  let id = 990; for (let i = 0; i < 4; i++) { s.units['u' + id] = { id: 'u' + id, owner: 'p0', type: 'stormcrow', hex: A.hq, moved: false, fresh: false, stun: 0, mvBonus: 0 }; id++; }
+  const raid = choose();
+  ok(raid && raid.pick === 'card' && offer[raid.idx] === 'skyguard', 'with the enemy flying and no anti-air in the deck, a bot takes the anti-air card (' + JSON.stringify(raid) + '; with no aircraft about: ' + JSON.stringify(calm) + ')');
+  ok(!(calm && calm.pick === 'card' && offer[calm.idx] === 'skyguard'), 'and with nobody flying it does not');
+}
 console.log(fails ? fails + ' FAILED' : 'all passed');
 process.exit(fails ? 1 : 0);

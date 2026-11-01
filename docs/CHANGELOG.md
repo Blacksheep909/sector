@@ -2,6 +2,10 @@
 
 Every release, newest first. Each version also has its own post on the [Releases page](https://github.com/Blacksheep909/sector/releases).
 
+## Unreleased
+
+- **🃏 Bots want the cards they need.** A bot reads the enemy's army against its own deck and goes for what it's missing: anti-air when the enemy flies and it has none, a tank hunter against armour, siege guns against forts, aircraft when the enemy has no anti-air, artillery against massed infantry, fast units in the early land grab. Cards that are no use against this enemy (anti-air when nobody flies) count for less. In the bot lab, bots facing three or more enemy aircraft with no anti-air in their deck fell from 22% to 10% of turns.
+
 ## v0.13.2
 
 **Bots play better instead of earning more: no difficulty gets bonus income, and every bot guards its HQ and FOBs against what can actually reach them, counterattacks anyone who over-extends, retakes lost FOBs and puts anti-air where the aircraft are. Plus fog fixes, one-step undo, burning bridges, silent subs, new packs and a lag fix.**
