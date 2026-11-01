@@ -9,7 +9,7 @@ Grab land, build an economy, crush your rivals. **Every hex you hold pays you**,
 - Every map also has a **theme**, its climate: Mixed climates, Grasslands (open plains), Woodland (forests and some swamp), Desert (sand and canyons), Badlands (red canyons and scrub), Arctic (snowfields and tundra), Jungle, Wetlands (swamps, lakes and forest) or Highlands (ridges and mountains). **Random** (the default) rolls one for each war, from the seed, so a shared seed gives the same map. The map reel names it, and the ground is coloured to match (snow on arctic plains, dry scrub in the desert). Missions keep their own hand-built maps.
 - **Spawns.** With *Random* spawns, HQs are placed fairly far apart. With *Pick your HQ*, commanders take turns choosing their HQ hex (whoever moves last picks first). HQs must sit a minimum distance apart, and bots pick roomy spots near resources. In fog of war you only see the hexes you can still pick, never where the others set up.
 - Everyone starts with an HQ and its surrounding hexes, 2 Grunts, $6, a **Rare Supply Drop** card, and two unit cards: **Grunts** and their faction's starter unit. Commanders who start on a small island also get the **Ark** transport so they can reach the mainland.
-- **Opening draft.** Before round 1, every commander picks simultaneously. In each of 3 draft rounds you're offered 3 cards and keep 1.
+- **Opening draft.** Before round 1, every commander picks simultaneously. In each of 3 draft rounds you're offered 3 unit cards and keep 1 (tactic cards come later, from resupplies, crates and the black market).
 
 ## Fog of war, events and alliances
 

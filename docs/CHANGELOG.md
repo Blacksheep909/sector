@@ -4,6 +4,8 @@ Every release, newest first. Each version also has its own post on the [Releases
 
 ## Unreleased
 
+- **The opening draft is units only.** No tactic cards in the three opening picks: everyone starts the war with an army plan, and tactics come from resupplies, crates and the black market.
+- **Hard and Impossible bots keep the pressure on.** Stacks that aren't in a fight close on the nearest enemy land, so the army stays at the front with fights to pick from. In the bot lab, Impossible's army more than 4 hexes from any enemy fell from 29% to 20%, attacks rose from 0.41 to 0.50 a turn, and stacks walking back and forth dropped by a quarter.
 - **Bots take the sure kill.** A bot's worry about the counterattack could talk it out of a fight it was certain to win (a 100% attack scored below zero). A near-certain win is now never called off for that.
 - **⚔ Bots open fast.** For the first seven rounds of a war, Medium, Hard and Impossible bots play the land grab and the race for troops: income goes on the army first (no refineries eating the budget), they take full income over all but a strong card, and they attack at slightly closer odds. By round 8 they field about 30% more troops than before, and take income over a card about 3 to 1 in rounds 2–7, where they took cards 2 to 1. (Missions keep their tuned bots.)
 - **The black market no longer offers War Bonds** (it was just buying cash with cash).

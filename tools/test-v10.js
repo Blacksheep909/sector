@@ -530,5 +530,11 @@ function crossing(s) {
   for (let i = 0; i < 400; i++) { const ids = E.drawCards(s, p, 4, E.turnOdds(40), Math.random, true, true); if (ids.includes('bonds')) seen++; }
   ok(!seen, 'the black market never offers War Bonds (400 draws)');
 }
+{ // the opening draft offers units only: no tactic cards
+  let tactics = 0, offers = 0;
+  for (let g = 0; g < 30; g++) { const roster = [0, 1, 2].map(i => ({ id: 'p' + i, name: 'P' + i, color: E.COLORS[i], faction: 'iron' })); const { state: s } = E.createGame({ mode: 'domination', mapSize: 'small', seed: 'dr' + g }, roster);
+    let guard = 0; while (s.phase === 'draft' && guard++ < 20) for (const p of s.players) { const o = s.draft.offers[p.id] || []; offers += o.length; tactics += o.filter(id => E.TACTICS[id]).length; E.applyAction(s, p.id, { a: 'draftPick', idx: 0 }); } }
+  ok(offers > 0 && !tactics, 'the opening draft offers only unit cards (' + offers + ' offered over 30 drafts)');
+}
 console.log(fails ? fails + ' FAILED' : 'all passed');
 process.exit(fails ? 1 : 0);

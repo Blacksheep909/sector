@@ -737,7 +737,7 @@
   function startDraft(state) {
     state.phase = 'draft';
     pushLog(state, 'Sector ' + (state.seed % 9000 + 1000) + ' (' + state.map.arch + ') deployed. ' + state.players.length + ' commanders. Opening draft!');
-    for (const p of state.players) { state.draft.offers[p.id] = drawCards(state, p, 3, DRAFT_ODDS, Math.random); state.draft.step[p.id] = 0; }
+    for (const p of state.players) { state.draft.offers[p.id] = drawCards(state, p, 3, DRAFT_ODDS, Math.random, true, false, true); state.draft.step[p.id] = 0; }
     return [{ e: 'draft', round: 1 }];
   }
   // HQ hexes the current picker may still choose
@@ -1543,7 +1543,7 @@
     return held;
   }
   // draw n distinct cards: roll a rarity from `odds`, then a card of that rarity
-  function drawCards(s, p, n, odds, rng, noDrops, tacticsOnly) {
+  function drawCards(s, p, n, odds, rng, noDrops, tacticsOnly, unitsOnly) {
     const held = heldLegendaries(s);
     const pools = {};
     for (const r of RARITY_ORDER) pools[r] = [];
@@ -1553,6 +1553,7 @@
       pools[UNITS[id].rarity].push(id);
     }
     for (const id in TACTICS) {
+      if (unitsOnly) break;   // (the opening draft: units only)
       if (noDrops && id.startsWith('drop_')) continue;
       if (tacticsOnly && id === 'bonds') continue;   // (the black market: War Bonds there would just be buying cash with cash)
       if (!(['legendary', 'mythic'].includes(TACTICS[id].rarity) && id !== 'drop_legendary' && held.has(id))) pools[TACTICS[id].rarity].push(id);
@@ -1611,7 +1612,7 @@
     d.step[p.id] = (d.step[p.id] || 0) + 1;
     ev.push({ e: 'draftPick', pid: p.id, round: d.step[p.id] });
     if (d.step[p.id] >= d.rounds) { d.picked[p.id] = true; d.offers[p.id] = []; }
-    else { d.offers[p.id] = drawCards(s, p, 3, DRAFT_ODDS, rng); ev.push({ e: 'draft', pid: p.id, round: d.step[p.id] + 1 }); }
+    else { d.offers[p.id] = drawCards(s, p, 3, DRAFT_ODDS, rng, true, false, true); ev.push({ e: 'draft', pid: p.id, round: d.step[p.id] + 1 }); }
     if (s.players.every(pl => !pl.alive || d.picked[pl.id])) {
       s.phase = 'play'; s.draft = null;
       recordHistory(s);

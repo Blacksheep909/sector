@@ -100,8 +100,8 @@ function choosePick(s, p, cards) {
 const SKILL = {
   easy: { attack: 0.52, combo: 1, guard: 0.35, noise: 2.2, idle: 0.15, tactics: 0.5, heli: 0.4, lethal: 0.2, punish: 0.6, expo: 0, hqRisk: 0.6 },
   medium: { attack: 0.58, combo: 2, guard: 0.7, noise: 1.1, idle: 0.05, tactics: 0.8, heli: 0.75, lethal: 0.6, punish: 0.8, expo: 0.4, hqRisk: 0.4, fobRisk: 0.6, opening: 0.5 },
-  hard: { attack: 0.6, combo: 3, guard: 1, noise: 0.4, idle: 0, tactics: 1, heli: 1, lethal: 1, punish: 1, expo: 0.8, hqRisk: 0.25, fobRisk: 0.45, hqLook: 1.5, opening: 1 },
-  impossible: { attack: 0.6, combo: 3, guard: 1, noise: 0.15, idle: 0, tactics: 1, heli: 1, lethal: 1.4, punish: 1.3, expo: 1.2, hqRisk: 0.15, fobRisk: 0.35, hqLook: 2, opening: 1.3 },
+  hard: { attack: 0.6, combo: 3, guard: 1, noise: 0.4, idle: 0, tactics: 1, heli: 1, lethal: 1, punish: 1, expo: 0.8, hqRisk: 0.25, fobRisk: 0.45, hqLook: 1.5, opening: 1, pressW: 1.5 },
+  impossible: { attack: 0.6, combo: 3, guard: 1, noise: 0.15, idle: 0, tactics: 1, heli: 1, lethal: 1.4, punish: 1.3, expo: 1.2, hqRisk: 0.15, fobRisk: 0.35, hqLook: 2, opening: 1.3, pressW: 3 },
 };
 
 // an ally about to stop being one: a break has been announced (by either side), or the pact is in its last round and they
@@ -1035,6 +1035,8 @@ function botTurn(s, pid, mem) {
           else if (t.owner !== pid && held.some(h => E.dist(h, dest) === 1)) v += 12; }
         if (strat.goal.length) v += walkGain('goal', strat.goal, k, dest) * 1.1 + walkGain('enemy', enemyTiles, k, dest) * 0.3;
         else if (enemyTiles.length) v += walkGain('enemy', enemyTiles, k, dest) * 0.8;
+        // pressure: a stack out of contact closes on the nearest enemy land, so every turn the army has fights to pick from
+        if (K.pressW && enemyTiles.length && !enemyNear(k, 1)) v += walkGain('enemy', enemyTiles, k, dest) * K.pressW;
         if (t.owner && t.owner === strat.target) v += 3;
         // a FOB they took off us (or planted next to our land): close in on it from every side, to strike it together next turn
         if (!K.oldfob) { const fobs = mem.enemyFobs = mem.enemyFobs || Object.keys(tiles).filter(h => tiles[h].owner && wary(s, pid, tiles[h].owner) && E.structsOf(tiles[h]).some(x => x.type === 'fob') && ((strat.lost && strat.lost[h]) || E.neighbors(h).filter(n => tiles[n] && tiles[n].owner === pid).length >= 2));
