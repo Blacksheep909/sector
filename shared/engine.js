@@ -852,7 +852,8 @@
     const seen = new Set(src), q = src.slice();
     for (let i = 0; i < q.length; i++) for (const n of neighbors(q[i])) {
       const t = s.map.tiles[n];
-      if (t && t.owner === pid && !seen.has(n)) { seen.add(n); q.push(n); }
+      // (teams: supply runs on through a teammate's land, so your hexes beyond theirs are still connected)
+      if (t && !seen.has(n) && (t.owner === pid || (t.owner && s.settings && s.settings.teams === 'on' && teammate(s, pid, t.owner)))) { seen.add(n); q.push(n); }
     }
     return seen;
   }

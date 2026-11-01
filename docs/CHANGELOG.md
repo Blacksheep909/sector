@@ -4,6 +4,9 @@ Every release, newest first. Each version also has its own post on the [Releases
 
 ## Unreleased
 
+- **🎯 Bots fight as one army.** Each turn a Hard or Impossible bot picks a rally point: its hex on the front facing its war target where most of its army already stands. Every stack not already fighting converges on it, so the army reaches the front together and hits as one, instead of arriving in pieces. Bots used to keep only about a third of their army at the front. In 80 four-player wars, Impossible with the rally beat Impossible without it 50–30, held half again as much land, and was knocked out less.
+- **Teams: supply runs through your teammate's land.** Your hexes beyond a teammate's territory now count as connected (they pay income, and you can build on them) instead of being cut off.
+- **Legendary units wear a gem, not a star.** The gold star above a legendary unit's token read as an upgrade level; it's now an orange diamond on the token's corner, like the gem on the card.
 - **Discounted units say so.** When a unit costs less than its card's price (the Arms Fair world event takes $1 off every unit for the round; Volt's aircraft and Ashen's Skitters are $1 cheaper), its price on the deck bar turns green and its tooltip says why. The deck bar also refreshes when the world event changes, so a price can't stay stale.
 - **The opening draft is units only.** No tactic cards in the three opening picks: everyone starts the war with an army plan, and tactics come from resupplies, crates and the black market.
 - **Hard and Impossible bots keep the pressure on.** Stacks that aren't in a fight close on the nearest enemy land, so the army stays at the front with fights to pick from. In the bot lab, Impossible's army more than 4 hexes from any enemy fell from 29% to 20%, attacks rose from 0.41 to 0.50 a turn, and stacks walking back and forth dropped by a quarter.

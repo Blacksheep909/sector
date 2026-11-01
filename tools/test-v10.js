@@ -536,5 +536,21 @@ function crossing(s) {
     let guard = 0; while (s.phase === 'draft' && guard++ < 20) for (const p of s.players) { const o = s.draft.offers[p.id] || []; offers += o.length; tactics += o.filter(id => E.TACTICS[id]).length; E.applyAction(s, p.id, { a: 'draftPick', idx: 0 }); } }
   ok(offers > 0 && !tactics, 'the opening draft offers only unit cards (' + offers + ' offered over 30 drafts)');
 }
+{ // teams: your land is connected (supplied, paying income) through a teammate's land
+  const mk = teams => { const roster = [0, 1, 2, 3].map(i => ({ id: 'p' + i, name: 'P' + i, color: E.COLORS[i], faction: 'iron', team: i % 2 ? 2 : 1 })); return E.createGame({ mode: 'domination', mapSize: 'medium', seed: 'tm1', teams: teams ? 'on' : 'off' }, roster).state; };
+  for (const teams of [true, false]) {
+    const s = mk(teams); s.phase = 'play'; const T = s.map.tiles, A = E.player(s, 'p0');
+    const mate = s.players.find(p => p.id !== 'p0' && (teams ? E.teammate(s, 'p0', p.id) : true));
+    // a line of 3 land hexes going out from our HQ: ours, the teammate's, ours again
+    const land = k => T[k] && E.isLandTile(T[k]) && T[k].t !== 'mountain' && !(T[k].structs || []).length;
+    let path = null;
+    for (const a of E.neighbors(A.hq)) { if (!land(a)) continue; for (const b of E.neighbors(a)) { if (!land(b) || E.dist(b, A.hq) !== 2) continue; for (const c of E.neighbors(b)) if (land(c) && E.dist(c, A.hq) === 3) { path = [a, b, c]; break; } if (path) break; } if (path) break; }
+    for (const k of E.area(path[2], 1)) if (k !== path[1] && T[k] && T[k].owner === 'p0' && E.dist(k, A.hq) > 1) T[k].owner = null;
+    T[path[0]].owner = 'p0'; T[path[1]].owner = mate.id; T[path[2]].owner = 'p0';
+    for (const n of E.neighbors(path[2])) if (n !== path[1] && T[n] && T[n].owner === 'p0') T[n].owner = null;
+    const sup = E.supplySet(s, 'p0').has(path[2]);
+    ok(teams ? sup : !sup, teams ? 'in teams, your hex beyond a teammate\'s land is still supplied' : 'without teams, a rival\'s land in between cuts it off');
+  }
+}
 console.log(fails ? fails + ' FAILED' : 'all passed');
 process.exit(fails ? 1 : 0);

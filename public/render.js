@@ -1303,7 +1303,8 @@ const Render = (() => {
     // the icon's backing: dark as standard, or the card skin's look (the outline stays in the owner's colour)
     const light = skinBacking(x, ty, r * 0.66, z, skin);
     Art.drawIcon(ctx, 'unit', type, x, ty, r * 0.5, exhausted ? '#8a9299' : light ? '#1a1408' : '#ffffff');
-    if (d.rarity === 'legendary') { ctx.fillStyle = '#ffb52e'; ctx.strokeStyle = '#000'; ctx.lineWidth = 1.5 * z; star(x, ty - r - 3 * z, 5.5 * z); ctx.stroke(); }
+    // a legendary unit wears the legendary gem on its plate (a star up top read as an upgrade level, which it isn't)
+    if (d.rarity === 'legendary') { const gx = x + r * 0.9, gy = ty + r * 0.62, g = 4.6 * z; ctx.fillStyle = '#ffb52e'; ctx.strokeStyle = '#0a0e12'; ctx.lineWidth = 1.6 * z; ctx.beginPath(); ctx.moveTo(gx, gy - g); ctx.lineTo(gx + g, gy); ctx.lineTo(gx, gy + g); ctx.lineTo(gx - g, gy); ctx.closePath(); ctx.fill(); ctx.stroke(); }
     if (n > 1) {
       const bx = x + r * 0.95, by = ty - r * 0.7;
       ctx.fillStyle = '#fff'; ctx.strokeStyle = '#0a0e12'; ctx.lineWidth = 2.5 * z;
