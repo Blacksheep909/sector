@@ -570,5 +570,20 @@ function crossing(s) {
   const all = g1.concat(g2).map(x => s.units[x]).filter(Boolean), on = all.filter(u => u.hex === tgt), back = all.filter(u => u.hex === f1 || u.hex === f2), beside = all.filter(u => E.dist(u.hex, tgt) === 1);
   ok(r.ok && on.length === 5 && !back.length && beside.length === all.length - 5, 'units that can\'t fit on the captured hex stay beside it, not back at the start (' + (r.err || on.length + ' in, ' + beside.length + ' beside, ' + back.length + ' back') + ')');
 }
+{ // teams: card ranges (air strikes and the rest) reach from a teammate's land too
+  for (const teams of [true, false]) {
+    const roster = [0, 1, 2, 3].map(i => ({ id: 'p' + i, name: 'P' + i, color: E.COLORS[i], faction: 'iron', team: i % 2 ? 2 : 1 }));
+    const { state: s } = E.createGame({ mode: 'domination', mapSize: 'large', seed: 'as1', teams: teams ? 'on' : 'off' }, roster);
+    s.phase = 'play'; const T = s.map.tiles, me = 'p0', mate = s.players.find(p => p.id !== me && (!teams || E.teammate(s, me, p.id))).id, foe = s.players.find(p => p.id !== me && p.id !== mate).id;
+    const R = E.TACTICS.airstrike.range, mine = Object.keys(T).filter(k => T[k].owner === me);
+    const far = k => mine.every(m => E.dist(m, k) > R + 2);
+    const target = Object.keys(T).find(k => E.isLandTile(T[k]) && far(k) && !(T[k].structs || []).length);
+    const nb = E.neighbors(target).find(n => T[n] && far(n) && E.isLandTile(T[n]));
+    T[target].owner = foe; T[nb].owner = mate;
+    s.units.zz = { id: 'zz', owner: foe, type: 'mauler', hex: target, moved: false, fresh: false, stun: 0, mvBonus: 0 };
+    const tg = E.tacticTargets(s, me, 'airstrike');
+    ok(teams ? tg.includes(target) : !tg.includes(target), teams ? 'in teams, an air strike reaches from your teammate\'s land' : 'without teams, it reaches only from your own land');
+  }
+}
 console.log(fails ? fails + ' FAILED' : 'all passed');
 process.exit(fails ? 1 : 0);

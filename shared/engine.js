@@ -991,7 +991,9 @@
     return { total, base, fromHex, fromSea, fromRes, ref, trade, ware, taper, cap: taper_, poi, fish, lanes, fromRiver, river, pact, traitor, bonus, roots, hexes, sea, cut, ruined, res };
   }
   function nearOwned(s, pid, k, r) {
-    for (const a of area(k, r)) { const t = s.map.tiles[a]; if (t && t.owner === pid) return true; }
+    // (teams: card ranges reach from your side's land, a teammate's included)
+    const team = s.settings && s.settings.teams === 'on';
+    for (const a of area(k, r)) { const t = s.map.tiles[a]; if (t && (t.owner === pid || (team && t.owner && teammate(s, pid, t.owner)))) return true; }
     return false;
   }
   // ── air defence: anti-air units can shoot down air strikes aimed near them, and keep Heli Drops and EMPs out of their reach ──
