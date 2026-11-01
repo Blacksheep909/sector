@@ -100,8 +100,8 @@ function choosePick(s, p, cards) {
 const SKILL = {
   easy: { attack: 0.52, combo: 1, guard: 0.35, noise: 2.2, idle: 0.15, tactics: 0.5, heli: 0.4, lethal: 0.2, punish: 0.6, expo: 0, hqRisk: 0.6 },
   medium: { attack: 0.58, combo: 2, guard: 0.7, noise: 1.1, idle: 0.05, tactics: 0.8, heli: 0.75, lethal: 0.6, punish: 0.8, expo: 0.4, hqRisk: 0.4, fobRisk: 0.6, opening: 0.5 },
-  hard: { attack: 0.6, combo: 3, guard: 1, noise: 0.4, idle: 0, tactics: 1, heli: 1, lethal: 1, punish: 1, expo: 0.8, hqRisk: 0.25, fobRisk: 0.45, hqLook: 1.5, opening: 1, pressW: 1.5, rally: 1 },
-  impossible: { attack: 0.6, combo: 3, guard: 1, noise: 0.15, idle: 0, tactics: 1, heli: 1, lethal: 1.4, punish: 1.3, expo: 1.2, hqRisk: 0.15, fobRisk: 0.35, hqLook: 2, opening: 1.3, pressW: 3, rally: 2 },
+  hard: { attack: 0.6, combo: 3, guard: 1, noise: 0.4, idle: 0, tactics: 1, heli: 1, lethal: 1, punish: 1, expo: 0.8, hqRisk: 0.25, fobRisk: 0.45, hqLook: 1.5, opening: 1, pressW: 1.5, rally: 1.5, rallyDeploy: 0.6 },
+  impossible: { attack: 0.6, combo: 3, guard: 1, noise: 0.15, idle: 0, tactics: 1, heli: 1, lethal: 1.4, punish: 1.3, expo: 1.2, hqRisk: 0.15, fobRisk: 0.35, hqLook: 2, opening: 1.3, pressW: 3, rally: 3, rallyDeploy: 1 },
 };
 
 // an ally about to stop being one: a break has been announced (by either side), or the pact is in its last round and they
@@ -1249,7 +1249,9 @@ function botTurn(s, pid, mem) {
     // guns deploy at the base just behind the front
     // land troops aren't deployed where they'd be stranded (no route to the war), unless that base is in danger
     const landish = !flier && !E.isSea(type);
-    for (const sp of hexes) { if (landish && cutOff(sp) && !strat.danger[sp] && hexes.some(h => !cutOff(h))) continue; const md = (gun ? (d0 => d0 <= 1 ? 50 : Math.max(0, d0 - (E.UNITS[type].range + 1)))(nearest(sp, enemyTiles)) : flier ? nearest(sp, goal) : sp in gf ? gf[sp] : nearest(sp, goal) + 20) - (strat.danger[sp] ? 6 + strat.danger[sp] / 3 : 0); if (md < bd) { bd = md; bs = sp; } }
+    // (reinforcements join the main army: the base nearest the rally point counts for more)
+    const rp = K.rallyDeploy && landish && !gun ? (mem.rally === undefined ? (mem.rally = rallyPoint()) : mem.rally) : null;
+    for (const sp of hexes) { if (landish && cutOff(sp) && !strat.danger[sp] && hexes.some(h => !cutOff(h))) continue; const md = (gun ? (d0 => d0 <= 1 ? 50 : Math.max(0, d0 - (E.UNITS[type].range + 1)))(nearest(sp, enemyTiles)) : flier ? nearest(sp, goal) : sp in gf ? gf[sp] : nearest(sp, goal) + 20) + (rp ? E.dist(sp, rp) * K.rallyDeploy : 0) - (strat.danger[sp] ? 6 + strat.danger[sp] / 3 : 0); if (md < bd) { bd = md; bs = sp; } }
     const a = tryOnce({ a: 'deploy', unit: type, hex: bs, n: mem.deployN = (mem.deployN || 0) + 1 });
     if (a) { delete a.n; return a; }
   }
