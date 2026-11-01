@@ -2,7 +2,9 @@
 
 Every release, newest first. Each version also has its own post on the [Releases page](https://github.com/Blacksheep909/sector/releases).
 
-## Unreleased
+## v0.13.3
+
+**Packs you tear open by hand, booster-pack art, bots that open fast, rally to one front and want the cards they need, a units-only opening draft, teams that share supply and card range, and a run of fixes.**
 
 - **Bot income by difficulty is back.** Easy earns 75% of normal income, Medium 90%, Hard 110% and Impossible 150%, on top of how they play.
 - **Fix: "Need $51" when you had $51.** With no free hex for a new Airbase (or any building), the only builds on offer were upgrades of ones you own, which cost more, but the error quoted the new-building price. It now says there's no room for a new one and what upgrading costs.
