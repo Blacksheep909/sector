@@ -2,7 +2,9 @@
 
 Every release, newest first. Each version also has its own post on the [Releases page](https://github.com/Blacksheep909/sector/releases).
 
-## Unreleased
+## v0.13.2
+
+**Bots play better instead of earning more: no difficulty gets bonus income, and every bot guards its HQ and FOBs against what can actually reach them, counterattacks anyone who over-extends, retakes lost FOBs and puts anti-air where the aircraft are. Plus fog fixes, one-step undo, burning bridges, silent subs, new packs and a lag fix.**
 
 - **🏕 Bots guard their FOBs and take them back.** A FOB with an enemy raid in reach gets a guard put down on it, one at most, so the army deploying there still goes to war. A FOB the enemy took off a bot, or planted against its land, becomes a top target: nearby stacks close in on it from every side and strike it together, at slightly worse odds if need be, before the enemy can start deploying from it. In the bot lab, about a third of lost FOBs are now retaken, up from under a quarter.
 - **🏰 Bots guard their HQ against what can actually reach it.** Every bot works out which enemy units could strike its HQ next turn: each unit's real move range, Grunts riding in carriers and helicopters, aircraft, and an extra hex of margin under fog of war. It then keeps enough troops there to hold. Hard bots look half a turn further ahead and Impossible bots a full turn. When the HQ can't hold, the bot first pulls nearby troops home (not ones locked in a fight at the front), then buys the sturdiest defenders it can afford. No attack or move takes the HQ below what it needs. In the bot lab, HQs lost while the bot still had a big army elsewhere dropped by a third (30 → 20 in 24 wars), and garrisons are kept from defensive units, so the strikers still go to war.
@@ -26,7 +28,6 @@ Every release, newest first. Each version also has its own post on the [Releases
 - **Abyssal** movement 3 → 2.
 - **🚀 Naval missiles.** Warship missiles now ripple out of the launch cells: each goes straight up on its booster, pitches over, skims in low over the water throwing spray, then pops up and dives onto the target.
 - **Tidier player bar.** The bot mood face sits with the numbers, banner cosmetics keep a dark backing behind the name and stats, and when the chips wrap onto two rows bot chatter stays in the chat log instead of covering the second row.
-- **🛡 Bots guard their HQ and fight air.** When enemy troops near a bot's HQ could take it, it fills the HQ with its sturdiest defenders before spending on anything else (in testing an attacker's odds dropped from about 66% to 8%). Enemy aircraft gathering near a bot's HQ or base bring anti-air there first, and bots value anti-air cards and units by how much the enemy flies.
 - **Mythic cards are card-sized.** They were drawn shorter than every other card (their body wasn't stretched to the card's full height); fixed everywhere.
 - **Short building tips.** Every building in the build bar now has a one-line description; the full rules stay in How to Play and the card index.
 - **Card skins: store and crates only.** The Locker's ALL CARDS browser is gone and card skins can no longer be bought off rotation: they come from the daily store and from crates.
