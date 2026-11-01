@@ -211,6 +211,7 @@ function planAssault(s, pid, idx, K, strat, mem, topN) {
   const hqOf = o => { const q = E.player(s, o); return q && q.alive && wary(s, pid, o) && q.hq && s.map.tiles[q.hq].owner === o ? q.hq : null; };
   let best = null, bv = 0;
   for (const t in by) {
+    if (mem.badAtk && mem.badAtk.has(t)) continue;
     const tt = tiles[t], defs = (idx[t] || []).filter(u => u.owner !== pid);
     const isHQ = tt.struct && tt.struct.type === 'hq' && tt.owner !== pid;
     let prize = 6 + stackValue(defs) * 1.2 + (isHQ ? 90 * (1 + 0.5 * (K.lethal || 0)) : 0) + (tt.struct ? 6 : 0) + (tt.res ? 3 : 0) + (!tt.owner && ['village', 'silo'].includes(tt.poi) ? 10 : 0) + (tt.owner && tt.owner === strat.target ? 6 : 0) + (p && p.vengeance && p.vengeance.vs === tt.owner ? 8 : 0)
@@ -284,7 +285,8 @@ function planAssault(s, pid, idx, K, strat, mem, topN) {
         if (calc.winProb >= 0.8) counter = Math.min(counter, prize * 0.45);   // a near-sure kill is never called off for fear of the reply: destroying them is half the answer to it
       }
     }
-    const v = calc.winProb * prize - (1 - calc.winProb) * risk * 0.8 * (1 - press * 2) - exposure - counter;
+    // (riskW: how much losing the attacking stacks weighs. A relentless bot accepts losses to keep up the pressure)
+    const v = calc.winProb * prize - (1 - calc.winProb) * risk * 0.8 * (K.riskW === undefined ? 1 : K.riskW) * (1 - press * 2) - exposure - counter;
     if (topN && v > 0) all.push({ t, used, calc, v });
     if (v > bv) { bv = v; best = { t, used, calc }; }
   }
@@ -810,7 +812,9 @@ function botTurn(s, pid, mem) {
         else { a = pick; const b = top.find(x => x.act === pick).b; for (const u of b.used) mem.skip.add(u.k); }
       } else a = null;
     } else a = planAssault(s, pid, idx, K, strat, mem);
-    if (a) { const t = tryOnce(a); if (t) return t; }
+    // a blow that can't go ahead (refused, or it would strip a garrison) is crossed off, so the planner moves on to the
+    // next best instead of offering the same one for the rest of the turn
+    if (a) { const t = tryOnce(a); if (t) return t; (mem.badAtk = mem.badAtk || new Set()).add(a.to); }
     else mem.noAssault = true;
   }
   const threat = mem.threat = mem.threat || threatMap(s, pid, idx);
@@ -1066,7 +1070,7 @@ function botTurn(s, pid, mem) {
         if (r.kind === 'move' && t.owner === pid && v < 1 && !exposed) continue;   // a step closer to the front is worth taking
         let near = 0; for (const n of E.neighbors(dest)) for (const u of idx[n] || []) if (wary(s, pid, u.owner)) near += E.unitAtk(s, u);
         const friends = (idx[dest] || []).filter(u => u.owner === pid).reduce((a, u) => a + E.unitDef(s, u), 0);
-        if (near > (myDefHere + friends) * 1.6) v -= 4 + near / 4 * K.guard;   // don't walk alone into a stronger enemy's reach
+        if (near > (myDefHere + friends) * (K.bold ? 1.6 + K.bold : 1.6)) v -= (4 + near / 4 * K.guard) / (1 + (K.bold || 0));   // don't walk alone into a stronger enemy's reach
         // massing: close on the war target together, joining friendly stacks on the way rather than trickling in
         if (strat.goal.length && friends && (stuck || near) && E.stackFits(idx[dest].filter(u => u.owner === pid), movers)) v += 2 + Math.min(4, friends / 4) * K.guard;
         if (movers.some(u => E.UNITS[u.type].heli) && !movers.some(u => u.type === 'grunt')) v -= heliDanger(s, pid, idx, dest) * 1.5 * K.heli;   // helicopters keep away from AA and riflemen
