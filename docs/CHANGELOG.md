@@ -4,6 +4,8 @@ Every release, newest first. Each version also has its own post on the [Releases
 
 ## Unreleased
 
+- **⚔ Bots open fast.** For the first seven rounds of a war, Medium, Hard and Impossible bots play the land grab and the race for troops: income goes on the army first (no refineries eating the budget), they take full income over all but a strong card, and they attack at slightly closer odds. By round 8 they field about 30% more troops than before, and take income over a card about 3 to 1 in rounds 2–7, where they took cards 2 to 1. (Missions keep their tuned bots.)
+- **The black market no longer offers War Bonds** (it was just buying cash with cash).
 - **Early resupply pick removed.** Picking your next resupply (card or full income) while others played could pay out twice, so it's gone: you pick at the start of your turn, and income is paid once. Nothing else (the blueprint included) can pay a turn's income twice: a second pick is refused.
 - **Fix: Bunkers in rivers.** Verdant's starting ★★ Bunker could land on a river hex beside the HQ, and the Fortify card could build one in a river. Both now keep to dry, buildable ground, like every other building.
 - **Fix: helicopter rotors.** Rotor blades were drawn as long dark sticks reaching across the neighbouring hexes, worst on helicopters that had already moved. A flying helicopter now shows a pale blur of spinning blades over its token; one that's spent this turn shows its rotor stopped, two short parked blades.

@@ -1554,6 +1554,7 @@
     }
     for (const id in TACTICS) {
       if (noDrops && id.startsWith('drop_')) continue;
+      if (tacticsOnly && id === 'bonds') continue;   // (the black market: War Bonds there would just be buying cash with cash)
       if (!(['legendary', 'mythic'].includes(TACTICS[id].rarity) && id !== 'drop_legendary' && held.has(id))) pools[TACTICS[id].rarity].push(id);
     }
     const out = [];

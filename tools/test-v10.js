@@ -523,5 +523,12 @@ function crossing(s) {
     const r = E.applyAction(s, 'p0', { a: 'tactic', uid: 91, target: k });
     ok(!r.ok && !E.structsOf(T[k]).some(x => x.type === 'bunker'), 'a Fortify card can\'t put a Bunker in a river (' + (r.err || 'played') + ')'); }
 }
+{ // the black market never offers War Bonds
+  const roster = [0, 1].map(i => ({ id: 'p' + i, name: 'P' + i, color: E.COLORS[i], faction: 'iron' }));
+  const { state: s } = E.createGame({ mode: 'domination', mapSize: 'small', seed: 'bm1' }, roster);
+  const p = s.players[0]; let seen = 0;
+  for (let i = 0; i < 400; i++) { const ids = E.drawCards(s, p, 4, E.turnOdds(40), Math.random, true, true); if (ids.includes('bonds')) seen++; }
+  ok(!seen, 'the black market never offers War Bonds (400 draws)');
+}
 console.log(fails ? fails + ' FAILED' : 'all passed');
 process.exit(fails ? 1 : 0);

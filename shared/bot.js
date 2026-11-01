@@ -99,9 +99,9 @@ function choosePick(s, p, cards) {
 // No difficulty earns extra money: harder bots are harder because they play better
 const SKILL = {
   easy: { attack: 0.52, combo: 1, guard: 0.35, noise: 2.2, idle: 0.15, tactics: 0.5, heli: 0.4, lethal: 0.2, punish: 0.6, expo: 0, hqRisk: 0.6 },
-  medium: { attack: 0.58, combo: 2, guard: 0.7, noise: 1.1, idle: 0.05, tactics: 0.8, heli: 0.75, lethal: 0.6, punish: 0.8, expo: 0.4, hqRisk: 0.4, fobRisk: 0.6 },
-  hard: { attack: 0.6, combo: 3, guard: 1, noise: 0.4, idle: 0, tactics: 1, heli: 1, lethal: 1, punish: 1, expo: 0.8, hqRisk: 0.25, fobRisk: 0.45, hqLook: 1.5 },
-  impossible: { attack: 0.6, combo: 3, guard: 1, noise: 0.15, idle: 0, tactics: 1, heli: 1, lethal: 1.4, punish: 1.3, expo: 1.2, hqRisk: 0.15, fobRisk: 0.35, hqLook: 2 },
+  medium: { attack: 0.58, combo: 2, guard: 0.7, noise: 1.1, idle: 0.05, tactics: 0.8, heli: 0.75, lethal: 0.6, punish: 0.8, expo: 0.4, hqRisk: 0.4, fobRisk: 0.6, opening: 0.5 },
+  hard: { attack: 0.6, combo: 3, guard: 1, noise: 0.4, idle: 0, tactics: 1, heli: 1, lethal: 1, punish: 1, expo: 0.8, hqRisk: 0.25, fobRisk: 0.45, hqLook: 1.5, opening: 1 },
+  impossible: { attack: 0.6, combo: 3, guard: 1, noise: 0.15, idle: 0, tactics: 1, heli: 1, lethal: 1.4, punish: 1.3, expo: 1.2, hqRisk: 0.15, fobRisk: 0.35, hqLook: 2, opening: 1.3 },
 };
 
 // an ally about to stop being one: a break has been announced (by either side), or the pact is in its last round and they
@@ -537,6 +537,9 @@ function botTurn(s, pid, mem) {
   // the Iron Covenant defends on +1 Chip a unit: it digs in, picks its fights, and makes anyone who comes at it pay
   if (p.faction === 'iron') K = { ...K, attack: K.attack + 0.04, guard: Math.min(1.3, K.guard * 1.25), punish: (K.punish === undefined ? 1 : K.punish) * 1.5 };
   if (BOTX.length) { K = { ...K }; for (const x of BOTX) { let [k, v] = x.split('='); if (k.includes('.')) { const [d, kk] = k.split('.'); if (d !== p.diff) continue; k = kk; } if (v !== undefined) K[k] = +v; else K[k] = true; } }
+  // the opening: the first rounds are a land grab and a race for troops, not an economy game. Troops come first (no
+  // money-makers eating the army's budget), full income beats all but a strong card, and the army goes in at closer odds
+  if (K.opening && s.turn && s.turn.round <= 7 && !s.scenario) K = { ...K, ecoUntil: 0, armyShare: Math.max(K.armyShare || 0.8, 0.85), cardBar: (K.cardBar || 0) + 1.2 * K.opening, attack: K.attack - 0.04 * K.opening };
   if (p.labK) K = { ...K, ...p.labK };   // (bot lab: one side's settings, without touching its difficulty)
   // look-ahead: once per turn, try each whole-turn plan on a copy of the board, play the round out, keep the best
   if (K.plan && !mem.sim && s.turn.stage === 'act' && !mem.planDone) { mem.planDone = true; mem.plan = choosePlan(s, pid, K); }
