@@ -100,8 +100,8 @@ function choosePick(s, p, cards) {
 const SKILL = {
   easy: { attack: 0.52, combo: 1, guard: 0.35, noise: 2.2, idle: 0.15, tactics: 0.5, heli: 0.4, lethal: 0.2, punish: 0.6, expo: 0, hqRisk: 0.6 },
   medium: { attack: 0.58, combo: 2, guard: 0.7, noise: 1.1, idle: 0.05, tactics: 0.8, heli: 0.75, lethal: 0.6, punish: 0.8, expo: 0.4, hqRisk: 0.4, fobRisk: 0.6, opening: 0.5 },
-  hard: { attack: 0.6, combo: 3, guard: 1, noise: 0.4, idle: 0, tactics: 1, heli: 1, lethal: 1, punish: 1, expo: 0.8, hqRisk: 0.25, fobRisk: 0.45, hqLook: 1.5, opening: 1, pressW: 1.5, rally: 1.5, rallyDeploy: 0.6 },
-  impossible: { attack: 0.6, combo: 3, guard: 1, noise: 0.15, idle: 0, tactics: 1, heli: 1, lethal: 1.4, punish: 1.3, expo: 1.2, hqRisk: 0.15, fobRisk: 0.35, hqLook: 2, opening: 1.3, pressW: 3, rally: 3, rallyDeploy: 1 },
+  hard: { attack: 0.6, combo: 3, guard: 1, noise: 0.4, idle: 0, tactics: 1, heli: 1, lethal: 1, punish: 1, expo: 0.8, hqRisk: 0.25, fobRisk: 0.45, hqLook: 1.5, opening: 1, pressW: 1.5, rally: 1.5, rallyDeploy: 0.6, rallyWeak: 0.4 },
+  impossible: { attack: 0.6, combo: 3, guard: 1, noise: 0.15, idle: 0, tactics: 1, heli: 1, lethal: 1.4, punish: 1.3, expo: 1.2, hqRisk: 0.15, fobRisk: 0.35, hqLook: 2, opening: 1.3, pressW: 3, rally: 3, rallyDeploy: 1, rallyWeak: 0.6 },
 };
 
 // an ally about to stop being one: a break has been announced (by either side), or the pact is in its last round and they
@@ -858,7 +858,7 @@ function botTurn(s, pid, mem) {
     const tgt = strat.target, line = Object.keys(tiles).filter(k => tiles[k].owner === pid && E.isLandTile(tiles[k]) && !(tiles[k].river && !tiles[k].bridge) && E.neighbors(k).some(n => tiles[n] && tiles[n].owner && (tgt ? tiles[n].owner === tgt : wary(s, pid, tiles[n].owner))));
     if (!line.length) return null;
     let best = null, bv = -1e9;
-    for (const k of line) { let mass = 0; for (const a of E.area(k, 3)) for (const u of idx[a] || []) if (u.owner === pid && !E.isSea(u.type)) mass += unitValue(u.type) / (1 + E.dist(a, k)); const v = mass - (strat.hq ? E.dist(k, strat.hq) * 1.5 : 0); if (v > bv) { bv = v; best = k; } }
+    for (const k of line) { let mass = 0; for (const a of E.area(k, 3)) for (const u of idx[a] || []) if (u.owner === pid && !E.isSea(u.type)) mass += unitValue(u.type) / (1 + E.dist(a, k)); let foe = 0; if (K.rallyWeak) for (const a of E.area(k, 2)) for (const u of idx[a] || []) if (wary(s, pid, u.owner)) foe += unitValue(u.type) / (1 + E.dist(a, k)); const v = mass - foe * (K.rallyWeak || 0) - (strat.hq ? E.dist(k, strat.hq) * 1.5 : 0); if (v > bv) { bv = v; best = k; } }
     return best;
   };
   // land we could still grab: un-owned land touching our territory

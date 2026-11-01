@@ -552,5 +552,23 @@ function crossing(s) {
     ok(teams ? sup : !sup, teams ? 'in teams, your hex beyond a teammate\'s land is still supplied' : 'without teams, a rival\'s land in between cuts it off');
   }
 }
+{ // a won attack: whoever can't fit on the captured hex stays where it attacked from, not back where it started
+  const roster = [0, 1].map(i => ({ id: 'p' + i, name: 'P' + i, color: E.COLORS[i], faction: 'iron' }));
+  const { state: s } = E.createGame({ mode: 'domination', mapSize: 'large', seed: 'tp1' }, roster);
+  s.phase = 'play'; const T = s.map.tiles, A = E.player(s, 'p0'), Bp = E.player(s, 'p1');
+  for (const id in s.units) delete s.units[id];
+  const flat = k => T[k] && E.isLandTile(T[k]) && T[k].t !== 'mountain' && !T[k].river && !(T[k].structs || []).length && !T[k].poi;
+  const tgt = Object.keys(T).find(k => E.area(k, 2).every(h => T[h]) && E.dist(k, A.hq) >= 5 && E.dist(k, Bp.hq) >= 5);
+  for (const h of E.area(tgt, 2)) { const t = T[h]; t.t = 'plains'; delete t.river; delete t.bridge; delete t.poi; delete t.res; t.structs = []; t.struct = null; delete t.contam; }
+  const ring = E.area(tgt, 2).filter(h => E.dist(h, tgt) === 2), f1 = ring[0], f2 = ring.find(h => E.dist(h, f1) >= 3) || ring[3];
+  for (const h of E.area(tgt, 2)) T[h].owner = 'p0'; T[tgt].owner = 'p1';
+  let id = 700; const put = (o, t, h) => { s.units['u' + id] = { id: 'u' + id, owner: o, type: t, hex: h, moved: false, fresh: false, stun: 0, mvBonus: 0 }; return 'u' + id++; };
+  put('p1', 'grunt', tgt);
+  const g1 = [put('p0', 'mauler', f1), put('p0', 'mauler', f1), put('p0', 'mauler', f1)], g2 = [put('p0', 'mauler', f2), put('p0', 'mauler', f2), put('p0', 'mauler', f2)];
+  s.turn.idx = s.players.indexOf(A); s.turn.stage = 'act'; A.cash = 0;
+  const r = E.applyAction(s, 'p0', { a: 'assault', to: tgt, groups: [{ from: f1, units: g1 }, { from: f2, units: g2 }] }, () => 0.99);
+  const all = g1.concat(g2).map(x => s.units[x]).filter(Boolean), on = all.filter(u => u.hex === tgt), back = all.filter(u => u.hex === f1 || u.hex === f2), beside = all.filter(u => E.dist(u.hex, tgt) === 1);
+  ok(r.ok && on.length === 5 && !back.length && beside.length === all.length - 5, 'units that can\'t fit on the captured hex stay beside it, not back at the start (' + (r.err || on.length + ' in, ' + beside.length + ' beside, ' + back.length + ' back') + ')');
+}
 console.log(fails ? fails + ' FAILED' : 'all passed');
 process.exit(fails ? 1 : 0);

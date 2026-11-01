@@ -1371,8 +1371,14 @@
         }
       }
     }
-    // everyone who didn't advance goes back to where they started
-    for (const g of groups) for (const u of g.units) if (s.units[u.id] && u.hex !== target) u.hex = g.from;
+    // everyone who didn't advance stays where they attacked from (they marched there: no snapping back to the start), if
+    // that hex is ours with room for them; otherwise they go back to where they started
+    for (const g of groups) {
+      const left = g.units.filter(u => s.units[u.id] && u.hex !== target); if (!left.length) continue;
+      const st = s.map.tiles[g.stage], here = Object.values(s.units).filter(x => x.hex === g.stage && !left.includes(x));
+      const ok = st && g.stage !== g.from && g.stage !== target && (st.owner === pid || (st.owner && teammate(s, pid, st.owner))) && left.every(u => canHold(st, u)) && !here.some(x => x.owner !== pid) && stackFits(here, left.map(u => u.type));
+      for (const u of left) u.hex = ok ? g.stage : g.from;
+    }
     pushLog(s, '⚔ ' + (ap ? ap.name : '?') + (groups.length > 1 ? ' launched a ' + groups.length + '-way assault on ' : ' attacked ') + (dp ? dp.name : 'a garrison') + ': ' + aScore + ' vs ' + dScore + (crush ? ' · OBLITERATED' : attWin ? ' · WIN' : ' · REPELLED'));
     return attWin;
   }
