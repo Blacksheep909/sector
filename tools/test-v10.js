@@ -439,5 +439,22 @@ function crossing(s) {
   B.bot = false; const asHuman = E.computeIncome(s, 'p1').total; B.bot = true;
   ok(asBot === asHuman && asBot > 3, 'an Impossible bot earns what a human would ($' + asBot + ' vs $' + asHuman + ')');
 }
+{ // a bot whose HQ is in reach of an enemy strike brings troops home (or buys defenders there) before anything else
+  const roster = [0, 1].map(i => ({ id: 'p' + i, name: 'P' + i, color: E.COLORS[i], faction: 'iron', bot: i === 1, diff: i === 1 ? 'hard' : undefined }));
+  const { state: s } = E.createGame({ mode: 'domination', mapSize: 'medium', seed: 'hqd1' }, roster);
+  s.phase = 'play'; const T = s.map.tiles, B = E.player(s, 'p1');
+  for (const id in s.units) delete s.units[id];
+  const land = h => T[h] && E.isLandTile(T[h]) && T[h].t !== 'mountain' && !T[h].river;
+  const foeAt = Object.keys(T).find(h => land(h) && E.dist(h, B.hq) === 2 && !(T[h].structs || []).length);
+  const homeAt = Object.keys(T).find(h => land(h) && E.dist(h, B.hq) === 1 && E.dist(h, foeAt) >= 2 && !(T[h].structs || []).length);
+  for (const h of E.area(B.hq, 1)) if (T[h] && E.isLandTile(T[h])) T[h].owner = 'p1';
+  T[foeAt].owner = 'p0';
+  let id = 900; const put = (owner, type, hex) => { s.units['u' + id] = { id: 'u' + id, owner, type, hex, moved: false, fresh: false, stun: 0, mvBonus: 0 }; id++; };
+  for (let i = 0; i < 4; i++) put('p0', 'mauler', foeAt);
+  for (let i = 0; i < 3; i++) put('p1', 'grunt', homeAt);
+  B.cash = 0; s.turn.idx = s.players.indexOf(B); s.turn.stage = 'act';
+  const BOT = require('../shared/bot'), a = BOT.botStep(s, 'p1', {});
+  ok(a && a.a === 'move' && a.to === B.hq && a.from === homeAt, 'a bot with an enemy strike in reach of its empty HQ brings troops home (' + JSON.stringify(a) + ')');
+}
 console.log(fails ? fails + ' FAILED' : 'all passed');
 process.exit(fails ? 1 : 0);
