@@ -120,6 +120,9 @@ const SFX = (() => {
     setVolume(v) { vol = Math.max(0, Math.min(1, +v || 0)); try { localStorage.setItem('sector.vol', String(vol)); } catch (e) {} if (master) master.gain.value = 0.32 * vol; },
     toggle() { muted = !muted; try { localStorage.setItem('sector.muted', muted ? '1' : '0'); } catch (e) {} return muted; },
     click() { tone(880, 0.05, { type: 'square', vol: 0.12 }); },
+    // foil tearing: a crackle of short bright bursts, louder and denser the faster it goes (speed 0–1); pop: the strip coming off
+    rip(speed = 0.5) { const n = 1 + Math.round(speed * 3); for (let i = 0; i < n; i++) noise(0.018 + Math.random() * 0.03, { vol: 0.06 + speed * 0.16, freq: 2200 + Math.random() * 3800, q: 1.4 + Math.random() * 2, type: 'bandpass', delay: i * 0.011 + Math.random() * 0.006 }); noise(0.05, { vol: 0.03 + speed * 0.05, freq: 900, q: 0.7, type: 'bandpass' }); },
+    ripPop() { noise(0.16, { vol: 0.28, freq: 3200, q: 0.9, type: 'bandpass', sweep: -2400 }); noise(0.09, { vol: 0.22, freq: 700, q: 0.8, type: 'lowpass' }); tone(140, 0.12, { type: 'sine', vol: 0.18, slide: -60 }); },
     hover() { tone(1320, 0.025, { type: 'sine', vol: 0.05 }); },
     select() { tone(520, 0.06, { vol: 0.14 }); tone(780, 0.08, { vol: 0.12, delay: 0.04 }); },
     error() { tone(160, 0.16, { type: 'sawtooth', vol: 0.16 }); tone(120, 0.2, { type: 'sawtooth', vol: 0.12, delay: 0.08 }); },

@@ -442,7 +442,7 @@ const Cards = (() => {
     SFX.deploy(); Render.shake(T === 'mythic' ? 10 : T === 'gilded' ? 7 : 4);
     // 3. tear it open along the top: the light that pours out is the colour of the best card inside
     const best = crate.cards.reduce((b, id) => Math.max(b, E.RARITY_ORDER.indexOf(E.cardDef(id).rarity)), 0), lc = E.RARITY[E.RARITY_ORDER[best]].color;
-    const [mx, my] = await Crates.tear(pk, { col: lc, autoAfter: fast() ? 60 : 4000 });
+    const [mx, my] = await Crates.tear(pk, { col: lc, autoAfter: fast() ? 60 : 20000 });
     sun.classList.add('open'); sun.style.setProperty('--tc', lc);
     SFX.victoryHit(); Render.shake(best >= 4 ? 18 : best >= 3 ? 12 : 7);
     burstAt(mx, my, [lc, '#ffffff', lc], 30 + best * 12, 280, 9);

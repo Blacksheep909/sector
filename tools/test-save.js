@@ -43,6 +43,9 @@ const until = async (f, ms = 8000) => { const t = Date.now(); while (Date.now() 
     const me = b.state && b.state.players.find(p => p.id === b.you);
     ok(!!me && !me.bot && me.name === before.players.find(p => !p.bot).name, 'the returning player gets their own seat back');
     ok(b.lobby.players.some(p => p.bot), 'the bot seat is still a bot');
+    // ending a war (without saving it by hand) finishes it: it's no longer offered to continue
+    await sleep(3500); b.send({ t: 'toLobby' });
+    ok(await until(() => !b.state && b.lobby && !b.lobby.inGame) && (await sleep(300), !(b.lobby.saves || []).length), 'a war the host ends is no longer offered to continue');
     // five save slots: a sixth war pushes out the oldest
     const P = require('../profiles').createProfiles(path.join(dir, 'cap.json'));
     const pr = P.open('c'.repeat(32), 'cap-secret-xxxxxxxxxx'); let dropped = [];

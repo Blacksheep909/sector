@@ -616,7 +616,7 @@ function onMessage(c, m) {
     }
     case 'saveGame': {
       if (!game || game.phase !== 'play' || c.pid !== lobby.hostId) return;
-      const d = writeSave();
+      const d = writeSave(); if (d) handSaved = { game, round: game.turn.round };   // saved by hand: ending the war this round keeps it
       send(c, d ? { t: 'saved', title: d.title } : { t: 'err', msg: 'Could not save the game' });
       return;
     }
@@ -696,8 +696,10 @@ function resetWar() {
 function endGame() {
   console.log('[game] ' + code + ' returned to lobby');
   resetWar();
-  // ending a war early keeps it saved, so it can be resumed from the lobby
-  if (game && game.phase === 'play' && !game.scenario) writeSave(); else clearTimeout(saveTimer);
+  // the host ended it: it's over, so it's no longer offered under CONTINUE (leaving a war, by contrast, keeps it saved)
+  clearTimeout(saveTimer); saveTimer = null;
+  if (game && game.saveId && handSaved && handSaved.game === game && handSaved.round === game.turn.round && game.phase === 'play') writeSave();   // (unless the host just saved it by hand)
+  else if (game && game.saveId) { dropSave(game.saveId, game.saveOwner); game.saveId = null; }
   for (const k in warNotes) delete warNotes[k]; for (const c of clients) c.notesSig = null;
   game = null; clearTimeout(botTimer); clearTimeout(turnTimer); clearTimeout(idleTimer);
   for (const p of lobby.players) p.ready = false;   // everyone readies up again for the next war
@@ -705,10 +707,16 @@ function endGame() {
   broadcastLobby();
 }
 
-let saveTimer = null;
+let saveTimer = null, handSaved = null;   // (the war the host last saved by hand, and in which round)
+// is anyone who sat down as a human still in this war? (a seat whose player walked out plays on as "Name (bot)")
+function humansAlive() {
+  return !!game && game.players.some(gp => { if (!gp.alive) return false; const lp = lobby.players.find(p => p.id === gp.id); return lp && (!lp.bot || / \(bot\)$/.test(lp.name || '')); });
+}
 function writeSave() {
   clearTimeout(saveTimer); saveTimer = null;
   if (!game || game.phase !== 'play' || !game.saveId) return null;
+  // every human knocked out: the bots may fight on, but there's nothing left for anyone to come back to
+  if (!humansAlive()) { dropSave(game.saveId, game.saveOwner); game.saveId = null; return null; }
   const fog = {}; for (const k in fogMem) fog[k] = { explored: [...fogMem[k].explored], seen: fogMem[k].seen };
   const seats = lobby.players.filter(p => game.players.some(g => g.id === p.id)).map(p => pick(p, ['id', 'name', 'color', 'faction', 'bot', 'diff', 'persona', 'local', 'controller', 'team', 'profileId']));
   const owner = profiles.get(game.saveOwner); if (!owner) return null;
@@ -728,6 +736,8 @@ function loadSave(c, id) {
   if (!pr || !profiles.savesOf(pr).some(s => s.id === id)) return send(c, { t: 'err', msg: 'That save isn’t yours' });
   const d = readSave(id); if (!d) return send(c, { t: 'err', msg: 'That save could not be read' });
   if (!d || !d.game || !d.game.players) return send(c, { t: 'err', msg: 'That save is damaged' });
+  // an old save of a war that was already over for every human (from before such saves were cleared): clear it now
+  if (d.game.phase !== 'play' || !d.game.players.some(gp => gp.alive && (d.seats || []).some(x => x.id === gp.id && (!x.bot || / \(bot\)$/.test(x.name || ''))))) { dropSave(id, pr.id); broadcastLobby(); return send(c, { t: 'err', msg: 'That war is already over' }); }
   const g = E.relink(d.game), seats = d.seats || [];
   const num = id => +(String(id).match(/\d+/) || [0])[0];
   nextPid = Math.max(nextPid, ...g.players.map(p => num(p.id) + 1), ...lobby.players.map(p => num(p.id) + 1));
@@ -977,6 +987,7 @@ function afterChange(events) {
   clearTimeout(botTimer); clearTimeout(turnTimer); clearTimeout(idleTimer);
   payOut();
   if (game && game.phase === 'play' && !game.scenario) scheduleSave();
+  if (game && game.phase === 'play' && game.saveId && !humansAlive()) { clearTimeout(saveTimer); saveTimer = null; dropSave(game.saveId, game.saveOwner); game.saveId = null; }
   else if (game && game.phase === 'over' && game.saveId) { clearTimeout(saveTimer); saveTimer = null; dropSave(game.saveId, game.saveOwner); game.saveId = null; }   // a finished war can't be resumed
   if (game && game.phase === 'spawn') {
     // bots pick their HQ quickly; humans get 60 seconds before one is chosen for them

@@ -76,61 +76,134 @@ const Crates = (() => {
     </svg>`;
   }
 
-  // ── card packs: a foil pack with crimped seams, torn open along the top (drag across it, or click and it tears itself) ──
-  // kinds: the supply drop's tiers (standard, gilded, mythic) and the Store's packs (field, elite)
+  // ── card packs: a printed foil pack, torn open along the top by hand ──
+  // kinds: the supply drop's tiers (standard, gilded, mythic) and the Store's packs (field, elite). Each shows a fan of real
+  // cards bursting out of its art, so it reads as a pack full of cards, not an empty wrapper
   const PACK = {
-    standard: { foil: ['#cfdbe6', '#7d93a8', '#34465a'], ink: '#0f1a24', name: 'STANDARD', sub: 'SUPPLY DROP' },
-    gilded: { foil: ['#fff1b8', '#e0a91e', '#7a560c'], ink: '#3a2604', name: 'GILDED', sub: 'SUPPLY DROP' },
-    mythic: { foil: ['#f6dcff', '#9a6bff', '#2f6bd6'], ink: '#1d0d3a', name: 'MYTHIC', sub: 'SUPPLY DROP', holo: true },
-    field: { foil: ['#d9dca0', '#7d8a45', '#3a4524'], ink: '#1d2412', name: 'FIELD PACK', sub: 'CARD SKINS' },
-    elite: { foil: ['#f3d27a', '#2a2d35', '#0d0e12'], ink: '#f3d27a', name: 'ELITE PACK', sub: 'CARD SKINS', holo: true },
+    standard: { foil: ['#dfe9f2', '#8aa1b6', '#2e4054'], ink: '#0f1a24', glow: '#9fd0ff', name: 'STANDARD', sub: 'SUPPLY DROP', fan: ['lancer', 'grunt', 'mauler'] },
+    gilded: { foil: ['#fff4c4', '#e6ad22', '#6e4d08'], ink: '#2e1e02', glow: '#ffd36b', name: 'GILDED', sub: 'SUPPLY DROP', fan: ['banshee', 'titan', 'valkyrie'], promise: '★ RARE OR BETTER INSIDE' },
+    mythic: { foil: ['#f7e2ff', '#9a6bff', '#22408f'], ink: '#160a2e', glow: '#d59bff', name: 'MYTHIC', sub: 'SUPPLY DROP', fan: ['sentinel', 'leviathan', 'goliath'], holo: true, promise: '✦ EPIC OR BETTER INSIDE' },
+    field: { foil: ['#e3e6a8', '#7f8c45', '#33401f'], ink: '#1a2110', glow: '#d8f07a', name: 'FIELD PACK', sub: 'CARD SKINS', fan: ['thumper', 'skitter', 'bulwark'] },
+    elite: { foil: ['#f6d885', '#2a2d35', '#0b0c10'], ink: '#f6d885', glow: '#ffcf5a', name: 'ELITE PACK', sub: 'CARD SKINS', fan: ['grumble', 'phantom', 'wraith'], holo: true, promise: '★ PREMIUM SKINS' },
   };
+  const PW = 210, SL = 42;   // pack width in px, and how many slivers the top strip tears into
   const zig = (n, y0, y1) => Array.from({ length: n * 2 + 1 }, (_, i) => `${(i / (n * 2) * 100).toFixed(2)}% ${i % 2 ? y1 : y0}`).join(',');
+  // a ragged torn edge, different on every pack
+  const rag = () => { const pts = []; for (let i = 0; i <= 60; i++) pts.push(`${(i / 60 * 100).toFixed(2)}% ${(2 + Math.random() * 6).toFixed(1)}px`); return `polygon(0 100%,${pts.join(',')},100% 100%)`; };
+  function fanCard(id, i) {
+    let src = ''; try { src = typeof Art !== 'undefined' && Art.cardArt ? Art.cardArt(id) : ''; } catch (e) {}
+    return `<div class="pk-card" style="--i:${i}">${src ? `<img src="${src}" alt="">` : ''}<b></b></div>`;
+  }
+  // the key art: one unit, filling the face of the pack the way a booster's illustration does
+  function heroArt(id) { let src = ''; try { src = id && typeof Art !== 'undefined' && Art.cardArt ? Art.cardArt(id) : ''; } catch (e) {} return src ? `<img src="${src}" alt="">` : ''; }
+  // creases: where the bulge of cards meets the flat crimped seals, the foil wrinkles in a fan from each corner
+  const CREASES = `<svg viewBox="0 0 210 276" preserveAspectRatio="none">${[[14, 26, -1, -1], [196, 26, 1, -1], [14, 252, -1, 1], [196, 252, 1, 1]].map(([x, y, sx, sy]) =>
+    [0, 1, 2, 3].map(k => { const ex = x + sx * (4 + k * 9), ey = y + sy * (22 - k * 4); return `<path d="M${x} ${y} L${ex} ${ey}" stroke="rgba(255,255,255,.5)" stroke-width="1.2"/><path d="M${x + sx} ${y} L${ex + sx} ${ey}" stroke="rgba(0,0,0,.45)" stroke-width="1.2"/>`; }).join('') +
+    [0, 1, 2].map(k => { const ex = x - sx * (8 + k * 14), ey = y + sy * (24 - k * 3); return `<path d="M${x} ${y} L${ex} ${ey}" stroke="rgba(255,255,255,.35)" stroke-width="1"/><path d="M${x} ${y + sy} L${ex} ${ey + sy}" stroke="rgba(0,0,0,.35)" stroke-width="1"/>`; }).join('')).join('')}</svg>`;
   function pack(kind, opts = {}) {
-    const P = PACK[kind] || PACK.standard, SL = 14;
+    const P = PACK[kind] || PACK.standard;
     const p = el('div', 'pack k-' + kind + (P.holo ? ' holo' : ''));
-    p.style.setProperty('--f0', P.foil[0]); p.style.setProperty('--f1', P.foil[1]); p.style.setProperty('--f2', P.foil[2]); p.style.setProperty('--ink', P.ink);
-    // the body (crimped along the bottom), then the top strip in slices so it can peel away as it's torn
-    p.innerHTML = `<div class="pk-glow"></div><div class="pk-body" style="clip-path:polygon(0 0,100% 0,${zig(16, 'calc(100% - 7px)', '100%').split(',').reverse().join(',')})">
-        <div class="pk-crimp b"></div><div class="pk-sheen"></div><div class="pk-frame"></div><div class="pk-brand">SECTOR</div><div class="pk-line">COLLECTIBLE · CARD SKINS</div><div class="pk-bar"></div>
-        <div class="pk-mark"><svg viewBox="0 0 60 60"><path d="M30 4l22 12.7v26.6L30 56 8 43.3V16.7z" fill="none" stroke="currentColor" stroke-width="4"/><path d="M30 17l11 6.4v12.7L30 42.5 19 36.1V23.4z" fill="currentColor"/></svg></div>
-        <div class="pk-name">${esc(opts.name || P.name)}</div><div class="pk-sub">${esc(opts.sub || P.sub)}</div>
+    p.style.setProperty('--f0', P.foil[0]); p.style.setProperty('--f1', P.foil[1]); p.style.setProperty('--f2', P.foil[2]); p.style.setProperty('--ink', P.ink); p.style.setProperty('--pg', P.glow);
+    const slices = Array.from({ length: SL }, (_, i) => `<i style="--x:${(-i * PW / SL).toFixed(2)}px"></i>`).join('');
+    p.innerHTML = `<div class="pk-glow"></div>
+      <div class="pk-body" style="clip-path:polygon(0 0,100% 0,${zig(18, 'calc(100% - 8px)', '100%').split(',').reverse().join(',')})">
+        <div class="pk-art">${heroArt(P.fan && P.fan[1])}</div><div class="pk-rays"></div><div class="pk-foil"></div>
+        <div class="pk-bulge"></div><div class="pk-creases">${CREASES}</div>
+        <div class="pk-brand">SECTOR</div>
+        <div class="pk-ribbon"><span>${esc(opts.name || P.name)}</span></div>
+        <div class="pk-sub">${esc(opts.sub || P.sub)}</div>
+        ${P.promise ? `<div class="pk-promise">${P.promise}</div>` : ''}
         ${opts.count ? `<div class="pk-count">${opts.count} CARD${opts.count > 1 ? 'S' : ''}</div>` : ''}
+        <div class="pk-bar"></div><div class="pk-side l"></div><div class="pk-side r"></div><div class="pk-crimp b"></div>
+        <div class="pk-pillow"></div><div class="pk-spec"></div><div class="pk-sheen"></div><div class="pk-rag" style="clip-path:${rag()}"></div>
       </div>
-      <div class="pk-top">${Array.from({ length: SL }, (_, i) => `<i style="--i:${i};--n:${SL}"></i>`).join('')}</div>
-      <div class="pk-leak"></div><div class="pk-hint">${opts.hint || 'DRAG ACROSS THE TOP TO TEAR IT OPEN'}</div>`;
+      <div class="pk-top">${slices}<div class="pk-perf"></div><div class="pk-notch"></div><div class="pk-tab">TEAR ▸</div></div>
+      <div class="pk-leak"></div><div class="pk-flecks"></div><div class="pk-hint">${opts.hint || 'GRAB THE TOP AND DRAG TO TEAR'}</div>`;
+    tilt(p);
     return p;
   }
-  // tear it open: drag along the top seam (or click: it tears itself). Light the colour of the best card inside pours out of the
-  // gap as it goes, then the strip flies off. Resolves with the opening's centre on screen, for the cards to come out of
+  // depth: the pack tilts toward the pointer (and sways on its own when left alone); the light, the card fan, the
+  // wordmark and the rays read --mx/--my, each at its own depth, so the layers shift against each other
+  function tilt(p) {
+    let mx = 0, my = 0, tx = 0, ty = 0, hover = false; const t0 = performance.now() + Math.random() * 4000;
+    p.addEventListener('pointermove', e => { const r = p.getBoundingClientRect(); hover = true; tx = Math.max(-1, Math.min(1, (e.clientX - r.left) / r.width * 2 - 1)); ty = Math.max(-1, Math.min(1, (e.clientY - r.top) / r.height * 2 - 1)); });
+    p.addEventListener('pointerleave', () => { hover = false; });
+    const loop = now => {
+      if (!p.isConnected && now - t0 > 3000) return;
+      if (!hover) { const k = (now - t0) / 1000; tx = Math.sin(k * 0.9) * 0.55; ty = Math.sin(k * 0.6 + 1) * 0.3; }
+      if (p.classList.contains('tearing')) { tx *= 0.6; ty *= 0.6; }
+      mx += (tx - mx) * 0.12; my += (ty - my) * 0.12;
+      p.style.setProperty('--mx', mx.toFixed(3)); p.style.setProperty('--my', my.toFixed(3));
+      requestAnimationFrame(loop);
+    };
+    requestAnimationFrame(loop);
+  }
+  // tear it open by hand: grab the top strip and drag across. The torn flap curls up behind the tear and follows the
+  // pointer (pull up to lift it), the foil crackles, light the colour of the best card inside pours out of the gap, and
+  // near the end the strip snaps off. It tears a little slower than a flick, so you feel it give. A click rips a small
+  // bite; Space or Enter opens it for you (and after a long idle it opens itself). Resolves with the opening's centre
   function tear(p, opts = {}) {
-    const S = typeof SFX !== 'undefined' ? SFX : {}, col = opts.col || '#fff', top = p.querySelector('.pk-top'), slices = [...top.children], leak = p.querySelector('.pk-leak');
+    const S = typeof SFX !== 'undefined' ? SFX : {}, col = opts.col || '#fff', top = p.querySelector('.pk-top'), slices = [...top.querySelectorAll('i')];
+    const leak = p.querySelector('.pk-leak'), ragEl = p.querySelector('.pk-rag'), flecks = p.querySelector('.pk-flecks'), tab = p.querySelector('.pk-tab');
     p.style.setProperty('--lc', col);
     return new Promise(res => {
-      let prog = 0, done = false, dragging = false, auto = null, lastSlice = -1;
-      const set = v => {
-        prog = Math.max(prog, Math.min(1, v));
-        const n = Math.floor(prog * slices.length);
-        slices.forEach((s, i) => s.classList.toggle('torn', i < n));
-        leak.style.width = (prog * 100) + '%'; p.style.setProperty('--tear', prog.toFixed(3));
-        if (n !== lastSlice) { lastSlice = n; S.chip && S.chip(2 + Math.min(10, n)); if (opts.fx && n > 0) { const r = slices[Math.min(n, slices.length) - 1].getBoundingClientRect(); opts.fx.burst(r.right, r.bottom, col, 4, 160, { up: true, spread: 1.4 }); } }
-        if (prog >= 1 && !done) finish();
+      let front = 0, target = 0, lift = 0, done = false, dragging = false, auto = false, moved = 0, last = -1, lastT = performance.now(), raf = 0, idle = null, downX = 0;
+      const at = e => { const r = p.getBoundingClientRect(); return { x: (e.clientX - r.left) / r.width, y: (e.clientY - r.top) / r.height, py: e.clientY - r.top }; };
+      const fleck = (x, n) => { for (let k = 0; k < n; k++) { const f = document.createElement('b'); f.style.left = (x * 100) + '%'; f.style.setProperty('--dx', ((Math.random() - 0.3) * 70).toFixed(0) + 'px'); f.style.setProperty('--dy', (-20 - Math.random() * 60).toFixed(0) + 'px'); f.style.setProperty('--r', (Math.random() * 720 - 360).toFixed(0) + 'deg'); flecks.appendChild(f); setTimeout(() => f.remove(), 700); } };
+      const draw = () => {
+        // the flap: every torn sliver curls up from its foot, more the further it is behind the tear
+        for (let i = 0; i < slices.length; i++) {
+          const x = (i + 1) / slices.length, d = (front - x) * PW;
+          if (d <= 0) { slices[i].style.transform = ''; slices[i].classList.remove('torn'); continue; }
+          // one flap, hinged at the tear: it peels up as you pull (more if you pull upward) and curls toward its free end
+          const left = i * PW / slices.length, pivot = front * PW - left;
+          const ang = Math.min(150, 22 + front * 38 + Math.max(0, -lift) * 0.6 + d * 0.16);
+          slices[i].style.transformOrigin = `${pivot.toFixed(1)}px 100%`; slices[i].style.transform = `rotate(${ang.toFixed(1)}deg)`; slices[i].classList.add('torn');
+        }
+        leak.style.width = (front * 100) + '%'; ragEl.style.setProperty('--w', (front * 100) + '%'); p.style.setProperty('--tear', front.toFixed(3));
+        tab.style.left = `calc(${(front * 100).toFixed(1)}% - 4px)`;
+      };
+      const step = now => {
+        const dt = Math.min(0.05, (now - lastT) / 1000); lastT = now;
+        if (!done) {
+          const want = auto ? 1.02 : target, maxV = auto ? 1.6 : 2.1;   // widths per second: the foil gives, but not instantly
+          const was = front; if (want > front) front = Math.min(1, front + Math.min(want - front, maxV * dt + (want - front) * 0.08));
+          const v = (front - was) / Math.max(dt, 1e-3);
+          const n = Math.floor(front * slices.length);
+          if (n !== last && front > was) { last = n; S.rip && S.rip(Math.min(1, v / 1.6)); fleck(front, 1 + (v > 1 ? 2 : 0)); if (navigator.vibrate && matchMedia('(pointer: coarse)').matches) navigator.vibrate(4); if (opts.fx && n % 3 === 0) { const r = p.getBoundingClientRect(); opts.fx.burst(r.left + r.width * front, r.top + 40, col, 3, 140, { up: true, spread: 1.2 }); } }
+          p.style.setProperty('--shake', (front > was ? (Math.random() - 0.5) * Math.min(2.5, v * 2) : 0).toFixed(2) + 'px');
+          draw();
+          if (front >= 0.96) return finish();
+        }
+        raf = requestAnimationFrame(step);
       };
       const finish = () => {
-        done = true; clearInterval(auto); p.onpointerdown = p.onpointermove = p.onpointerup = null; removeEventListener('keydown', key);
-        p.classList.add('torn-open'); S.boom && S.boom(0.6); S.rare && S.rare();
-        const r = p.getBoundingClientRect(), x = r.left + r.width / 2, y = r.top + r.height * 0.08;
-        if (opts.fx) { opts.fx.burst(x, y, col, 50, 520, { up: true, spread: 1.6 }); opts.fx.ring(x, y, col, 320); }
-        setTimeout(() => res([x, y]), 420);
+        if (done) return; done = true; cancelAnimationFrame(raf); clearTimeout(idle); front = 1; draw();
+        p.onpointerdown = p.onpointermove = p.onpointerup = p.onpointercancel = null; removeEventListener('keydown', key);
+        p.classList.add('torn-open'); p.classList.remove('tearing'); p.style.setProperty('--shake', '0px');
+        S.ripPop && S.ripPop(); S.boom && S.boom(0.5); S.rare && S.rare(); fleck(0.9, 10);
+        if (navigator.vibrate && matchMedia('(pointer: coarse)').matches) navigator.vibrate([18, 30, 12]);
+        const r = p.getBoundingClientRect(), x = r.left + r.width / 2, y = r.top + r.height * 0.1;
+        if (opts.fx) { opts.fx.burst(x, y, col, 60, 560, { up: true, spread: 1.7 }); opts.fx.ring(x, y, col, 340); }
+        setTimeout(() => res([x, y]), 380);
       };
-      const auto0 = () => { if (auto || done) return; p.classList.add('tearing'); S.whoosh && S.whoosh(); auto = setInterval(() => set(prog + 0.07), 30); };
-      const at = e => { const r = p.getBoundingClientRect(); return { x: (e.clientX - r.left) / r.width, y: (e.clientY - r.top) / r.height }; };
-      p.onpointerdown = e => { const q = at(e); if (q.y < 0.3) { dragging = true; p.setPointerCapture && p.setPointerCapture(e.pointerId); p.classList.add('tearing'); set(q.x); } };
-      p.onpointermove = e => { if (dragging) set(at(e).x); };
-      p.onpointerup = () => { if (!dragging) auto0(); else if (prog < 1) auto0(); dragging = false; };   // a click (or letting go part way) tears the rest
-      const key = e => { if (e.key === ' ' || e.key === 'Enter') { e.preventDefault(); auto0(); } };
+      const start = () => { if (!raf) { lastT = performance.now(); raf = requestAnimationFrame(step); } };
+      const go = () => { if (done) return; auto = true; p.classList.add('tearing'); S.whoosh && S.whoosh(); start(); };
+      p.onpointerdown = e => {
+        if (done) return; const q = at(e); clearTimeout(idle);
+        if (q.y > 0.3) { p.classList.remove('nudge'); void p.offsetWidth; p.classList.add('nudge'); return; }   // not the strip: a wiggle points at it
+        dragging = true; moved = 0; downX = q.x; p.setPointerCapture && p.setPointerCapture(e.pointerId); p.classList.add('tearing'); target = Math.max(target, front + 0.02); lift = 0; start();
+      };
+      p.onpointermove = e => { if (!dragging) return; const q = at(e); moved = Math.max(moved, Math.abs(q.x - downX)); target = Math.max(target, Math.min(1.05, q.x)); lift = Math.min(0, q.py - 20); };
+      p.onpointerup = p.onpointercancel = () => {
+        if (!dragging) return; dragging = false; lift = 0;
+        if (moved < 0.04) target = Math.max(target, front + 0.14);   // a click: a small bite
+        if (front > 0.75 || target > 0.9) auto = true;   // nearly there: it gives way
+        idle = setTimeout(go, 20000);
+      };
+      const key = e => { if (e.key === ' ' || e.key === 'Enter') { e.preventDefault(); go(); } };
       addEventListener('keydown', key);
-      if (opts.autoAfter) setTimeout(auto0, opts.autoAfter);
+      idle = setTimeout(go, opts.autoAfter || 20000);
     });
   }
 
@@ -199,7 +272,7 @@ const Crates = (() => {
       <div class="co-label"></div><div class="co-btns"></div><div class="co-skip">${matchMedia('(pointer: coarse)').matches ? 'Tap' : 'Click or press Space'} to skip</div>`;
     const fx = fxCanvas(v), crate = v.querySelector('.co-crate'), flip = v.querySelector('.co-flipper');
     const B = (typeof SectorCosmetics !== 'undefined' && SectorCosmetics.BOXES[m.box]) || {};
-    const pk = pack(m.box === 'elite' ? 'elite' : 'field', { name: (B.name || 'Pack').toUpperCase().replace(/ CRATE$/, ' PACK'), count: 1, hint: 'DRAG ACROSS THE TOP TO TEAR IT OPEN' }); pk.classList.add('drop-in'); crate.appendChild(pk);
+    const pk = pack(m.box === 'elite' ? 'elite' : 'field', { name: (B.name || 'Pack').toUpperCase().replace(/ CRATE$/, ' PACK'), count: 1 }); pk.classList.add('drop-in'); crate.appendChild(pk);
     v.querySelector('.co-front').appendChild(card);
     let skip = false; v.onclick = () => { skip = true; };
     const skipKey = e => { if (e.key === ' ' && !e.repeat) { e.preventDefault(); skip = true; } }; addEventListener('keydown', skipKey);
@@ -210,7 +283,7 @@ const Crates = (() => {
     await W(650);
     // tear the pack open: the light that pours out is the card's rarity colour (a click, Space or skipping tears it for you)
     v.onclick = null;
-    const [ox, oy] = await tear(pk, { col, fx, autoAfter: 5000 });
+    const [ox, oy] = await tear(pk, { col, fx });
     v.onclick = () => { skip = true; };
     crate.classList.add('opened'); v.classList.add('lit');
     S.boom && S.boom(0.5 + tier * 0.2); tier >= 3 ? S.legendary && S.legendary() : S.rare && S.rare();
