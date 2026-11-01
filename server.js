@@ -226,7 +226,7 @@ const autoPids = new Set(); // dev: humans driven by the bot AI (SECTOR_DEV=1)
 
 function lobbyView() {
   return {
-    code, kind, cap: isPublic ? PUBLIC_SEATS : MAX_SEATS,
+    code, kind, cap: MAX_SEATS, humanCap: isPublic ? PUBLIC_SEATS : MAX_SEATS,   // (a public war takes 6 humans, but its host can fill it to 10 with bots)
     players: lobby.players.map(p => ({ id: p.id, name: p.name, handle: p.handle || null, color: p.color, faction: p.faction, bot: p.bot, diff: p.diff, local: !!p.local, controller: p.controller || null, spectator: !!p.spectator, team: p.team || 0, cos: p.cos || null, ready: isReady(p), away: !!p.away, afk: !!p.afk, connected: p.bot || isConnected(p.id) })),
     hostId: lobby.hostId, solo: !!lobby.solo, saveCap: profiles.SAVE_CAP, settings: lobby.settings, inGame: !!game, saves: game || isPublic ? [] : savesFor((lobby.players.find(p => p.id === lobby.hostId) || {}).profileId), version: VERSION, lan: lanAddresses().map(a => 'http://' + a + ':' + PORT), port: PORT,
   };
@@ -332,7 +332,7 @@ function onMessage(c, m) {
       if (!p && game) { send(c, { t: 'welcome', you: null, spectator: true }); send(c, { t: 'lobby', lobby: lobbyView() }); send(c, { t: 'state', state: E.view(game, null), events: [] }); return; }
       if (!p) {
         if (lobby.players.filter(x => !x.bot || !isPublic).length >= (isPublic ? PUBLIC_SEATS : MAX_SEATS)) return send(c, { t: 'err', msg: 'That room is full' });
-        if (isPublic) { const bot = lobby.players.find(x => x.bot); if (bot && lobby.players.length >= PUBLIC_SEATS) lobby.players = lobby.players.filter(x => x !== bot); }
+        if (isPublic) { const bot = [...lobby.players].reverse().find(x => x.bot); if (bot && lobby.players.length >= MAX_SEATS) lobby.players = lobby.players.filter(x => x !== bot); }   // a full public war: a newcomer takes a bot's seat
         p = { id: 'p' + nextPid++, token: crypto.randomBytes(12).toString('hex'), name: cleanName(m.name, c) || 'Commander', color: freeColor(), faction: pickFaction(c), bot: false };
         lobby.players.push(p);
         note(p.name + ' joined from ' + addrOf(c));
@@ -420,7 +420,7 @@ function onMessage(c, m) {
       return broadcastLobby();
     }
     case 'addBot': {
-      if (c.pid !== lobby.hostId || game || lobby.players.length >= (isPublic ? PUBLIC_SEATS : MAX_SEATS)) return;
+      if (c.pid !== lobby.hostId || game || lobby.players.length >= MAX_SEATS) return;
       const used = new Set(lobby.players.map(p => p.name));
       const name = BOT_NAMES.find(n => !used.has(n)) || 'Bot';
       // a new bot takes the difficulty of the bot above it (so filling a lobby with Hard bots is one setting, not five)

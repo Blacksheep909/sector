@@ -4,6 +4,7 @@ Every release, newest first. Each version also has its own post on the [Releases
 
 ## Unreleased
 
+- **Fix: public wars hold 10 with bots.** A public war stopped at 6 seats, bots included, while ADD BOT still showed. Its host can now fill it to 10 with bots (PLAY still lets in up to 6 humans, and a newcomer takes a bot's seat). ADD BOT hides once a room is full.
 - **🃏 Bots want the cards they need.** A bot reads the enemy's army against its own deck and goes for what it's missing: anti-air when the enemy flies and it has none, a tank hunter against armour, siege guns against forts, aircraft when the enemy has no anti-air, artillery against massed infantry, fast units in the early land grab. Cards that are no use against this enemy (anti-air when nobody flies) count for less. In the bot lab, bots facing three or more enemy aircraft with no anti-air in their deck fell from 22% to 10% of turns.
 
 ## v0.13.2

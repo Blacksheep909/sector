@@ -163,14 +163,16 @@
       undoCount = m.undo || 0;
       localDeadline = m.timeLeft ? Date.now() + m.timeLeft : 0; clockPaused = !!m.paused; pausedLeft = m.timeLeft || 0;
       if (!S || S.seed !== m.state.seed) { enterGame(m.state); }
-      else if (msgQ.length > 6 && !(m.by === you || m.mine)) {
+      else if (msgQ.length > 6 && !(m.by === you || m.mine)) {
+
         // far behind (a long run at super speed, a slow tab): jump straight to this state instead of playing it out, and
         // only animate the last few, so switching back to normal speed is normal speed straight away
         const youBefore = you, mineBefore = S && S.units ? Object.values(S.units).filter(u => u.owner === you).map(u => ({ id: u.id, type: u.type, hex: u.hex })) : [];
         if (you === youBefore) reportLosses(mineBefore, m.state, m.events || []);
         applyState(m.state);
       }
-      else {
+      else {
+
         animating = true; fastForward = msgQ.length > 3;
         const youBefore = you, mineBefore = S && S.units ? Object.values(S.units).filter(u => u.owner === you).map(u => ({ id: u.id, type: u.type, hex: u.hex })) : [];
         const gen = menuGen;
@@ -344,7 +346,7 @@
       if ((host && p.id !== you) || (p.local && p.controller === realId)) { const x = el('button', 'x', '✕'); x.onclick = () => send({ t: 'kick', id: p.id }); r.appendChild(x); }
       (teamsOn && !p.spectator ? cols[p.team || 1] || pl : pl).appendChild(r);
     }
-    $('#addBot').hidden = !host;
+    $('#addBot').hidden = !host || lobby.players.filter(p => !p.spectator).length >= (lobby.cap || 10);
     $('#lanBox').innerHTML = lobby.lan.length ? 'Friends on your network join at:<br>' + lobby.lan.map(u => `<b>${u}</b>`).join('<br>') : 'No network address found: local play only.';
     const fl = $('#factionList'); fl.innerHTML = '';
     // only the factions you've unlocked; the rest wait in the Store

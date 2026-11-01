@@ -41,6 +41,11 @@ const until = async (f, ms = 8000) => { const t = Date.now(); while (Date.now() 
     ok(b.lobby.kind === 'public' && b.lobby.hostId === b.you, 'PLAY with no open war opens a public one, hosted by you');
     c.send({ t: 'quick' });
     ok(await until(() => c.lobby && c.lobby.kind === 'public' && b.lobby.code === c.lobby.code && b.lobby.players.length === 2), 'PLAY puts the next commander in that open war');
+    // the host can fill a public war to 10 seats with bots (only 6 humans get in through PLAY)
+    for (let i = 0; i < 10; i++) b.send({ t: 'addBot' });
+    ok(await until(() => b.lobby.players.length === 10) && (await sleep(300), b.lobby.players.length === 10), 'the host fills a public war with bots, up to 10 seats');
+    for (let i = 0; i < 8; i++) b.send({ t: 'kick', id: b.lobby.players.filter(p => p.bot)[i].id });
+    await until(() => b.lobby.players.length === 2);
     c.send({ t: 'settings', settings: { mapSize: 'large' } }); c.send({ t: 'start' }); await sleep(400);
     ok(b.lobby.settings.mapSize !== 'large' && !b.state, 'only the host changes the settings or deploys');
     b.send({ t: 'settings', settings: { mapSize: 'medium' } });
