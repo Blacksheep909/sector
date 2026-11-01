@@ -456,5 +456,45 @@ function crossing(s) {
   const BOT = require('../shared/bot'), a = BOT.botStep(s, 'p1', {});
   ok(a && a.a === 'move' && a.to === B.hq && a.from === homeAt, 'a bot with an enemy strike in reach of its empty HQ brings troops home (' + JSON.stringify(a) + ')');
 }
+{ // the FOB raid: a fast enemy stack heading for an empty FOB in our rear gets a guard put down in its way
+  const roster = [0, 1].map(i => ({ id: 'p' + i, name: 'P' + i, color: E.COLORS[i], faction: 'iron', bot: i === 1, diff: i === 1 ? 'hard' : undefined }));
+  const { state: s } = E.createGame({ mode: 'domination', mapSize: 'medium', seed: 'fobd1' }, roster);
+  s.phase = 'play'; const T = s.map.tiles, B = E.player(s, 'p1');
+  for (const id in s.units) delete s.units[id];
+  const land = h => T[h] && E.isLandTile(T[h]) && T[h].t !== 'mountain' && !T[h].river && !(T[h].structs || []).length;
+  const fob = Object.keys(T).find(h => land(h) && E.dist(h, B.hq) === 5 && Object.keys(T).some(r => land(r) && E.dist(r, h) === 3 && E.dist(r, B.hq) >= 8));
+  for (const h of E.area(fob, 1)) if (T[h] && E.isLandTile(T[h])) T[h].owner = 'p1';
+  for (const h of E.line(B.hq, fob)) if (T[h] && E.isLandTile(T[h]) && !(T[h].structs || []).length) T[h].owner = 'p1';
+  T[fob].structs = [{ type: 'fob', owner: 'p1', lvl: 1 }]; T[fob].struct = T[fob].structs[0];
+  const raid = Object.keys(T).find(h => land(h) && E.dist(h, fob) === 3 && E.dist(h, B.hq) >= 8);
+  T[raid].owner = 'p0';
+  let id = 950; const put = (owner, type, hex) => { s.units['u' + id] = { id: 'u' + id, owner, type, hex, moved: false, fresh: false, stun: 0, mvBonus: 0 }; id++; };
+  for (let i = 0; i < 3; i++) put('p0', 'jackal', raid);
+  B.cash = 20; B.tactics = []; s.turn.idx = s.players.indexOf(B); s.turn.stage = 'act';
+  const BOT = require('../shared/bot'), a = BOT.botStep(s, 'p1', {});
+  ok(a && a.a === 'deploy' && a.hex === fob, 'a bot puts a guard on an empty FOB with a raid in reach (' + JSON.stringify(a) + ')');
+}
+{ // the FOB they took off us is the first thing we hit back
+  const roster = [0, 1].map(i => ({ id: 'p' + i, name: 'P' + i, color: E.COLORS[i], faction: 'iron', bot: i === 1, diff: i === 1 ? 'hard' : undefined }));
+  const { state: s } = E.createGame({ mode: 'domination', mapSize: 'medium', seed: 'fobd2' }, roster);
+  s.phase = 'play'; const T = s.map.tiles, B = E.player(s, 'p1');
+  for (const id in s.units) delete s.units[id];
+  const land = h => T[h] && E.isLandTile(T[h]) && T[h].t !== 'mountain' && !T[h].river && !(T[h].structs || []).length;
+  const fob = Object.keys(T).find(h => land(h) && E.dist(h, B.hq) === 3);
+  for (const h of E.area(fob, 2)) if (T[h] && E.isLandTile(T[h]) && !(T[h].structs || []).length) T[h].owner = 'p1';
+  T[fob].owner = 'p0'; T[fob].structs = [{ type: 'fob', owner: 'p0', lvl: 1 }]; T[fob].struct = T[fob].structs[0];
+  // a cheap decoy elsewhere, worth about as much on paper
+  const decoy = Object.keys(T).find(h => land(h) && E.dist(h, fob) === 3 && E.dist(h, B.hq) >= 3);
+  T[decoy].owner = 'p0';
+  let id = 970; const put = (owner, type, hex) => { s.units['u' + id] = { id: 'u' + id, owner, type, hex, moved: false, fresh: false, stun: 0, mvBonus: 0 }; id++; };
+  put('p0', 'grunt', fob); put('p0', 'grunt', decoy);
+  const by = E.neighbors(fob).find(h => land(h) && T[h].owner === 'p1' && E.dist(h, decoy) === 2 && h !== B.hq);
+  for (const h of E.neighbors(decoy)) if (T[h] && E.isLandTile(T[h]) && !T[h].owner) T[h].owner = 'p1';
+  for (let i = 0; i < 3; i++) put('p1', 'mauler', by);
+  s.botMem = { p1: { lost: { [fob]: 1 }, own: [], ownAt: s.turn.round } };
+  B.cash = 0; B.tactics = []; s.turn.idx = s.players.indexOf(B); s.turn.stage = 'act';
+  const BOT = require('../shared/bot'), a = BOT.botStep(s, 'p1', {});
+  ok(a && (a.a === 'move' || a.a === 'assault') && a.to === fob, 'a bot strikes back at the FOB taken off it first (' + JSON.stringify(a) + ')');
+}
 console.log(fails ? fails + ' FAILED' : 'all passed');
 process.exit(fails ? 1 : 0);

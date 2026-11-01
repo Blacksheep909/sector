@@ -62,10 +62,10 @@ function choosePick(s, p, cards) {
 // Easy still plays a real game (it attacks, masses a little, defends a little) — it just makes more mistakes.
 // No difficulty earns extra money: harder bots are harder because they play better
 const SKILL = {
-  easy: { attack: 0.52, combo: 1, guard: 0.35, noise: 2.2, idle: 0.15, tactics: 0.5, heli: 0.4, lethal: 0.2, punish: 0.6, expo: 0, hqRisk: 0.6, hqMin: 0 },
-  medium: { attack: 0.58, combo: 2, guard: 0.7, noise: 1.1, idle: 0.05, tactics: 0.8, heli: 0.75, lethal: 0.6, punish: 0.8, expo: 0.4, hqRisk: 0.4, hqMin: 0 },
-  hard: { attack: 0.6, combo: 3, guard: 1, noise: 0.4, idle: 0, tactics: 1, heli: 1, lethal: 1, punish: 1, expo: 0.8, hqRisk: 0.25, hqMin: 0, hqLook: 1.5 },
-  impossible: { attack: 0.6, combo: 3, guard: 1, noise: 0.15, idle: 0, tactics: 1, heli: 1, lethal: 1.4, punish: 1.3, expo: 1.2, hqRisk: 0.15, hqMin: 0, hqLook: 2 },
+  easy: { attack: 0.52, combo: 1, guard: 0.35, noise: 2.2, idle: 0.15, tactics: 0.5, heli: 0.4, lethal: 0.2, punish: 0.6, expo: 0, hqRisk: 0.6 },
+  medium: { attack: 0.58, combo: 2, guard: 0.7, noise: 1.1, idle: 0.05, tactics: 0.8, heli: 0.75, lethal: 0.6, punish: 0.8, expo: 0.4, hqRisk: 0.4, fobRisk: 0.6 },
+  hard: { attack: 0.6, combo: 3, guard: 1, noise: 0.4, idle: 0, tactics: 1, heli: 1, lethal: 1, punish: 1, expo: 0.8, hqRisk: 0.25, fobRisk: 0.45, hqLook: 1.5 },
+  impossible: { attack: 0.6, combo: 3, guard: 1, noise: 0.15, idle: 0, tactics: 1, heli: 1, lethal: 1.4, punish: 1.3, expo: 1.2, hqRisk: 0.15, fobRisk: 0.35, hqLook: 2 },
 };
 
 // an ally about to stop being one: a break has been announced (by either side), or the pact is in its last round and they
@@ -77,52 +77,58 @@ function soonFoe(s, pid, q) {
 }
 // someone to guard against: an enemy, or an ally on the way out
 const wary = (s, pid, q) => !!q && q !== pid && (!E.isAlly(s, pid, q) || soonFoe(s, pid, q));
-// ── HQ safety: losing the HQ loses the war, so a bot works out what could hit it next turn and keeps enough there ──
-// Threat: every enemy combat unit that could reach the HQ on its next turn: its own move (Grunts ride along at their
-// carrier's speed), with a hex of slack under fog where we can't see everything. Each rival's whole strike is weighed
-// as one massed assault on the HQ. The garrison: the fewest of our units there (sturdiest first) that keep the odds of
-// that strike under hqRisk (a standing floor, hqMin, exists for experiments: in the lab it cost far more wars than it saved)
-function hqThreat(s, pid, idx, look) {
-  const p = E.player(s, pid); if (!p || !p.hq) return {};
-  const fog = s.settings && s.settings.fog === 'on', by = {};
-  const lifts = {};
+// ── base safety: losing the HQ loses the war, and a lost FOB hands the enemy a factory inside our land. So a bot works out
+// what could hit each of its bases next turn and keeps enough there to hold ──
+// Threat: every enemy combat unit that could reach the base on its next turn: its own move (Grunts ride along at their
+// carrier's speed), with a hex of slack under fog where we can't see everything (harder bots look further: hqLook).
+// Each rival's whole strike is weighed as one massed assault. The garrison: the fewest of our units there (defensive ones
+// first, so the strikers still go to war) that keep the odds of that strike under hqRisk (HQ) or fobRisk (FOB)
+function baseThreat(s, pid, hex, look) {
+  const fog = s.settings && s.settings.fog === 'on', by = {}, lifts = {};
   for (const id in s.units) { const u = s.units[id], d = E.UNITS[u.type]; if (d.lift && wary(s, pid, u.owner)) { const m = E.moveAllow(s, u); for (const a of E.area(u.hex, 1)) lifts[a + '|' + u.owner] = Math.max(lifts[a + '|' + u.owner] || 0, m); } }
   for (const id in s.units) {
     const u = s.units[id], d = E.UNITS[u.type];
     if (!wary(s, pid, u.owner) || !(d.atk > 0) || d.range || E.isSea(u.type) || d.ability === 'aa' || d.ability === 'sam') continue;
     let reach = E.moveAllow(s, u);
     if (u.type === 'grunt') reach = Math.max(reach, lifts[u.hex + '|' + u.owner] || 0);
-    if (E.dist(u.hex, p.hq) > Math.ceil(reach * (look || 1)) + (fog ? 1 : 0)) continue;   // (harder bots see it coming a turn early)
+    if (E.dist(u.hex, hex) > Math.ceil(reach * (look || 1)) + (fog ? 1 : 0)) continue;
     (by[u.owner] = by[u.owner] || []).push(u);
   }
   return by;
 }
-function hqRiskWith(s, pid, idx, threat, garrison) {
-  const p = E.player(s, pid); let risk = 0;
-  const fake = Object.assign({}, idx); fake[p.hq] = garrison.concat((idx[p.hq] || []).filter(u => u.owner !== pid));
-  for (const o in threat) { const g = threat[o]; const c = E.combatCalc(s, o, g, [...new Set(g.map(u => u.hex))], p.hq, false, fake); if (c.winProb > risk) risk = c.winProb; }
+function riskAt(s, pid, idx, hex, threat, garrison) {
+  let risk = 0;
+  const fake = Object.assign({}, idx); fake[hex] = garrison.concat((idx[hex] || []).filter(u => u.owner !== pid));
+  for (const o in threat) { const g = threat[o]; const c = E.combatCalc(s, o, g, [...new Set(g.map(u => u.hex))], hex, false, fake); if (c.winProb > risk) risk = c.winProb; }
   return risk;
 }
-// the units that stay home this turn, and whether that's enough
-function hqGarrison(s, pid, idx, K, mem) {
-  const p = E.player(s, pid), key = s.turn.round + ':' + (p && p.hq ? (idx[p.hq] || []).map(u => u.id).join(',') : '') + ':' + Object.keys(s.units).length;
+// our bases worth guarding: the HQ, then each FOB of ours (on our own land)
+function ourBases(s, pid) {
+  const p = E.player(s, pid), t = s.map.tiles, out = [];
+  if (p && p.hq && t[p.hq] && t[p.hq].owner === pid) out.push({ hex: p.hq, hq: true });
+  for (const k in t) if (t[k].owner === pid && k !== (p && p.hq) && E.structsOf(t[k]).some(x => x.type === 'fob' && x.owner === pid)) out.push({ hex: k, hq: false });
+  return out;
+}
+// the units that stay home this turn, and which bases can't hold
+function baseGuard(s, pid, idx, K, mem) {
+  const bases = ourBases(s, pid);
+  const key = s.turn.round + ':' + bases.map(b => b.hex + '=' + (idx[b.hex] || []).map(u => u.id).join(',')).join(';') + ':' + Object.keys(s.units).length;
   if (mem.garrison && mem.garrison.v === key) return mem.garrison;
-  const out = { v: key, keep: new Set(), risk: 0, short: 0 };
-  if (!p || !p.hq || !s.map.tiles[p.hq] || s.map.tiles[p.hq].owner !== pid) return (mem.garrison = out);
-  const threat = hqThreat(s, pid, idx, K.hqLook), thr = K.hqRisk === undefined ? 0.3 : K.hqRisk;
-  // the floor, in defence (not head count: three scouts aren't a garrison), growing as armies grow
-  const minDef = s.turn.round < 3 ? 0 : (K.hqMin || 0) * Math.min(8, 2 + s.turn.round * 0.3);
-  const home = (idx[p.hq] || []).filter(u => u.owner === pid && !E.isSea(u.type) && E.UNITS[u.type].def > 0 && E.UNITS[u.type].cls !== 'air')
-    .sort((a, b) => (E.unitDef(s, b) - 0.7 * E.unitAtk(s, b)) - (E.unitDef(s, a) - 0.7 * E.unitAtk(s, a)));   // the defensive ones stay; the strikers go to war
-  const g = []; let gd = 0;
-  for (const u of home) {
-    if (gd >= minDef && (!Object.keys(threat).length || hqRiskWith(s, pid, idx, threat, g) <= thr)) break;
-    g.push(u); gd += E.unitDef(s, u);
+  const out = { v: key, keep: new Set(), bases: [] };
+  for (const b of bases) {
+    const thr = b.hq ? (K.hqRisk === undefined ? 0.3 : K.hqRisk) : K.fobRisk;
+    if (thr === undefined || K.oldfob && !b.hq) continue;
+    const threat = baseThreat(s, pid, b.hex, b.hq ? K.hqLook : 1);
+    const home = (idx[b.hex] || []).filter(u => u.owner === pid && !E.isSea(u.type) && E.UNITS[u.type].def > 0 && E.UNITS[u.type].cls !== 'air')
+      .sort((a, c) => (E.unitDef(s, c) - 0.7 * E.unitAtk(s, c)) - (E.unitDef(s, a) - 0.7 * E.unitAtk(s, a)));
+    const g = [], none = !Object.keys(threat).length;
+    // (a FOB keeps one guard at most: it sits at the front, and a bigger garrison would freeze the army that deploys there)
+    const cap = b.hq ? 99 : (K.fobCap === undefined ? 1 : K.fobCap);
+    if (!none) for (const u of home) { if (g.length >= cap || riskAt(s, pid, idx, b.hex, threat, g) <= thr) break; g.push(u); }
+    for (const u of g) out.keep.add(u.id);
+    const risk = none ? 0 : riskAt(s, pid, idx, b.hex, threat, g);
+    out.bases.push({ ...b, risk, thr, danger: risk > thr });
   }
-  for (const u of g) out.keep.add(u.id);
-  out.risk = Object.keys(threat).length ? hqRiskWith(s, pid, idx, threat, g) : 0;
-  out.floor = gd < minDef; out.danger = out.risk > thr; out.short = out.floor || out.danger;
-  out.threat = threat; out.thr = thr;
   return (mem.garrison = out);
 }
 // ── the threat map: how much enemy punch could land on each of our hexes next turn ──
@@ -154,7 +160,7 @@ function heliDanger(s, pid, idx, k) {
 
 // ── the assault planner: every attack on the board, with up to K.combo stacks massed into one blow ──
 function planAssault(s, pid, idx, K, strat, mem) {
-  const tiles = s.map.tiles, stacks = [], keep = K.oldhq ? new Set() : hqGarrison(s, pid, idx, K, mem).keep;
+  const tiles = s.map.tiles, stacks = [], keep = K.oldhq ? new Set() : baseGuard(s, pid, idx, K, mem).keep;
   for (const k in idx) {
     if (mem.skip && mem.skip.has(k)) continue;
     const units = idx[k].filter(u => u.owner === pid && !keep.has(u.id) && E.canAct(s, u) && E.UNITS[u.type].atk > 0 && !E.UNITS[u.type].range && !E.isSea(u.type));
@@ -193,6 +199,14 @@ function planAssault(s, pid, idx, K, strat, mem) {
       }
     }
     prize += overext * (stackValue(foes) * 1.5 + 10);
+    // an enemy FOB is a factory: one inside or next to our land (above all one they just took off us) gets destroyed or
+    // taken back before they can start pouring troops out of it
+    let fobHit = 0;
+    if (!K.oldfob && tt.owner && tt.owner !== pid && E.structsOf(tt).some(x => x.type === 'fob' && wary(s, pid, x.owner))) {
+      const ours = E.neighbors(t).filter(n => tiles[n] && tiles[n].owner === pid).length;
+      fobHit = (strat.lost && strat.lost[t] ? 1 : 0) + (ours >= 2 ? 0.6 : ours ? 0.3 : 0);
+      prize += 12 + fobHit * 24 * (K.punish === undefined ? 1 : K.punish);
+    }
     const maxCombo = K.combo + (isHQ ? Math.round(2 * (K.lethal || 0)) : 0) + (overext >= 0.8 ? 1 : 0);
     const list = by[t].slice().sort((a, b) => stackValue(b.units) - stackValue(a.units)).slice(0, Math.max(5, maxCombo + 1));
     const used = [], kinds = new Set();
@@ -211,7 +225,7 @@ function planAssault(s, pid, idx, K, strat, mem) {
     if (!calc) continue;
     // our own HQ under siege: any real chance of taking it back beats being knocked out next turn
     const press = tt.owner && tt.owner === strat.target ? (strat.rich || 0) * (K.richW === undefined ? 0.15 : K.richW) * (K.lethal || 0) : 0;
-    const need = isHQ && t === (p && p.hq) ? 0.15 : (isHQ ? K.attack - 0.15 - 0.08 * (K.lethal || 0) : K.attack) - press - Math.min(0.1, overext * 0.07);
+    const need = isHQ && t === (p && p.hq) ? 0.15 : (isHQ ? K.attack - 0.15 - 0.08 * (K.lethal || 0) : K.attack) - press - Math.min(0.1, overext * 0.07) - Math.min(0.1, fobHit * 0.08);
     if (calc.winProb < need) continue;
     const risk = used.reduce((a, u) => a + stackValue(u.units), 0);
     // helicopters that win are left sitting on the hex: count what they'd face there
@@ -399,11 +413,11 @@ function botTurn(s, pid, mem) {
   mem.tried = mem.tried || new Set();
   const tryOnce = (act) => { if (act && act.a === 'move') act = keepTogether(act);
     // the HQ garrison stays put: no order (an attack, a march, a ferry) takes it below what the HQ needs to hold
-    if (act && !K.oldhq && (act.a === 'move' || act.a === 'assault') && p.hq) {
-      const keep = hqGarrison(s, pid, idx, K, mem).keep;
+    if (act && !K.oldhq && (act.a === 'move' || act.a === 'assault')) {
+      const keep = baseGuard(s, pid, idx, K, mem).keep;
       if (keep.size) {
-        if (act.a === 'move' && act.from === p.hq) { const us = act.units.filter(id => !keep.has(id)); if (!us.length) return null; act = { ...act, units: us }; }
-        if (act.a === 'assault') { const gs = act.groups.map(g => g.from === p.hq ? { ...g, units: g.units.filter(id => !keep.has(id)) } : g).filter(g => g.units.length); if (!gs.length) return null; act = { ...act, groups: gs }; }
+        if (act.a === 'move') { const us = act.units.filter(id => !keep.has(id)); if (!us.length) return null; act = { ...act, units: us }; }
+        if (act.a === 'assault') { const gs = act.groups.map(g => ({ ...g, units: g.units.filter(id => !keep.has(id)) })).filter(g => g.units.length); if (!gs.length) return null; act = { ...act, groups: gs }; }
       }
     } if (act && act.a === 'build' && (E.buildError(s, pid, act.struct, act.hex) || E.buildCost(s, p, act.struct, act.hex) > p.cash)) return null;   // never propose a build the rules refuse (a river, a full hex) or it can't pay for
     // money-makers never eat the army's budget: once the war is on, most of each turn's income is kept for troops
@@ -444,35 +458,32 @@ function botTurn(s, pid, mem) {
         }
       }
     } }
-  // 0¼. HQ safety: if the garrison can't hold against what could reach it next turn (or the HQ is emptier than it should
-  // ever be), bring troops home first (the nearest ones not locked in a fight), then buy the sturdiest defenders we can
-  // afford, re-checking after each, before money or moves go anywhere else
+  // 0¼. base safety: a base (the HQ first, then FOBs) that can't hold against what could reach it next turn gets troops
+  // brought home first (the nearest ones not locked in a fight, and not some other base's garrison), then the sturdiest
+  // defenders we can afford, re-checking after each, before money or moves go anywhere else
   if (!K.oldhq && (mem.hqGuard || 0) < 10 && !E.musterHexes(s, pid).length) {
-    const gar = hqGarrison(s, pid, idx, K, mem);
-    if (gar.short) {
-      // recall: a stack that can walk home this turn, not one in contact at the front, smallest useful first
-      const cands = [];
+    const gd = baseGuard(s, pid, idx, K, mem);
+    for (const b of gd.bases.filter(x => x.danger)) {
+      const cands = [], far = b.hq ? 6 : 4;
       for (const k in idx) {
-        if (k === p.hq || E.isWater(tiles[k])) continue;
-        const us = idx[k].filter(u => u.owner === pid && E.canAct(s, u) && !E.isSea(u.type) && E.UNITS[u.type].cls !== 'air' && E.UNITS[u.type].def > 0);
-        if (!us.length || E.dist(k, p.hq) > 6) continue;
-        const r = E.reachable(s, pid, us.map(u => u.id), k, idx)[p.hq];
+        if (k === b.hex || E.isWater(tiles[k])) continue;
+        const us = idx[k].filter(u => u.owner === pid && !gd.keep.has(u.id) && E.canAct(s, u) && !E.isSea(u.type) && E.UNITS[u.type].cls !== 'air' && E.UNITS[u.type].def > 0);
+        if (!us.length || E.dist(k, b.hex) > far) continue;
+        const r = E.reachable(s, pid, us.map(u => u.id), k, idx)[b.hex];
         if (!r || r.kind === 'start' || r.kind === 'pass' || r.kind === 'attack') continue;
         const front = E.neighbors(k).some(n => (idx[n] || []).some(u => wary(s, pid, u.owner)));
-        cands.push({ k, us, d: E.dist(k, p.hq) + (front ? 4 : 0) });
+        cands.push({ k, us, d: E.dist(k, b.hex) + (front ? 4 : 0) });
       }
-      cands.sort((a, b) => a.d - b.d); if (K.norecall || !gar.danger) cands.length = 0;   // troops only come home for a real threat
+      cands.sort((a, c) => a.d - c.d); if (K.norecall || !b.hq) cands.length = 0;   // troops come home for the HQ; a FOB makes do with a fresh guard
+      if (!b.hq && ((mem.fobBuy = mem.fobBuy || new Set()).has(b.hex) || (idx[b.hex] || []).some(u => u.owner === pid && gd.keep.has(u.id)) && (idx[b.hex] || []).filter(u => u.owner === pid).length >= 2)) continue;
       for (const c of cands) {
-        if (!E.stackFits((idx[p.hq] || []).filter(u => u.owner === pid), c.us)) continue;
-        const a = tryOnce({ a: 'move', from: c.k, units: c.us.map(u => u.id), to: p.hq });
+        if (!E.stackFits((idx[b.hex] || []).filter(u => u.owner === pid), c.us)) continue;
+        const a = tryOnce({ a: 'move', from: c.k, units: c.us.map(u => u.id), to: b.hex });
         if (a) { mem.hqGuard = (mem.hqGuard || 0) + 1; return a; }
       }
-      // a real threat: the sturdiest defenders we can afford. Only short of the floor: one cheap defender a turn, no more
-      const floorOnly = !gar.danger;
-      const defs = floorOnly && mem.floorBuy ? [] : p.arsenal.filter(t => !E.isSea(t) && E.unitCost(p, t) <= p.cash && E.UNITS[t].def > 0 && E.UNITS[t].cls !== 'air')
-        .sort(floorOnly ? (a, b) => E.UNITS[b].def / E.unitCost(p, b) - E.UNITS[a].def / E.unitCost(p, a) : (a, b) => (E.UNITS[b].def + E.UNITS[b].atk * 0.3) / Math.sqrt(E.unitCost(p, b)) - (E.UNITS[a].def + E.UNITS[a].atk * 0.3) / Math.sqrt(E.unitCost(p, a)));
-      if (floorOnly) mem.floorBuy = true;
-      for (const t of defs) if (E.deployHexes(s, pid, t, idx).includes(p.hq)) { mem.hqGuard = (mem.hqGuard || 0) + 1; return { a: 'deploy', unit: t, hex: p.hq }; }
+      const defs = p.arsenal.filter(t => !E.isSea(t) && E.unitCost(p, t) <= p.cash && E.UNITS[t].def > 0 && E.UNITS[t].cls !== 'air')
+        .sort((a, c) => (E.UNITS[c].def + E.UNITS[c].atk * 0.3) / Math.sqrt(E.unitCost(p, c)) - (E.UNITS[a].def + E.UNITS[a].atk * 0.3) / Math.sqrt(E.unitCost(p, a)));
+      for (const t of defs) if (E.deployHexes(s, pid, t, idx).includes(b.hex)) { mem.hqGuard = (mem.hqGuard || 0) + 1; if (!b.hq) mem.fobBuy.add(b.hex); return { a: 'deploy', unit: t, hex: b.hex }; }
     }
   }
   if (K.oldhq && (mem.hqGuard || 0) < 6 && p.hq && tiles[p.hq] && tiles[p.hq].owner === pid && !E.musterHexes(s, pid).length) {
@@ -861,6 +872,9 @@ function botTurn(s, pid, mem) {
         if (strat.goal.length) v += walkGain('goal', strat.goal, k, dest) * 1.1 + walkGain('enemy', enemyTiles, k, dest) * 0.3;
         else if (enemyTiles.length) v += walkGain('enemy', enemyTiles, k, dest) * 0.8;
         if (t.owner && t.owner === strat.target) v += 3;
+        // a FOB they took off us (or planted next to our land): close in on it from every side, to strike it together next turn
+        if (!K.oldfob) { const fobs = mem.enemyFobs = mem.enemyFobs || Object.keys(tiles).filter(h => tiles[h].owner && wary(s, pid, tiles[h].owner) && E.structsOf(tiles[h]).some(x => x.type === 'fob') && ((strat.lost && strat.lost[h]) || E.neighbors(h).filter(n => tiles[n] && tiles[n].owner === pid).length >= 2));
+          if (fobs.length && nearest(k, fobs) <= 6) v += (nearest(k, fobs) - nearest(dest, fobs)) * 2.2 * (K.punish === undefined ? 1 : K.punish) + (nearest(dest, fobs) === 1 ? 3 : 0); }
         if (strat.hq && K.lethal && !seaborne) v += walkGain('hq', [strat.hq], k, dest) * (0.9 + (K.edgeW === undefined ? 3 : K.edgeW) * (strat.edge || 0) + (K.lateW === undefined ? 3 : K.lateW) * late) * K.lethal;   // close on their HQ, not just any of their land (and harder the more we outgun them)
         // combined arms: join a friendly stack that lacks our kind of unit (troops with armour with aircraft), facing the enemy
         if (t.owner === pid && friendsHere(dest).length && E.stackFits(friendsHere(dest), movers) && nearest(dest, enemyTiles) <= nearest(k, enemyTiles)) {
