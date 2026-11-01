@@ -178,7 +178,7 @@ input:focus, select:focus { border-color: var(--blue); }
 .card.active .ci { box-shadow: 0 0 0 3px #fff, 0 0 26px var(--rc), 0 8px 0 #000; }
 .card.poor .ci { filter: saturate(.3) brightness(.65); }
 @keyframes sway { 0%, 100% { rotate: -1.2deg; translate: 0 0; } 50% { rotate: 1.2deg; translate: 0 -3px; } }
-.ci { position: absolute; inset: 0; border-radius: 12px; background: linear-gradient(170deg, #233240, #121b23); border: 3px solid #05080b; box-shadow: 0 6px 0 #000, inset 0 0 0 2px var(--rc); transform: rotateX(var(--rx)) rotateY(var(--ry)); transition: transform .08s; overflow: hidden; display: flex; flex-direction: column; padding: 6px; }
+.ci { position: absolute; inset: 0; border-radius: 12px; background: linear-gradient(170deg, #233240, #121b23); border: 3px solid #05080b; box-shadow: 0 6px 0 #000, inset 0 0 0 2px var(--rc); transform: rotateX(var(--rx)) rotateY(var(--ry)); overflow: hidden; display: flex; flex-direction: column; padding: 6px; will-change: transform; }
 .card.k-tactic .ci { background: linear-gradient(170deg, #34233f, #170f1d); }
 .c-art { height: 44%; border-radius: 7px; background-size: cover; background-position: center; border: 2px solid #05080b; flex: none; }
 .c-cost { position: absolute; top: 3px; right: 3px; background: var(--gold); color: #1d1404; font-family: var(--title); font-size: 15px; padding: 1px 7px; border-radius: 0 8px 0 8px; border: 2px solid #05080b; z-index: 2; }
@@ -437,7 +437,7 @@ input:focus, select:focus { border-color: var(--blue); }
 .card .ci { position: absolute; inset: 0; border-radius: 12px; padding: 7px; display: flex; flex-direction: column; overflow: hidden;
   background: linear-gradient(180deg, #f4ecd8, #e6dbc1); border: 3px solid #0b0f13;
   box-shadow: 0 6px 0 #000, inset 0 0 0 3px var(--rc), inset 0 0 0 5px #f4ecd8;
-  transform: rotateX(var(--rx, 0deg)) rotateY(var(--ry, 0deg)); transition: transform .08s; color: #1b1712; }
+  transform: rotateX(var(--rx, 0deg)) rotateY(var(--ry, 0deg)); color: #1b1712; }   /* (eased in script: no transition to fight it) */
 .card.k-tactic .ci { background: linear-gradient(180deg, #ecdff0, #d8c6dd); box-shadow: 0 6px 0 #000, inset 0 0 0 3px var(--rc), inset 0 0 0 5px #ecdff0; }
 .card .c-top { position: absolute; top: 9px; left: 9px; right: 9px; display: flex; justify-content: space-between; z-index: 3; pointer-events: none; }
 .card .c-cost { position: static; background: #ffc53d; color: #1d1404; font-family: var(--title); font-size: 15px; padding: 0 7px; border-radius: 7px; border: 2px solid #0b0f13; box-shadow: 0 2px 0 #000; }

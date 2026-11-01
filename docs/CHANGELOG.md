@@ -4,6 +4,8 @@ Every release, newest first. Each version also has its own post on the [Releases
 
 ## Unreleased
 
+- **Smoother card tilt.** Cards lean toward the pointer with an eased glide (and a gentler 14° tilt) instead of jittering when you move slowly or circle the card.
+- **`tools/valor.js`: give a player Valor from the terminal** on a running server (see Hosting).
 - **A bigger tear strip.** The top seal of a pack is a third taller, so it's easy to grab and drag along; the TEAR tag is gone (the perforation and notch show where to tear).
 
 ## v0.13.3

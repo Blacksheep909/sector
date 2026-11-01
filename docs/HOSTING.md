@@ -118,6 +118,17 @@ All of them set `PORT` themselves, and SECTOR reads it. The `Dockerfile` already
 6. `SECTOR_PROFILES` and `SECTOR_SAVES` on storage that survives restarts and redeploys, backed up now and then. The profiles file is every commander's progress.
 7. `SECTOR_DEV_KEY`, if you use the dev panel, a long random string (32+ characters).
 
+#### Giving a player Valor from the terminal
+
+With the server running with `SECTOR_DEV_KEY` set, from any terminal:
+
+```
+SECTOR_DEV_KEY=<the key> node tools/valor.js --list [search]          # find the player
+SECTOR_DEV_KEY=<the key> node tools/valor.js <name | handle | id> 500  # give them 500 Valor
+```
+
+It talks to `http://localhost:3000` unless you add `--host https://playsector.io` (or set `SECTOR_HOST`). If several players match a name it lists them and changes nothing: run it again with their handle or id. (On Windows PowerShell: `$env:SECTOR_DEV_KEY="<the key>"; node tools/valor.js alice 500`.)
+
 ### What the server protects against
 
 - **Bad or hostile messages:** each message is handled on its own, so one that hits a bug is logged and dropped instead of stopping the server. Messages over 128 KB close the connection.

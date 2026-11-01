@@ -41,15 +41,25 @@ const Cards = (() => {
     tilt(c);
     return c;
   }
+  // the card leans toward the pointer. Measured once on entry (the card sways, so measuring on every move made the
+  // maths drift under the pointer) and eased toward its target each frame, so slow moves glide instead of jittering
   function tilt(c) {
     const ci = c.querySelector('.ci');
+    let box = null, tx = 0, ty = 0, cx = 0, cy = 0, raf = 0, mx = 50, my = 50;
+    const step = () => {
+      cx += (tx - cx) * 0.18; cy += (ty - cy) * 0.18;
+      ci.style.setProperty('--ry', (cx * 14).toFixed(2) + 'deg'); ci.style.setProperty('--rx', (-cy * 14).toFixed(2) + 'deg');
+      ci.style.setProperty('--mx', mx.toFixed(0) + '%'); ci.style.setProperty('--my', my.toFixed(0) + '%');
+      raf = Math.abs(tx - cx) + Math.abs(ty - cy) > 0.002 ? requestAnimationFrame(step) : 0;
+    };
+    const go = () => { if (!raf) raf = requestAnimationFrame(step); };
+    c.addEventListener('mouseenter', () => { box = c.getBoundingClientRect(); SFX.hover(); });
     c.addEventListener('mousemove', e => {
-      const r = c.getBoundingClientRect(); const x = (e.clientX - r.left) / r.width - 0.5, y = (e.clientY - r.top) / r.height - 0.5;
-      ci.style.setProperty('--ry', (x * 24).toFixed(1) + 'deg'); ci.style.setProperty('--rx', (-y * 24).toFixed(1) + 'deg');
-      ci.style.setProperty('--mx', ((x + 0.5) * 100).toFixed(0) + '%'); ci.style.setProperty('--my', ((y + 0.5) * 100).toFixed(0) + '%');
+      const r = box || (box = c.getBoundingClientRect());
+      const x = Math.max(-0.5, Math.min(0.5, (e.clientX - r.left) / r.width - 0.5)), y = Math.max(-0.5, Math.min(0.5, (e.clientY - r.top) / r.height - 0.5));
+      tx = x; ty = y; mx = (x + 0.5) * 100; my = (y + 0.5) * 100; go();
     });
-    c.addEventListener('mouseleave', () => { ci.style.setProperty('--rx', '0deg'); ci.style.setProperty('--ry', '0deg'); });
-    c.addEventListener('mouseenter', () => SFX.hover());
+    c.addEventListener('mouseleave', () => { box = null; tx = 0; ty = 0; go(); });
   }
 
   // ───────────── particle helpers (DOM, on #flyLayer) ─────────────
