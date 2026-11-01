@@ -1234,11 +1234,23 @@ const Render = (() => {
     { const a0 = ctx.globalAlpha; if (exhausted) ctx.globalAlpha = a0 * 0.6; ctx.drawImage(spr.cv, x - spr.ox, ty - spr.oy, spr.w, spr.h); ctx.globalAlpha = a0; }
     if (d.heli) {
       // a helicopter's main rotor, spinning above the token
-      const ry = ty - r * 1.08, spin = t * (exhausted ? 6 : 22), w = r * 1.25;
-      ctx.save(); ctx.globalAlpha *= 0.22; ctx.fillStyle = '#e8f6ff'; ctx.beginPath(); ctx.ellipse(x, ry, w, w * 0.22, 0, 0, Math.PI * 2); ctx.fill(); ctx.restore();
-      ctx.save(); ctx.strokeStyle = 'rgba(20,24,30,.85)'; ctx.lineWidth = 2 * z; ctx.lineCap = 'round';
-      for (let i = 0; i < 2; i++) { const a = spin + i * Math.PI / 2, dx = Math.cos(a) * w, dy = Math.sin(a) * w * 0.22; ctx.beginPath(); ctx.moveTo(x - dx, ry - dy); ctx.lineTo(x + dx, ry + dy); ctx.stroke(); }
-      ctx.restore();
+      // (flying: a pale blur of spinning blades over the token; spent: the rotor stops, two short blades parked over it)
+      const ry = ty - r * 1.02;
+      if (exhausted) {
+        const w = r * 0.95; ctx.save(); ctx.globalAlpha *= 0.45; ctx.strokeStyle = '#1a2028'; ctx.lineWidth = 1.4 * z; ctx.lineCap = 'round';
+        for (const a of [0.35, 0.35 + Math.PI / 2]) { const dx = Math.cos(a) * w, dy = Math.sin(a) * w * 0.25; ctx.beginPath(); ctx.moveTo(x - dx, ry - dy); ctx.lineTo(x + dx, ry + dy); ctx.stroke(); }
+        ctx.restore();
+      } else {
+        const spin = t * 22, w = r * 1.1;
+        ctx.save(); ctx.globalAlpha *= 0.18; ctx.fillStyle = '#e8f6ff'; ctx.beginPath(); ctx.ellipse(x, ry, w, w * 0.22, 0, 0, Math.PI * 2); ctx.fill(); ctx.restore();
+        ctx.save(); ctx.lineCap = 'round';
+        for (let i = 0; i < 2; i++) for (let k = 0; k < 3; k++) {   // each blade with a fading smear behind it
+          const a = spin + i * Math.PI / 2 - k * 0.12, dx = Math.cos(a) * w, dy = Math.sin(a) * w * 0.22;
+          ctx.strokeStyle = `rgba(30,36,44,${(0.5 - k * 0.16).toFixed(2)})`; ctx.lineWidth = (1.5 - k * 0.3) * z;
+          ctx.beginPath(); ctx.moveTo(x - dx, ry - dy); ctx.lineTo(x + dx, ry + dy); ctx.stroke();
+        }
+        ctx.restore();
+      }
     }
     if (units.some(u => u.stun)) {
       // stunned: a slow cyan pulse and a lightning badge
