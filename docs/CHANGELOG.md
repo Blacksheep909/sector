@@ -4,12 +4,12 @@ Every release, newest first. Each version also has its own post on the [Releases
 
 ## v0.13.4
 
-**Supply drops open straight to the pack their rarity promises, a bigger tear strip, smoother card tilt, and a terminal tool for granting Valor.**
+**Supply drops open straight to the pack their rarity promises, packs that are easier to tear, smoother card tilt, and a terminal tool for granting Valor.**
 
 - **Supply drops open straight to their pack.** No more slot-machine reel: a Rare Supply Drop is a Standard pack, an Epic one a Gilded pack, a Legendary one a Mythic pack, every time.
 - **Smoother card tilt.** Cards lean toward the pointer with an eased glide (and a gentler 14° tilt) instead of jittering when you move slowly or circle the card.
 - **`tools/valor.js`: give a player Valor from the terminal** on a running server (see Hosting).
-- **A bigger tear strip.** The top seal of a pack is a third taller, so it's easy to grab and drag along; the TEAR tag is gone (the perforation and notch show where to tear).
+- **Easier to tear.** You can take hold anywhere in the top third of a pack and drag across to tear it (the strip itself stays slim); the TEAR tag is gone (the perforation and notch show where to tear).
 
 ## v0.13.3
 

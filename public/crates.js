@@ -118,7 +118,7 @@ const Crates = (() => {
         <div class="pk-pillow"></div><div class="pk-spec"></div><div class="pk-sheen"></div><div class="pk-rag" style="clip-path:${rag()}"></div>
       </div>
       <div class="pk-top">${slices}<div class="pk-perf"></div><div class="pk-notch"></div></div>
-      <div class="pk-leak"></div><div class="pk-flecks"></div><div class="pk-hint">${opts.hint || 'GRAB THE TOP AND DRAG TO TEAR'}</div>`;
+      <div class="pk-leak"></div><div class="pk-flecks"></div><div class="pk-grab"></div><div class="pk-hint">${opts.hint || 'GRAB THE TOP AND DRAG TO TEAR'}</div>`;
     tilt(p);
     return p;
   }
@@ -191,10 +191,10 @@ const Crates = (() => {
       const go = () => { if (done) return; auto = true; p.classList.add('tearing'); S.whoosh && S.whoosh(); start(); };
       p.onpointerdown = e => {
         if (done) return; const q = at(e); clearTimeout(idle);
-        if (q.y > 0.3) { p.classList.remove('nudge'); void p.offsetWidth; p.classList.add('nudge'); return; }   // not the strip: a wiggle points at it
+        if (q.y > 0.36) { p.classList.remove('nudge'); void p.offsetWidth; p.classList.add('nudge'); return; }   // not the strip: a wiggle points at it
         dragging = true; moved = 0; downX = q.x; p.setPointerCapture && p.setPointerCapture(e.pointerId); p.classList.add('tearing'); target = Math.max(target, front + 0.02); lift = 0; start();
       };
-      p.onpointermove = e => { if (!dragging) return; const q = at(e); moved = Math.max(moved, Math.abs(q.x - downX)); target = Math.max(target, Math.min(1.05, q.x)); lift = Math.min(0, q.py - 28); };
+      p.onpointermove = e => { if (!dragging) return; const q = at(e); moved = Math.max(moved, Math.abs(q.x - downX)); target = Math.max(target, Math.min(1.05, q.x)); lift = Math.min(0, q.py - 20); };
       p.onpointerup = p.onpointercancel = () => {
         if (!dragging) return; dragging = false; lift = 0;
         if (moved < 0.04) target = Math.max(target, front + 0.14);   // a click: a small bite
