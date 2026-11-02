@@ -2,7 +2,9 @@
 
 Every release, newest first. Each version also has its own post on the [Releases page](https://github.com/Blacksheep909/sector/releases).
 
-## Unreleased
+## v0.13.4
+
+**Supply drops open straight to the pack their rarity promises, a bigger tear strip, smoother card tilt, and a terminal tool for granting Valor.**
 
 - **Supply drops open straight to their pack.** No more slot-machine reel: a Rare Supply Drop is a Standard pack, an Epic one a Gilded pack, a Legendary one a Mythic pack, every time.
 - **Smoother card tilt.** Cards lean toward the pointer with an eased glide (and a gentler 14° tilt) instead of jittering when you move slowly or circle the card.
