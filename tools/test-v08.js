@@ -63,6 +63,15 @@ const land = (s, from, d) => Object.keys(s.map.tiles).find(k => E.dist(k, from) 
   for (let i = 0; i < 6 && E.isAlly(s, a, b); i++) { const id = E.current(s).id; if (s.turn.stage === 'choose') E.applyAction(s, id, { a: 'choose', pick: 'income' }); E.applyAction(s, id, { a: 'end' }); }
   ok(!E.isAlly(s, a, b) && !E.player(s, a).traitor && !E.player(s, b).traitor, 'an unrenewed pact lapses peacefully');
 }
+{ // renewing ignores the bloc cap: a pact that's now "too big" for the commanders left can still be renewed
+  const s = game({}, 4); const [a, b, c, d] = s.players.map(q => q.id);
+  const r0 = s.turn.round; s.allies = [{ a, b, since: r0, until: r0 + 5, renew: {} }, { a, b: c, since: r0, until: r0 + 5, renew: {} }];   // formed while more commanders stood
+  E.player(s, d).alive = false;   // 3 left: the cap is 2, and the a-b-c bloc is 3
+  ok(E.blocOf(s, a).size > E.blocCap(s), 'the bloc is over the cap now');
+  const x = s.allies.find(p => [p.a, p.b].includes(b)); x.until = s.turn.round + 1;
+  ok(E.applyAction(s, a, { a: 'allyRenew', with: b }).ok && E.applyAction(s, b, { a: 'allyRenew', with: a }).ok && x.until === s.turn.round + 6, 'both sides renew it anyway');
+  ok(!E.applyAction(s, b, { a: 'allyOffer', to: c }).ok, 'a new pact that grows the bloc is still refused');
+}
 { // fog of war: a planned route through hidden enemies turns into an ambush instead of failing
   let tried = 0, good = 0;
   for (let g = 0; g < 12 && tried < 4; g++) {

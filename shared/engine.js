@@ -1870,13 +1870,13 @@
     return { ok: true, events: ev };
   }
   // pacts run for 5 rounds; in the last 2, both sides can renew for another 5. If either doesn't, it lapses peacefully
+  // (renewing ignores the bloc cap: the cap only stops new pacts, it never breaks up an alliance that already exists)
   const PACT_ROUNDS = 5;
   function allyRenew(s, p, a, ev) {
     const x = (s.allies || []).find(x => (x.a === p.id && x.b === a.with) || (x.b === p.id && x.a === a.with));
     if (!x || x.team || !x.until) return { ok: false, err: 'Not allied', events: [] };
     if (x.ending) return { ok: false, err: 'This alliance is breaking up', events: [] };
     if (x.until - s.turn.round > 2) return { ok: false, err: 'You can renew in the last 2 rounds of the pact', events: [] };
-    if (blocOf(s, p.id).size > blocCap(s)) return { ok: false, err: 'Your alliance is too big for the commanders left (at most ' + blocCap(s) + '): it will lapse', events: [] };
     x.renew = x.renew || {}; if (x.renew[p.id]) return { ok: false, err: 'Already renewed: waiting for your ally', events: [] };
     x.renew[p.id] = s.turn.round;
     const o = player(s, a.with);

@@ -1333,7 +1333,7 @@ function diplomacy(s, pid, mem) {
     if (x.until && x.until - s.turn.round <= 2 && !(x.renew && x.renew[pid])) {
       const bm = botMem(s, pid), plotting = bm.plot && bm.plot.vs === o;
       const stillUseful = !threatGone && !(lastTwo) && E.moodOf(s, pid, o) > -20;
-      if (!plotting && stillUseful && E.blocOf(s, pid).size <= E.blocCap(s)) return { a: 'allyRenew', with: o };
+      if (!plotting && stillUseful) return { a: 'allyRenew', with: o };
     }
     if (held >= 3 && (threatGone || weakAlly || lastTwo) && (mem.betrayRoll = mem.betrayRoll ?? Math.random()) < 0.5 * ruthless) {
       // a smart traitor strikes when it can: mass troops on the border first, break once the knife is in reach

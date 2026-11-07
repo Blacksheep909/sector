@@ -2,6 +2,12 @@
 
 Every release, newest first. Each version also has its own post on the [Releases page](https://github.com/Blacksheep909/sector/releases).
 
+## v0.13.8
+
+**Renewing an alliance ignores the size limit.**
+
+- **RENEW always works** when both sides press it, even if the alliance bloc is now over the limit (at most half the commanders still standing). The limit only stops **new** pacts. Bots renew the same way.
+
 ## v0.13.7
 
 **Encirclement happens where you close the ring.**
