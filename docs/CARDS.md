@@ -31,22 +31,22 @@ Unit cards are permanent unlocks: deploy as many as you can afford.
 | **Ranger** | Infantry | Rare | $6 | 4 | 3 | 3 | – | Pathfinders: rough terrain costs only 1 move. |
 | **Skyguard** | Anti-air | Rare | $7 | 3 | 1 | 3 | 2 | Air defence truck. Fires at aircraft 2 hexes away (+6 Chips vs air), and on its own at any that stop within 1. Downs 50% of air strikes within 2. Weak vs ground troops. |
 | **Hellcat** | Vehicle | Rare | $7 | 6 | 2 | 3 | – | Strike tank. Can act on the turn it is deployed. |
-| **Outrider** | Vehicle | Rare | $7 | 5 | 3 | 5 | – | Eight-wheeled fighting vehicle. 5 move: the fastest thing on the ground. Carries up to 4 Grunts. |
+| **Outrider** | Vehicle | Rare | $7 | 5 | 3 | 4 | – | Eight-wheeled fighting vehicle. 4 move: as fast as anything on the ground. Carries up to 4 Grunts. |
 | **Kraken** | Naval | Rare | $8 | 7 | 2 | 4 | – | Submarine. Torpedoes: +4 Chips vs ships. |
-| **Wren** | Air | Rare | $5 | 2 | 0 | 5 | – | Light assault helicopter. Fast, with 2 Grunts riding on its benches. Strafing Run: +2 Mult attacking ground targets. |
+| **Wren** | Air | Rare | $5 | 2 | 0 | 4 | – | Light assault helicopter. Fast, with 2 Grunts riding on its benches. Strafing Run: +2 Mult attacking ground targets. |
 | **Ravager** | Air | Rare | $7 | 4 | 1 | 4 | – | Armoured attack helicopter with a chin cannon. Strafing Run: +2 Mult attacking ground targets. |
 | **Mule** | Air | Rare | $6 | 1 | 2 | 4 | – | Tandem-rotor heavy-lift helicopter. Barely armed, but carries up to 8 Grunts over mountains and water (it sets them down on land). |
 | **Goliath** | Vehicle | Epic | $10 | 7 | 6 | 1 | – | Heavy main battle tank. +2 Mult vs fortified hexes. |
 | **Valkyrie** | Air | Epic | $10 | 6 | 3 | 4 | – | Tiltrotor assault transport. Carries up to 8 Grunts over mountains and water (it sets them down on land). Strafing Run: +2 Mult attacking ground targets. |
 | **Stormcrow** | Air | Epic | $9 | 3 | 2 | 4 | – | Utility helicopter with door guns. Carries up to 6 Grunts over mountains and water (it sets them down on land). |
-| **Phantom** | Air | Epic | $10 | 7 | 3 | 5 | – | Stealth bomber. Immune to artillery, airstrikes and bombardment. |
+| **Phantom** | Air | Epic | $10 | 7 | 3 | 4 | – | Stealth bomber. Immune to artillery, airstrikes and bombardment. |
 | **Hailstorm** | Artillery | Epic | $11 | 9 | 1 | 2 | 4 | Tracked rocket launcher (MLRS). Range 4. A hit also rains rockets on every enemy stack next to the target: 1 unit each. |
 | **Sentinel** | Anti-air | Epic | $9 | 6 | 1 | 1 | 3 | Patriot SAM. Fires at aircraft 3 away (+7 Chips vs air), and on its own at any that stop within 2. Downs 60% of strikes within 3; stops Tridents. |
 | **Grumble** | Anti-air | Epic | $10 | 5 | 1 | 1 | 3 | S-300 SAM. Fires at aircraft 3 away (+7 Chips vs air), and on its own at any that stop within 2. Downs 55% of air strikes within 3; stops Tridents. Weak vs ground. |
 | **Bastion** | Naval | Epic | $11 | 8 | 8 | 3 | 3 | Frigate. Missiles hit coasts and ships 3 hexes away. |
 | **Leviathan** | Vehicle | Legendary | $14 | 12 | 10 | 1 | – | Heavy main battle tank. Never suffers pyrrhic losses. |
 | **Titan** | Vehicle | Legendary | $16 | 13 | 12 | 1 | – | Next-generation tank with an unmanned turret. Siege Breaker and never suffers pyrrhic losses. |
-| **Seraph** | Air | Legendary | $12 | 9 | 4 | 5 | – | Heavy gunship. Strafing Run: +2 Mult attacking ground targets. |
+| **Seraph** | Air | Legendary | $12 | 9 | 4 | 4 | – | Heavy gunship. Strafing Run: +2 Mult attacking ground targets. |
 | **Banshee** | Air | Legendary | $14 | 8 | 2 | 4 | – | Attack helicopter with anti-tank missiles. Hellfire: +3 Chips against vehicles, and Strafing Run: +2 Mult attacking ground targets. |
 | **Carrier** | Naval | Legendary | $13 | 2 | 2 | 1 | – | Floating airbase: deploy planes and helicopters onto it and fly them off it. Holds 4. |
 | **Oracle** | Artillery | Legendary | $11 | 8 | 2 | 2 | 4 | Satellite-guided missile launcher. Range 4, fires over mountains. |

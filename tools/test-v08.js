@@ -214,7 +214,7 @@ const land = (s, from, d) => Object.keys(s.map.tiles).find(k => E.dist(k, from) 
 }
 { // new and reworked units
   ok(E.UNITS.grunt.cost === 2, 'Grunts cost $2');
-  ok(E.UNITS.wraith.mv === 5 && !E.UNITS.wraith.ability, 'the Outrider is a fast wheeled vehicle, not a hovercraft');
+  ok(E.UNITS.wraith.mv === 4 && !E.UNITS.wraith.ability, 'the Outrider is a fast wheeled vehicle, not a hovercraft');
   ok(E.UNITS.jackal.rarity === 'uncommon' && E.UNITS.coyote.rarity === 'uncommon', 'two uncommon light vehicles');
   const s = game({ fog: 'on' }); const p = me(s); const k = p.hq;
   s.units.cy = { id: 'cy', type: 'coyote', owner: p.id, hex: k, moved: false, fresh: false };
