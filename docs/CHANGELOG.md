@@ -2,6 +2,12 @@
 
 Every release, newest first. Each version also has its own post on the [Releases page](https://github.com/Blacksheep909/sector/releases).
 
+## v0.13.6
+
+**Player cards draw over the turn banner.**
+
+- **Fix:** the turn banner is back in its old spot, and the top bar now sits above it, so the current player's raised card (and its TRADE / ALLY buttons) draws on top of the banner instead of underneath. This replaces v0.13.5's fix, which moved the banner down.
+
 ## v0.13.5
 
 **The turn banner no longer covers the player cards.**

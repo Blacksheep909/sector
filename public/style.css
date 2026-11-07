@@ -92,7 +92,7 @@ input:focus, select:focus { border-color: var(--blue); }
    the same in every browser */
 #hud { --hz: 1; inset: auto; top: 0; left: 0; width: calc(100vw / var(--hz)); height: calc(100vh / var(--hz)); height: calc(100dvh / var(--hz)); transform: scale(var(--hz)); transform-origin: 0 0; }
 #hud > * { pointer-events: auto; }
-#topbar { position: absolute; top: 10px; left: 12px; right: 12px; display: flex; align-items: center; gap: 12px; pointer-events: none; }
+#topbar { position: absolute; top: 10px; left: 12px; right: 12px; display: flex; align-items: center; gap: 12px; pointer-events: none; z-index: 7; }   /* above the turn banner (#centerStack, 6): the current player's raised chip overlaps it */
 #topbar > * { pointer-events: auto; }
 #roundBox { background: var(--panel); border: 3px solid var(--line); border-radius: 12px; padding: 6px 12px; box-shadow: 0 4px 0 #000; font-size: 12px; color: var(--dim); min-width: 150px; }
 #roundBox b { display: block; font-family: var(--title); font-weight: 400; color: var(--ink); font-size: 18px; letter-spacing: 1px; }

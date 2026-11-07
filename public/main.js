@@ -625,9 +625,7 @@
     // measurements are in screen pixels; the HUD may be scaled down (--hz) on smaller screens, so convert back
     const z = parseFloat(getComputedStyle($('#hud')).getPropertyValue('--hz')) || 1;
     const t = tb.getBoundingClientRect(), d = dock.getBoundingClientRect();
-    // the banners go below the lowest player chip, not just the bar: the current player's chip is scaled up and nudged down past it
-    let bottom = t.bottom; for (const c of tb.querySelectorAll('.pchip')) bottom = Math.max(bottom, c.getBoundingClientRect().bottom);
-    root.setProperty('--topH', Math.ceil(bottom / z) + 'px');
+    root.setProperty('--topH', Math.ceil(t.bottom / z) + 'px');
     root.setProperty('--dockH', Math.ceil((innerHeight - d.top) / z) + 'px');
     root.setProperty('--stackB', Math.ceil(cs.getBoundingClientRect().bottom) + 'px');
     // the chat button (compact screens) sits just under the cash panel, wherever the layout put it
