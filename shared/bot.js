@@ -1264,6 +1264,37 @@ function botTurn(s, pid, mem) {
     const a = tryOnce({ a: 'deploy', unit: type, hex: bs, n: mem.deployN = (mem.deployN || 0) + 1 });
     if (a) { delete a.n; return a; }
   }
+  // 6b. money and nowhere to put troops: every base is packed full (a hex holds 5, or 10 with Grunts). Without this the bot
+  // sat on its cash while its HQ filled up, and on a small landmass it never found a spot for a FOB
+  { const land = p.arsenal.filter(t => !E.isSea(t) && E.UNITS[t].cls !== 'air' && E.unitCost(p, t) <= p.cash);
+    const bases = E.spawnPoints(s, pid), full = bases.length && bases.every(b => !E.stackFits(idx[b] || [], ['grunt']) || !E.stackFits(idx[b] || [], ['mauler']));
+    if (land.length && full && !K.oldclog) {
+      // a FOB anywhere the rules allow (3+ from another base), as far from the front as it can be: a second door for troops
+      if (p.cash >= E.structCost(p, 'fob') + Math.min(...land.map(t => E.unitCost(p, t))) && !mem.fobClog) {
+        mem.fobClog = true;
+        const spot = supLand.filter(k => !tiles[k].struct && !tiles[k].contam && fromFoe(k) >= 2 && !E.buildError(s, pid, 'fob', k))
+          .sort((a, b) => (fromFoe(b) >= 3) - (fromFoe(a) >= 3) || nearest(a, enemyTiles.length ? enemyTiles : targets) - nearest(b, enemyTiles.length ? enemyTiles : targets))[0];
+        if (spot) { const b_ = tryOnce({ a: 'build', struct: 'fob', hex: spot }); if (b_) return b_; }
+      }
+      // and make room: step units off a packed base onto our land next to it, the ones it doesn't need first. When the
+      // whole stack is its garrison, swap the weakest out for something sturdier we can buy (the base ends up stronger)
+      if ((mem.unclog || 0) < 6) {
+        const keep = baseGuard(s, pid, idx, K, mem).keep, bestDef = Math.max(...land.map(t => E.UNITS[t].def + (p.levels[t] || 0)));
+        for (const b of bases) {
+          const here = (idx[b] || []).filter(u => u.owner === pid && E.canAct(s, u) && !E.isSea(u.type));
+          const free = here.filter(u => !keep.has(u.id)).sort((x, y) => unitValue(x.type) - unitValue(y.type));
+          const swap = here.filter(u => keep.has(u.id) && E.unitDef(s, u) < bestDef).sort((x, y) => E.unitDef(s, x) - E.unitDef(s, y));
+          const out = free.length ? free.slice(0, 2) : swap.slice(0, 1);
+          if (!out.length) continue;
+          const r = E.reachable(s, pid, out.map(u => u.id), b, idx);
+          const to = E.neighbors(b).filter(n => r[n] && r[n].kind === 'move' && tiles[n].owner === pid && !E.isWater(tiles[n]) && !bases.includes(n))
+            .sort((x, y) => nearest(x, enemyTiles.length ? enemyTiles : targets) - nearest(y, enemyTiles.length ? enemyTiles : targets))[0];
+          if (!to) continue;
+          mem.unclog = (mem.unclog || 0) + 1;
+          return keepTogether({ a: 'move', from: b, units: out.map(u => u.id), to });   // (a loaded transport takes its Grunts along)
+        }
+      }
+    } }
   return { a: 'end' };
 }
 
