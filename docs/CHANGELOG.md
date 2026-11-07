@@ -2,6 +2,17 @@
 
 Every release, newest first. Each version also has its own post on the [Releases page](https://github.com/Blacksheep909/sector/releases).
 
+## v0.13.10
+
+**Bots that fight for their lives, sieges you can always answer, and Tiny maps that are actually tiny.**
+
+- **Bots take their HQ back:** with an enemy sitting on it, a bot (Medium and up) throws every unit in reach at its HQ at any odds, instead of needing a 15% chance and walking away.
+- **Bots keep spending:** a bot whose HQ was packed full had nowhere to deploy and hoarded its cash. It now builds a FOB wherever the rules allow, or steps spare units off the HQ (swapping weak guards for sturdier ones).
+- **Bots stop resending refused orders** (like stranding Grunts by driving their transport off).
+- **Siege muster:** while your HQ is under siege, any land next to it with no enemy troops or forts on it takes troops, whoever owns it, and deploying there claims it back.
+- **Strategic Bombing:** bombed land now pays nothing for 2 turns as the card says (it came back after one).
+- **Tiny maps:** about 15–20 land hexes per commander (was 20–31); HQs can start 4 apart; a crowded Tiny map grows a little instead of failing to generate.
+
 ## v0.13.9
 
 **Nothing moves 5 any more.**
