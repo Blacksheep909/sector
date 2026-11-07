@@ -329,7 +329,7 @@
   function generateMap(opts) {
     for (let attempt = 0; attempt < 80; attempt++) {
       const seed = (opts.seed + attempt * 7919) >>> 0;
-      const m = tryMap(seed, opts.nPlayers, opts.size || 'medium', opts.archetype, THEMES[opts.theme] ? opts.theme : 'mixed');
+      const m = tryMap(seed, opts.nPlayers, opts.size || 'medium', opts.archetype, THEMES[opts.theme] ? opts.theme : 'mixed', attempt);
       if (m) { m.seed = seed; return m; }
     }
     throw new Error('map generation failed');
@@ -363,19 +363,22 @@
       if (comps().length === cs.length) break;
     }
   }
-  function tryMap(seed, nP, size, forceArch, theme) {
+  function tryMap(seed, nP, size, forceArch, theme, attempt) {
     const th = THEMES[theme] || THEMES.mixed;
     const rng = mulberry32(seed);
     const noise = makeNoise(seed % 100000), noise2 = makeNoise((seed * 3 + 17) % 100000), warpN = makeNoise((seed * 7 + 5) % 100000);
     const arch = forceArch || ARCHETYPES[Math.floor(rng() * ARCHETYPES.length)];
     const sizeMul = { tiny: 0.48, small: 0.7, medium: 1, large: 1.8, huge: 2.6, colossal: 3.8 }[size] || 1;
     const tempN = makeNoise((seed * 11 + 3) % 100000);
-    const landTarget = Math.round((70 + nP * 38) * sizeMul);
+    // (Tiny skips the fixed base most of the land comes from: about 10 hexes a commander, so wars start in contact)
+    // (a crowded Tiny map that keeps failing to fit everyone grows a hex a commander every 10 tries)
+    const landTarget = size === 'tiny' ? 14 + nP * (15 + Math.floor((attempt || 0) / 10)) : Math.round((70 + nP * 38) * sizeMul);
     const landFrac = arch === 'ocean' ? 0.24 : arch === 'archipelago' ? 0.36 : arch === 'pangaea' ? 0.55 : 0.45;
     const total = landTarget / landFrac;
     let aspect = 1 + rng() * 0.7; if (rng() < 0.3) aspect = 1 / aspect;
-    const cols = Math.max(10, Math.round(Math.sqrt(total * aspect * 1.15)));
-    const rows = Math.max(10, Math.round(total / cols));
+    const minSide = size === 'tiny' ? 7 : 10;
+    const cols = Math.max(minSide, Math.round(Math.sqrt(total * aspect * 1.15)));
+    const rows = Math.max(minSide, Math.round(total / cols));
     const blobs = [];
     const R = (a, b) => a + rng() * (b - a);
     // open edges: on many land maps the land runs straight off one to three sides of the board instead of ending in a
@@ -476,7 +479,8 @@
       comps.push(c);
     }
     const land = Object.keys(tiles).filter(isLand);
-    const minComp = Math.max(14, Math.floor(land.length / (nP * 2.2)));
+    // (Tiny packs commanders closer: HQs 4 apart, a smaller patch of land round each, smaller islands to start on)
+    const tiny = size === 'tiny', minComp = Math.max(tiny ? 10 : 14, Math.floor(land.length / (nP * 2.2)));
     // spawn spots on easy ground (a theme's own rough ground is allowed when it is most of the map: the HQ hex is cleared to plains below)
     const rough = ['hills', 'swamp', 'tundra', 'jungle', 'canyon'].filter(x => !(theme === 'arctic' && x === 'tundra') && !(theme === 'jungle' && x === 'jungle') && !(theme === 'wetlands' && x === 'swamp'));
     const cands = land.filter(k => comps[compOf[k]].length >= minComp && !rough.includes(tiles[k].t) && neighbors(k).filter(isLand).length >= 4);
@@ -486,11 +490,11 @@
     while (spawns.length < nP) {
       let best = null, bd = -1;
       for (const k of cands) { const d = Math.min(...spawns.map(s => dist(s, k))); if (d > bd) { bd = d; best = k; } }
-      if (bd < 5) return null;
+      if (bd < (tiny ? 4 : 5)) return null;
       spawns.push(best);
     }
     if (nP > 1) { let best = spawns[0], bd = -1; for (const k of cands) { const d = Math.min(...spawns.slice(1).map(s => dist(s, k))); if (d > bd) { bd = d; best = k; } } spawns[0] = best; }
-    for (const s of spawns) if (area(s, 4).filter(isLand).length < 16) return null;
+    for (const s of spawns) if (tiny ? area(s, 3).filter(isLand).length < 12 : area(s, 4).filter(isLand).length < 16) return null;
     for (const s of spawns) {
       tiles[s].t = 'plains';
       for (const n of neighbors(s)) if (tiles[n] && ['mountain', 'swamp'].includes(tiles[n].t)) tiles[n].t = tiles[n].t === 'mountain' ? 'hills' : 'plains';
