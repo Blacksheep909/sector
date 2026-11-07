@@ -2,6 +2,13 @@
 
 Every release, newest first. Each version also has its own post on the [Releases page](https://github.com/Blacksheep909/sector/releases).
 
+## v0.13.5
+
+**The turn banner no longer covers the player cards.**
+
+- **Fix: turn banner over the player cards.** The "⏳ NAME'S TURN" banner could sit on top of the current player's raised card, hiding its bottom and its TRADE / ALLY buttons (most often with a wrapped player bar or a scaled-down HUD). It now always sits below the lowest player card.
+- **Packs:** the tear strip is slim again, with a generous invisible grab zone over the top third.
+
 ## v0.13.4
 
 **Supply drops open straight to the pack their rarity promises, packs that are easier to tear, smoother card tilt, and a terminal tool for granting Valor.**
