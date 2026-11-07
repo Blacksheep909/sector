@@ -2,6 +2,12 @@
 
 Every release, newest first. Each version also has its own post on the [Releases page](https://github.com/Blacksheep909/sector/releases).
 
+## v0.13.7
+
+**Encirclement happens where you close the ring.**
+
+- **Fix: random hexes annexed across the map.** Every action searched the whole board for pockets, so moving a boat could annex hexes on the far side of the map from a pocket that had been walled in earlier. Now only pockets touching the hexes that action just won are annexed. A walled-in pocket that wasn't taken (an enemy unit was inside, say) flips once you claim another hex on its edge.
+
 ## v0.13.6
 
 **Player cards draw over the turn banner.**

@@ -151,7 +151,8 @@ const idle = (s, pid) => s.players.find(p => p.id !== pid && p.id !== me(s).id) 
     const step = () => { const st = Object.values(s.units).find(u => u.owner === p.id && E.canAct(s, u)); if (!st) return false; const r = E.reachable(s, p.id, [st.id], st.hex); const to = Object.keys(r).find(x => r[x].kind === 'move' || r[x].kind === 'capture'); return !!to && E.applyAction(s, p.id, { a: 'move', from: st.hex, units: [st.id], to }).ok; };
     ok(step() && T[k].owner === foe.id, 'a hex ringed by mountains is not annexed by someone who does not touch it');
     const gap = E.neighbors(k)[0]; Object.assign(T[gap], { t: 'plains', owner: p.id });
-    ok(step() && T[k].owner === p.id, 'holding the only way in does encircle it');
+    E.annex(s, p.id, [], [gap]);   // the gap is the hex that just closed the ring
+    ok(T[k].owner === p.id, 'holding the only way in does encircle it');
   }
 }
 { // bridges can be turned by their owner, through all three axes and back

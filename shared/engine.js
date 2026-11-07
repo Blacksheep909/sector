@@ -2078,21 +2078,28 @@
     rng = rng || Math.random;
     s._razed = null;
     const liftHexes = new Set(); for (const id in s.units) if (UNITS[s.units[id].type].lift) liftHexes.add(s.units[id].hex);
+    const wasMine = new Set(); if (s.phase === 'play') for (const k in s.map.tiles) if (s.map.tiles[k].owner === pid) wasMine.add(k);
     const r = applyActionInner(s, pid, a, rng);
     if (r.ok && liftHexes.size) shedPassengers(s, liftHexes, r.events);
     if (s._razed) { if (r.ok) for (const k of s._razed) r.events.push({ e: 'razed', pid, hex: k }); s._razed = null; }
     if (r.ok && !s._preview) trackStats(s, r.events);
     if (r.ok && s.phase === 'play') {
       drown(s, r.events);
-      if (['move', 'assault', 'fire', 'tactic', 'deploy', 'build'].includes(a.a)) annex(s, pid, r.events);
+      if (['move', 'assault', 'fire', 'tactic', 'deploy', 'build'].includes(a.a)) {
+        // only rings this action closed: the hexes it just won you are the last link (no pockets popping up across the map)
+        const gained = []; for (const k in s.map.tiles) if (s.map.tiles[k].owner === pid && !wasMine.has(k)) gained.push(k);
+        if (gained.length) annex(s, pid, r.events, gained);
+      }
       checkWin(s, r.events);
     }
     return r;
   }
   // encirclement: small land pockets fully surrounded by your territory flip to you
-  function annex(s, pid, ev) {
+  // `gained` (optional): only pockets touching these newly won hexes are checked; leave it out to sweep the whole map
+  function annex(s, pid, ev, gained) {
     const tiles = s.map.tiles, idx = buildIndex(s), seen = new Set(), flipped = [];
-    for (const k in tiles) {
+    const seeds = gained ? [...new Set(gained.flatMap(neighbors))].filter(k => tiles[k]) : Object.keys(tiles);
+    for (const k of seeds) {
       const t = tiles[k];
       if (seen.has(k) || !isLandTile(t) || t.owner === pid) continue;
       const comp = [k]; seen.add(k);
@@ -2120,7 +2127,7 @@
       for (const c of comp) if (captureTile(s, c, pid)) flipped.push(c);
     }
     // sea encirclement: a pocket of 12 or fewer water hexes walled in by your coast and your own sea flips to you
-    for (const k in tiles) {
+    for (const k of seeds) {
       const t = tiles[k];
       if (seen.has(k) || !isWater(t) || t.owner === pid) continue;
       const comp = [k]; seen.add(k);

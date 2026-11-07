@@ -404,6 +404,25 @@ function crossing(s) {
   E.annex(s, 'p0', []);
   ok(T[c].owner === 'p0' && E.neighbors(c).filter(n => n !== lake).every(n => T[n].owner === 'p0'), 'a pocket with a lake in it is annexed (the ship on the lake doesn\'t stop it)');
 }
+{ // encirclement is local: a move across the map doesn't annex a pocket that was already walled in elsewhere
+  const roster = [0, 1].map(i => ({ id: 'p' + i, name: 'P' + i, color: E.COLORS[i], faction: 'iron' }));
+  const { state: s } = E.createGame({ mode: 'domination', mapSize: 'large', seed: 'lake1', mapType: 'pangaea' }, roster);
+  s.phase = 'play'; const T = s.map.tiles; for (const id in s.units) delete s.units[id];
+  for (const k in T) { T[k].owner = null; T[k].structs = []; T[k].struct = null; }
+  const flat = k => T[k] && E.isLandTile(T[k]) && T[k].t !== 'mountain' && !T[k].river;
+  const c = Object.keys(T).find(k => E.area(k, 3).length === 37 && E.area(k, 2).every(flat));
+  for (const n of E.area(c, 2)) T[n].owner = E.dist(n, c) === 2 ? 'p0' : 'p1';
+  const from = Object.keys(T).find(k => E.dist(k, c) >= 8 && flat(k) && E.neighbors(k).some(flat)), to = E.neighbors(from).find(flat);
+  const hq = (pid, k) => { E.player(s, pid).hq = k; T[k].owner = pid; T[k].structs = [{ type: 'hq', owner: pid, lvl: 1 }]; T[k].struct = T[k].structs[0]; };
+  hq('p0', E.neighbors(from).find(n => flat(n) && n !== to)); hq('p1', Object.keys(T).find(k => flat(k) && E.dist(k, c) >= 6 && E.dist(k, from) >= 6));
+  T[from].owner = 'p0'; s.turn.idx = s.players.findIndex(p => p.id === 'p0'); s.turn.stage = 'act';
+  s.units.g = { id: 'g', owner: 'p0', type: 'grunt', hex: from, moved: false, fresh: false, stun: 0, mvBonus: 0 };
+  const r = E.applyAction(s, 'p0', { a: 'move', from, units: ['g'], to });
+  ok(r.ok && T[to].owner === 'p0' && T[c].owner === 'p1', 'a move across the map leaves a far-off walled-in pocket alone');
+  const link = E.area(c, 2).find(n => E.dist(n, c) === 2); T[link].owner = null;
+  E.annex(s, 'p0', [], (T[link].owner = 'p0', [link]));
+  ok(T[c].owner === 'p0', 'closing the ring next to the pocket annexes it');
+}
 { // a FOB caught in a nuke: gone, the hex unowned fallout, and it's no deploy point (nobody can deploy there)
   const roster = [0, 1].map(i => ({ id: 'p' + i, name: 'P' + i, color: E.COLORS[i], faction: 'iron' }));
   const { state: s } = E.createGame({ mode: 'domination', mapSize: 'medium', seed: 'nk2' }, roster);
