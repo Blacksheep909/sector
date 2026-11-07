@@ -833,11 +833,20 @@
   }
   function ownedTiles(s, pid) { const o = []; for (const k in s.map.tiles) if (s.map.tiles[k].owner === pid) o.push(k); return o; }
   function ownedLand(s, pid) { const o = []; for (const k in s.map.tiles) { const t = s.map.tiles[k]; if (t.owner === pid && isLandTile(t)) o.push(k); } return o; }
-  // emergency muster: while your HQ is under siege, your own land next to it becomes a deploy point
+  // emergency muster: while your HQ is under siege, the land next to it becomes a deploy point: your own, or any the enemy
+  // took (or left neutral) as long as no enemy troops or fortifications stand on it. Mustering there claims it back. (Before,
+  // only your own land counted, so a besieger who also took the ring round the HQ left you no way to strike back at all)
   function musterHexes(s, pid) {
     const p = player(s, pid); if (!p || !p.hq || !s.map.tiles[p.hq]) return [];
     const h = getS(s.map.tiles[p.hq], 'hq'); if (!h || h.owner !== pid || !h.siege) return [];
-    return neighbors(p.hq).filter(n => { const t = s.map.tiles[n]; return t && t.owner === pid && isLandTile(t) && t.t !== 'mountain' && !(t.river && !t.bridge); });
+    return neighbors(p.hq).filter(n => {
+      const t = s.map.tiles[n];
+      if (!t || !isLandTile(t) || t.t === 'mountain' || (t.river && !t.bridge) || t.contam > 0) return false;
+      if (t.owner === pid) return true;
+      if (t.owner && isAlly(s, pid, t.owner)) return false;
+      if (Object.values(s.units).some(u => u.hex === n && u.owner !== pid)) return false;
+      return !structsOf(t).some(x => x.owner && x.owner !== pid && ['hq', 'fob', 'bunker', 'port'].includes(x.type));
+    });
   }
   function spawnPoints(s, pid) {
     const out = []; let sup = null;
@@ -1663,7 +1672,7 @@
       u.moved = false; u.fresh = false; u.mvBonus = 0; u.ow = false;   // overwatch lasts until your next turn
       if (u.stun > 0) { u.moved = true; u.stun--; }
     }
-    for (const k in s.map.tiles) { const t = s.map.tiles[k]; if (t.smoke === p.id) t.smoke = null; if (t.ruin && t.owner === p.id && !preview) { t.ruin--; if (!t.ruin) delete t.ruin; } }
+    for (const k in s.map.tiles) { const t = s.map.tiles[k]; if (t.smoke === p.id) t.smoke = null; }
     const depots = Object.keys(s.map.tiles).filter(k => { const t = s.map.tiles[k], d = getS(t, 'depot'); return t.owner === p.id && d && d.owner === p.id; });
     if (depots.length) for (const id in s.units) { const u = s.units[id]; if (u.owner === p.id && depots.some(d => dist(d, u.hex) <= slvlOf(getS(s.map.tiles[d], 'depot')))) u.mvBonus = 1; }
     // structures captured last turn come online; sieges this player started now resolve
@@ -1689,6 +1698,8 @@
     // resupply pick gets 20s of its own on top; the full action clock restarts once you've chosen
     s.turn.deadline = s.settings.timer ? Date.now() + s.settings.timer * 1000 + (s.turn.round === 1 ? 0 : 20000) : 0;
     s.turn.income = computeIncome(s, p.id).total;
+    // bombed-out land counts down after this turn's pay, so "no income for 2 turns" really is two paydays
+    if (!preview) for (const k in s.map.tiles) { const t = s.map.tiles[k]; if (t.ruin && t.owner === p.id) { t.ruin--; if (!t.ruin) delete t.ruin; } }
     if (p.traitor && !preview) { p.traitor--; if (p.traitor <= 0) delete p.traitor; }
     if (!preview && s.moods && s.moods[p.id]) {
       // grudges fade slowly; standing alliances warm up
@@ -2315,6 +2326,7 @@
       p.cash -= cost;
       // troops mustered next to a besieged HQ can strike back straight away
       const muster = !isSea(a.unit) && musterHexes(s, pid).includes(a.hex);
+      if (muster && tiles[a.hex].owner !== pid) captureTile(s, a.hex, pid);   // mustering on the ring the besieger took claims it back
       const u = addUnit(s, pid, a.unit, a.hex, !muster);
       // a ship launched into the sea claims the water it lands on, just like sailing through it
       const claimed = isSea(a.unit) && isWater(tiles[a.hex]) && tiles[a.hex].owner !== pid;

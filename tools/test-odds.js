@@ -14,9 +14,12 @@ for (let g = 0; g < 3; g++) {
       if (s.turn.stage === 'act' && Math.random() < 0.15) {
         const ds = E.view(s, p.id), idx = E.buildIndex(ds), ridx = E.buildIndex(s);
         const stacks = {}; for (const u of Object.values(ds.units)) if (u.owner === p.id && E.canAct(ds, u)) (stacks[u.hex] = stacks[u.hex] || []).push(u.id);
+        // fog working as meant: a silent submarine (or anything else out of sight) next to the target, or a remembered unit
+        // that has since moved, changes the real fight in a way the player can't be shown. Those fights aren't compared
+        const unseen = k => E.area(k, 1).some(h => (ridx[h] || []).some(u => !ds.units[u.id] || ds.units[u.id].hex !== h) || (idx[h] || []).some(u => !s.units[u.id] || s.units[u.id].hex !== h));
         for (const hex in stacks) {
           const ids = stacks[hex], r = E.reachable(ds, p.id, ids, hex, idx);
-          for (const k in r) if (r[k].kind === 'attack') {
+          for (const k in r) if (r[k].kind === 'attack' && !unseen(k)) {
             const st = r[k].from || hex;
             const a = E.combatCalc(ds, p.id, ids.map(id => ds.units[id]), [hex], k, false, idx), b = E.combatCalc(s, p.id, ids.map(id => s.units[id]), [hex], k, false, ridx);
             samples.melee++; if (Math.abs(a.winProb - b.winProb) > 0.005) { const da = a.def.bonuses.map(x => x.label + (x.chips || '') + '/' + (x.mult || '')).join(','), db = b.def.bonuses.map(x => x.label + (x.chips || '') + '/' + (x.mult || '')).join(','); const aa = a.att.bonuses.map(x => x.label + (x.chips || '') + '/' + (x.mult || '')).join(','), ab = b.att.bonuses.map(x => x.label + (x.chips || '') + '/' + (x.mult || '')).join(',');
@@ -24,6 +27,7 @@ for (let g = 0; g < 3; g++) {
           }
           const guns = ids.filter(id => E.UNITS[ds.units[id].type].range);
           if (guns.length) for (const k of E.rangedTargets(ds, p.id, guns, hex, idx)) {
+            if (unseen(k)) continue;
             const a = E.combatCalc(ds, p.id, guns.map(id => ds.units[id]), hex, k, true, idx), b = E.combatCalc(s, p.id, guns.map(id => s.units[id]), hex, k, true, ridx);
             const realTargets = E.rangedTargets(s, p.id, guns, hex, ridx);
             samples.fire++; if (!realTargets.includes(k)) note('fire', 'target not valid on server', { fog: ds.map.tiles[k].fog });

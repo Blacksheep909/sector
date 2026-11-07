@@ -533,7 +533,26 @@ function botStep(s, pid, mem) {
     }
     return { a: 'end' };
   }
-  return botTurn(s, pid, mem);
+  for (let i = 0; i < 4; i++) {
+    const act = botTurn(s, pid, mem);
+    if (!act || !refusedMove(s, pid, act)) return act;
+    // told "you can't": that stack sits this one out and the bot picks again (it used to send the same refused order again)
+    (mem.skip = mem.skip || new Set()).add(act.from || (act.groups && act.groups[0].from));
+    (mem.tried = mem.tried || new Set()).add(JSON.stringify(act));
+  }
+  return { a: 'end' };
+}
+// would the engine turn this move down? (stranding Grunts without their transport, or a hex it can't reach)
+function refusedMove(s, pid, act) {
+  if (act.a !== 'move' && act.a !== 'assault') return false;
+  const idx = E.buildIndex(s);
+  for (const g of act.a === 'move' ? [act] : act.groups) {
+    const ids = new Set(g.units), left = (idx[g.from] || []).filter(u => u.owner === pid && !ids.has(u.id));
+    if (left.length && !E.stackFits(left, [])) return true;
+    const r = E.reachable(s, pid, g.units, g.from, idx)[act.to];
+    if (!r || r.kind === 'start' || r.kind === 'pass') return true;
+  }
+  return false;
 }
 function botTurn(s, pid, mem) {
   const p = E.player(s, pid);
@@ -572,7 +591,7 @@ function botTurn(s, pid, mem) {
     return { a: 'pick', idx: c.idx, replace: c.replace };
   }
   mem.tried = mem.tried || new Set();
-  const tryOnce = (act) => { if (act && act.a === 'move') act = keepTogether(act);
+  const tryOnce = (act) => {
     // the HQ garrison stays put: no order (an attack, a march, a ferry) takes it below what the HQ needs to hold
     if (act && !K.oldhq && (act.a === 'move' || act.a === 'assault')) {
       const keep = baseGuard(s, pid, idx, K, mem).keep;
@@ -580,10 +599,14 @@ function botTurn(s, pid, mem) {
         if (act.a === 'move') { const us = act.units.filter(id => !keep.has(id)); if (!us.length) return null; act = { ...act, units: us }; }
         if (act.a === 'assault') { const gs = act.groups.map(g => ({ ...g, units: g.units.filter(id => !keep.has(id)) })).filter(g => g.units.length); if (!gs.length) return null; act = { ...act, groups: gs }; }
       }
-    } if (act && act.a === 'build' && (E.buildError(s, pid, act.struct, act.hex) || E.buildCost(s, p, act.struct, act.hex) > p.cash)) return null;   // never propose a build the rules refuse (a river, a full hex) or it can't pay for
+    }
+    // (after the garrison is taken out: a carrier leaving takes its Grunts along, and a move that still strands them is dropped)
+    if (act && act.a === 'move') { act = keepTogether(act); if (strands(act)) return null; }
+    if (act && act.a === 'build' && (E.buildError(s, pid, act.struct, act.hex) || E.buildCost(s, p, act.struct, act.hex) > p.cash)) return null;   // never propose a build the rules refuse (a river, a full hex) or it can't pay for
     // money-makers never eat the army's budget: once the war is on, most of each turn's income is kept for troops
     if (act && act.a === 'build' && ['refinery', 'warehouse', 'depot'].includes(act.struct) && p.cash - E.buildCost(s, p, act.struct, act.hex) < (s.turn.income || 0) * (s.turn.round <= (K.ecoUntil || 8) ? 0.2 : PL.build && PL.build.economy ? 0.4 : (K.armyShare === undefined ? 0.8 : K.armyShare))) return null;
     const k = JSON.stringify(act); if (mem.tried.has(k)) return null; mem.tried.add(k); return act; };
+  const strands = act => { const ids = new Set(act.units), left = (idx[act.from] || []).filter(u => u.owner === pid && !ids.has(u.id)); return left.length && !E.stackFits(left, []); };
   // a carrier doesn't drive off and strand more Grunts than the hex can hold: take them along, or leave the carrier
   const keepTogether = (act) => {
     const here = (idx[act.from] || []).filter(u => u.owner === pid), ids = new Set(act.units), left = () => here.filter(u => !ids.has(u.id));

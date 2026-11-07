@@ -427,6 +427,25 @@ function crossing(s) {
   }
   ok(hit, 'the bot throws what it has at its HQ instead of walking away');
 }
+{ // a besieger who also took every hex round the HQ doesn't shut the muster: empty land next to it still takes troops
+  const roster = [0, 1].map(i => ({ id: 'p' + i, name: 'P' + i, color: E.COLORS[i], faction: 'iron' }));
+  const { state: s } = E.createGame({ mode: 'domination', mapSize: 'medium', seed: 'mu1', mapType: 'continent' }, roster);
+  s.phase = 'play'; const T = s.map.tiles; for (const id in s.units) delete s.units[id];
+  const flat = k => T[k] && E.isLandTile(T[k]) && T[k].t !== 'mountain' && !T[k].river && !T[k].contam;
+  const hq = Object.keys(T).find(k => flat(k) && E.neighbors(k).every(flat)), B = E.player(s, 'p1'), A = E.player(s, 'p0');
+  for (const k in T) { T[k].structs = []; T[k].struct = null; }
+  const far = Object.keys(T).find(k => flat(k) && E.dist(k, hq) >= 6);
+  A.hq = far; T[far].owner = 'p0'; T[far].structs = [{ type: 'hq', owner: 'p0', lvl: 1 }]; T[far].struct = T[far].structs[0];
+  B.hq = hq; T[hq].owner = 'p0'; T[hq].structs = [{ type: 'hq', owner: 'p1', lvl: 1, siege: { by: 'p0' } }]; T[hq].struct = T[hq].structs[0];
+  for (const n of E.neighbors(hq)) T[n].owner = 'p0';
+  s.units.g = { id: 'g', owner: 'p0', type: 'grunt', hex: hq, moved: false, fresh: false, stun: 0, mvBonus: 0 };
+  s.turn.idx = s.players.findIndex(p => p.id === 'p1'); s.turn.stage = 'act'; B.cash = 20; if (!B.arsenal.includes('grunt')) B.arsenal.push('grunt');
+  const mh = E.musterHexes(s, 'p1');
+  ok(mh.length === 6, 'every empty hex round the besieged HQ is a muster point, though the besieger owns them all');
+  const spot = mh[0], r = E.applyAction(s, 'p1', { a: 'deploy', unit: 'grunt', hex: spot });
+  const u = r.ok && Object.values(s.units).find(x => x.owner === 'p1' && x.hex === spot);
+  ok(r.ok && T[spot].owner === 'p1' && u && E.canAct(s, u), 'mustering there claims the hex, and the troops can strike back this turn');
+}
 { // encirclement is local: a move across the map doesn't annex a pocket that was already walled in elsewhere
   const roster = [0, 1].map(i => ({ id: 'p' + i, name: 'P' + i, color: E.COLORS[i], faction: 'iron' }));
   const { state: s } = E.createGame({ mode: 'domination', mapSize: 'large', seed: 'lake1', mapType: 'pangaea' }, roster);

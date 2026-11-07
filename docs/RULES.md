@@ -276,7 +276,7 @@ When a commander falls, the conqueror takes their **heartland** (hexes within 2 
 
 ## HQ sieges
 
-Taking an enemy HQ doesn't knock them out straight away: it puts their HQ **under siege**. The defender gets one full turn cycle to strike back. If your troops are still standing on that HQ when your next turn starts, they're eliminated. If they retake it or drive you off, the siege collapses. A besieged HQ can't deploy units or supply territory, and its garrison bonus is gone. Instead you get an **emergency muster**: every hex you own next to your besieged HQ becomes a deploy point, and troops deployed there can attack immediately, so you can rush in defenders and take your HQ back the same turn.
+Taking an enemy HQ doesn't knock them out straight away: it puts their HQ **under siege**. The defender gets one full turn cycle to strike back. If your troops are still standing on that HQ when your next turn starts, they're eliminated. If they retake it or drive you off, the siege collapses. A besieged HQ can't deploy units or supply territory, and its garrison bonus is gone. Instead you get an **emergency muster**: every land hex next to your besieged HQ becomes a deploy point, yours or not, as long as no enemy troops or forts stand on it (deploying there claims it back), and troops deployed there can attack immediately, so you can rush in defenders and take your HQ back the same turn.
 
 When a siege knocks a commander out, **their old HQ becomes your FOB**: a deploy point right where you broke through.
 
