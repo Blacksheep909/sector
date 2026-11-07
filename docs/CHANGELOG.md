@@ -2,6 +2,12 @@
 
 Every release, newest first. Each version also has its own post on the [Releases page](https://github.com/Blacksheep909/sector/releases).
 
+## v0.13.9
+
+**Nothing moves 5 any more.**
+
+- **Balance:** Outrider, Wren, Phantom and Seraph go from 5 to 4 movement. Other stats and costs are unchanged.
+
 ## v0.13.8
 
 **Renewing an alliance ignores the size limit.**
