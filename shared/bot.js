@@ -245,8 +245,11 @@ function planAssault(s, pid, idx, K, strat, mem, topN) {
       fobHit = (strat.lost && strat.lost[t] ? 1 : 0) + (ours >= 2 ? 0.6 : ours ? 0.3 : 0);
       prize += 12 + fobHit * 24 * (K.punish === undefined ? 1 : K.punish);
     }
-    const maxCombo = K.combo + (isHQ ? Math.round(2 * (K.lethal || 0)) : 0) + (overext >= 0.8 ? 1 : 0);
-    const list = by[t].slice().sort((a, b) => stackValue(b.units) - stackValue(a.units)).slice(0, Math.max(5, maxCombo + 1));
+    // our own HQ with the enemy sitting on it: if we don't take it back this turn we're out of the war, so everything goes in
+    // (Easy bots still give up on a hopeless counterattack, so the gentler missions stay winnable)
+    const ownHQ = isHQ && t === (p && p.hq) && p.diff !== 'easy';
+    const maxCombo = ownHQ ? 99 : K.combo + (isHQ ? Math.round(2 * (K.lethal || 0)) : 0) + (overext >= 0.8 ? 1 : 0);
+    const list = by[t].slice().sort((a, b) => stackValue(b.units) - stackValue(a.units)).slice(0, ownHQ ? 99 : Math.max(5, maxCombo + 1));
     const used = [], kinds = new Set();
     const kindsOf = st => st.units.filter(u => E.UNITS[u.type].atk > 0).map(u => E.UNITS[u.type].cls);
     const worth = st => stackValue(st.units) * (1 + 0.6 * new Set(kindsOf(st).filter(k => !kinds.has(k))).size);
@@ -261,7 +264,8 @@ function planAssault(s, pid, idx, K, strat, mem, topN) {
       if (calc.winProb >= Math.max(K.attack, 0.85) && !list.some(x => !used.includes(x) && kindsOf(x).some(k => !kinds.has(k)))) break;
     }
     if (!calc) continue;
-    // our own HQ under siege: any real chance of taking it back beats being knocked out next turn
+    // our own HQ under siege: any chance at all of taking it back beats being knocked out next turn, and the units don't matter if we're gone
+    if (ownHQ) { if (calc.winProb > 0) { const v = 1e4 + calc.winProb * 1e3; if (topN) all.push({ t, used, calc, v }); if (v > bv) { bv = v; best = { t, used, calc }; } } continue; }
     const press = tt.owner && tt.owner === strat.target ? (strat.rich || 0) * (K.richW === undefined ? 0.15 : K.richW) * (K.lethal || 0) : 0;
     const need = isHQ && t === (p && p.hq) ? 0.15 : (isHQ ? K.attack - 0.15 - 0.08 * (K.lethal || 0) : K.attack) - press - Math.min(0.1, overext * 0.07) - Math.min(0.1, fobHit * 0.08);
     if (calc.winProb < need) continue;

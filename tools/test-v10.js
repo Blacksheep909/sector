@@ -404,6 +404,29 @@ function crossing(s) {
   E.annex(s, 'p0', []);
   ok(T[c].owner === 'p0' && E.neighbors(c).filter(n => n !== lake).every(n => T[n].owner === 'p0'), 'a pocket with a lake in it is annexed (the ship on the lake doesn\'t stop it)');
 }
+{ // a bot whose HQ the enemy is sitting on attacks it, even at long odds (losing it next turn knocks the bot out anyway)
+  const { botStep, draftStep } = require('../shared/bot');
+  const roster = [0, 1].map(i => ({ id: 'p' + i, name: 'P' + i, color: E.COLORS[i], faction: 'iron', bot: i > 0, diff: 'medium' }));
+  const { state: s } = E.createGame({ mode: 'domination', mapSize: 'medium', timer: 0, mapType: 'continent', seed: 'hq1' }, roster);
+  while (s.phase === 'draft' || s.phase === 'spawn') for (const p of s.players) { const a = draftStep(s, p.id); if (a) E.applyAction(s, p.id, a); }
+  const T = s.map.tiles, bot = E.player(s, 'p1'), hq = bot.hq;
+  while (E.current(s).id !== 'p0') { const id = E.current(s).id; if (s.turn.stage === 'choose') E.applyAction(s, id, { a: 'choose', pick: 'income' }); E.applyAction(s, id, { a: 'end' }); }
+  if (s.turn.stage === 'choose') E.applyAction(s, 'p0', { a: 'choose', pick: 'income' });
+  for (const id in s.units) delete s.units[id];
+  const nb = E.neighbors(hq).filter(n => T[n] && E.isLandTile(T[n]) && T[n].t !== 'mountain' && !T[n].river);
+  const put = (id, type, hex, owner) => s.units[id] = { id, owner, type, hex, moved: false, fresh: false, stun: 0, mvBonus: 0 };
+  T[nb[0]].owner = 'p0'; ['g1', 'g2', 'g3'].forEach(id => put(id, 'goliath', nb[0], 'p0')); put('h0', 'grunt', E.player(s, 'p0').hq, 'p0');
+  E.applyAction(s, 'p0', { a: 'move', from: nb[0], units: ['g1', 'g2', 'g3'], to: hq }, () => 0.01);
+  T[nb[1]].owner = 'p1'; put('sk', 'skitter', nb[1], 'p1');
+  ok(T[hq].owner === 'p0', 'three Goliaths sit on the bot\'s HQ');
+  E.applyAction(s, 'p0', { a: 'end' });
+  const mem = {}; let hit = false;
+  for (let i = 0; i < 30 && E.current(s).id === 'p1' && s.phase === 'play'; i++) {
+    const a = botStep(s, 'p1', mem); if (a.to === hq && ['move', 'assault'].includes(a.a)) hit = true;
+    E.applyAction(s, 'p1', a); if (a.a === 'end') break;
+  }
+  ok(hit, 'the bot throws what it has at its HQ instead of walking away');
+}
 { // encirclement is local: a move across the map doesn't annex a pocket that was already walled in elsewhere
   const roster = [0, 1].map(i => ({ id: 'p' + i, name: 'P' + i, color: E.COLORS[i], faction: 'iron' }));
   const { state: s } = E.createGame({ mode: 'domination', mapSize: 'large', seed: 'lake1', mapType: 'pangaea' }, roster);
